@@ -203,6 +203,10 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# Local MCP tokens (never commit)
+.cursor/mcp.secrets.env
+scripts/mcp-env.sh
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
