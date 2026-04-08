@@ -14,7 +14,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client
+# Next.js may omit `public/`; standalone runtime stage still expects this path.
+RUN mkdir -p public
+
+# Prisma needs DATABASE_URL at generate time (schema uses env("DATABASE_URL"))
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 RUN npx prisma generate
 
 # Build Next.js
@@ -41,10 +45,10 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 USER nextjs
 
 EXPOSE 3000
-ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1
+# Render sets PORT at runtime; Next standalone reads it. Do not hardcode PORT in HEALTHCHECK.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+    CMD node -e "const p=process.env.PORT||3000;require('http').get('http://127.0.0.1:'+p+'/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
 
 CMD ["node", "server.js"]

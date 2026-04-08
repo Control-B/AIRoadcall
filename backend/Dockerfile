@@ -32,9 +32,9 @@ ENV PYTHONDONTWRITEBYTECODE=1
 
 EXPOSE 8000
 
-# Health check
+# Health check (Render sets PORT; use it for localhost checks)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+    CMD python -c "import os,urllib.request; p=os.environ.get('PORT','8000'); urllib.request.urlopen(f'http://127.0.0.1:{p}/health')" || exit 1
 
-# Run with uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
+# Render injects PORT; default keeps local `docker run` working.
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

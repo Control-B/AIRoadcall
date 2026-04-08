@@ -9,13 +9,14 @@ databases:
 
 services:
   # ── FastAPI Backend ─────────────────────────────────────
+  # Docker build: avoids “Dockerfile not found” when the dashboard expects a repo-root Dockerfile.
+  # Paths are relative to the repo root (monorepo layout).
   - type: web
     name: airoadcall-backend
-    runtime: python
+    runtime: docker
     plan: free
-    rootDir: backend
-    buildCommand: chmod +x build.sh && ./build.sh
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
@@ -52,11 +53,10 @@ services:
   # ── Next.js Frontend ────────────────────────────────────
   - type: web
     name: airoadcall-frontend
-    runtime: node
+    runtime: docker
     plan: free
-    rootDir: frontend
-    buildCommand: npm install && DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder" npx prisma generate && npm run build
-    startCommand: npx next start -p $PORT
+    dockerfilePath: ./frontend/Dockerfile
+    dockerContext: ./frontend
     healthCheckPath: /
     envVars:
       - key: NODE_VERSION
