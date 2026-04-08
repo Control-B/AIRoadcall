@@ -1,5 +1,6 @@
 import asyncio
 import os
+import ssl
 from logging.config import fileConfig
 from sqlalchemy import pool
 from sqlalchemy.ext.asyncio import create_async_engine
@@ -49,9 +50,18 @@ def do_run_migrations(connection):
 
 
 async def run_async_migrations() -> None:
+    db_url = _get_db_url()
+    connect_args = {}
+    if "localhost" not in db_url and "127.0.0.1" not in db_url:
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        connect_args["ssl"] = ssl_context
+
     connectable = create_async_engine(
-        _get_db_url(),
+        db_url,
         poolclass=pool.NullPool,
+        connect_args=connect_args,
     )
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
