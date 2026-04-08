@@ -1,0 +1,91 @@
+# AI Roadside Support — Docker Compose
+# ─────────────────────────────────────
+# 4 services: postgres, backend (FastAPI), agent (LiveKit worker), frontend (Next.js)
+#
+# Usage:
+#   cp .env.example .env   # fill in your keys
+#   docker compose up -d   # start all services
+#   docker compose logs -f backend   # tail backend logs
+#   docker compose up -d --build backend   # rebuild just the backend
+
+services:
+  # ── PostgreSQL ──────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-airoadcall}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-airoadcall}
+      POSTGRES_DB: ${POSTGRES_DB:-airoadcall}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-airoadcall}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ── FastAPI Backend ─────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-airoadcall}:${POSTGRES_PASSWORD:-airoadcall}@postgres:5432/${POSTGRES_DB:-airoadcall}
+      FRONTEND_URL: http://localhost:3000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  # ── LiveKit Agent Worker ────────────────────────────────
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      LIVEKIT_API_KEY: ${LIVEKIT_API_KEY}
+      LIVEKIT_API_SECRET: ${LIVEKIT_API_SECRET}
+      LIVEKIT_URL: ${LIVEKIT_URL}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # ── Next.js Frontend ────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+        - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
+        - NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN:-}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-airoadcall}:${POSTGRES_PASSWORD:-airoadcall}@postgres:5432/${POSTGRES_DB:-airoadcall}
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  pgdata:

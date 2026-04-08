@@ -1,0 +1,20 @@
+[project]
+name = "ai-roadcall-agent"
+version = "0.1.0"
+description = "LiveKit AI agent worker for roadside assistance telephony"
+requires-python = ">=3.12"
+dependencies = [
+    "livekit-agents>=1.0.0",
+    "livekit-api>=1.0.0",
+    "httpx==0.28.1",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.8",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100

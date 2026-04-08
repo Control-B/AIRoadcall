@@ -1,0 +1,176 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────
+
+enum JobStatus {
+  created
+  awaiting_driver_location
+  awaiting_payment_authorization
+  payment_authorized
+  matching_mechanics
+  calling_mechanics
+  mechanic_assigned
+  mechanic_en_route
+  mechanic_arrived
+  completed
+  canceled
+}
+
+enum PaymentStatus {
+  not_started
+  pending
+  authorized
+  capture_required
+  captured
+  released
+  failed
+}
+
+enum DispatchStatus {
+  queued
+  calling
+  accepted
+  declined
+  unavailable
+  no_answer
+  timed_out
+  superseded
+}
+
+enum TrackingStatus {
+  not_started
+  pending
+  active
+  paused
+  arrived
+  ended
+}
+
+enum IssueType {
+  flat_tire
+  dead_battery
+  lockout
+  fuel_delivery
+  tow_needed
+  engine_trouble
+  overheating
+  accident
+  stuck_off_road
+  other
+}
+
+// ─── Models ─────────────────────────────────────────────
+
+model Job {
+  id                      String    @id @default(uuid())
+  publicJobId             String    @unique @map("public_job_id")
+  magicLinkToken          String    @unique @map("magic_link_token")
+  magicLinkExpiresAt      DateTime  @map("magic_link_expires_at")
+
+  driverName              String    @map("driver_name")
+  driverPhone             String    @map("driver_phone")
+  vehicleType             String?   @map("vehicle_type")
+
+  issueType               IssueType @map("issue_type")
+  issueSummary            String?   @map("issue_summary")
+
+  status                  JobStatus @default(awaiting_driver_location)
+  paymentStatus           PaymentStatus @default(not_started) @map("payment_status")
+
+  stripeCustomerId        String?   @map("stripe_customer_id")
+  stripePaymentIntentId   String?   @unique @map("stripe_payment_intent_id")
+  paymentHoldAmount       Decimal?  @map("payment_hold_amount") @db.Decimal(10, 2)
+
+  driverLat               Float?    @map("driver_lat")
+  driverLng               Float?    @map("driver_lng")
+  driverLocationCapturedAt DateTime? @map("driver_location_captured_at")
+
+  assignedMechanicId      String?   @map("assigned_mechanic_id")
+
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  dispatchAttempts        MechanicDispatchAttempt[]
+  trackingSessions        TrackingSession[]
+
+  @@map("jobs")
+}
+
+model Mechanic {
+  id                      String    @id @default(uuid())
+  companyName             String    @map("company_name")
+  contactName             String    @map("contact_name")
+  phone                   String    @unique
+
+  serviceTypes            Json      @default("[]") @map("service_types")
+  vehicleTypesSupported   Json      @default("[]") @map("vehicle_types_supported")
+
+  baseLat                 Float     @map("base_lat")
+  baseLng                 Float     @map("base_lng")
+
+  active                  Boolean   @default(true)
+  acceptsMobileRoadside   Boolean   @default(true) @map("accepts_mobile_roadside")
+
+  lastKnownLat            Float?    @map("last_known_lat")
+  lastKnownLng            Float?    @map("last_known_lng")
+  lastLocationUpdatedAt   DateTime? @map("last_location_updated_at")
+
+  rating                  Decimal?  @db.Decimal(3, 2)
+
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  dispatchAttempts        MechanicDispatchAttempt[]
+  trackingSessions        TrackingSession[]
+
+  @@map("mechanics")
+}
+
+model MechanicDispatchAttempt {
+  id                      String    @id @default(uuid())
+  jobId                   String    @map("job_id")
+  mechanicId              String    @map("mechanic_id")
+
+  rankScore               Float     @default(0) @map("rank_score")
+  dispatchStatus          DispatchStatus @default(queued) @map("dispatch_status")
+
+  calledAt                DateTime? @map("called_at")
+  respondedAt             DateTime? @map("responded_at")
+  availabilityEtaMinutes  Int?      @map("availability_eta_minutes")
+  notes                   String?
+
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  job                     Job       @relation(fields: [jobId], references: [id])
+  mechanic                Mechanic  @relation(fields: [mechanicId], references: [id])
+
+  @@map("dispatch_attempts")
+}
+
+model TrackingSession {
+  id                      String    @id @default(uuid())
+  jobId                   String    @map("job_id")
+  mechanicId              String    @map("mechanic_id")
+
+  trackingStatus          TrackingStatus @default(not_started) @map("tracking_status")
+
+  startedAt               DateTime? @map("started_at")
+  endedAt                 DateTime? @map("ended_at")
+  lastDriverViewAt        DateTime? @map("last_driver_view_at")
+
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  job                     Job       @relation(fields: [jobId], references: [id])
+  mechanic                Mechanic  @relation(fields: [mechanicId], references: [id])
+
+  @@map("tracking_sessions")
+}

@@ -205,3 +205,20 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ── AI Roadcall project additions ────────────────────────
+
+# Node / Next.js
+node_modules/
+.next/
+.turbo/
+out/
+
+# uv lock file
+uv.lock
+
+# Scraped data (large JSON files)
+backend/data/*.json
+
+# Docker logs
+*.log

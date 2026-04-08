@@ -1,0 +1,281 @@
+"use client";
+
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getTracking, type TrackingView } from "@/lib/api-client";
+import {
+  MapPin,
+  Wrench,
+  Clock,
+  CheckCircle2,
+  Navigation,
+  Loader2,
+} from "lucide-react";
+
+interface TrackingStepProps {
+  token: string;
+  mechanicCompany?: string;
+  mechanicContact?: string;
+}
+
+export function TrackingStep({
+  token,
+  mechanicCompany,
+  mechanicContact,
+}: TrackingStepProps) {
+  const [tracking, setTracking] = useState<TrackingView | null>(null);
+  const [loading, setLoading] = useState(true);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
+  const mechanicMarkerRef = useRef<any>(null);
+
+  const pollTracking = useCallback(async () => {
+    try {
+      const data = await getTracking(token);
+      setTracking(data);
+      setLoading(false);
+      updateMapMarkers(data);
+    } catch (err) {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    pollTracking();
+    const interval = setInterval(pollTracking, 5000);
+    return () => clearInterval(interval);
+  }, [pollTracking]);
+
+  // Initialize Mapbox map
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+    const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+    if (!mapboxToken) return;
+
+    import("mapbox-gl").then((mapboxgl) => {
+      (mapboxgl as any).accessToken = mapboxToken;
+
+      const map = new mapboxgl.Map({
+        container: mapContainerRef.current!,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [-118.24, 34.05],
+        zoom: 13,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl(), "top-right");
+      mapRef.current = map;
+
+      return () => {
+        map.remove();
+      };
+    });
+  }, []);
+
+  function updateMapMarkers(data: TrackingView) {
+    if (!mapRef.current) return;
+
+    import("mapbox-gl").then((mapboxgl) => {
+      const map = mapRef.current;
+
+      // Driver marker
+      if (data.driver_lat && data.driver_lng) {
+        if (driverMarkerRef.current) {
+          driverMarkerRef.current.setLngLat([data.driver_lng, data.driver_lat]);
+        } else {
+          const el = document.createElement("div");
+          el.className = "driver-marker";
+          el.innerHTML = `<div style="background:#ef4444;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`;
+
+          driverMarkerRef.current = new mapboxgl.Marker(el)
+            .setLngLat([data.driver_lng, data.driver_lat])
+            .setPopup(new mapboxgl.Popup().setHTML("<strong>You</strong>"))
+            .addTo(map);
+        }
+      }
+
+      // Mechanic marker
+      if (data.mechanic_lat && data.mechanic_lng) {
+        if (mechanicMarkerRef.current) {
+          mechanicMarkerRef.current.setLngLat([
+            data.mechanic_lng,
+            data.mechanic_lat,
+          ]);
+        } else {
+          const el = document.createElement("div");
+          el.className = "mechanic-marker";
+          el.innerHTML = `<div style="background:#2563eb;width:20px;height:20px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`;
+
+          mechanicMarkerRef.current = new mapboxgl.Marker(el)
+            .setLngLat([data.mechanic_lng, data.mechanic_lat])
+            .setPopup(
+              new mapboxgl.Popup().setHTML(
+                `<strong>${data.mechanic_company || "Mechanic"}</strong>`
+              )
+            )
+            .addTo(map);
+        }
+
+        // Fit bounds to show both markers
+        if (data.driver_lat && data.driver_lng) {
+          const bounds = new mapboxgl.LngLatBounds();
+          bounds.extend([data.driver_lng, data.driver_lat]);
+          bounds.extend([data.mechanic_lng, data.mechanic_lat]);
+          map.fitBounds(bounds, { padding: 60, maxZoom: 15 });
+        }
+      }
+    });
+  }
+
+  const statusLabel =
+    tracking?.job_status === "mechanic_arrived"
+      ? "Mechanic Has Arrived!"
+      : tracking?.job_status === "mechanic_en_route"
+      ? "Mechanic En Route"
+      : "Tracking";
+
+  const StatusIcon =
+    tracking?.job_status === "mechanic_arrived" ? CheckCircle2 : Navigation;
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-48 mx-auto" />
+        <Skeleton className="h-64 w-full rounded-xl" />
+        <Skeleton className="h-24 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="text-center">
+        <div
+          className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
+            tracking?.job_status === "mechanic_arrived"
+              ? "bg-green-100"
+              : "bg-blue-100"
+          }`}
+        >
+          <StatusIcon
+            className={`h-8 w-8 ${
+              tracking?.job_status === "mechanic_arrived"
+                ? "text-green-600"
+                : "text-blue-600"
+            }`}
+          />
+        </div>
+        <h2 className="text-2xl font-bold">{statusLabel}</h2>
+        {tracking?.eta_minutes && (
+          <p className="mt-1 text-lg font-semibold text-primary">
+            ETA: ~{tracking.eta_minutes} minutes
+          </p>
+        )}
+      </div>
+
+      {/* Map */}
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <div
+            ref={mapContainerRef}
+            className="h-64 sm:h-80 w-full"
+          >
+            {!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN && (
+              <div className="h-full flex items-center justify-center bg-muted">
+                <div className="text-center text-sm text-muted-foreground">
+                  <MapPin className="h-8 w-8 mx-auto mb-2" />
+                  <p>Map requires Mapbox access token</p>
+                  {tracking?.driver_lat && (
+                    <p className="mt-1">
+                      📍 Driver: {tracking.driver_lat.toFixed(4)},{" "}
+                      {tracking.driver_lng?.toFixed(4)}
+                    </p>
+                  )}
+                  {tracking?.mechanic_lat && (
+                    <p>
+                      🔧 Mechanic: {tracking.mechanic_lat.toFixed(4)},{" "}
+                      {tracking.mechanic_lng?.toFixed(4)}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Legend */}
+      <div className="flex justify-center gap-6 text-sm">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full bg-red-500" />
+          <span>You</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full bg-blue-600" />
+          <span>Mechanic</span>
+        </div>
+      </div>
+
+      {/* Mechanic Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Your Mechanic</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
+              <Wrench className="h-6 w-6 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-semibold">
+                {tracking?.mechanic_company || mechanicCompany || "Assigned Mechanic"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {tracking?.mechanic_contact || mechanicContact}
+              </p>
+            </div>
+            {tracking?.mechanic_last_updated && (
+              <div className="text-right">
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>
+                    Updated{" "}
+                    {new Date(tracking.mechanic_last_updated).toLocaleTimeString()}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {tracking?.job_status === "mechanic_arrived" ? (
+        <Alert variant="success">
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertDescription>
+            Your mechanic has arrived! They should be approaching your vehicle
+            now.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert>
+          <AlertDescription className="flex items-center gap-2">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Live tracking updates every 5 seconds
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!tracking?.mechanic_lat && tracking?.tracking_status !== "arrived" && (
+        <Alert variant="warning">
+          <AlertDescription>
+            Mechanic location is not yet available. They may still be preparing
+            to depart. Tracking will update automatically.
+          </AlertDescription>
+        </Alert>
+      )}
+    </div>
+  );
+}
