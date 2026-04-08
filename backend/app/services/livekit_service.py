@@ -20,7 +20,7 @@ import uuid
 from typing import Optional
 
 import httpx
-from livekit.api import LiveKitAPI, SIPTrunkInfo
+from livekit.api import LiveKitAPI
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
