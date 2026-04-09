@@ -28,21 +28,24 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#050a14] flex items-center justify-center px-4 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(234,88,12,0.12),transparent_60%)] pointer-events-none" />
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <Phone className="h-8 w-8 text-blue-400" />
+          <div className="inline-flex items-center gap-2.5 mb-3">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
+              <Phone className="h-5 w-5 text-white" />
+            </div>
             <span className="text-2xl font-bold text-white">
-              AI Receptionist
+              Roadcall<span className="text-orange-400">.ai</span>
             </span>
           </div>
           <p className="text-slate-400 text-sm">Admin Dashboard</p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-slate-800 rounded-xl border border-slate-700 p-6 shadow-xl">
+        <div className="bg-white/[0.04] backdrop-blur-sm rounded-2xl border border-white/10 p-6 shadow-xl">
           <h2 className="text-lg font-semibold text-white mb-6">Sign in</h2>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -56,7 +59,7 @@ export default function AdminLoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 autoFocus
-                className="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2.5 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-colors text-sm"
                 placeholder="Enter username"
               />
             </div>
@@ -70,7 +73,7 @@ export default function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-3 py-2.5 bg-slate-900 border border-slate-600 rounded-lg text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                className="w-full px-3 py-2.5 bg-white/[0.05] border border-white/[0.1] rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/50 focus:border-orange-500/50 transition-colors text-sm"
                 placeholder="Enter password"
               />
             </div>
@@ -84,7 +87,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-lg font-medium text-sm transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 disabled:opacity-60 disabled:cursor-not-allowed text-white rounded-xl font-medium text-sm transition-all shadow-lg shadow-orange-600/20 flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -99,7 +102,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">
-          AI Receptionist by OmniWeb &middot; Admin Access Only
+          Roadcall.ai by Omniweb, LLC &middot; Admin Access Only
         </p>
       </div>
     </div>
