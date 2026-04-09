@@ -33,6 +33,14 @@ class Settings(BaseSettings):
     DO_AI_API_KEY: str = ""
     DO_AI_MODEL: str = ""  # e.g. meta-llama/Meta-Llama-3.1-70B-Instruct
 
+    # Resend (email)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = "AI Receptionist <hello@airoadcall.com>"
+
+    # Outreach
+    DEMO_PHONE_NUMBER: str = ""  # Toll-free demo number
+    ADMIN_API_KEY: str = "change-this-to-a-secure-admin-key"
+
     # App
     APP_BASE_URL: str = "http://localhost:3000"
     MAGIC_LINK_SECRET: str = "change-this-to-a-secure-random-string"

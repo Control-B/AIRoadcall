@@ -63,6 +63,12 @@ class Mechanic(Base):
     successful_dispatches: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     avg_response_time_min: Mapped[float | None] = mapped_column(Float, nullable=True)
 
+    # Lead tracking (outreach system)
+    lead_status: Mapped[str | None] = mapped_column(String(50), nullable=True, default="new", index=True)
+    # new, contacted, interested, demo_scheduled, demo_completed, negotiating, signed_up, not_interested, do_not_contact
+    lead_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
