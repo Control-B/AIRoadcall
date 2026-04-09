@@ -20,9 +20,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "change-this-to-a-secure-admin-key";
+import { adminFetch } from "@/lib/admin-auth";
 
 interface Shop {
   id: string;
@@ -48,13 +46,8 @@ export default function ShopsPage() {
   useEffect(() => {
     async function fetchShops() {
       try {
-        const res = await fetch(`${API_BASE}/shops/`, {
-          headers: { "x-admin-key": ADMIN_KEY },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setShops(data);
-        }
+        const data = await adminFetch<Shop[]>("/shops/");
+        setShops(data);
       } catch (err) {
         console.error("Failed to fetch shops:", err);
       } finally {

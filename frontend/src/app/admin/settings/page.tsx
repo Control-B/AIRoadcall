@@ -61,20 +61,14 @@ export default function SettingsPage() {
             Authentication
           </CardTitle>
           <CardDescription>
-            Admin API key for dashboard access
+            Login-based session authentication
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="text-sm font-medium">Admin API Key</label>
-            <Input
-              type="password"
-              value={settings.adminKey}
-              onChange={(e) => updateField("adminKey", e.target.value)}
-              placeholder="Set in ADMIN_API_KEY env var"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Used as X-Admin-Key header for all admin API calls
+            <p className="text-sm text-muted-foreground">
+              Admin dashboard is protected by username/password login.
+              Credentials are set via <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">ADMIN_USERNAME</code> and <code className="text-xs bg-slate-100 px-1 py-0.5 rounded">ADMIN_PASSWORD</code> environment variables.
             </p>
           </div>
         </CardContent>

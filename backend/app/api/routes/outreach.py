@@ -1,6 +1,6 @@
 """Outreach & Campaign API routes."""
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, Header, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session
@@ -17,19 +17,12 @@ from app.schemas.outreach import (
     OutreachDashboardStats,
 )
 
+from app.api.routes.admin_auth import verify_admin
+
 logger = get_logger(__name__)
 settings = get_settings()
 
 router = APIRouter(prefix="/outreach", tags=["outreach"])
-
-
-# ── Admin Auth ───────────────────────────────────────────
-
-async def verify_admin(x_admin_key: str = Header(...)):
-    """Simple API key auth for admin routes."""
-    if x_admin_key != settings.ADMIN_API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid admin key")
-    return True
 
 
 # ── Dashboard ────────────────────────────────────────────

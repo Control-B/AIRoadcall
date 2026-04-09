@@ -13,9 +13,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "change-this-to-a-secure-admin-key";
+import { adminFetch } from "@/lib/admin-auth";
 
 export default function NewShopPage() {
   const router = useRouter();
@@ -53,21 +51,10 @@ export default function NewShopPage() {
           : null,
       };
 
-      const res = await fetch(`${API_BASE}/shops/`, {
+      const shop = await adminFetch<{ id: string }>("/shops/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-key": ADMIN_KEY,
-        },
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to create shop");
-      }
-
-      const shop = await res.json();
       router.push(`/admin/shops/${shop.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

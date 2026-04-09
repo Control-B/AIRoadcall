@@ -23,9 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "change-this-to-a-secure-admin-key";
+import { adminFetch } from "@/lib/admin-auth";
 
 interface Campaign {
   id: string;
@@ -85,12 +83,8 @@ export default function OutreachPage() {
   useEffect(() => {
     async function fetchCampaigns() {
       try {
-        const res = await fetch(`${API_BASE}/outreach/campaigns`, {
-          headers: { "x-admin-key": ADMIN_KEY },
-        });
-        if (res.ok) {
-          setCampaigns(await res.json());
-        }
+        const data = await adminFetch<Campaign[]>("/outreach/campaigns");
+        setCampaigns(data);
       } catch (err) {
         console.error("Failed to fetch campaigns:", err);
       } finally {

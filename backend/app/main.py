@@ -14,6 +14,7 @@ from app.api.routes import (
     data_pipeline,
     shops,
     outreach,
+    admin_auth,
 )
 
 settings = get_settings()
@@ -50,6 +51,7 @@ app.include_router(webhooks_livekit.router, prefix="/api")
 app.include_router(data_pipeline.router, prefix="/api")
 app.include_router(shops.router, prefix="/api")
 app.include_router(outreach.router, prefix="/api")
+app.include_router(admin_auth.router, prefix="/api")
 
 
 @app.get("/health")

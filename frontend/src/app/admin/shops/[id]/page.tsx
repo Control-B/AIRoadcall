@@ -21,9 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "change-this-to-a-secure-admin-key";
+import { adminFetch } from "@/lib/admin-auth";
 
 interface Shop {
   id: string;
@@ -76,17 +74,13 @@ export default function ShopDetailPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [shopRes, callsRes] = await Promise.all([
-          fetch(`${API_BASE}/shops/${shopId}`, {
-            headers: { "x-admin-key": ADMIN_KEY },
-          }),
-          fetch(`${API_BASE}/shops/${shopId}/calls`, {
-            headers: { "x-admin-key": ADMIN_KEY },
-          }),
+        const [shopData, callsData] = await Promise.all([
+          adminFetch<Shop>(`/shops/${shopId}`),
+          adminFetch<CallLog[]>(`/shops/${shopId}/calls`),
         ]);
 
-        if (shopRes.ok) setShop(await shopRes.json());
-        if (callsRes.ok) setCalls(await callsRes.json());
+        setShop(shopData);
+        setCalls(callsData);
       } catch (err) {
         console.error("Failed to fetch shop details:", err);
       } finally {

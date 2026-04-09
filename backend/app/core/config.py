@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     # Outreach
     DEMO_PHONE_NUMBER: str = ""  # Toll-free demo number
     ADMIN_API_KEY: str = "change-this-to-a-secure-admin-key"
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "change-this"
 
     # App
     APP_BASE_URL: str = "http://localhost:3000"

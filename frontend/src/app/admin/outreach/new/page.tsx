@@ -22,9 +22,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "change-this-to-a-secure-admin-key";
+import { adminFetch } from "@/lib/admin-auth";
 
 const SMS_TEMPLATES = [
   {
@@ -110,17 +108,11 @@ export default function NewCampaignPage() {
     setPreviewResult(null);
     try {
       const filters = buildSegmentFilters() || {};
-      const res = await fetch(`${API_BASE}/outreach/segment/preview`, {
+      const data = await adminFetch<{ total_matching: number; sample: Record<string, unknown>[] }>("/outreach/segment/preview", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-key": ADMIN_KEY,
-        },
         body: JSON.stringify(filters),
       });
-      if (res.ok) {
-        setPreviewResult(await res.json());
-      }
+      setPreviewResult(data);
     } catch (err) {
       console.error("Preview failed:", err);
     } finally {
@@ -143,21 +135,10 @@ export default function NewCampaignPage() {
         segment_filters: buildSegmentFilters(),
       };
 
-      const res = await fetch(`${API_BASE}/outreach/campaigns`, {
+      const campaign = await adminFetch<{ id: string }>("/outreach/campaigns", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-admin-key": ADMIN_KEY,
-        },
         body: JSON.stringify(payload),
       });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.detail || "Failed to create campaign");
-      }
-
-      const campaign = await res.json();
       router.push(`/admin/outreach/${campaign.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");

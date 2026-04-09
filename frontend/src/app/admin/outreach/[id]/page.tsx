@@ -24,9 +24,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "change-this-to-a-secure-admin-key";
+import { adminFetch } from "@/lib/admin-auth";
 
 interface Campaign {
   id: string;
@@ -85,10 +83,8 @@ export default function CampaignDetailPage() {
 
   async function fetchCampaign() {
     try {
-      const res = await fetch(`${API_BASE}/outreach/campaigns/${campaignId}`, {
-        headers: { "x-admin-key": ADMIN_KEY },
-      });
-      if (res.ok) setCampaign(await res.json());
+      const data = await adminFetch<Campaign>(`/outreach/campaigns/${campaignId}`);
+      setCampaign(data);
     } catch (err) {
       console.error("Failed to fetch campaign:", err);
     } finally {
@@ -109,19 +105,10 @@ export default function CampaignDetailPage() {
       return;
     setSending(true);
     try {
-      const res = await fetch(
-        `${API_BASE}/outreach/campaigns/${campaignId}/send`,
-        {
-          method: "POST",
-          headers: { "x-admin-key": ADMIN_KEY },
-        }
-      );
-      if (res.ok) {
-        await fetchCampaign();
-      } else {
-        const data = await res.json();
-        alert(data.detail || "Failed to send");
-      }
+      await adminFetch(`/outreach/campaigns/${campaignId}/send`, {
+        method: "POST",
+      });
+      await fetchCampaign();
     } catch (err) {
       console.error("Send failed:", err);
     } finally {
@@ -132,20 +119,14 @@ export default function CampaignDetailPage() {
   async function handleProcess() {
     setProcessing(true);
     try {
-      const res = await fetch(
-        `${API_BASE}/outreach/campaigns/${campaignId}/process?batch_size=100`,
-        {
-          method: "POST",
-          headers: { "x-admin-key": ADMIN_KEY },
-        }
+      const result = await adminFetch<{ batch_sent: number; batch_failed: number; remaining: number }>(
+        `/outreach/campaigns/${campaignId}/process?batch_size=100`,
+        { method: "POST" }
       );
-      if (res.ok) {
-        const result = await res.json();
-        alert(
-          `Sent: ${result.batch_sent}, Failed: ${result.batch_failed}, Remaining: ${result.remaining}`
-        );
-        await fetchCampaign();
-      }
+      alert(
+        `Sent: ${result.batch_sent}, Failed: ${result.batch_failed}, Remaining: ${result.remaining}`
+      );
+      await fetchCampaign();
     } catch (err) {
       console.error("Process failed:", err);
     } finally {

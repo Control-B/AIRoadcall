@@ -18,9 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
-const ADMIN_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY || "change-this-to-a-secure-admin-key";
+import { adminFetch } from "@/lib/admin-auth";
 
 interface DashboardStats {
   total_mechanics: number;
@@ -87,11 +85,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch(`${API_BASE}/outreach/dashboard`, {
-          headers: { "x-admin-key": ADMIN_KEY },
-        });
-        if (!res.ok) throw new Error("Failed to fetch dashboard stats");
-        const data = await res.json();
+        const data = await adminFetch<DashboardStats>("/outreach/dashboard");
         setStats(data);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load");
