@@ -147,7 +147,8 @@ Keep it under 45 seconds.\
     description=(
         "Save the driver's collected information and create a job in the system. "
         "Call this once you have the driver's name, vehicle, issue type, and a "
-        "brief situation note."
+        "brief situation note.  The system will automatically text them a link "
+        "to share their location and authorize a small payment hold."
     )
 )
 async def save_driver_info(
@@ -159,23 +160,26 @@ async def save_driver_info(
     """Persist intake data → backend creates job + sends magic-link SMS."""
     normalized_issue = _normalize_issue_type(issue_type)
 
+    # Retrieve the caller's phone number stored in CallState by the entrypoint
+    driver_phone = _current_caller_phone or ""
+
     try:
         result = await api_call(
             "POST",
             "/jobs",
             json_body={
                 "driver_name": driver_name,
-                "driver_phone": "",  # filled from SIP headers when available
+                "driver_phone": driver_phone,
                 "vehicle_type": vehicle_type,
                 "issue_type": normalized_issue,
                 "issue_summary": situation_note,
             },
         )
         job_id = result.get("public_job_id", "unknown")
-        logger.info(f"Job created via API: {job_id} for {driver_name}")
+        logger.info(f"Job created via API: {job_id} for {driver_name} ({driver_phone})")
         return (
-            f"Done — job {job_id} is in the system and the text is on its way. "
-            f"Let {driver_name} know help is coming."
+            f"Done — job {job_id} is in the system and the text is on its way to "
+            f"{driver_name}. Let them know help is coming."
         )
     except Exception as e:
         logger.error(f"Failed to create job via API: {e}")
@@ -183,6 +187,10 @@ async def save_driver_info(
             f"Information saved. Let {driver_name} know they'll get a text "
             f"shortly with next steps."
         )
+
+
+# Module-level variable set per-call by handle_driver_intake
+_current_caller_phone: str = ""
 
 
 # ════════════════════════════════════════════════════════
@@ -346,11 +354,42 @@ async def entrypoint(ctx: JobContext):
 async def handle_driver_intake(ctx: JobContext, meta: dict):
     logger.info(f"Driver intake call in room {ctx.room.name}")
 
-    state = CallState(room_metadata=meta, ctx=ctx)
+    # Extract the caller's phone number from SIP participant info
+    global _current_caller_phone
+    _current_caller_phone = ""
+    for p in ctx.room.remote_participants.values():
+        # SIP participants have the caller's number in their identity or attributes
+        identity = p.identity or ""
+        attrs = p.attributes or {}
+        phone = (
+            attrs.get("sip.phoneNumber")
+            or attrs.get("sip.from")
+            or attrs.get("sip.callId")
+            or ""
+        )
+        if not phone and identity.startswith("sip_"):
+            phone = identity.replace("sip_", "+")
+        if phone:
+            # Clean SIP URI format: sip:+15551234567@trunk → +15551234567
+            if phone.startswith("sip:"):
+                phone = phone.split("@")[0].replace("sip:", "")
+            _current_caller_phone = phone
+            logger.info(f"Extracted caller phone: {phone}")
+            break
+
+    # Also check room metadata for caller_phone (set by SIP trunk config)
+    if not _current_caller_phone:
+        _current_caller_phone = meta.get("caller_phone", "")
+
+    state = CallState(
+        room_metadata=meta,
+        ctx=ctx,
+        collected={"caller_phone": _current_caller_phone},
+    )
 
     agent = Agent(
         instructions=DRIVER_INTAKE_PROMPT,
-        tools=[save_driver_info, find_nearby_mechanics, check_job_status],
+        tools=[save_driver_info],  # only tool needed during the call
     )
 
     session = AgentSession(
@@ -363,7 +402,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
     )
 
     await session.start(agent=agent, room=ctx.room)
-    logger.info(f"Driver intake agent running in {ctx.room.name}")
+    logger.info(f"Driver intake agent running in {ctx.room.name} (caller: {_current_caller_phone})")
 
 
 # ─── Mechanic Dispatch ─────────────────────────────────

@@ -148,7 +148,8 @@ class DispatchService:
         return DispatchNextResponse(
             dispatch_attempt_id=str(attempt.id),
             mechanic_company=best_mechanic.company_name,
-            mechanic_contact=best_mechanic.contact_name,
+            mechanic_contact=best_mechanic.contact_name or "",
+            mechanic_phone=best_mechanic.phone or "",
             rank_score=best_score,
             dispatch_status=attempt.dispatch_status,
         )

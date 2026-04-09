@@ -122,6 +122,32 @@ class PaymentService:
             f"Payment confirmation for job {job.public_job_id}: {job.payment_status}"
         )
 
+        # ── Auto-trigger dispatch when payment is authorized ──
+        if job.status == JobStatus.payment_authorized and job.driver_lat and job.driver_lng:
+            try:
+                from app.services.dispatch_service import DispatchService
+
+                await DispatchService.start_dispatch(db, job.id)
+                next_mechanic = await DispatchService.dispatch_next_mechanic(db, job.id)
+                if next_mechanic:
+                    logger.info(
+                        f"Auto-dispatch triggered for job {job.public_job_id}: "
+                        f"{next_mechanic.mechanic_company} ({next_mechanic.mechanic_phone})"
+                    )
+                    # Initiate outbound call to the mechanic via LiveKit SIP
+                    from app.services.livekit_service import LiveKitService
+                    await LiveKitService.initiate_mechanic_call(
+                        mechanic_phone=next_mechanic.mechanic_phone,
+                        mechanic_name=next_mechanic.mechanic_company,
+                        job_summary=f"{job.issue_type}: {job.issue_summary or ''} — {job.vehicle_type or 'vehicle'}",
+                        job_id=str(job.id),
+                        dispatch_attempt_id=next_mechanic.dispatch_attempt_id,
+                    )
+                else:
+                    logger.warning(f"No mechanics available for job {job.public_job_id}")
+            except Exception as e:
+                logger.error(f"Auto-dispatch failed for {job.public_job_id}: {e}")
+
         return PaymentConfirmResponse(
             success=job.payment_status in (PaymentStatus.authorized, PaymentStatus.captured),
             payment_status=job.payment_status,

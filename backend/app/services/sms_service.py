@@ -7,7 +7,7 @@ settings = get_settings()
 
 
 class SMSService:
-    """Stub for Twilio/SMS provider integration."""
+    """Twilio SMS service for magic-link delivery."""
 
     @staticmethod
     async def send_magic_link(
@@ -15,24 +15,70 @@ class SMSService:
     ) -> bool:
         """Send an SMS with the magic link to the driver.
 
-        TODO: Implement with Twilio SDK when credentials are configured.
+        Uses Twilio when configured, otherwise logs (dev/test fallback).
         """
-        logger.info(
-            f"[STUB] Would send SMS to {phone_number}: "
-            f"Hi {driver_name}, here is your roadside support link: {magic_link_url}"
+        if not phone_number:
+            logger.warning("Cannot send SMS — no phone number provided")
+            return False
+
+        body = (
+            f"Hi {driver_name}, your Roadside Assist link is ready — "
+            f"tap to share your location and we'll send help your way:\n"
+            f"{magic_link_url}"
         )
 
-        # Production implementation:
-        # from twilio.rest import Client
-        # client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
-        # message = client.messages.create(
-        #     body=(
-        #         f"Hi {driver_name}, your AI Roadside Support link is ready: "
-        #         f"{magic_link_url}"
-        #     ),
-        #     from_=settings.TWILIO_FROM_NUMBER,
-        #     to=phone_number,
-        # )
-        # return message.sid is not None
+        # ── Twilio (production) ──
+        if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN \
+                and not settings.TWILIO_ACCOUNT_SID.startswith("AC_placeholder"):
+            try:
+                from twilio.rest import Client
 
+                client = Client(
+                    settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN
+                )
+                message = client.messages.create(
+                    body=body,
+                    from_=settings.TWILIO_FROM_NUMBER,
+                    to=phone_number,
+                )
+                logger.info(
+                    f"SMS sent to {phone_number}: SID={message.sid}"
+                )
+                return True
+            except Exception as e:
+                logger.error(f"Twilio SMS failed to {phone_number}: {e}")
+                return False
+
+        # ── Dev fallback ──
+        logger.info(
+            f"[DEV] SMS to {phone_number}: {body}"
+        )
+        return True
+
+    @staticmethod
+    async def send_sms(phone_number: str, body: str) -> bool:
+        """Send a generic SMS (used by outreach, dispatch notifications, etc.)."""
+        if not phone_number:
+            return False
+
+        if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN \
+                and not settings.TWILIO_ACCOUNT_SID.startswith("AC_placeholder"):
+            try:
+                from twilio.rest import Client
+
+                client = Client(
+                    settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN
+                )
+                message = client.messages.create(
+                    body=body,
+                    from_=settings.TWILIO_FROM_NUMBER,
+                    to=phone_number,
+                )
+                logger.info(f"SMS sent to {phone_number}: SID={message.sid}")
+                return True
+            except Exception as e:
+                logger.error(f"Twilio SMS failed to {phone_number}: {e}")
+                return False
+
+        logger.info(f"[DEV] SMS to {phone_number}: {body}")
         return True

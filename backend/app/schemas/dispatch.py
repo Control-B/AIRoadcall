@@ -13,6 +13,7 @@ class DispatchNextResponse(BaseModel):
     dispatch_attempt_id: str
     mechanic_company: str
     mechanic_contact: str
+    mechanic_phone: str = ""
     rank_score: float
     dispatch_status: str
 
