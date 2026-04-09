@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import {
   Phone,
   MessageSquare,
@@ -135,10 +137,24 @@ const testimonials = [
 export default function DemoPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white">
+      {/* Navbar */}
+      <nav className="relative z-10 max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Phone className="h-6 w-6 text-blue-400" />
+          <span className="text-lg font-bold">AI Receptionist</span>
+        </div>
+        <Link
+          href="/admin/login"
+          className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
+        >
+          Sign In
+        </Link>
+      </nav>
+
       {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-600/20 via-transparent to-transparent" />
-        <div className="relative max-w-6xl mx-auto px-4 pt-20 pb-24 text-center">
+        <div className="relative max-w-6xl mx-auto px-4 pt-10 pb-24 text-center">
           <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-4 py-2 mb-8">
             <Zap className="h-4 w-4 text-blue-400" />
             <span className="text-sm text-blue-300">
