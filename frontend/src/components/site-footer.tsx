@@ -54,11 +54,11 @@ export function SiteFooter() {
                 {DEMO_PHONE}
               </a>
               <a
-                href="mailto:support@omniweb.ai"
+                href="mailto:support@roadcall.ai"
                 className="flex items-center gap-2 text-sm text-slate-400 hover:text-orange-400 transition-colors"
               >
                 <Mail className="h-4 w-4" />
-                support@omniweb.ai
+                support@roadcall.ai
               </a>
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <MapPin className="h-4 w-4" />

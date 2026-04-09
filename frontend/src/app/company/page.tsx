@@ -87,7 +87,7 @@ const companyFacts = [
   { icon: Wrench, label: "Product", value: "Roadcall.ai — AI Roadside Dispatch" },
   { icon: MapPin, label: "Coverage", value: "All 50 US States" },
   { icon: Users, label: "Mechanic Network", value: "35,000+ shops & mobile services" },
-  { icon: Mail, label: "Contact", value: "support@omniweb.ai" },
+  { icon: Mail, label: "Contact", value: "support@roadcall.ai" },
   { icon: Phone, label: "Demo Line", value: DEMO_PHONE },
 ];
 
@@ -419,7 +419,7 @@ export default function CompanyPage() {
                   </h3>
                   <div className="space-y-4">
                     <a
-                      href="mailto:support@omniweb.ai"
+                      href="mailto:support@roadcall.ai"
                       className="flex items-center gap-3 text-slate-400 hover:text-orange-400 transition-colors group"
                     >
                       <div className="h-10 w-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center group-hover:border-orange-500/30 transition-colors">
@@ -429,7 +429,7 @@ export default function CompanyPage() {
                         <div className="text-sm font-medium text-white">
                           Email
                         </div>
-                        <div className="text-sm">support@omniweb.ai</div>
+                        <div className="text-sm">support@roadcall.ai</div>
                       </div>
                     </a>
 
