@@ -94,6 +94,10 @@ async def livekit_webhook(
         elif event_type in ("room_finished", "participant_left"):
             await _handle_dispatch_call_ended(db, room_metadata, payload)
 
+    # ── Shop inbound call events ─────────────────────────────
+    elif call_type == "shop_inbound" and event_type == "room_finished":
+        await _handle_shop_call_completed(db, room_metadata, payload)
+
     # ── SIP-specific events ──────────────────────────────────
     elif event_type == "sip_call_status":
         sip_status = payload.get("sip_call_status", {})
@@ -348,3 +352,90 @@ async def _handle_sip_status(
 
         except ValueError as e:
             logger.error(f"SIP status handler error: {e}")
+
+
+# ─── Handler: Shop Inbound Call Completed ───────────────────
+
+
+async def _handle_shop_call_completed(
+    db: AsyncSession, room_metadata: dict, payload: dict
+) -> None:
+    """Process completed shop inbound call.
+
+    The AI agent collected caller info and stored it in participant metadata.
+    We extract it and update the call log.
+    """
+    from app.services.shop_telephony_service import ShopTelephonyService
+
+    shop_id_str = room_metadata.get("shop_id", "")
+    caller_phone = room_metadata.get("caller_phone", "unknown")
+
+    if not shop_id_str:
+        logger.warning("Shop inbound call completed but no shop_id in metadata")
+        return
+
+    # Extract collected data from participant metadata
+    collected_data = {}
+    transfer_requested = False
+    participants = payload.get("room", {}).get("participants", [])
+    for p in participants:
+        try:
+            meta = json.loads(p.get("metadata", "{}"))
+            if "call_data" in meta:
+                collected_data = meta["call_data"]
+            if meta.get("transfer_requested"):
+                transfer_requested = True
+        except (json.JSONDecodeError, TypeError):
+            continue
+
+    # Determine intent
+    service_needed = collected_data.get("service_needed", "").lower()
+    intent = "general_question"
+    if any(w in service_needed for w in ("repair", "fix", "broken")):
+        intent = "repair_request"
+    elif any(w in service_needed for w in ("tow", "towing")):
+        intent = "tow_request"
+    elif any(w in service_needed for w in ("emergency", "roadside", "stuck")):
+        intent = "emergency"
+    elif any(w in service_needed for w in ("price", "cost", "quote")):
+        intent = "price_inquiry"
+    elif any(w in service_needed for w in ("schedule", "appointment")):
+        intent = "scheduling"
+
+    # Score lead quality
+    lead_score = 0.0
+    if collected_data.get("caller_name"):
+        lead_score += 0.3
+    if collected_data.get("vehicle_info"):
+        lead_score += 0.3
+    if collected_data.get("service_needed"):
+        lead_score += 0.2
+    if collected_data.get("urgency") in ("urgent", "emergency"):
+        lead_score += 0.2
+
+    try:
+        shop_id = uuid.UUID(shop_id_str)
+        await ShopTelephonyService.log_call(
+            db,
+            shop_id=shop_id,
+            caller_phone=caller_phone,
+            channel="voice",
+            direction="inbound",
+            intent=intent,
+            intent_summary=collected_data.get("service_needed", ""),
+            is_qualified_lead=lead_score >= 0.5,
+            lead_score=lead_score,
+            vehicle_info={"description": collected_data.get("vehicle_info", "")},
+            caller_name=collected_data.get("caller_name"),
+            forwarded_to_human=transfer_requested,
+            collected_data=collected_data,
+            status="completed",
+        )
+
+        logger.info(
+            f"Shop call completed: shop={shop_id_str} caller={caller_phone} "
+            f"intent={intent} lead_score={lead_score:.1f} transfer={transfer_requested}"
+        )
+
+    except Exception as e:
+        logger.error(f"Failed to log shop call: {e}")

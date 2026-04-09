@@ -12,6 +12,7 @@ from app.api.routes import (
     webhooks_stripe,
     webhooks_livekit,
     data_pipeline,
+    shops,
 )
 
 settings = get_settings()
@@ -46,6 +47,7 @@ app.include_router(mechanics.router, prefix="/api")
 app.include_router(webhooks_stripe.router, prefix="/api")
 app.include_router(webhooks_livekit.router, prefix="/api")
 app.include_router(data_pipeline.router, prefix="/api")
+app.include_router(shops.router, prefix="/api")
 
 
 @app.get("/health")

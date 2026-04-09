@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Roadcall — Mechanic Data Viewer</title>
+  <style>
+    :root { --bg: #0f172a; --card: #1e293b; --border: #334155; --text: #e2e8f0; --muted: #94a3b8; --accent: #3b82f6; --green: #22c55e; --yellow: #eab308; --red: #ef4444; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    .header { background: var(--card); border-bottom: 1px solid var(--border); padding: 16px 24px; display: flex; align-items: center; gap: 16px; }
+    .header h1 { font-size: 20px; font-weight: 700; }
+    .header h1 span { color: var(--accent); }
+    .stats { display: flex; gap: 24px; margin-left: auto; font-size: 13px; color: var(--muted); }
+    .stats b { color: var(--text); font-size: 16px; display: block; }
+    .controls { padding: 16px 24px; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    input, select { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 8px 12px; border-radius: 6px; font-size: 14px; outline: none; }
+    input:focus, select:focus { border-color: var(--accent); }
+    input[type="search"] { width: 300px; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+    .badge-green { background: #16a34a22; color: var(--green); }
+    .badge-yellow { background: #eab30822; color: var(--yellow); }
+    .badge-red { background: #ef444422; color: var(--red); }
+    .badge-blue { background: #3b82f622; color: var(--accent); }
+    .badge-gray { background: #64748b22; color: var(--muted); }
+    .table-wrap { padding: 0 24px 24px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    thead { position: sticky; top: 0; z-index: 10; }
+    th { background: var(--card); padding: 10px 12px; text-align: left; font-weight: 600; color: var(--muted); border-bottom: 2px solid var(--border); cursor: pointer; user-select: none; white-space: nowrap; }
+    th:hover { color: var(--text); }
+    th .arrow { margin-left: 4px; font-size: 10px; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:hover td { background: #ffffff08; }
+    .name-cell { font-weight: 600; max-width: 280px; }
+    .addr-cell { max-width: 250px; color: var(--muted); font-size: 12px; }
+    .phone-cell { font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; white-space: nowrap; }
+    .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+    .rating { display: flex; align-items: center; gap: 4px; }
+    .stars { color: var(--yellow); }
+    .count { color: var(--muted); font-size: 11px; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .empty { text-align: center; padding: 60px; color: var(--muted); }
+    .pagination { padding: 16px 24px; display: flex; align-items: center; justify-content: center; gap: 12px; }
+    .pagination button { background: var(--card); border: 1px solid var(--border); color: var(--text); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+    .pagination button:hover { border-color: var(--accent); }
+    .pagination button:disabled { opacity: 0.4; cursor: default; }
+    .pagination span { color: var(--muted); font-size: 13px; }
+    #loading { text-align: center; padding: 80px; color: var(--muted); font-size: 16px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔧 <span>AI Roadcall</span> — Mechanic Data Viewer</h1>
+    <div class="stats" id="stats"></div>
+  </div>
+  <div class="controls">
+    <input type="search" id="search" placeholder="Search name, address, phone..." />
+    <select id="filterRoadside">
+      <option value="">All Types</option>
+      <option value="true">🚗 Roadside Only</option>
+      <option value="false">🏢 Shop Only</option>
+    </select>
+    <select id="filterVehicle">
+      <option value="">All Vehicle Types</option>
+      <option value="heavy_duty">Heavy Duty</option>
+      <option value="diesel">Diesel</option>
+      <option value="trailer">Trailer</option>
+      <option value="commercial">Commercial</option>
+    </select>
+    <select id="filterService">
+      <option value="">All Services</option>
+      <option value="engine_trouble">Engine Trouble</option>
+      <option value="flat_tire">Flat Tire</option>
+      <option value="tow_needed">Tow Needed</option>
+      <option value="dead_battery">Dead Battery</option>
+    </select>
+    <select id="filterState">
+      <option value="">All States</option>
+    </select>
+  </div>
+  <div id="loading">Loading mechanic data...</div>
+  <div class="table-wrap" id="tableWrap" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th data-col="idx">#</th>
+          <th data-col="name">Name <span class="arrow"></span></th>
+          <th data-col="phone">Phone</th>
+          <th data-col="address">Address <span class="arrow"></span></th>
+          <th data-col="rating">Rating <span class="arrow"></span></th>
+          <th data-col="vt">Vehicle Types</th>
+          <th data-col="st">Services</th>
+          <th data-col="roadside">Roadside</th>
+          <th data-col="hours">Hours (Mon)</th>
+          <th data-col="website">Website</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <div class="pagination" id="pagination" style="display:none;">
+    <button id="prevBtn">← Prev</button>
+    <span id="pageInfo"></span>
+    <button id="nextBtn">Next →</button>
+  </div>
+
+  <script>
+    let allData = [];
+    let filtered = [];
+    let sortCol = 'rating';
+    let sortDir = -1;
+    let page = 0;
+    const PAGE_SIZE = 50;
+
+    async function loadData() {
+      const res = await fetch('./heavy_duty_parsed.json');
+      allData = await res.json();
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('tableWrap').style.display = '';
+      document.getElementById('pagination').style.display = '';
+      populateStates();
+      updateStats();
+      applyFilters();
+    }
+
+    function populateStates() {
+      const states = new Map();
+      allData.forEach(m => {
+        const s = extractState(m.address);
+        if (s) states.set(s, (states.get(s) || 0) + 1);
+      });
+      const sel = document.getElementById('filterState');
+      [...states.entries()].sort((a, b) => b[1] - a[1]).forEach(([st, cnt]) => {
+        const opt = document.createElement('option');
+        opt.value = st;
+        opt.textContent = `${st} (${cnt})`;
+        sel.appendChild(opt);
+      });
+    }
+
+    function extractState(addr) {
+      if (!addr) return '';
+      const parts = addr.split(',');
+      if (parts.length >= 2) {
+        const last = parts[parts.length - 1].trim().split(/\s+/);
+        if (last.length >= 1 && /^[A-Z]{2}$/.test(last[0])) return last[0];
+      }
+      return '';
+    }
+
+    function updateStats() {
+      const total = allData.length;
+      const roadside = allData.filter(m => m.roadside).length;
+      const rated = allData.filter(m => m.rating).length;
+      const avg = (allData.reduce((s, m) => s + (m.rating || 0), 0) / rated).toFixed(1);
+      document.getElementById('stats').innerHTML = `
+        <div><b>${total}</b> Total</div>
+        <div><b>${roadside}</b> Roadside</div>
+        <div><b>⭐ ${avg}</b> Avg Rating</div>
+        <div><b>${filtered.length}</b> Showing</div>
+      `;
+    }
+
+    function applyFilters() {
+      const q = document.getElementById('search').value.toLowerCase();
+      const roadside = document.getElementById('filterRoadside').value;
+      const vt = document.getElementById('filterVehicle').value;
+      const st = document.getElementById('filterService').value;
+      const state = document.getElementById('filterState').value;
+
+      filtered = allData.filter(m => {
+        if (q && !`${m.name} ${m.address} ${m.phone}`.toLowerCase().includes(q)) return false;
+        if (roadside === 'true' && !m.roadside) return false;
+        if (roadside === 'false' && m.roadside) return false;
+        if (vt && !m.vt.includes(vt)) return false;
+        if (st && !m.st.includes(st)) return false;
+        if (state && extractState(m.address) !== state) return false;
+        return true;
+      });
+
+      sortData();
+      page = 0;
+      render();
+      updateStats();
+    }
+
+    function sortData() {
+      filtered.sort((a, b) => {
+        let va = a[sortCol], vb = b[sortCol];
+        if (sortCol === 'rating') { va = va || 0; vb = vb || 0; }
+        if (typeof va === 'string') return va.localeCompare(vb) * sortDir;
+        return ((va || 0) - (vb || 0)) * sortDir;
+      });
+    }
+
+    function render() {
+      const start = page * PAGE_SIZE;
+      const slice = filtered.slice(start, start + PAGE_SIZE);
+      const tbody = document.getElementById('tbody');
+
+      if (slice.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="10" class="empty">No mechanics match your filters</td></tr>';
+      } else {
+        tbody.innerHTML = slice.map((m, i) => `
+          <tr>
+            <td style="color:var(--muted)">${start + i + 1}</td>
+            <td class="name-cell">${esc(m.name)}</td>
+            <td class="phone-cell">${esc(m.phone)}</td>
+            <td class="addr-cell">${esc(m.address || '—')}</td>
+            <td><div class="rating"><span class="stars">${starsFor(m.rating)}</span> <span>${m.rating || '—'}</span> <span class="count">(${m.reviews || 0})</span></div></td>
+            <td><div class="tags">${m.vt.map(v => `<span class="badge badge-blue">${v}</span>`).join('')}</div></td>
+            <td><div class="tags">${m.st.map(s => `<span class="badge badge-gray">${fmtService(s)}</span>`).join('')}</div></td>
+            <td>${m.roadside ? '<span class="badge badge-green">ROADSIDE</span>' : '<span class="badge badge-yellow">SHOP</span>'}</td>
+            <td style="font-size:12px;color:var(--muted)">${getMonHours(m.hours)}</td>
+            <td>${m.website ? `<a href="${esc(m.website)}" target="_blank">🔗</a>` : '—'}</td>
+          </tr>
+        `).join('');
+      }
+
+      const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+      document.getElementById('pageInfo').textContent = `Page ${page + 1} of ${totalPages || 1}`;
+      document.getElementById('prevBtn').disabled = page === 0;
+      document.getElementById('nextBtn').disabled = page >= totalPages - 1;
+    }
+
+    function starsFor(r) { if (!r) return ''; const full = Math.floor(r); return '★'.repeat(full) + (r % 1 >= 0.5 ? '½' : ''); }
+    function fmtService(s) { return s.replace(/_/g, ' '); }
+    function getMonHours(hrs) { if (!hrs || !hrs.length) return '—'; const mon = hrs.find(h => h.day === 'Monday'); return mon ? mon.hours : hrs[0].hours || '—'; }
+    function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    // Event listeners
+    document.getElementById('search').addEventListener('input', applyFilters);
+    document.getElementById('filterRoadside').addEventListener('change', applyFilters);
+    document.getElementById('filterVehicle').addEventListener('change', applyFilters);
+    document.getElementById('filterService').addEventListener('change', applyFilters);
+    document.getElementById('filterState').addEventListener('change', applyFilters);
+    document.getElementById('prevBtn').addEventListener('click', () => { page--; render(); });
+    document.getElementById('nextBtn').addEventListener('click', () => { page++; render(); });
+
+    // Column sorting
+    document.querySelectorAll('th[data-col]').forEach(th => {
+      th.addEventListener('click', () => {
+        const col = th.dataset.col;
+        if (col === 'idx' || col === 'vt' || col === 'st' || col === 'hours' || col === 'website') return;
+        if (sortCol === col) sortDir *= -1;
+        else { sortCol = col; sortDir = col === 'rating' ? -1 : 1; }
+        document.querySelectorAll('th .arrow').forEach(a => a.textContent = '');
+        th.querySelector('.arrow').textContent = sortDir === 1 ? '▲' : '▼';
+        sortData();
+        render();
+      });
+    });
+
+    loadData();
+  </script>
+</body>
+</html>

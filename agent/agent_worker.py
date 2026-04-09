@@ -105,6 +105,8 @@ async def entrypoint(ctx: JobContext):
         await handle_driver_intake(ctx, room_metadata)
     elif call_type == "mechanic_dispatch":
         await handle_mechanic_dispatch(ctx, room_metadata)
+    elif call_type == "shop_inbound":
+        await handle_shop_inbound(ctx, room_metadata)
     else:
         logger.warning(f"Unknown room type: {call_type}, room: {ctx.room.name}")
 
@@ -223,6 +225,96 @@ async def handle_mechanic_dispatch(ctx: JobContext, room_metadata: dict):
     await session.start(agent=agent, room=ctx.room)
 
     logger.info(f"Mechanic dispatch agent running in room {ctx.room.name}")
+
+
+# ─── Shop Inbound Call Handler ──────────────────────────
+
+
+async def handle_shop_inbound(ctx: JobContext, room_metadata: dict):
+    """Handle an inbound call to a mechanic shop's AI agent.
+
+    The shop's config (prompt, greeting, voice, etc.) is passed
+    via room metadata by the FastAPI call router.
+    """
+    shop_id = room_metadata.get("shop_id", "")
+    business_name = room_metadata.get("business_name", "the shop")
+    caller_phone = room_metadata.get("caller_phone", "unknown")
+    custom_prompt = room_metadata.get("prompt", "")
+    greeting = room_metadata.get("greeting", "Thank you for calling. How can I help you?")
+
+    logger.info(
+        f"Starting shop inbound call in room {ctx.room.name} "
+        f"for {business_name} (shop_id={shop_id}) from {caller_phone}"
+    )
+
+    # Use the shop's custom prompt or a default
+    system_prompt = custom_prompt or f"""You are a professional AI phone assistant for {business_name}.
+Help callers with service inquiries, scheduling, and general questions.
+Be professional, helpful, and concise. When you have collected the caller's
+information, call the store_call_data function."""
+
+    @llm.function_context.ai_callable(
+        description="Store the collected caller information. "
+        "Call this once you have the caller's name, what they need, and vehicle info."
+    )
+    async def store_call_data(
+        caller_name: str,
+        vehicle_info: str = "",
+        service_needed: str = "",
+        urgency: str = "normal",
+        notes: str = "",
+    ):
+        """Store call data in participant metadata for the webhook handler."""
+        collected = {
+            "caller_name": caller_name,
+            "caller_phone": caller_phone,
+            "vehicle_info": vehicle_info,
+            "service_needed": service_needed,
+            "urgency": urgency,
+            "notes": notes,
+            "shop_id": shop_id,
+        }
+
+        await ctx.room.local_participant.update_metadata(
+            json.dumps({"call_data": collected})
+        )
+
+        logger.info(f"Stored shop call data for {business_name}: {collected}")
+        return (
+            f"I've noted all your information, {caller_name}. "
+            f"Someone from {business_name} will follow up with you shortly. "
+            f"Is there anything else I can help with?"
+        )
+
+    @llm.function_context.ai_callable(
+        description="Transfer the call to the shop owner or manager. "
+        "Use this if the caller explicitly asks to speak to a human."
+    )
+    async def transfer_call(
+        reason: str = "Caller requested human",
+    ):
+        """Mark the call for transfer to a human."""
+        await ctx.room.local_participant.update_metadata(
+            json.dumps({"transfer_requested": True, "transfer_reason": reason})
+        )
+        logger.info(f"Transfer requested for {business_name}: {reason}")
+        return (
+            f"I'll transfer you to someone at {business_name} right away. "
+            f"Please hold for just a moment."
+        )
+
+    fn_ctx = llm.FunctionContext()
+    fn_ctx._register_ai_function(store_call_data)
+    fn_ctx._register_ai_function(transfer_call)
+
+    agent = Agent(
+        instructions=system_prompt,
+        fnc_ctx=fn_ctx,
+    )
+    session = AgentSession()
+    await session.start(agent=agent, room=ctx.room)
+
+    logger.info(f"Shop inbound agent running for {business_name} in room {ctx.room.name}")
 
 
 # ─── Helpers ────────────────────────────────────────────

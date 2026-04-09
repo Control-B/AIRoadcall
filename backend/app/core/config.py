@@ -28,6 +28,11 @@ class Settings(BaseSettings):
     # Tavily
     TAVILY_API_KEY: str = ""
 
+    # DigitalOcean AI Gradient (text chat)
+    DO_AI_ENDPOINT: str = ""  # e.g. https://cluster-api.do-ai.run/v1
+    DO_AI_API_KEY: str = ""
+    DO_AI_MODEL: str = ""  # e.g. meta-llama/Meta-Llama-3.1-70B-Instruct
+
     # App
     APP_BASE_URL: str = "http://localhost:3000"
     MAGIC_LINK_SECRET: str = "change-this-to-a-secure-random-string"

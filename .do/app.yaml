@@ -111,10 +111,11 @@ services:
         scope: BUILD_TIME
         type: SECRET
 
-# ── DigitalOcean Managed Database ───────────────────────
+# ── DigitalOcean Managed Database (existing cluster) ────
 databases:
   - name: db
     engine: PG
-    version: "16"
-    size: db-s-dev-database
-    num_nodes: 1
+    cluster_name: app-fe477b43-c0cc-486c-9c32-1c4122fc4553
+    db_name: defaultdb
+    db_user: doadmin
+    production: true
