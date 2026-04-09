@@ -1,0 +1,36 @@
+"use client";
+
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
+
+export function PageLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-[#050a14] text-white relative overflow-hidden">
+      {/* ── Background effects (Omniweb-style) ─────── */}
+      <div className="pointer-events-none fixed inset-0 z-0">
+        {/* Grid overlay */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)",
+            backgroundSize: "60px 60px",
+          }}
+        />
+        {/* Radial glow top */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120vw] h-[60vh] bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(234,88,12,0.12),transparent_60%)]" />
+        {/* Radial glow right */}
+        <div className="absolute top-1/3 right-0 w-[60vw] h-[60vh] bg-[radial-gradient(ellipse_50%_50%_at_80%_50%,rgba(59,130,246,0.06),transparent_50%)]" />
+      </div>
+
+      {/* ── Header ─────────────────────────────────── */}
+      <SiteHeader />
+
+      {/* ── Content ────────────────────────────────── */}
+      <main className="relative z-10">{children}</main>
+
+      {/* ── Footer ─────────────────────────────────── */}
+      <SiteFooter />
+    </div>
+  );
+}

@@ -5,8 +5,35 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AI Roadside Support",
-  description: "AI-powered roadside assistance — help is on the way",
+  title: {
+    default: "Roadcall.ai — AI-Powered Roadside Dispatch",
+    template: "%s | Roadcall.ai",
+  },
+  description:
+    "AI dispatcher that picks up every call, finds the closest mechanic, and gets help on the way in under 90 seconds. 35,000+ mechanics across all 50 states.",
+  keywords: [
+    "roadside assistance",
+    "AI dispatch",
+    "mechanic finder",
+    "roadside help",
+    "tow truck",
+    "flat tire",
+    "breakdown",
+    "heavy duty",
+  ],
+  openGraph: {
+    title: "Roadcall.ai — AI-Powered Roadside Dispatch",
+    description:
+      "Call our AI dispatcher. Share your location with one tap. We find the closest, best-rated mechanic and send them straight to you.",
+    siteName: "Roadcall.ai",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Roadcall.ai — AI-Powered Roadside Dispatch",
+    description:
+      "AI dispatcher that picks up every call, finds the closest mechanic, and gets help on the way in under 90 seconds.",
+  },
 };
 
 export const viewport: Viewport = {
@@ -30,7 +57,7 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <main className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
+        <main className="min-h-screen">
           {children}
         </main>
       </body>
