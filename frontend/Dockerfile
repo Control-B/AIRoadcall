@@ -47,8 +47,7 @@ USER nextjs
 EXPOSE 3000
 ENV HOSTNAME="0.0.0.0"
 
-# Render sets PORT at runtime; Next standalone reads it. Do not hardcode PORT in HEALTHCHECK.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD node -e "const p=process.env.PORT||3000;require('http').get('http://127.0.0.1:'+p+'/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:3000/ || exit 1
 
 CMD ["node", "server.js"]

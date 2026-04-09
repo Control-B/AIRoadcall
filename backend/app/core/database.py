@@ -9,11 +9,14 @@ settings = get_settings()
 def _ensure_asyncpg_url(url: str) -> str:
     """Convert standard postgresql:// URL to asyncpg driver URL.
 
-    Render (and most managed DBs) give you:
-        postgresql://user:pass@host/db
+    Managed DBs (DigitalOcean, etc.) give you:
+        postgresql://user:pass@host:25060/db?sslmode=require
     SQLAlchemy async needs:
-        postgresql+asyncpg://user:pass@host/db
+        postgresql+asyncpg://user:pass@host:25060/db
     """
+    # Strip sslmode param — asyncpg doesn't understand it; we handle SSL via connect_args
+    if "sslmode=" in url:
+        url = url.split("?")[0]
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     if url.startswith("postgres://"):
@@ -22,7 +25,7 @@ def _ensure_asyncpg_url(url: str) -> str:
 
 
 def _get_connect_args() -> dict:
-    """Return SSL connect args for managed databases (Render, etc.)."""
+    """Return SSL connect args for managed databases (DigitalOcean, etc.)."""
     url = settings.DATABASE_URL
     # If connecting to a remote host (not localhost), use SSL
     if url and "localhost" not in url and "127.0.0.1" not in url:

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Render build script for the FastAPI backend
+# Build script for the FastAPI backend (DO App Platform / local)
 set -o errexit
 
 # Install uv

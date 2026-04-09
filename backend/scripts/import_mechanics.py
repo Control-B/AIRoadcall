@@ -17,6 +17,7 @@ Usage:
 import asyncio
 import json
 import os
+import ssl
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -146,17 +147,29 @@ async def import_to_db(mechanics: list[dict]) -> None:
         print("ERROR: DATABASE_URL not set. Export it first.")
         sys.exit(1)
 
+    # Strip sslmode param — asyncpg handles SSL via connect_args
+    if "sslmode=" in db_url:
+        db_url = db_url.split("?")[0]
+
     # Convert to asyncpg driver
     if db_url.startswith("postgresql://"):
         db_url = db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
     elif db_url.startswith("postgres://"):
         db_url = db_url.replace("postgres://", "postgresql+asyncpg://", 1)
 
+    # SSL for managed DB (non-localhost)
+    connect_args = {}
+    if "localhost" not in db_url and "127.0.0.1" not in db_url:
+        ssl_context = ssl.create_default_context()
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        connect_args["ssl"] = ssl_context
+
     # Mask password for display
     display_url = db_url.split("@")[-1] if "@" in db_url else db_url
     print(f"Connecting to: ...@{display_url}")
 
-    engine = create_async_engine(db_url, pool_pre_ping=True)
+    engine = create_async_engine(db_url, pool_pre_ping=True, connect_args=connect_args)
     session_factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with session_factory() as session:

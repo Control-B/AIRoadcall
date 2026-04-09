@@ -24,6 +24,9 @@ target_metadata = Base.metadata
 def _get_db_url() -> str:
     """Resolve the database URL from env or alembic.ini, ensuring asyncpg driver."""
     url = os.environ.get("DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    # Strip sslmode param — asyncpg handles SSL via connect_args
+    if "sslmode=" in url:
+        url = url.split("?")[0]
     if url.startswith("postgresql://"):
         return url.replace("postgresql://", "postgresql+asyncpg://", 1)
     if url.startswith("postgres://"):
