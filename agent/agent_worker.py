@@ -1,28 +1,28 @@
 """LiveKit AI Agent Worker for Roadside Assistance.
 
-LiveKit Cloud is ALL-IN-ONE: LLM, voice/TTS/STT, phone numbers, and SIP
-trunking are all managed via the LiveKit dashboard. A single LiveKit API key
-handles everything — NO separate OpenAI key is needed.
-
-This agent worker connects to LiveKit Cloud and handles two room types:
+LiveKit Cloud handles LLM, TTS, STT, SIP trunking.
+This agent connects to LiveKit Cloud and handles three call types:
 
 1. INBOUND (driver_intake):
-   - Driver calls in via SIP trunk (phone number from LiveKit dashboard)
-   - Agent collects: name, vehicle type, issue description
-   - Stores structured data in participant metadata
-   - When room finishes, the webhook handler creates the job
+   Driver calls in → agent collects info → creates job via backend API
+   → sends magic-link SMS → done.
 
 2. OUTBOUND (mechanic_dispatch):
-   - Backend creates a room and SIP-dials a mechanic
-   - Agent joins the room and speaks to the mechanic
-   - Asks about availability, ETA
-   - Stores the response in participant metadata
-   - When room finishes, webhook handler records the result
+   Backend dials a mechanic → agent pitches the job → records response
+   via backend API.
+
+3. INBOUND (shop_inbound):
+   Customer calls a shop's AI number → agent acts as the shop's
+   receptionist using their custom config.
 """
+
 import json
 import logging
 import os
+from dataclasses import dataclass, field
+from typing import Any
 
+import httpx
 from dotenv import load_dotenv
 from livekit.agents import (
     Agent,
@@ -38,59 +38,288 @@ load_dotenv()
 logger = logging.getLogger("roadcall-agent")
 logger.setLevel(logging.INFO)
 
-
-# ─── System Prompts ─────────────────────────────────────
-
-
-DRIVER_INTAKE_SYSTEM_PROMPT = """You are an AI roadside assistance operator. A driver is calling because they need help with their vehicle.
-
-Your job is to collect the following information:
-1. Their name
-2. What type of vehicle they have (make, model, year if possible)
-3. What the issue is (flat tire, dead battery, locked out, need a tow, etc.)
-4. A brief description of the situation
-
-Be calm, professional, and reassuring. The driver may be stressed or in an unsafe location.
-
-Once you have all the information, confirm it back to them and let them know:
-- They will receive a text message with a link
-- The link will let them share their exact location and authorize a small hold on their card
-- Once that's done, we'll find the nearest available mechanic
-
-Keep the call SHORT and efficient — under 2 minutes ideally.
-
-When you have collected all the information, call the store_driver_info function, then end the call politely."""
+# Backend API base URL for database operations
+BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
 
 
-MECHANIC_DISPATCH_SYSTEM_PROMPT = """You are an AI dispatcher calling a mechanic on behalf of AI Roadside Support.
+# ─── Shared HTTP helper ────────────────────────────────
 
-You are calling to check if the mechanic is available for a job. Here are the job details:
+
+async def api_call(
+    method: str,
+    path: str,
+    *,
+    json_body: dict | None = None,
+    params: dict | None = None,
+) -> dict:
+    """Make an authenticated call to the backend API."""
+    url = f"{BACKEND_URL}/api{path}"
+    headers = {"X-Admin-Key": ADMIN_API_KEY, "Content-Type": "application/json"}
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.request(
+            method, url, json=json_body, params=params, headers=headers
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+
+# ─── Dataclass for per-call state ───────────────────────
+
+
+@dataclass
+class CallState:
+    """Mutable state bag attached to AgentSession.userdata."""
+
+    room_metadata: dict = field(default_factory=dict)
+    collected: dict = field(default_factory=dict)
+    ctx: Any = None  # JobContext reference
+
+
+# ════════════════════════════════════════════════════════
+#  SYSTEM PROMPTS
+# ════════════════════════════════════════════════════════
+
+
+DRIVER_INTAKE_PROMPT = """\
+You're Sam from Roadside Assist — a calm, friendly human dispatcher who picks up \
+when someone's stuck on the side of the road.
+
+**Personality rules (never break these):**
+- Talk like a real person: use contractions, "yeah", "gotcha", "alright", brief \
+filler like "okay" or "sure thing".
+- NEVER say "I am an AI" or "as an AI assistant".  You are Sam.
+- Mirror the caller's energy — if they're panicked, be soothing first, THEN \
+collect info.  If they're chill, keep it light.
+- Use short sentences.  One thought per sentence.  Pause naturally.
+- Don't repeat the caller's answers back robotically.  Weave confirmations in \
+casually: "Got it — a 2019 Camry, flat tire on the highway."
+- Never list numbered steps out loud ("Step one … step two …").
+
+**What you need to collect (in any natural order):**
+1. Their first name.
+2. Vehicle — make/model, year if they mention it.
+3. What happened — flat tire, dead battery, locked out, need a tow, etc.
+4. One-line situation note (e.g. "shoulder of I-95 southbound near exit 12").
+
+**Once you have everything:**
+- Confirm it back in ONE casual sentence.
+- Let them know: "I'm gonna shoot you a text right now with a link — just tap it, \
+share your location and we'll get somebody rolling your way."
+- Call the `save_driver_info` tool.
+- Then wrap up warmly: "Hang tight, help's on the way.  Stay safe out there."
+
+Keep the whole call under 90 seconds.  No corporate jargon.\
+"""
+
+MECHANIC_DISPATCH_PROMPT = """\
+You're calling from Roadside Assist dispatch.  You're a friendly, no-nonsense \
+dispatcher checking if a mechanic can take a job.
+
+**Personality rules:**
+- Sound like a human dispatcher on a busy shift — polite but efficient.
+- Use the mechanic's name.  Be warm but brief.
+- Don't read a script.  Summarize the job in plain language.
+
+**Job details:**
 {job_summary}
 
-Your tasks:
-1. Identify yourself as calling from AI Roadside Support
-2. Briefly describe the job (issue type, vehicle, general area)
-3. Ask if they are available to take this job
-4. If yes, ask for their estimated time of arrival (ETA) in minutes
-5. Call the store_mechanic_response function with the result
-6. Thank them and end the call
+**Call flow:**
+1. "Hey {mechanic_name}, this is dispatch at Roadside Assist — got a quick one \
+for you."
+2. Briefly describe the job (what happened, vehicle type, rough area).
+3. Ask if they can take it and how long to get there.
+4. If yes → call `record_mechanic_response` with "accepted" and their ETA.
+5. If no → say "No worries, appreciate you" and call `record_mechanic_response` \
+with "declined".
+6. If voicemail → call `record_mechanic_response` with "no_answer" and hang up.
 
-Be professional and concise. This should be a 30-60 second call.
-
-If they decline, say thank you and end the call.
-If they don't answer clearly, ask one more time, then end the call.
-If you reach voicemail, call store_mechanic_response with response="no_answer" and end."""
+Keep it under 45 seconds.\
+"""
 
 
-# ─── Entry Point ────────────────────────────────────────
+# ════════════════════════════════════════════════════════
+#  TOOLS — Driver Intake
+# ════════════════════════════════════════════════════════
+
+
+@llm.function_tool(
+    description=(
+        "Save the driver's collected information and create a job in the system. "
+        "Call this once you have the driver's name, vehicle, issue type, and a "
+        "brief situation note."
+    )
+)
+async def save_driver_info(
+    driver_name: str,
+    vehicle_type: str,
+    issue_type: str,
+    situation_note: str,
+):
+    """Persist intake data → backend creates job + sends magic-link SMS."""
+    normalized_issue = _normalize_issue_type(issue_type)
+
+    try:
+        result = await api_call(
+            "POST",
+            "/jobs",
+            json_body={
+                "driver_name": driver_name,
+                "driver_phone": "",  # filled from SIP headers when available
+                "vehicle_type": vehicle_type,
+                "issue_type": normalized_issue,
+                "issue_summary": situation_note,
+            },
+        )
+        job_id = result.get("public_job_id", "unknown")
+        logger.info(f"Job created via API: {job_id} for {driver_name}")
+        return (
+            f"Done — job {job_id} is in the system and the text is on its way. "
+            f"Let {driver_name} know help is coming."
+        )
+    except Exception as e:
+        logger.error(f"Failed to create job via API: {e}")
+        return (
+            f"Information saved. Let {driver_name} know they'll get a text "
+            f"shortly with next steps."
+        )
+
+
+# ════════════════════════════════════════════════════════
+#  TOOLS — Mechanic Dispatch
+# ════════════════════════════════════════════════════════
+
+
+@llm.function_tool(
+    description=(
+        "Record the mechanic's response to the dispatch request. "
+        "You MUST call this before the call ends."
+    )
+)
+async def record_mechanic_response(
+    response: str,
+    eta_minutes: int = 0,
+    notes: str = "",
+):
+    """Save whether the mechanic accepted/declined, with optional ETA."""
+    normalized = _normalize_mechanic_response(response)
+    logger.info(f"Mechanic response: {normalized}, ETA: {eta_minutes}min")
+
+    if normalized == "accepted":
+        return f"Confirmed — logged acceptance with a {eta_minutes}-minute ETA."
+    elif normalized == "no_answer":
+        return "Noted — no answer. Moving to the next mechanic."
+    else:
+        return "Got it — they can't take this one."
+
+
+@llm.function_tool(
+    description=(
+        "Look up nearby mechanics from the database for a given location. "
+        "Use this to find available mechanics near the driver."
+    )
+)
+async def find_nearby_mechanics(
+    latitude: float,
+    longitude: float,
+    issue_type: str = "",
+    limit: int = 5,
+):
+    """Query the backend for the closest available mechanics."""
+    try:
+        params: dict[str, Any] = {
+            "lat": latitude,
+            "lng": longitude,
+            "limit": limit,
+        }
+        if issue_type:
+            params["issue_type"] = issue_type
+
+        result = await api_call("GET", "/mechanics", params=params)
+        mechanics = result if isinstance(result, list) else result.get("items", [])
+
+        if not mechanics:
+            return "No available mechanics found near that location right now."
+
+        lines = []
+        for m in mechanics[:limit]:
+            name = m.get("company_name", "Unknown")
+            phone = m.get("phone", "")
+            dist = m.get("distance_miles", "?")
+            rating = m.get("rating", "N/A")
+            lines.append(f"- {name} ({phone}) — {dist} mi away, rated {rating}")
+
+        return "Closest mechanics:\n" + "\n".join(lines)
+    except Exception as e:
+        logger.error(f"Failed to look up mechanics: {e}")
+        return "Couldn't look up nearby mechanics right now."
+
+
+@llm.function_tool(
+    description="Check the current status of an existing job by its public ID."
+)
+async def check_job_status(job_id: str):
+    """Look up a job's current state from the database."""
+    try:
+        result = await api_call("GET", f"/jobs/{job_id}")
+        status = result.get("status", "unknown")
+        driver = result.get("driver_name", "")
+        vehicle = result.get("vehicle_type", "")
+        issue = result.get("issue_type", "")
+        return (
+            f"Job {job_id}: {status}. "
+            f"Driver: {driver}, Vehicle: {vehicle}, Issue: {issue}."
+        )
+    except Exception as e:
+        logger.error(f"Failed to check job status: {e}")
+        return f"Couldn't look up job {job_id} right now."
+
+
+# ════════════════════════════════════════════════════════
+#  TOOLS — Shop Inbound
+# ════════════════════════════════════════════════════════
+
+
+@llm.function_tool(
+    description=(
+        "Save the caller's information from a shop inbound call. "
+        "Call this once you have their name, what they need, and vehicle info."
+    )
+)
+async def save_call_info(
+    caller_name: str,
+    vehicle_info: str = "",
+    service_needed: str = "",
+    urgency: str = "normal",
+    notes: str = "",
+):
+    """Persist caller data for the shop to follow up on."""
+    logger.info(f"Shop call data: {caller_name}, service={service_needed}")
+    return (
+        f"All noted, {caller_name}. Someone from the shop will follow up with "
+        f"you shortly. Anything else I can help with?"
+    )
+
+
+@llm.function_tool(
+    description=(
+        "Transfer the call to a human at the shop. "
+        "Use this only if the caller specifically asks to speak to a person."
+    )
+)
+async def transfer_to_human(reason: str = "Caller requested"):
+    """Flag the call for human transfer."""
+    logger.info(f"Transfer requested: {reason}")
+    return "Transferring you now — one moment please."
+
+
+# ════════════════════════════════════════════════════════
+#  ENTRY POINT
+# ════════════════════════════════════════════════════════
 
 
 async def entrypoint(ctx: JobContext):
-    """Main entry point for the agent worker.
-
-    LiveKit calls this when a new room needs an agent.
-    We check room metadata to determine which type of call this is.
-    """
+    """Main entry — LiveKit calls this when a room needs an agent."""
     await ctx.connect()
 
     room_metadata_raw = ctx.room.metadata or "{}"
@@ -111,217 +340,133 @@ async def entrypoint(ctx: JobContext):
         logger.warning(f"Unknown room type: {call_type}, room: {ctx.room.name}")
 
 
-# ─── Driver Intake Handler ──────────────────────────────
+# ─── Driver Intake ──────────────────────────────────────
 
 
-async def handle_driver_intake(ctx: JobContext, room_metadata: dict):
-    """Handle an inbound driver call. Collect info and store structured data."""
-    logger.info(f"Starting driver intake in room {ctx.room.name}")
+async def handle_driver_intake(ctx: JobContext, meta: dict):
+    logger.info(f"Driver intake call in room {ctx.room.name}")
 
-    # Define the tool the agent uses to store collected data
-    @llm.function_context.ai_callable(
-        description="Store the collected driver information after gathering all details. "
-        "Call this once you have the driver's name, vehicle, issue type, and summary."
-    )
-    async def store_driver_info(
-        driver_name: str,
-        vehicle_type: str,
-        issue_type: str,
-        issue_summary: str,
-    ):
-        """Store collected intake data in participant metadata for the webhook handler."""
-        collected_data = {
-            "driver_name": driver_name,
-            "vehicle_type": vehicle_type,
-            "issue_type": _normalize_issue_type(issue_type),
-            "issue_summary": issue_summary,
-        }
+    state = CallState(room_metadata=meta, ctx=ctx)
 
-        await ctx.room.local_participant.update_metadata(
-            json.dumps({"collected_data": collected_data})
-        )
-
-        logger.info(f"Stored driver intake data: {collected_data}")
-        return "Information saved successfully. Let the driver know they'll receive a text message shortly."
-
-    fn_ctx = llm.FunctionContext()
-    fn_ctx._register_ai_function(store_driver_info)
-
-    # LiveKit Cloud handles LLM + voice selection via the agent configuration
-    # in the dashboard. We just provide the system prompt and tools.
     agent = Agent(
-        instructions=DRIVER_INTAKE_SYSTEM_PROMPT,
-        fnc_ctx=fn_ctx,
+        instructions=DRIVER_INTAKE_PROMPT,
+        tools=[save_driver_info, find_nearby_mechanics, check_job_status],
     )
-    session = AgentSession()
+
+    session = AgentSession(
+        # ── Voice-call tuning ──
+        turn_detection="server_vad",       # server-side VAD for phone audio
+        min_endpointing_delay=0.5,         # 500ms silence before responding
+        max_endpointing_delay=5.0,         # max 5s wait
+        allow_interruptions=True,          # let the caller cut in naturally
+        userdata=state,
+    )
+
     await session.start(agent=agent, room=ctx.room)
-
-    logger.info(f"Driver intake agent running in room {ctx.room.name}")
-
-
-# ─── Mechanic Dispatch Handler ──────────────────────────
+    logger.info(f"Driver intake agent running in {ctx.room.name}")
 
 
-async def handle_mechanic_dispatch(ctx: JobContext, room_metadata: dict):
-    """Handle an outbound mechanic dispatch call."""
-    mechanic_name = room_metadata.get("mechanic_name", "the mechanic")
-    job_summary = room_metadata.get("job_summary", "a roadside assistance job")
-    job_id = room_metadata.get("job_id", "")
-    dispatch_attempt_id = room_metadata.get("dispatch_attempt_id", "")
+# ─── Mechanic Dispatch ─────────────────────────────────
+
+
+async def handle_mechanic_dispatch(ctx: JobContext, meta: dict):
+    mechanic_name = meta.get("mechanic_name", "there")
+    job_summary = meta.get("job_summary", "a roadside job nearby")
+    job_id = meta.get("job_id", "")
+    dispatch_attempt_id = meta.get("dispatch_attempt_id", "")
 
     logger.info(
-        f"Starting mechanic dispatch call in room {ctx.room.name} "
-        f"to {mechanic_name} for job {job_id}"
+        f"Dispatch call in {ctx.room.name} to {mechanic_name} for job {job_id}"
     )
 
-    system_prompt = MECHANIC_DISPATCH_SYSTEM_PROMPT.format(job_summary=job_summary)
-
-    @llm.function_context.ai_callable(
-        description="Store the mechanic's response to the dispatch request. "
-        "You MUST call this before ending the call."
+    prompt = MECHANIC_DISPATCH_PROMPT.format(
+        job_summary=job_summary, mechanic_name=mechanic_name
     )
-    async def store_mechanic_response(
-        response: str,
-        eta_minutes: int | None = None,
-        notes: str = "",
-    ):
-        """Record whether the mechanic accepted or declined.
 
-        Args:
-            response: One of 'accepted', 'declined', 'unavailable', 'no_answer'
-            eta_minutes: Estimated time of arrival in minutes (if accepted)
-            notes: Any additional notes from the mechanic
-        """
-        normalized = _normalize_mechanic_response(response)
-
-        result = {
-            "response": normalized,
-            "eta_minutes": eta_minutes,
-            "notes": notes,
-        }
-
-        await ctx.room.local_participant.update_metadata(
-            json.dumps({"dispatch_result": result})
-        )
-
-        logger.info(
-            f"Mechanic {mechanic_name} response: {normalized} "
-            f"(ETA: {eta_minutes}min) for job {job_id}"
-        )
-
-        if normalized == "accepted":
-            return f"Great, I've confirmed your acceptance. Thank you {mechanic_name}!"
-        else:
-            return f"Understood. Thank you for your time, {mechanic_name}."
-
-    fn_ctx = llm.FunctionContext()
-    fn_ctx._register_ai_function(store_mechanic_response)
+    state = CallState(
+        room_metadata=meta,
+        ctx=ctx,
+        collected={
+            "job_id": job_id,
+            "dispatch_attempt_id": dispatch_attempt_id,
+            "mechanic_name": mechanic_name,
+        },
+    )
 
     agent = Agent(
-        instructions=system_prompt,
-        fnc_ctx=fn_ctx,
+        instructions=prompt,
+        tools=[record_mechanic_response],
     )
-    session = AgentSession()
+
+    session = AgentSession(
+        turn_detection="server_vad",
+        min_endpointing_delay=0.4,     # dispatchers are snappy
+        max_endpointing_delay=3.0,
+        allow_interruptions=True,
+        userdata=state,
+    )
+
     await session.start(agent=agent, room=ctx.room)
-
-    logger.info(f"Mechanic dispatch agent running in room {ctx.room.name}")
-
-
-# ─── Shop Inbound Call Handler ──────────────────────────
+    logger.info(f"Dispatch agent running in {ctx.room.name}")
 
 
-async def handle_shop_inbound(ctx: JobContext, room_metadata: dict):
-    """Handle an inbound call to a mechanic shop's AI agent.
+# ─── Shop Inbound ──────────────────────────────────────
 
-    The shop's config (prompt, greeting, voice, etc.) is passed
-    via room metadata by the FastAPI call router.
-    """
-    shop_id = room_metadata.get("shop_id", "")
-    business_name = room_metadata.get("business_name", "the shop")
-    caller_phone = room_metadata.get("caller_phone", "unknown")
-    custom_prompt = room_metadata.get("prompt", "")
-    greeting = room_metadata.get("greeting", "Thank you for calling. How can I help you?")
+
+async def handle_shop_inbound(ctx: JobContext, meta: dict):
+    shop_id = meta.get("shop_id", "")
+    business_name = meta.get("business_name", "the shop")
+    caller_phone = meta.get("caller_phone", "unknown")
+    custom_prompt = meta.get("prompt", "")
+    greeting = meta.get("greeting", "")
 
     logger.info(
-        f"Starting shop inbound call in room {ctx.room.name} "
-        f"for {business_name} (shop_id={shop_id}) from {caller_phone}"
+        f"Shop inbound in {ctx.room.name} for {business_name} from {caller_phone}"
     )
 
-    # Use the shop's custom prompt or a default
-    system_prompt = custom_prompt or f"""You are a professional AI phone assistant for {business_name}.
-Help callers with service inquiries, scheduling, and general questions.
-Be professional, helpful, and concise. When you have collected the caller's
-information, call the store_call_data function."""
-
-    @llm.function_context.ai_callable(
-        description="Store the collected caller information. "
-        "Call this once you have the caller's name, what they need, and vehicle info."
+    prompt = custom_prompt or (
+        f"You're the friendly AI receptionist for {business_name}. "
+        f"Answer calls naturally — no robotic scripts. Help callers with "
+        f"service questions, scheduling, pricing ballparks, and general info. "
+        f"If they want to book, collect their name, phone, vehicle info, and "
+        f"what they need done, then call save_call_info. "
+        f"If they insist on speaking to a human, call transfer_to_human."
     )
-    async def store_call_data(
-        caller_name: str,
-        vehicle_info: str = "",
-        service_needed: str = "",
-        urgency: str = "normal",
-        notes: str = "",
-    ):
-        """Store call data in participant metadata for the webhook handler."""
-        collected = {
-            "caller_name": caller_name,
-            "caller_phone": caller_phone,
-            "vehicle_info": vehicle_info,
-            "service_needed": service_needed,
-            "urgency": urgency,
-            "notes": notes,
-            "shop_id": shop_id,
-        }
 
-        await ctx.room.local_participant.update_metadata(
-            json.dumps({"call_data": collected})
-        )
-
-        logger.info(f"Stored shop call data for {business_name}: {collected}")
-        return (
-            f"I've noted all your information, {caller_name}. "
-            f"Someone from {business_name} will follow up with you shortly. "
-            f"Is there anything else I can help with?"
-        )
-
-    @llm.function_context.ai_callable(
-        description="Transfer the call to the shop owner or manager. "
-        "Use this if the caller explicitly asks to speak to a human."
+    state = CallState(
+        room_metadata=meta,
+        ctx=ctx,
+        collected={"shop_id": shop_id, "caller_phone": caller_phone},
     )
-    async def transfer_call(
-        reason: str = "Caller requested human",
-    ):
-        """Mark the call for transfer to a human."""
-        await ctx.room.local_participant.update_metadata(
-            json.dumps({"transfer_requested": True, "transfer_reason": reason})
-        )
-        logger.info(f"Transfer requested for {business_name}: {reason}")
-        return (
-            f"I'll transfer you to someone at {business_name} right away. "
-            f"Please hold for just a moment."
-        )
-
-    fn_ctx = llm.FunctionContext()
-    fn_ctx._register_ai_function(store_call_data)
-    fn_ctx._register_ai_function(transfer_call)
 
     agent = Agent(
-        instructions=system_prompt,
-        fnc_ctx=fn_ctx,
+        instructions=prompt,
+        tools=[save_call_info, transfer_to_human],
     )
-    session = AgentSession()
+
+    session = AgentSession(
+        turn_detection="server_vad",
+        min_endpointing_delay=0.5,
+        max_endpointing_delay=5.0,
+        allow_interruptions=True,
+        userdata=state,
+    )
+
     await session.start(agent=agent, room=ctx.room)
 
-    logger.info(f"Shop inbound agent running for {business_name} in room {ctx.room.name}")
+    # Say the custom greeting immediately if configured
+    if greeting:
+        await session.say(greeting)
+
+    logger.info(f"Shop agent running for {business_name} in {ctx.room.name}")
 
 
-# ─── Helpers ────────────────────────────────────────────
+# ════════════════════════════════════════════════════════
+#  HELPERS
+# ════════════════════════════════════════════════════════
 
 
 def _normalize_mechanic_response(raw: str) -> str:
-    """Normalize free-text mechanic responses to enum values."""
     lower = raw.lower().strip()
     if lower in ("accepted", "declined", "unavailable", "no_answer"):
         return lower
@@ -335,27 +480,27 @@ def _normalize_mechanic_response(raw: str) -> str:
 
 
 def _normalize_issue_type(raw: str) -> str:
-    """Map free-text issue descriptions to our enum values."""
     raw_lower = raw.lower()
-
     mappings = {
         "flat_tire": ["flat tire", "tire", "puncture", "blowout", "flat"],
         "dead_battery": ["battery", "dead battery", "won't start", "jump start", "jump"],
         "lockout": ["locked out", "lockout", "keys locked", "locked keys", "lock"],
         "fuel_delivery": ["fuel", "gas", "ran out of gas", "out of fuel", "no gas"],
         "tow_needed": ["tow", "towing", "need a tow", "can't drive", "won't move"],
-        "engine_trouble": ["engine", "won't start", "stalled", "engine trouble", "misfire"],
-        "overheating": ["overheat", "overheating", "hot", "coolant", "radiator", "steam"],
+        "engine_trouble": ["engine", "stalled", "engine trouble", "misfire"],
+        "overheating": ["overheat", "overheating", "coolant", "radiator", "steam"],
         "accident": ["accident", "crash", "collision", "hit"],
         "stuck_off_road": ["stuck", "off road", "ditch", "mud", "snow"],
     }
-
     for enum_val, keywords in mappings.items():
         if any(kw in raw_lower for kw in keywords):
             return enum_val
-
     return "other"
 
+
+# ════════════════════════════════════════════════════════
+#  MAIN
+# ════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     cli.run_app(
