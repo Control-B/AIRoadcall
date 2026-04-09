@@ -7,6 +7,24 @@
 
 name: airoadcall
 
+ingress:
+  rules:
+    - match:
+        path:
+          prefix: /api
+      component:
+        name: backend
+    - match:
+        path:
+          prefix: /health
+      component:
+        name: backend
+    - match:
+        path:
+          prefix: /
+      component:
+        name: frontend
+
 services:
   # ── FastAPI Backend ─────────────────────────────────────
   - name: backend
