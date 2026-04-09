@@ -47,46 +47,46 @@ services:
         value: ${db.DATABASE_URL}
       - key: STRIPE_SECRET_KEY
         scope: RUN_TIME
-        type: SECRET
+        value: sk_test_placeholder
       - key: STRIPE_WEBHOOK_SECRET
         scope: RUN_TIME
-        type: SECRET
+        value: whsec_placeholder
       - key: LIVEKIT_API_KEY
         scope: RUN_TIME
-        type: SECRET
+        value: APISAgVDHQHqWCJ
       - key: LIVEKIT_API_SECRET
         scope: RUN_TIME
         type: SECRET
       - key: LIVEKIT_URL
         scope: RUN_TIME
-        type: SECRET
+        value: wss://roadside-sd5ra19w.livekit.cloud
       - key: LIVEKIT_SIP_TRUNK_ID
         scope: RUN_TIME
-        type: SECRET
+        value: ST_placeholder
       - key: TWILIO_ACCOUNT_SID
         scope: RUN_TIME
-        type: SECRET
+        value: AC_placeholder
       - key: TWILIO_AUTH_TOKEN
         scope: RUN_TIME
-        type: SECRET
+        value: placeholder
       - key: TWILIO_FROM_NUMBER
         scope: RUN_TIME
-        type: SECRET
+        value: "+10000000000"
       - key: APIFY_API_TOKEN
         scope: RUN_TIME
         type: SECRET
       - key: TAVILY_API_KEY
         scope: RUN_TIME
-        type: SECRET
+        value: tvly_placeholder
       - key: FRONTEND_URL
         scope: RUN_TIME
         value: ${APP_URL}
       - key: MAGIC_LINK_SECRET
         scope: RUN_TIME
-        type: SECRET
+        value: airoadcall-magic-secret-2026
       - key: ADMIN_USERNAME
         scope: RUN_TIME
-        type: SECRET
+        value: Wale
       - key: ADMIN_PASSWORD
         scope: RUN_TIME
         type: SECRET
@@ -107,7 +107,7 @@ services:
         value: https://cluster-api.do-ai.run/v1
       - key: DO_AI_API_KEY
         scope: RUN_TIME
-        type: SECRET
+        value: placeholder
       - key: DO_AI_MODEL
         scope: RUN_TIME
         value: meta-llama/Meta-Llama-3.1-70B-Instruct
@@ -133,10 +133,10 @@ services:
         value: ${backend.PUBLIC_URL}/api
       - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         scope: BUILD_TIME
-        type: SECRET
+        value: pk_test_placeholder
       - key: NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
         scope: BUILD_TIME
-        type: SECRET
+        value: pk_placeholder
       - key: NEXT_PUBLIC_DEMO_PHONE
         scope: BUILD_TIME
         value: "(866) 613-3303"
