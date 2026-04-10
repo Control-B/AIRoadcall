@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Phone, Mail, MapPin } from "lucide-react";
-
-const DEMO_PHONE = process.env.NEXT_PUBLIC_DEMO_PHONE || "(866) 415-9494";
+import { COMPANY_PHONE, HELP_PHONE, telHref } from "@/lib/phone";
 
 const footerLinks = {
   Product: [
@@ -47,11 +46,18 @@ export function SiteFooter() {
             </p>
             <div className="space-y-3">
               <a
-                href={`tel:${DEMO_PHONE.replace(/[^+\d]/g, "")}`}
+                href={telHref(COMPANY_PHONE)}
                 className="flex items-center gap-2 text-sm text-slate-400 hover:text-orange-400 transition-colors"
               >
                 <Phone className="h-4 w-4" />
-                {DEMO_PHONE}
+                Company: {COMPANY_PHONE}
+              </a>
+              <a
+                href={telHref(HELP_PHONE)}
+                className="flex items-center gap-2 text-sm text-slate-400 hover:text-orange-400 transition-colors"
+              >
+                <Phone className="h-4 w-4" />
+                Help: {HELP_PHONE}
               </a>
               <a
                 href="mailto:support@roadcall.ai"

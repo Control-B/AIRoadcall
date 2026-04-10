@@ -19,8 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
-
-const DEMO_PHONE = process.env.NEXT_PUBLIC_DEMO_PHONE || "(866) 415-9494";
+import { HELP_PHONE, telHref } from "@/lib/phone";
 
 /* ── Data ────────────────────────────────────────────────────── */
 
@@ -218,13 +217,13 @@ export default function HomePage() {
                 <p className="text-slate-400 mb-6">
                   Call and talk to Sam, our AI dispatcher. No signup needed.
                 </p>
-                <a href={`tel:${DEMO_PHONE.replace(/[^+\d]/g, "")}`}>
+                <a href={telHref(HELP_PHONE)}>
                   <Button
                     size="xl"
                     className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-xl gap-3 rounded-2xl shadow-xl shadow-orange-600/20"
                   >
                     <Phone className="h-6 w-6" />
-                    {DEMO_PHONE}
+                    {HELP_PHONE}
                   </Button>
                 </a>
                 <p className="text-sm text-slate-500 mt-3">
@@ -665,13 +664,13 @@ export default function HomePage() {
                   Try the AI demo right now — call and hear it for yourself.
                   Takes 60 seconds.
                 </p>
-                <a href={`tel:${DEMO_PHONE.replace(/[^+\d]/g, "")}`}>
+                <a href={telHref(HELP_PHONE)}>
                   <Button
                     size="xl"
                     className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-xl gap-3 rounded-2xl shadow-xl shadow-orange-600/20"
                   >
                     <Phone className="h-6 w-6" />
-                    Call {DEMO_PHONE}
+                    Call {HELP_PHONE}
                   </Button>
                 </a>
                 <p className="text-sm text-slate-500 mt-4">

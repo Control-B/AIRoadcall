@@ -23,8 +23,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
-const DEMO_PHONE = process.env.NEXT_PUBLIC_DEMO_PHONE || "(855) 000-0000";
+import { HELP_PHONE, telHref } from "@/lib/phone";
 
 const features = [
   {
@@ -187,10 +186,10 @@ export default function DemoPage() {
               Call our demo line and talk to the AI receptionist yourself.
               It&apos;s set up as a sample truck repair shop.
             </p>
-            <a href={`tel:${DEMO_PHONE.replace(/[^+\d]/g, "")}`}>
+            <a href={telHref(HELP_PHONE)}>
               <Button size="xl" className="w-full bg-blue-600 hover:bg-blue-700 text-xl gap-3">
                 <Phone className="h-6 w-6" />
-                {DEMO_PHONE}
+                {HELP_PHONE}
               </Button>
             </a>
             <p className="text-sm text-slate-400 mt-3">
@@ -405,10 +404,10 @@ export default function DemoPage() {
         <p className="text-xl text-slate-300 mb-8">
           Try the AI demo right now — call and hear it for yourself.
         </p>
-        <a href={`tel:${DEMO_PHONE.replace(/[^+\d]/g, "")}`}>
+        <a href={telHref(HELP_PHONE)}>
           <Button size="xl" className="bg-blue-600 hover:bg-blue-700 text-xl gap-3">
             <Phone className="h-6 w-6" />
-            Call {DEMO_PHONE} Now
+            Call {HELP_PHONE} Now
           </Button>
         </a>
       </section>

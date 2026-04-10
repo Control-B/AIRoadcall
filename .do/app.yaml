@@ -139,9 +139,12 @@ services:
       - key: NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
         scope: BUILD_TIME
         value: pk_placeholder
-      - key: NEXT_PUBLIC_DEMO_PHONE
+      - key: NEXT_PUBLIC_HELP_PHONE
         scope: BUILD_TIME
         value: "(866) 613-3303"
+      - key: NEXT_PUBLIC_COMPANY_PHONE
+        scope: BUILD_TIME
+        value: "(866) 415-9494"
 
 # ── DigitalOcean Managed Database (existing cluster) ────
 databases:

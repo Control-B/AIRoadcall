@@ -19,8 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
-
-const DEMO_PHONE = process.env.NEXT_PUBLIC_DEMO_PHONE || "(866) 415-9494";
+import { COMPANY_PHONE, HELP_PHONE, telHref } from "@/lib/phone";
 
 /* ── Timeline ────────────────────────────────────────────────── */
 
@@ -88,7 +87,8 @@ const companyFacts = [
   { icon: MapPin, label: "Coverage", value: "All 50 US States" },
   { icon: Users, label: "Mechanic Network", value: "35,000+ shops & mobile services" },
   { icon: Mail, label: "Contact", value: "support@roadcall.ai" },
-  { icon: Phone, label: "Demo Line", value: DEMO_PHONE },
+  { icon: Phone, label: "Company Number", value: COMPANY_PHONE },
+  { icon: Phone, label: "Help Line", value: HELP_PHONE },
 ];
 
 /* ── Page ─────────────────────────────────────────────────────── */
@@ -434,7 +434,7 @@ export default function CompanyPage() {
                     </a>
 
                     <a
-                      href={`tel:${DEMO_PHONE.replace(/[^+\d]/g, "")}`}
+                      href={telHref(COMPANY_PHONE)}
                       className="flex items-center gap-3 text-slate-400 hover:text-orange-400 transition-colors group"
                     >
                       <div className="h-10 w-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center group-hover:border-orange-500/30 transition-colors">
@@ -442,9 +442,24 @@ export default function CompanyPage() {
                       </div>
                       <div>
                         <div className="text-sm font-medium text-white">
-                          Phone
+                          Company Number
                         </div>
-                        <div className="text-sm">{DEMO_PHONE}</div>
+                        <div className="text-sm">{COMPANY_PHONE}</div>
+                      </div>
+                    </a>
+
+                    <a
+                      href={telHref(HELP_PHONE)}
+                      className="flex items-center gap-3 text-slate-400 hover:text-orange-400 transition-colors group"
+                    >
+                      <div className="h-10 w-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center group-hover:border-orange-500/30 transition-colors">
+                        <Phone className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-white">
+                          Help Line
+                        </div>
+                        <div className="text-sm">{HELP_PHONE}</div>
                       </div>
                     </a>
 
@@ -515,13 +530,13 @@ export default function CompanyPage() {
                   seconds. Zero obligation.
                 </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <a href={`tel:${DEMO_PHONE.replace(/[^+\d]/g, "")}`}>
+                  <a href={telHref(HELP_PHONE)}>
                     <Button
                       size="xl"
                       className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-xl gap-3 rounded-2xl shadow-xl shadow-orange-600/20"
                     >
                       <Phone className="h-6 w-6" />
-                      Call {DEMO_PHONE}
+                      Call {HELP_PHONE}
                     </Button>
                   </a>
                   <Link href="/pricing">

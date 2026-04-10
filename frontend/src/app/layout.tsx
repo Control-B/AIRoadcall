@@ -9,6 +9,11 @@ export const metadata: Metadata = {
     default: "Roadcall.ai — AI-Powered Roadside Dispatch",
     template: "%s | Roadcall.ai",
   },
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   description:
     "AI dispatcher that picks up every call, finds the closest mechanic, and gets help on the way in under 90 seconds. 35,000+ mechanics across all 50 states.",
   keywords: [

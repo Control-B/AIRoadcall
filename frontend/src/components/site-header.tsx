@@ -6,8 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { Phone, Menu, X, ChevronDown, ArrowRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-
-const DEMO_PHONE = process.env.NEXT_PUBLIC_DEMO_PHONE || "(866) 415-9494";
+import { HELP_PHONE, telHref } from "@/lib/phone";
 
 /* ── Navigation structure (Omniweb-style mega-dropdown) ──── */
 interface NavSubItem {
@@ -224,13 +223,13 @@ export function SiteHeader() {
           >
             Sign In
           </Link>
-          <a href={`tel:${DEMO_PHONE.replace(/[^+\d]/g, "")}`}>
+          <a href={telHref(HELP_PHONE)}>
             <Button
               size="sm"
               className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white rounded-full px-5 shadow-lg shadow-orange-600/20"
             >
               <Phone className="h-3.5 w-3.5 mr-1.5" />
-              Call Demo
+              Call for Help
             </Button>
           </a>
         </div>
@@ -297,10 +296,10 @@ export function SiteHeader() {
                 >
                   Sign In
                 </Link>
-                <a href={`tel:${DEMO_PHONE.replace(/[^+\d]/g, "")}`}>
+                <a href={telHref(HELP_PHONE)}>
                   <Button className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 shadow-lg">
                     <Phone className="h-4 w-4 mr-2" />
-                    Call Demo: {DEMO_PHONE}
+                    Call for Help: {HELP_PHONE}
                   </Button>
                 </a>
               </div>
