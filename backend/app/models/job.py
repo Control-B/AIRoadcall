@@ -59,6 +59,8 @@ class Job(Base):
     )
 
     # Location
+    driver_city: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    driver_state: Mapped[str | None] = mapped_column(String(10), nullable=True)
     driver_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
     driver_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
     driver_location_captured_at: Mapped[datetime | None] = mapped_column(

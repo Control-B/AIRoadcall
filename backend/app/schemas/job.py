@@ -8,6 +8,8 @@ class JobCreateRequest(BaseModel):
     driver_name: str = Field(..., min_length=1, max_length=255)
     driver_phone: str = Field(..., min_length=5, max_length=30)
     vehicle_type: Optional[str] = None
+    driver_city: Optional[str] = Field(default=None, max_length=120)
+    driver_state: Optional[str] = Field(default=None, max_length=10)
     issue_type: str
     issue_summary: Optional[str] = None
     payment_hold_amount: Optional[float] = Field(None, ge=0)
@@ -28,6 +30,8 @@ class JobDriverView(BaseModel):
     vehicle_type: Optional[str]
     issue_type: str
     issue_summary: Optional[str]
+    driver_city: Optional[str]
+    driver_state: Optional[str]
     status: str
     payment_status: str
     payment_hold_amount: Optional[float]

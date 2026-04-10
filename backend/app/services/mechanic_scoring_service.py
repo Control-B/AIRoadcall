@@ -1,5 +1,6 @@
 from app.models.mechanic import Mechanic
 from app.utils.geo import haversine_distance_km
+from app.utils.location import city_matches, normalize_state
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -11,11 +12,36 @@ WEIGHT_VEHICLE_MATCH = 0.15
 WEIGHT_RATING = 0.10
 WEIGHT_MOBILE_ROADSIDE = 0.10
 WEIGHT_SOURCE_CONFIDENCE = 0.05
+WEIGHT_CITY_MATCH = 0.45
 
 MAX_DISTANCE_KM = 80.0  # Beyond this, mechanic scores 0 for distance
 
 
 class MechanicScoringService:
+
+    @staticmethod
+    def _issue_match_score(mechanic: Mechanic, issue_type: str) -> float:
+        service_types = mechanic.service_types or []
+        return 1.0 if issue_type in service_types else 0.3
+
+    @staticmethod
+    def _vehicle_match_score(mechanic: Mechanic, vehicle_type: str | None) -> float:
+        vehicle_types = mechanic.vehicle_types_supported or []
+        if vehicle_type and vehicle_types:
+            return 1.0 if vehicle_type.lower() in [v.lower() for v in vehicle_types] else 0.5
+        return 0.6
+
+    @staticmethod
+    def _quality_score(mechanic: Mechanic) -> float:
+        rating = float(mechanic.rating) if mechanic.rating else 3.0
+        rating_score = rating / 5.0
+        mobile_score = 1.0 if mechanic.accepts_mobile_roadside else 0.0
+        confidence = mechanic.source_confidence or 0.5
+        return (
+            (WEIGHT_RATING * rating_score)
+            + (WEIGHT_MOBILE_ROADSIDE * mobile_score)
+            + (WEIGHT_SOURCE_CONFIDENCE * confidence)
+        )
 
     @staticmethod
     def score_mechanic(
@@ -38,34 +64,33 @@ class MechanicScoringService:
             distance_score = 1.0 - (distance / MAX_DISTANCE_KM)
         score += WEIGHT_DISTANCE * distance_score
 
-        # Issue type match
-        service_types = mechanic.service_types or []
-        issue_match = 1.0 if issue_type in service_types else 0.3
+        issue_match = MechanicScoringService._issue_match_score(mechanic, issue_type)
         score += WEIGHT_ISSUE_MATCH * issue_match
 
-        # Vehicle type match
-        vehicle_types = mechanic.vehicle_types_supported or []
-        if vehicle_type and vehicle_types:
-            vehicle_match = 1.0 if vehicle_type.lower() in [
-                v.lower() for v in vehicle_types
-            ] else 0.5
-        else:
-            vehicle_match = 0.6  # Neutral if unknown
+        vehicle_match = MechanicScoringService._vehicle_match_score(mechanic, vehicle_type)
         score += WEIGHT_VEHICLE_MATCH * vehicle_match
+        score += MechanicScoringService._quality_score(mechanic)
 
-        # Rating score
-        rating = float(mechanic.rating) if mechanic.rating else 3.0
-        rating_score = rating / 5.0
-        score += WEIGHT_RATING * rating_score
+        return round(score, 4)
 
-        # Mobile roadside capability
-        mobile_score = 1.0 if mechanic.accepts_mobile_roadside else 0.0
-        score += WEIGHT_MOBILE_ROADSIDE * mobile_score
+    @staticmethod
+    def score_mechanic_by_city(
+        mechanic: Mechanic,
+        driver_city: str,
+        driver_state: str,
+        issue_type: str,
+        vehicle_type: str | None,
+    ) -> float:
+        mechanic_state = normalize_state(mechanic.state)
+        wanted_state = normalize_state(driver_state)
+        if wanted_state and mechanic_state != wanted_state:
+            return 0.0
 
-        # Source confidence
-        confidence = mechanic.source_confidence or 0.5
-        score += WEIGHT_SOURCE_CONFIDENCE * confidence
-
+        city_score = 1.0 if city_matches(mechanic.city, driver_city) else 0.25
+        score = WEIGHT_CITY_MATCH * city_score
+        score += WEIGHT_ISSUE_MATCH * MechanicScoringService._issue_match_score(mechanic, issue_type)
+        score += WEIGHT_VEHICLE_MATCH * MechanicScoringService._vehicle_match_score(mechanic, vehicle_type)
+        score += MechanicScoringService._quality_score(mechanic)
         return round(score, 4)
 
     @staticmethod
@@ -87,4 +112,30 @@ class MechanicScoringService:
 
         scored.sort(key=lambda x: x[1], reverse=True)
         logger.info(f"Ranked {len(scored)} mechanics from {len(mechanics)} candidates")
+        return scored
+
+    @staticmethod
+    def rank_mechanics_by_city(
+        mechanics: list[Mechanic],
+        driver_city: str,
+        driver_state: str,
+        issue_type: str,
+        vehicle_type: str | None,
+    ) -> list[tuple[Mechanic, float]]:
+        scored = []
+        for mechanic in mechanics:
+            score = MechanicScoringService.score_mechanic_by_city(
+                mechanic,
+                driver_city=driver_city,
+                driver_state=driver_state,
+                issue_type=issue_type,
+                vehicle_type=vehicle_type,
+            )
+            if score > 0.0:
+                scored.append((mechanic, score))
+
+        scored.sort(key=lambda x: x[1], reverse=True)
+        logger.info(
+            f"Ranked {len(scored)} mechanics from {len(mechanics)} candidates using city/state"
+        )
         return scored

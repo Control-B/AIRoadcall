@@ -45,12 +45,26 @@ class MechanicView(BaseModel):
     source: Optional[str] = None
     source_confidence: Optional[float] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
     website: Optional[str] = None
     last_enriched_at: Optional[datetime] = None
     total_dispatches: int = 0
     successful_dispatches: int = 0
     avg_response_time_min: Optional[float] = None
     created_at: datetime
+
+
+class MechanicSearchResult(BaseModel):
+    id: str
+    company_name: str
+    contact_name: str
+    phone: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    rating: Optional[float] = None
+    distance_miles: Optional[float] = None
+    rank_score: float
 
 
 # ── Pipeline Schemas ────────────────────────────────────

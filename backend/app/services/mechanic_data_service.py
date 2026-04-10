@@ -3,8 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.models.mechanic import Mechanic
-from app.schemas.mechanic import MechanicCreateRequest, MechanicView
+from app.schemas.mechanic import MechanicCreateRequest, MechanicSearchResult, MechanicView
 from app.core.logging import get_logger
+from app.services.mechanic_scoring_service import MechanicScoringService
+from app.utils.geo import haversine_distance_km
+from app.utils.location import city_matches, normalize_city, normalize_state, parse_city_state_from_address
 
 logger = get_logger(__name__)
 
@@ -46,6 +49,7 @@ class MechanicDataService:
                 mechanic.hours_of_operation = request.hours_of_operation
             if request.address:
                 mechanic.address = request.address
+                mechanic.city, mechanic.state = parse_city_state_from_address(request.address)
             if request.website:
                 mechanic.website = request.website
             if request.email:
@@ -69,6 +73,8 @@ class MechanicDataService:
                 source_url=request.source_url,
                 hours_of_operation=request.hours_of_operation,
                 address=request.address,
+                city=parse_city_state_from_address(request.address)[0] if request.address else None,
+                state=parse_city_state_from_address(request.address)[1] if request.address else None,
                 website=request.website,
                 email=request.email,
             )
@@ -93,6 +99,8 @@ class MechanicDataService:
             source=mechanic.source,
             source_confidence=mechanic.source_confidence,
             address=mechanic.address,
+            city=mechanic.city,
+            state=mechanic.state,
             website=mechanic.website,
             last_enriched_at=mechanic.last_enriched_at,
             total_dispatches=mechanic.total_dispatches,
@@ -100,6 +108,103 @@ class MechanicDataService:
             avg_response_time_min=mechanic.avg_response_time_min,
             created_at=mechanic.created_at,
         )
+
+    @staticmethod
+    async def search_mechanics(
+        db: AsyncSession,
+        lat: float | None = None,
+        lng: float | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        issue_type: str = "",
+        vehicle_type: str | None = None,
+        limit: int = 5,
+    ) -> list[MechanicSearchResult]:
+        normalized_state = normalize_state(state)
+        normalized_city = normalize_city(city)
+
+        query = select(Mechanic).where(Mechanic.active == True)  # noqa: E712
+        if normalized_state:
+            query = query.where(Mechanic.state == normalized_state)
+
+        effective_state = normalized_state
+        result = await db.execute(query)
+        mechanics = list(result.scalars().all())
+        if not mechanics and normalized_state:
+            fallback_result = await db.execute(
+                select(Mechanic).where(Mechanic.active == True)  # noqa: E712
+            )
+            mechanics = list(fallback_result.scalars().all())
+            effective_state = None
+        if not mechanics:
+            return []
+
+        if lat is not None and lng is not None:
+            ranked = MechanicScoringService.rank_mechanics(
+                mechanics=mechanics,
+                driver_lat=lat,
+                driver_lng=lng,
+                issue_type=issue_type,
+                vehicle_type=vehicle_type,
+            )
+        elif normalized_city and normalized_state:
+            ranked = MechanicScoringService.rank_mechanics_by_city(
+                mechanics=mechanics,
+                driver_city=normalized_city,
+                driver_state=effective_state or "",
+                issue_type=issue_type,
+                vehicle_type=vehicle_type,
+            )
+        else:
+            ranked = [
+                (
+                    mechanic,
+                    MechanicScoringService.score_mechanic_by_city(
+                        mechanic,
+                        driver_city=normalized_city or mechanic.city or "",
+                        driver_state=normalized_state or mechanic.state or "",
+                        issue_type=issue_type,
+                        vehicle_type=vehicle_type,
+                    ),
+                )
+                for mechanic in mechanics
+            ]
+            ranked = [item for item in ranked if item[1] > 0.0]
+            ranked.sort(key=lambda item: item[1], reverse=True)
+
+        if not ranked:
+            return []
+
+        city_matches_only = [m for m, _ in ranked if normalized_city and city_matches(m.city, normalized_city)]
+        centroid_lat = None
+        centroid_lng = None
+        if city_matches_only:
+            centroid_lat = sum(m.base_lat for m in city_matches_only) / len(city_matches_only)
+            centroid_lng = sum(m.base_lng for m in city_matches_only) / len(city_matches_only)
+
+        items: list[MechanicSearchResult] = []
+        for mechanic, score in ranked[:limit]:
+            distance_miles = None
+            if lat is not None and lng is not None:
+                distance_miles = round(haversine_distance_km(lat, lng, mechanic.base_lat, mechanic.base_lng) * 0.621371, 1)
+            elif centroid_lat is not None and centroid_lng is not None:
+                distance_miles = round(haversine_distance_km(centroid_lat, centroid_lng, mechanic.base_lat, mechanic.base_lng) * 0.621371, 1)
+
+            items.append(
+                MechanicSearchResult(
+                    id=str(mechanic.id),
+                    company_name=mechanic.company_name,
+                    contact_name=mechanic.contact_name,
+                    phone=mechanic.phone,
+                    city=mechanic.city,
+                    state=mechanic.state,
+                    rating=float(mechanic.rating) if mechanic.rating else None,
+                    distance_miles=distance_miles,
+                    rank_score=score,
+                )
+            )
+
+        return items
 
     @staticmethod
     async def update_mechanic_location(

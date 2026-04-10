@@ -19,6 +19,7 @@ from app.enums.tracking_status import TrackingStatus
 from app.services.mechanic_scoring_service import MechanicScoringService
 from app.services.audit_service import AuditService
 from app.core.logging import get_logger
+from app.utils.location import normalize_state
 
 logger = get_logger(__name__)
 
@@ -75,7 +76,9 @@ class DispatchService:
         if not job:
             raise ValueError("Job not found")
 
-        if not job.driver_lat or not job.driver_lng:
+        has_precise_location = job.driver_lat is not None and job.driver_lng is not None
+        has_city_location = bool(job.driver_city and job.driver_state)
+        if not has_precise_location and not has_city_location:
             raise ValueError("Driver location not available")
 
         # Get already-attempted mechanic IDs
@@ -89,27 +92,43 @@ class DispatchService:
         )
         attempted_ids = {row[0] for row in attempted_result.all()}
 
-        # Get all active mechanics
-        mechanics_result = await db.execute(
-            select(Mechanic).where(
-                Mechanic.active == True,
-                Mechanic.id.notin_(attempted_ids) if attempted_ids else True,
-            )
-        )
+        mechanic_query = select(Mechanic).where(Mechanic.active == True)
+        if attempted_ids:
+            mechanic_query = mechanic_query.where(Mechanic.id.notin_(attempted_ids))
+
+        fallback_query = mechanic_query
+        if job.driver_state and normalize_state(job.driver_state):
+            mechanic_query = mechanic_query.where(Mechanic.state == normalize_state(job.driver_state))
+
+        ranking_state = normalize_state(job.driver_state) if job.driver_state else None
+        mechanics_result = await db.execute(mechanic_query)
         mechanics = list(mechanics_result.scalars().all())
+
+        if not mechanics and job.driver_state:
+            mechanics_result = await db.execute(fallback_query)
+            mechanics = list(mechanics_result.scalars().all())
+            ranking_state = None
 
         if not mechanics:
             logger.warning(f"No more mechanics available for job {job.public_job_id}")
             return None
 
-        # Score and rank
-        ranked = MechanicScoringService.rank_mechanics(
-            mechanics=mechanics,
-            driver_lat=job.driver_lat,
-            driver_lng=job.driver_lng,
-            issue_type=job.issue_type,
-            vehicle_type=job.vehicle_type,
-        )
+        if has_precise_location:
+            ranked = MechanicScoringService.rank_mechanics(
+                mechanics=mechanics,
+                driver_lat=job.driver_lat,
+                driver_lng=job.driver_lng,
+                issue_type=job.issue_type,
+                vehicle_type=job.vehicle_type,
+            )
+        else:
+            ranked = MechanicScoringService.rank_mechanics_by_city(
+                mechanics=mechanics,
+                driver_city=job.driver_city or "",
+                driver_state=ranking_state or "",
+                issue_type=job.issue_type,
+                vehicle_type=job.vehicle_type,
+            )
 
         if not ranked:
             return None

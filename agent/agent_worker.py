@@ -100,7 +100,8 @@ casually: "Got it — a 2019 Camry, flat tire on the highway."
 1. Their first name.
 2. Vehicle — make/model, year if they mention it.
 3. What happened — flat tire, dead battery, locked out, need a tow, etc.
-4. One-line situation note (e.g. "shoulder of I-95 southbound near exit 12").
+4. Their city and state, or the nearest town if they don't know the exact city.
+5. One-line situation note (e.g. "shoulder of I-95 southbound near exit 12").
 
 **Once you have everything:**
 - Confirm it back in ONE casual sentence.
@@ -155,6 +156,8 @@ async def save_driver_info(
     driver_name: str,
     vehicle_type: str,
     issue_type: str,
+    driver_city: str,
+    driver_state: str,
     situation_note: str,
 ):
     """Persist intake data → backend creates job + sends magic-link SMS."""
@@ -171,6 +174,8 @@ async def save_driver_info(
                 "driver_name": driver_name,
                 "driver_phone": driver_phone,
                 "vehicle_type": vehicle_type,
+                "driver_city": driver_city,
+                "driver_state": driver_state,
                 "issue_type": normalized_issue,
                 "issue_summary": situation_note,
             },
@@ -228,18 +233,25 @@ async def record_mechanic_response(
     )
 )
 async def find_nearby_mechanics(
-    latitude: float,
-    longitude: float,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    city: str = "",
+    state: str = "",
     issue_type: str = "",
     limit: int = 5,
 ):
     """Query the backend for the closest available mechanics."""
     try:
-        params: dict[str, Any] = {
-            "lat": latitude,
-            "lng": longitude,
-            "limit": limit,
-        }
+        params: dict[str, Any] = {"limit": limit}
+        if latitude is not None and longitude is not None:
+            params["lat"] = latitude
+            params["lng"] = longitude
+        elif city and state:
+            params["city"] = city
+            params["state"] = state
+        else:
+            return "I need either GPS coordinates or a city and state to look up mechanics."
+
         if issue_type:
             params["issue_type"] = issue_type
 
@@ -253,9 +265,11 @@ async def find_nearby_mechanics(
         for m in mechanics[:limit]:
             name = m.get("company_name", "Unknown")
             phone = m.get("phone", "")
-            dist = m.get("distance_miles", "?")
+            dist = m.get("distance_miles")
             rating = m.get("rating", "N/A")
-            lines.append(f"- {name} ({phone}) — {dist} mi away, rated {rating}")
+            area = ", ".join(filter(None, [m.get("city"), m.get("state")])) or "area unknown"
+            distance_text = f"{dist} mi away" if dist is not None else area
+            lines.append(f"- {name} ({phone}) — {distance_text}, rated {rating}")
 
         return "Closest mechanics:\n" + "\n".join(lines)
     except Exception as e:

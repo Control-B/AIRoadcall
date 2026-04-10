@@ -49,6 +49,8 @@ class Mechanic(Base):
     source_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     hours_of_operation: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    city: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    state: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
     website: Mapped[str | None] = mapped_column(Text, nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
@@ -67,7 +69,7 @@ class Mechanic(Base):
     lead_status: Mapped[str | None] = mapped_column(String(50), nullable=True, default="new", index=True)
     # new, contacted, interested, demo_scheduled, demo_completed, negotiating, signed_up, not_interested, do_not_contact
     lead_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
-    last_contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    lead_contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
