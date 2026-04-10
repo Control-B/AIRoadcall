@@ -100,15 +100,15 @@ casually: "Got it — a 2019 Camry, flat tire on the highway."
 1. Their first name.
 2. Vehicle — make/model, year if they mention it.
 3. What happened — flat tire, dead battery, locked out, need a tow, etc.
-4. Their city and state, or the nearest town if they don't know the exact city.
+4. Their current location — city and state, or the nearest town if they don't know the exact city.
 5. One-line situation note (e.g. "shoulder of I-95 southbound near exit 12").
 
 **Once you have everything:**
 - Confirm it back in ONE casual sentence.
-- Let them know: "I'm gonna shoot you a text right now with a link — just tap it, \
-share your location and we'll get somebody rolling your way."
+- Call `find_nearby_mechanics` with the caller's city, state, and issue type.
+- Briefly tell them the best 2–3 mechanics you found in their area.
 - Call the `save_driver_info` tool.
-- Then wrap up warmly: "Hang tight, help's on the way.  Stay safe out there."
+- Then wrap up warmly: "I've got your info down and I'm lining up help in your area. Stay safe out there."
 
 Keep the whole call under 90 seconds.  No corporate jargon.\
 """
@@ -148,8 +148,7 @@ Keep it under 45 seconds.\
     description=(
         "Save the driver's collected information and create a job in the system. "
         "Call this once you have the driver's name, vehicle, issue type, and a "
-        "brief situation note.  The system will automatically text them a link "
-        "to share their location and authorize a small payment hold."
+        "brief situation note, plus their current city and state."
     )
 )
 async def save_driver_info(
@@ -160,7 +159,7 @@ async def save_driver_info(
     driver_state: str,
     situation_note: str,
 ):
-    """Persist intake data → backend creates job + sends magic-link SMS."""
+    """Persist intake data so dispatch can continue after the call."""
     normalized_issue = _normalize_issue_type(issue_type)
 
     # Retrieve the caller's phone number stored in CallState by the entrypoint
@@ -183,14 +182,14 @@ async def save_driver_info(
         job_id = result.get("public_job_id", "unknown")
         logger.info(f"Job created via API: {job_id} for {driver_name} ({driver_phone})")
         return (
-            f"Done — job {job_id} is in the system and the text is on its way to "
-            f"{driver_name}. Let them know help is coming."
+            f"Done — job {job_id} is in the system for {driver_name}. "
+            f"Let them know you're lining up help in {driver_city}, {driver_state}."
         )
     except Exception as e:
         logger.error(f"Failed to create job via API: {e}")
         return (
-            f"Information saved. Let {driver_name} know they'll get a text "
-            f"shortly with next steps."
+            f"Information saved. Let {driver_name} know you're checking the "
+            f"best options near {driver_city}, {driver_state}."
         )
 
 
@@ -403,7 +402,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
 
     agent = Agent(
         instructions=DRIVER_INTAKE_PROMPT,
-        tools=[save_driver_info],  # only tool needed during the call
+        tools=[find_nearby_mechanics, save_driver_info],
     )
 
     session = AgentSession(
