@@ -97,6 +97,16 @@ const navItems: NavItem[] = [
         description: "Get in touch with our team",
         href: "/company#contact",
       },
+      {
+        label: "Privacy Policy",
+        description: "How Roadcall.ai collects, uses, and protects data",
+        href: "/privacy",
+      },
+      {
+        label: "Terms of Use",
+        description: "Service rules, limitations, disclaimers, and obligations",
+        href: "/terms",
+      },
     ],
   },
 ];
