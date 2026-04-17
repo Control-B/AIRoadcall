@@ -1,52 +1,33 @@
-# LiveKit Cloud ↔ GitHub sync
+# LiveKit Cloud config in git (DigitalOcean auto-deploy)
 
-LiveKit **does not** send webhooks to GitHub when you save changes in the Cloud Console. This folder holds the pulled deployment file and helpers so you can commit it and trigger deploys (e.g. DigitalOcean on push to `main`).
+This repo is connected to **DigitalOcean App Platform** with **auto-deploy on push** to your branch (same idea as “deploy when GitHub changes,” but **builds run on DO**, not GitHub Actions).
 
-## Secrets live on DigitalOcean — GitHub Actions cannot see them
+There is **no GitHub Actions workflow** here for LiveKit — your secrets stay in **DO App environment variables** only.
 
-**GitHub Actions runs on GitHub’s servers.** It has **no access** to [DigitalOcean App Platform environment variables](https://docs.digitalocean.com/products/app-platform/how-to/use-environment-variables/). Those values only exist inside your DO runtime.
+## Syncing `livekit.toml` after you change something in the LiveKit Console
 
-You can do **one** of the following:
+LiveKit does not push to GitHub for you. To get an updated `livekit.toml` into this repo so the next deploy includes it:
 
-### Option A — Copy the same values into GitHub (recommended for the sync workflow)
+1. In **DigitalOcean** → your App → **Settings** → copy the LiveKit-related env vars (or use the values you already set).
+2. On your machine, from the **repository root**:
 
-Use the **same names and values** as in DO App → **Settings → App-Level Environment Variables** (or your component env):
+   ```bash
+   export LIVEKIT_URL=... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=... LIVEKIT_CLOUD_AGENT_ID=...
+   bash livekit-cloud/sync-from-env.sh
+   ```
 
-| GitHub Actions secret | Typical DO env name |
-|----------------------|---------------------|
-| `LIVEKIT_URL` | `LIVEKIT_URL` |
-| `LIVEKIT_API_KEY` | `LIVEKIT_API_KEY` |
-| `LIVEKIT_API_SECRET` | `LIVEKIT_API_SECRET` |
-| `LIVEKIT_CLOUD_AGENT_ID` | `LIVEKIT_CLOUD_AGENT_ID` (or add this in DO if missing) |
+3. Commit and push:
 
-Add them under **Repo → Settings → Secrets and variables → Actions**. This is not a second “source of truth” — it is the **same credentials** GitHub needs to run `lk` for you.
+   ```bash
+   git add livekit-cloud/livekit.toml
+   git commit -m "chore(livekit): sync Cloud agent config"
+   git push
+   ```
 
-Then run **Actions → Sync LiveKit Cloud config → Run workflow**.
+4. **DigitalOcean** will pick up the commit and run your normal auto-deploy.
 
-### Option B — Sync from your machine (no GitHub secrets)
+The script uses the same variable names as typical DO app env; it installs the `lk` CLI under `.livekit-cli/` (gitignored).
 
-Export the same variables (copy from the DO dashboard or from your local `.env`), then from the **repo root**:
+## What’s in `livekit.toml`
 
-```bash
-export LIVEKIT_URL=... LIVEKIT_API_KEY=... LIVEKIT_API_SECRET=... LIVEKIT_CLOUD_AGENT_ID=...
-bash livekit-cloud/sync-from-env.sh
-git add livekit-cloud/livekit.toml && git commit -m "chore(livekit): sync Cloud config" && git push
-```
-
-The script installs the `lk` CLI under `.livekit-cli/` (gitignored) on macOS or Linux.
-
-### Option B2 — Run inside DO (advanced)
-
-If you add a **one-off Job**, **Worker**, or SSH Droplet that has those env vars, you can run `sync-from-env.sh` there and push with a **deploy key** or **PAT** stored only on DO. That keeps secrets solely on DO but requires extra plumbing; most teams use Option A for the GitHub workflow.
-
----
-
-## What gets synced
-
-The workflow / script runs `lk agent config --id <AGENT_ID>` and writes **`livekit-cloud/livekit.toml`** (project + Cloud agent id for CLI use).
-
-Some **Console-only** fields (certain Agent Builder UI) may not appear in that file. Prompts for your **Python worker** stay in `agent/agent_worker.py` / env.
-
-## Disable the GitHub workflow
-
-Set repo variable **`LIVEKIT_SYNC_DISABLED`** = `true` if you only sync manually.
+It’s the deployment metadata LiveKit exposes via `lk agent config` (project + Cloud agent id). Some Console-only UI fields may not appear in this file; worker prompts in `agent/agent_worker.py` remain your code source of truth.
