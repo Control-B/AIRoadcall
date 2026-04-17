@@ -149,6 +149,37 @@ services:
         scope: BUILD_TIME
         value: "(866) 415-9494"
 
+# ── LiveKit agent worker (voice pipeline; must run for calls to speak) ──
+workers:
+  - name: livekit-agent
+    github:
+      repo: Control-B/AIRoadcall
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: agent/Dockerfile
+    source_dir: agent
+    instance_count: 1
+    instance_size_slug: apps-s-1vcpu-0.5gb
+    envs:
+      - key: LIVEKIT_API_KEY
+        scope: RUN_TIME
+        value: APISAgVDHQHqWCJ
+      - key: LIVEKIT_API_SECRET
+        scope: RUN_TIME
+        type: SECRET
+      - key: LIVEKIT_URL
+        scope: RUN_TIME
+        value: wss://roadside-sd5ra19w.livekit.cloud
+      - key: LIVEKIT_AGENT_NAME
+        scope: RUN_TIME
+        value: roadcall-agent
+      - key: BACKEND_URL
+        scope: RUN_TIME
+        value: ${backend.PRIVATE_URL}
+      - key: ADMIN_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+
 # ── DigitalOcean Managed Database (existing cluster) ────
 databases:
   - name: db
