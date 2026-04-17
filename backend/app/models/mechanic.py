@@ -80,3 +80,19 @@ class Mechanic(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+    def _format_hours(self) -> str:
+        """Format hours_of_operation dict as human-readable string."""
+        if not self.hours_of_operation:
+            return "N/A"
+        try:
+            hours = self.hours_of_operation
+            days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+            formatted = []
+            for day in days:
+                day_hours = hours.get(day.lower(), hours.get(day))
+                if day_hours:
+                    formatted.append(f"{day}: {day_hours}")
+            return "; ".join(formatted) if formatted else "N/A"
+        except Exception:
+            return "N/A"

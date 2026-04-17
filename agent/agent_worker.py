@@ -586,6 +586,29 @@ async def find_nearby_mechanics(
 
 
 @llm.function_tool(
+    description=(
+        "Get a formatted knowledge base of mechanics and services in an area. "
+        "Use this to enrich the agent's understanding of available help."
+    )
+)
+async def get_knowledge_base(city: str = "", state: str = ""):
+    """Retrieve formatted RAG knowledge base for the current location."""
+    if not state:
+        return "I need a state to look up service information."
+    
+    try:
+        result = await api_call(
+            "GET",
+            "/rag/mechanics",
+            params={"city": city, "state": state, "limit": 8}
+        )
+        return result if isinstance(result, str) else "Could not retrieve service information."
+    except Exception as e:
+        logger.error(f"Failed to get knowledge base: {e}")
+        return "Couldn't look up service information right now."
+
+
+@llm.function_tool(
     description="Check the current status of an existing job by its public ID."
 )
 async def check_job_status(job_id: str):
@@ -715,7 +738,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
 
     agent = Agent(
         instructions=_resolve_driver_intake_system_prompt(ctx, meta),
-        tools=[find_nearby_mechanics, save_driver_info],
+        tools=[find_nearby_mechanics, get_knowledge_base, save_driver_info],
     )
 
     session = _voice_agent_session(

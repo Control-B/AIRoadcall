@@ -15,6 +15,7 @@ from app.api.routes import (
     shops,
     outreach,
     admin_auth,
+    rag,
 )
 
 settings = get_settings()
@@ -46,6 +47,7 @@ app.include_router(payments.router, prefix="/api")
 app.include_router(dispatch.router, prefix="/api")
 app.include_router(tracking.router, prefix="/api")
 app.include_router(mechanics.router, prefix="/api")
+app.include_router(rag.router, prefix="/api")
 app.include_router(webhooks_stripe.router, prefix="/api")
 app.include_router(webhooks_livekit.router, prefix="/api")
 app.include_router(data_pipeline.router, prefix="/api")
