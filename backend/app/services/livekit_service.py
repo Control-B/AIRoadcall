@@ -168,10 +168,27 @@ class LiveKitService:
             # 3. Join the registered voice agent worker (explicit dispatch)
             agent_name = (settings.LIVEKIT_AGENT_NAME or "").strip()
             if agent_name:
+                dispatch_meta: dict = {}
+                instr = (settings.LIVEKIT_CLOUD_INSTRUCTIONS or "").strip()
+                if instr:
+                    dispatch_meta["instructions"] = instr
+                extra = (settings.LIVEKIT_AGENT_DISPATCH_METADATA_EXTRA or "").strip()
+                if extra:
+                    try:
+                        parsed = json.loads(extra)
+                        if isinstance(parsed, dict):
+                            dispatch_meta.update(parsed)
+                    except json.JSONDecodeError:
+                        logger.warning(
+                            "LIVEKIT_AGENT_DISPATCH_METADATA_EXTRA is not valid JSON; ignoring"
+                        )
+                meta_str = json.dumps(dispatch_meta) if dispatch_meta else ""
+
                 await api.agent_dispatch.create_dispatch(
                     CreateAgentDispatchRequest(
                         agent_name=agent_name,
                         room=room_name,
+                        metadata=meta_str,
                     )
                 )
                 logger.info(f"Dispatched AI agent '{agent_name}' to room {room_name}")

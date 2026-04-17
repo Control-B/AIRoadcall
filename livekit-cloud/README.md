@@ -30,4 +30,22 @@ The script uses the same variable names as typical DO app env; it installs the `
 
 ## What’s in `livekit.toml`
 
-It’s the deployment metadata LiveKit exposes via `lk agent config` (project + Cloud agent id). Some Console-only UI fields may not appear in this file; worker prompts in `agent/agent_worker.py` remain your code source of truth.
+It’s the deployment metadata LiveKit exposes via `lk agent config` (project + Cloud agent id). **Agent “Instructions” from the LiveKit Console are not embedded in this file.** The Roadcall worker reads instructions in this priority order:
+
+1. **`ctx.job.metadata`** — JSON from `CreateAgentDispatch` (outbound) or from **SIP dispatch rule** `roomConfig.agents[].metadata` (inbound). Example:
+
+   ```json
+   {
+     "instructions": "Your name is Mara… (same text as the Console)",
+     "welcome_message": "Thank you for calling Roadside, this is Mara…",
+     "opening_instruction": "Optional; overrides first-spoken turn"
+   }
+   ```
+
+2. **Room metadata** — same keys if your trunk or app sets them on the room.
+
+3. **`LIVEKIT_CLOUD_INSTRUCTIONS`** — set on the **agent worker** (and on the **backend** for outbound dispatch metadata). Paste the Console instructions here so behavior matches the UI without duplicating code.
+
+4. Fallback — built-in / `AGENT_DRIVER_INTAKE_*` env in `agent/agent_worker.py`.
+
+See `LIVEKIT_CLOUD_INSTRUCTIONS` and `LIVEKIT_AGENT_DISPATCH_METADATA_EXTRA` in the root `.env.example`.

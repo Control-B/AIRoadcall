@@ -18,6 +18,13 @@ class Settings(BaseSettings):
     LIVEKIT_OUTBOUND_AGENT_ID: str = ""  # Agent dispatch room prefix
     # Must match the LiveKit Agents worker (WorkerOptions.agent_name)
     LIVEKIT_AGENT_NAME: str = "roadcall-agent"
+    # Same text as the LiveKit Console "Instructions" for this agent — copied into
+    # CreateAgentDispatch metadata so outbound calls match console behavior. For inbound,
+    # set the same value on the worker as LIVEKIT_CLOUD_INSTRUCTIONS (or pass via SIP
+    # dispatch rule roomConfig.agents[].metadata in the Cloud dashboard).
+    LIVEKIT_CLOUD_INSTRUCTIONS: str = ""
+    # Optional JSON object merged into agent dispatch metadata (e.g. {"welcome_message": "..."}).
+    LIVEKIT_AGENT_DISPATCH_METADATA_EXTRA: str = ""
 
     # Twilio
     TWILIO_ACCOUNT_SID: str = ""

@@ -237,8 +237,8 @@ lined up, and end warmly. Keep the call efficient (roughly under two minutes whe
 """
 
 
-def _driver_intake_agent_instructions() -> str:
-    """Full system prompt for driver intake; override via env or file for parity with LiveKit console."""
+def _driver_intake_builtin_file_or_env_prompt() -> str:
+    """Fallback when LiveKit job/room metadata and LIVEKIT_CLOUD_INSTRUCTIONS are not set."""
     direct = os.getenv("AGENT_DRIVER_INTAKE_PROMPT", "").strip()
     if direct:
         return direct
@@ -249,8 +249,100 @@ def _driver_intake_agent_instructions() -> str:
     return DRIVER_INTAKE_PROMPT
 
 
-def _driver_intake_opening_instructions() -> str:
-    """First-turn user instruction; override to match your LiveKit welcome message."""
+# Appended when instructions come from the LiveKit Console (or dispatch metadata) so
+# Roadcall tools still exist in the same session.
+DRIVER_INTAKE_TOOL_APPENDIX = """\
+## Roadcall tools (required — do not mention these names to the caller)
+You have function tools for this app. Use them when appropriate; never say "tool", \
+"function", or raw JSON aloud.
+- find_nearby_mechanics: look up real mechanics near the caller once you have city/state (or coordinates) and issue type.
+- save_driver_info: persist the case after you have name, vehicle, issue, location, and a short situation note.
+
+Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
+"""
+
+
+def _metadata_payload(raw: str | None) -> dict[str, Any]:
+    """Parse job.metadata or dispatch metadata; JSON object or plain string → instructions."""
+    if raw is None:
+        return {}
+    s = str(raw).strip()
+    if not s:
+        return {}
+    try:
+        data = json.loads(s)
+        if isinstance(data, dict):
+            return dict(data)
+        if isinstance(data, str):
+            return {"instructions": data}
+    except (json.JSONDecodeError, TypeError):
+        return {"instructions": s}
+    return {}
+
+
+def _first_instruction_text(payload: dict[str, Any]) -> str | None:
+    for key in ("instructions", "system_prompt", "prompt", "agent_instructions"):
+        val = payload.get(key)
+        if val is not None and str(val).strip():
+            return str(val).strip()
+    return None
+
+
+def _room_instruction_payload(room_meta: dict) -> dict[str, Any]:
+    """Instruction keys from room metadata (SIP dispatch rule or room create)."""
+    out: dict[str, Any] = {}
+    if not room_meta:
+        return out
+    for key in (
+        "instructions",
+        "system_prompt",
+        "prompt",
+        "agent_instructions",
+        "opening_instruction",
+        "welcome_message",
+    ):
+        if key in room_meta and room_meta[key] not in (None, ""):
+            out[key] = room_meta[key]
+    return out
+
+
+def _resolve_driver_intake_system_prompt(ctx: JobContext, room_meta: dict) -> str:
+    """Prefer LiveKit Console instructions: job.metadata → room → LIVEKIT_CLOUD_INSTRUCTIONS.
+
+    See: https://docs.livekit.io/telephony/accepting-calls/dispatch-rule/ (roomConfig.agents[].metadata)
+    """
+    job_pl = _metadata_payload(ctx.job.metadata)
+    room_pl = _room_instruction_payload(room_meta)
+
+    external = (
+        _first_instruction_text(job_pl)
+        or _first_instruction_text(room_pl)
+        or os.getenv("LIVEKIT_CLOUD_INSTRUCTIONS", "").strip()
+    )
+    if external:
+        logger.info("Driver intake: using console-synced instructions + Roadcall tool appendix")
+        return f"{external}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
+
+    logger.info("Driver intake: using AGENT_DRIVER_INTAKE_* or built-in default prompt")
+    return _driver_intake_builtin_file_or_env_prompt()
+
+
+def _resolve_driver_opening_instruction(ctx: JobContext, room_meta: dict) -> str:
+    """First-turn user instruction; welcome from job/room metadata or env."""
+    job_pl = _metadata_payload(ctx.job.metadata)
+    room_pl = _room_instruction_payload(room_meta)
+    welcome = (
+        job_pl.get("opening_instruction")
+        or job_pl.get("welcome_message")
+        or room_pl.get("opening_instruction")
+        or room_pl.get("welcome_message")
+    )
+    if welcome is not None and str(welcome).strip():
+        w = str(welcome).strip()
+        return (
+            "The caller just connected. Speak first in plain spoken English only. "
+            f"Use this greeting (you may adapt slightly for natural flow): {w}"
+        )
     return os.getenv(
         "AGENT_DRIVER_OPENING_INSTRUCTION",
         "A motorist or truck driver just connected for roadside assistance. "
@@ -258,6 +350,7 @@ def _driver_intake_opening_instructions() -> str:
         "Open like: thank them for calling Roadside, say you are Mara, ask how you can help today. "
         "Keep the greeting to one or two short sentences, then listen.",
     )
+
 
 MECHANIC_DISPATCH_PROMPT = """\
 You're calling from Roadside Assist dispatch — a friendly, efficient human \
@@ -280,6 +373,20 @@ Keep sentences short. Do not say "tool" or "function" out loud.
 
 Keep it under 45 seconds.\
 """
+
+
+def _resolve_mechanic_system_prompt(ctx: JobContext, meta: dict, mechanic_name: str, job_summary: str) -> str:
+    job_pl = _metadata_payload(ctx.job.metadata)
+    room_pl = _room_instruction_payload(meta)
+    external = (
+        _first_instruction_text(job_pl)
+        or _first_instruction_text(room_pl)
+        or os.getenv("LIVEKIT_CLOUD_INSTRUCTIONS", "").strip()
+    )
+    core = MECHANIC_DISPATCH_PROMPT.format(job_summary=job_summary, mechanic_name=mechanic_name)
+    if external:
+        return f"{external}\n\n## This outbound call\n{core}"
+    return core
 
 
 # ════════════════════════════════════════════════════════
@@ -570,7 +677,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
     )
 
     agent = Agent(
-        instructions=_driver_intake_agent_instructions(),
+        instructions=_resolve_driver_intake_system_prompt(ctx, meta),
         tools=[find_nearby_mechanics, save_driver_info],
     )
 
@@ -582,7 +689,9 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
 
     await session.start(agent=agent, room=ctx.room)
     await _wait_for_sip_participant(ctx, identity=None)
-    await _kickoff_agent_speech(session, instructions=_driver_intake_opening_instructions())
+    await _kickoff_agent_speech(
+        session, instructions=_resolve_driver_opening_instruction(ctx, meta)
+    )
     logger.info(f"Driver intake agent running in {ctx.room.name} (caller: {_current_caller_phone})")
 
 
@@ -603,9 +712,7 @@ async def handle_mechanic_dispatch(ctx: JobContext, meta: dict):
         f"Dispatch call in {ctx.room.name} to {mechanic_name} for job {job_id}"
     )
 
-    prompt = MECHANIC_DISPATCH_PROMPT.format(
-        job_summary=job_summary, mechanic_name=mechanic_name
-    )
+    prompt = _resolve_mechanic_system_prompt(ctx, meta, mechanic_name, job_summary)
 
     state = CallState(
         room_metadata=meta,
