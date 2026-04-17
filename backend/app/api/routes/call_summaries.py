@@ -2,8 +2,8 @@ import json
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Body, Depends, Request
-from sqlalchemy import select
+from fastapi import APIRouter, Body, Depends, Query, Request
+from sqlalchemy import desc, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session, require_admin_api_key
@@ -12,6 +12,12 @@ from app.models.job import Job
 from app.schemas.call_summary import CallSummaryResponse
 
 router = APIRouter(prefix="/call-summaries", tags=["call-summaries"])
+
+
+def _normalize_phone(value: str | None) -> str:
+    if not value:
+        return ""
+    return "".join(ch for ch in str(value) if ch.isdigit())
 
 
 def _as_dict(payload: Any) -> dict[str, Any]:
@@ -113,3 +119,105 @@ async def ingest_livekit_call_summary(
         duration_seconds=call_summary.duration_seconds,
         created_at=call_summary.created_at,
     )
+
+
+@router.get("/memory", dependencies=[Depends(require_admin_api_key)])
+async def get_caller_memory(
+    phone: str = Query(..., min_length=7),
+    limit: int = Query(default=3, ge=1, le=10),
+    db: AsyncSession = Depends(get_session),
+):
+    normalized_phone = _normalize_phone(phone)
+    if not normalized_phone:
+        return {"phone": phone, "recent_summaries": [], "pronunciation_hints": [], "memory_notes": []}
+
+    result = await db.execute(
+        select(CallSummary)
+        .where(
+            or_(
+                CallSummary.from_number.like(f"%{normalized_phone[-10:]}%"),
+                CallSummary.to_number.like(f"%{normalized_phone[-10:]}%"),
+            )
+        )
+        .order_by(desc(CallSummary.created_at))
+        .limit(25)
+    )
+    rows = result.scalars().all()
+
+    recent_summaries: list[dict[str, Any]] = []
+    pronunciation_hints: list[str] = []
+    memory_notes: list[str] = []
+
+    for row in rows:
+        payload = row.payload_json or {}
+        if row.source == "agent_memory":
+            note = str(payload.get("memory_note") or row.summary_text or "").strip()
+            if note:
+                memory_notes.append(note)
+            hints = payload.get("pronunciation_hints") or []
+            if isinstance(hints, list):
+                for hint in hints:
+                    text = str(hint).strip()
+                    if text:
+                        pronunciation_hints.append(text)
+            elif isinstance(hints, str) and hints.strip():
+                pronunciation_hints.append(hints.strip())
+            continue
+
+        summary_text = str(row.summary_text or "").strip()
+        if summary_text:
+            recent_summaries.append(
+                {
+                    "created_at": row.created_at.isoformat() if row.created_at else None,
+                    "call_type": row.call_type,
+                    "summary_text": summary_text,
+                }
+            )
+
+    dedup_pronunciations = list(dict.fromkeys(pronunciation_hints))[:10]
+    dedup_notes = list(dict.fromkeys(memory_notes))[:10]
+
+    return {
+        "phone": phone,
+        "recent_summaries": recent_summaries[:limit],
+        "pronunciation_hints": dedup_pronunciations,
+        "memory_notes": dedup_notes,
+    }
+
+
+@router.post("/memory", dependencies=[Depends(require_admin_api_key)])
+async def save_caller_memory(
+    body: dict[str, Any] = Body(default_factory=dict),
+    db: AsyncSession = Depends(get_session),
+):
+    phone = str(body.get("phone") or body.get("from_number") or "").strip()
+    if not phone:
+        return {"saved": False, "reason": "missing phone"}
+
+    memory_note = str(body.get("memory_note") or "").strip()
+    pronunciation_hints = body.get("pronunciation_hints") or []
+    if isinstance(pronunciation_hints, str):
+        pronunciation_hints = [pronunciation_hints]
+    pronunciation_hints = [str(item).strip() for item in pronunciation_hints if str(item).strip()]
+
+    if not memory_note and not pronunciation_hints:
+        return {"saved": False, "reason": "no memory content"}
+
+    record = CallSummary(
+        provider="roadcall",
+        source="agent_memory",
+        agent_name=str(body.get("agent_name") or "roadcall-agent"),
+        call_type="memory_note",
+        from_number=phone,
+        to_number=str(body.get("to_number") or "").strip() or None,
+        summary_text=memory_note or "; ".join(pronunciation_hints),
+        payload_json={
+            "memory_note": memory_note or None,
+            "pronunciation_hints": pronunciation_hints,
+            "category": str(body.get("category") or "caller_memory"),
+        },
+    )
+    db.add(record)
+    await db.flush()
+    await db.refresh(record)
+    return {"saved": True, "id": str(record.id)}

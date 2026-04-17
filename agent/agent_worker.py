@@ -96,6 +96,46 @@ async def api_call(
             raise
 
 
+async def load_caller_memory(phone: str) -> str:
+    """Fetch recent summaries and pronunciation hints for a returning caller."""
+    normalized = phone.strip()
+    if not normalized:
+        return ""
+
+    try:
+        result = await api_call("GET", "/call-summaries/memory", params={"phone": normalized, "limit": 3})
+    except Exception as exc:
+        logger.warning("Failed to load caller memory for %s: %s", normalized, exc)
+        return ""
+
+    summaries = result.get("recent_summaries", [])
+    pronunciation_hints = result.get("pronunciation_hints", [])
+    memory_notes = result.get("memory_notes", [])
+
+    sections: list[str] = []
+    if pronunciation_hints:
+        sections.append(
+            "Pronunciation hints for this caller or related contacts: "
+            + "; ".join(str(item) for item in pronunciation_hints[:5])
+        )
+    if memory_notes:
+        sections.append(
+            "Persistent memory notes: " + " ; ".join(str(item) for item in memory_notes[:5])
+        )
+    if summaries:
+        summary_lines = []
+        for item in summaries[:3]:
+            text = str(item.get("summary_text") or "").strip()
+            if text:
+                summary_lines.append(f"- {text}")
+        if summary_lines:
+            sections.append("Recent conversations:\n" + "\n".join(summary_lines))
+
+    if not sections:
+        return ""
+    return "\n\n".join(sections)
+
+
 # ─── Dataclass for per-call state ───────────────────────
 
 
@@ -296,6 +336,7 @@ You have function tools for this app. Use them when appropriate; never say "tool
 - find_nearby_mechanics: look up real mechanics near the caller once you have city/state (or coordinates) and issue type.
 - get_knowledge_base: retrieve a concise knowledge-base summary for the caller's city and state before you describe options.
 - save_driver_info: persist the case after you have name, vehicle, issue, location, and a short situation note.
+- remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
 
 Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
 """
@@ -737,6 +778,40 @@ async def check_job_status(job_id: str):
         return f"Couldn't look up job {job_id} right now."
 
 
+@llm.function_tool(
+    description=(
+        "Save durable caller memory for future calls. Use this when the caller corrects a pronunciation, "
+        "shares a name pronunciation, or gives a detail worth remembering for later conversations."
+    )
+)
+async def remember_caller_memory(
+    memory_note: str = "",
+    pronunciation_hints: str = "",
+):
+    global _current_caller_phone
+
+    phone = (_current_caller_phone or "").strip()
+    if not phone:
+        return "No caller phone is available yet, so I can't save memory for future calls."
+
+    hints = [item.strip() for item in pronunciation_hints.split(";") if item.strip()]
+    try:
+        await api_call(
+            "POST",
+            "/call-summaries/memory",
+            json_body={
+                "phone": phone,
+                "memory_note": memory_note,
+                "pronunciation_hints": hints,
+                "agent_name": os.getenv("LIVEKIT_AGENT_NAME", "roadcall-agent"),
+            },
+        )
+        return "Got it — I'll remember that for future calls from this number."
+    except Exception as exc:
+        logger.error("Failed to save caller memory: %s", exc)
+        return "I couldn't save that note right now, but I can still continue helping on this call."
+
+
 # ════════════════════════════════════════════════════════
 #  TOOLS — Shop Inbound
 # ════════════════════════════════════════════════════════
@@ -845,9 +920,16 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
         collected={"caller_phone": _current_caller_phone},
     )
 
+    memory_block = ""
+    if _current_caller_phone:
+        memory_block = await load_caller_memory(_current_caller_phone)
+
     agent = Agent(
-        instructions=_resolve_driver_intake_system_prompt(ctx, meta),
-        tools=[find_nearby_mechanics, get_knowledge_base, save_driver_info],
+        instructions=(
+            _resolve_driver_intake_system_prompt(ctx, meta)
+            + (f"\n\n## Caller memory\n{memory_block}" if memory_block else "")
+        ),
+        tools=[find_nearby_mechanics, get_knowledge_base, save_driver_info, remember_caller_memory],
     )
 
     session = _voice_agent_session(
