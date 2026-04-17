@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy import DateTime, Integer, JSON, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,7 +24,7 @@ class CallSummary(Base):
     to_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
     public_job_id: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     job_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("jobs.id"), nullable=True, index=True
+        UUID(as_uuid=True), nullable=True, index=True
     )
     duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
     summary_text: Mapped[str | None] = mapped_column(Text, nullable=True)
