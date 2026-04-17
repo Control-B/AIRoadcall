@@ -173,6 +173,11 @@ export function TrackingStep({
             ETA: ~{tracking.eta_minutes} minutes
           </p>
         )}
+        {tracking?.distance_miles && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            Distance: {tracking.distance_miles.toFixed(1)} miles away
+          </p>
+        )}
       </div>
 
       {/* Map */}
@@ -235,6 +240,13 @@ export function TrackingStep({
               <p className="text-sm text-muted-foreground">
                 {tracking?.mechanic_contact || mechanicContact}
               </p>
+              {(tracking?.mechanic_address || tracking?.mechanic_city || tracking?.mechanic_state) && (
+                <p className="text-sm text-muted-foreground">
+                  {[tracking?.mechanic_address, tracking?.mechanic_city, tracking?.mechanic_state]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              )}
             </div>
             {tracking?.mechanic_last_updated && (
               <div className="text-right">

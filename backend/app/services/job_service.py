@@ -4,6 +4,8 @@ from sqlalchemy import select
 
 from app.models.job import Job
 from app.models.mechanic import Mechanic
+from app.models.dispatch_attempt import DispatchAttempt
+from app.enums.dispatch_status import DispatchStatus
 from app.schemas.job import (
     JobCreateRequest,
     JobCreateResponse,
@@ -84,6 +86,16 @@ class JobService:
         """Build a safe driver-facing view of the job."""
         mechanic_summary = None
         if job.assigned_mechanic_id:
+            accepted_attempt = None
+            attempt_result = await db.execute(
+                select(DispatchAttempt).where(
+                    DispatchAttempt.job_id == job.id,
+                    DispatchAttempt.mechanic_id == job.assigned_mechanic_id,
+                    DispatchAttempt.dispatch_status == DispatchStatus.accepted,
+                )
+            )
+            accepted_attempt = attempt_result.scalar_one_or_none()
+
             result = await db.execute(
                 select(Mechanic).where(Mechanic.id == job.assigned_mechanic_id)
             )
@@ -92,6 +104,12 @@ class JobService:
                 mechanic_summary = AssignedMechanicSummary(
                     company_name=mechanic.company_name,
                     contact_name=mechanic.contact_name,
+                    eta_minutes=accepted_attempt.availability_eta_minutes if accepted_attempt else None,
+                    address=mechanic.address,
+                    city=mechanic.city,
+                    state=mechanic.state,
+                    lat=mechanic.last_known_lat or mechanic.base_lat,
+                    lng=mechanic.last_known_lng or mechanic.base_lng,
                 )
 
         return JobDriverView(

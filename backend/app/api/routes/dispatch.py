@@ -2,14 +2,18 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_session
+from app.api.deps import get_session, require_admin_api_key
+from app.models.job import Job
 from app.schemas.dispatch import (
     DispatchStartResponse,
     DispatchNextResponse,
     MechanicResponseRequest,
     MechanicResponseResponse,
 )
+from app.schemas.tracking import MechanicTrackingView
 from app.services.dispatch_service import DispatchService
+from app.services.tracking_service import TrackingService
+from sqlalchemy import select
 
 router = APIRouter(prefix="/dispatch", tags=["dispatch"])
 
@@ -75,3 +79,15 @@ async def record_mechanic_response(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
+
+
+@router.get("/{job_id}/mechanic-tracking", response_model=MechanicTrackingView, dependencies=[Depends(require_admin_api_key)])
+async def get_mechanic_tracking(
+    job_id: uuid.UUID,
+    db: AsyncSession = Depends(get_session),
+):
+    result = await db.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Job not found")
+    return await TrackingService.get_mechanic_tracking_view(db, job)

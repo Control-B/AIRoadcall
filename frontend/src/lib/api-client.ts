@@ -42,6 +42,11 @@ export interface AssignedMechanic {
   company_name?: string;
   contact_name?: string;
   eta_minutes?: number | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  lat?: number | null;
+  lng?: number | null;
 }
 
 export interface JobDriverView {
@@ -62,12 +67,17 @@ export interface TrackingView {
   job_status: string;
   tracking_status?: string;
   eta_minutes?: number | null;
+  distance_miles?: number | null;
   driver_lat?: number | null;
   driver_lng?: number | null;
+  driver_location_captured_at?: string | null;
   mechanic_lat?: number | null;
   mechanic_lng?: number | null;
   mechanic_company?: string | null;
   mechanic_contact?: string | null;
+  mechanic_address?: string | null;
+  mechanic_city?: string | null;
+  mechanic_state?: string | null;
   mechanic_last_updated?: string | null;
 }
 

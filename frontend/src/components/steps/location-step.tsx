@@ -27,6 +27,7 @@ export function LocationStep({ token, onSuccess }: LocationStepProps) {
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const autoRequestedRef = useRef(false);
 
   const requestLocation = useCallback(() => {
     if (!navigator.geolocation) {
@@ -88,6 +89,13 @@ export function LocationStep({ token, onSuccess }: LocationStepProps) {
       setSubmitting(false);
     }
   }, [coords, token, onSuccess]);
+
+  useEffect(() => {
+    if (!autoRequestedRef.current && state === "idle") {
+      autoRequestedRef.current = true;
+      requestLocation();
+    }
+  }, [requestLocation, state]);
 
   // Initialize Mapbox map when coordinates are available
   useEffect(() => {

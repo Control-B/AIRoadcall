@@ -46,6 +46,11 @@ class AssignedMechanicSummary(BaseModel):
     company_name: str
     contact_name: str
     eta_minutes: Optional[int] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
 
 
 class LocationUpdateRequest(BaseModel):

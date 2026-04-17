@@ -564,6 +564,18 @@ async def save_driver_info(
             },
         )
         job_id = result.get("public_job_id", "unknown")
+        try:
+            await save_phone_memory(
+                driver_phone,
+                memory_note=(
+                    f"Driver {driver_name} called about {normalized_issue} for a "
+                    f"{vehicle_type or 'vehicle'} near {driver_city}, {driver_state}. "
+                    f"Details: {situation_note or 'No additional details provided.'}"
+                ),
+                category="driver_post_call_summary",
+            )
+        except Exception as memory_exc:
+            logger.warning("Failed to save driver memory note: %s", memory_exc)
         logger.info(f"Job created via API: {job_id} for {driver_name} ({driver_phone})")
         return (
             f"Done — job {job_id} is in the system for {driver_name}. "
@@ -581,6 +593,33 @@ async def save_driver_info(
 _current_caller_phone: str = ""
 _current_dispatch_job_id: str = ""
 _current_dispatch_attempt_id: str = ""
+_current_mechanic_phone: str = ""
+
+
+async def save_phone_memory(
+    phone: str,
+    *,
+    memory_note: str,
+    category: str,
+    pronunciation_hints: list[str] | None = None,
+) -> None:
+    normalized_phone = (phone or "").strip()
+    note = (memory_note or "").strip()
+    hints = [item.strip() for item in (pronunciation_hints or []) if item.strip()]
+    if not normalized_phone or (not note and not hints):
+        return
+
+    await api_call(
+        "POST",
+        "/call-summaries/memory",
+        json_body={
+            "phone": normalized_phone,
+            "memory_note": note,
+            "pronunciation_hints": hints,
+            "category": category,
+            "agent_name": os.getenv("LIVEKIT_AGENT_NAME", "roadcall-agent"),
+        },
+    )
 
 
 # ════════════════════════════════════════════════════════
@@ -600,7 +639,7 @@ async def record_mechanic_response(
     notes: str = "",
 ):
     """Save whether the mechanic accepted/declined, with optional ETA."""
-    global _current_dispatch_job_id, _current_dispatch_attempt_id
+    global _current_dispatch_job_id, _current_dispatch_attempt_id, _current_mechanic_phone
 
     normalized = _normalize_mechanic_response(response)
     logger.info(f"Mechanic response: {normalized}, ETA: {eta_minutes}min")
@@ -620,6 +659,18 @@ async def record_mechanic_response(
                 "notes": notes or None,
             },
         )
+        try:
+            await save_phone_memory(
+                _current_mechanic_phone,
+                memory_note=(
+                    f"Mechanic response was {normalized}. "
+                    f"ETA: {eta_minutes if eta_minutes > 0 else 'not provided'} minutes. "
+                    f"Notes: {notes or 'none'}."
+                ),
+                category="mechanic_post_call_summary",
+            )
+        except Exception as memory_exc:
+            logger.warning("Failed to save mechanic memory note: %s", memory_exc)
     except Exception as e:
         logger.error(f"Failed to record mechanic response via API: {e}")
         return "Having trouble saving that — try again briefly."
@@ -950,12 +1001,13 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
 
 
 async def handle_mechanic_dispatch(ctx: JobContext, meta: dict):
-    global _current_dispatch_job_id, _current_dispatch_attempt_id
+    global _current_dispatch_job_id, _current_dispatch_attempt_id, _current_mechanic_phone
 
     mechanic_name = meta.get("mechanic_name", "there")
     job_summary = meta.get("job_summary", "a roadside job nearby")
     job_id = meta.get("job_id", "")
     dispatch_attempt_id = meta.get("dispatch_attempt_id", "")
+    _current_mechanic_phone = meta.get("mechanic_phone", "")
     _current_dispatch_job_id = job_id
     _current_dispatch_attempt_id = dispatch_attempt_id
 
@@ -964,6 +1016,10 @@ async def handle_mechanic_dispatch(ctx: JobContext, meta: dict):
     )
 
     prompt = _resolve_mechanic_system_prompt(ctx, meta, mechanic_name, job_summary)
+    if _current_mechanic_phone:
+        mechanic_memory = await load_caller_memory(_current_mechanic_phone)
+        if mechanic_memory:
+            prompt = f"{prompt}\n\n## Mechanic memory\n{mechanic_memory}"
 
     state = CallState(
         room_metadata=meta,
