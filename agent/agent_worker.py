@@ -267,6 +267,10 @@ def _driver_intake_builtin_file_or_env_prompt() -> str:
     return DRIVER_INTAKE_PROMPT
 
 
+def _env_truthy(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 # Appended when instructions come from the LiveKit Console (or dispatch metadata) so
 # Roadcall tools still exist in the same session.
 DRIVER_INTAKE_TOOL_APPENDIX = """\
@@ -274,6 +278,7 @@ DRIVER_INTAKE_TOOL_APPENDIX = """\
 You have function tools for this app. Use them when appropriate; never say "tool", \
 "function", or raw JSON aloud.
 - find_nearby_mechanics: look up real mechanics near the caller once you have city/state (or coordinates) and issue type.
+- get_knowledge_base: retrieve a concise knowledge-base summary for the caller's city and state before you describe options.
 - save_driver_info: persist the case after you have name, vehicle, issue, location, and a short situation note.
 
 Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
@@ -325,62 +330,78 @@ def _room_instruction_payload(room_meta: dict) -> dict[str, Any]:
 
 
 def _resolve_driver_intake_system_prompt(ctx: JobContext, room_meta: dict) -> str:
-    """Prefer LiveKit Console-style instructions (job/room metadata or env),
-    then fall back to the canonical prompt file committed with the worker.
+    """Use the committed repo prompt by default.
+
+    External LiveKit metadata/env can still override when explicitly enabled via
+    LIVEKIT_USE_EXTERNAL_DRIVER_PROMPT=true.
 
     See: https://docs.livekit.io/telephony/accepting-calls/dispatch-rule/ (roomConfig.agents[].metadata)
     """
     job_pl = _metadata_payload(ctx.job.metadata)
     room_pl = _room_instruction_payload(room_meta)
 
-    external = (
-        _first_instruction_text(job_pl)
-        or _first_instruction_text(room_pl)
-        or os.getenv("LIVEKIT_CLOUD_INSTRUCTIONS", "").strip()
-    )
-    if external:
-        logger.info("Driver intake: using external instructions (metadata/env) + Roadcall tools")
-        return f"{external}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
+    direct = os.getenv("AGENT_DRIVER_INTAKE_PROMPT", "").strip()
+    path = os.getenv("AGENT_DRIVER_INTAKE_PROMPT_FILE", "").strip()
+    if direct:
+        logger.info("Driver intake: using AGENT_DRIVER_INTAKE_PROMPT + Roadcall tools")
+        return f"{direct}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
+    if path and os.path.isfile(path):
+        contents = _read_file_stripped(path)
+        if contents:
+            logger.info("Driver intake: using AGENT_DRIVER_INTAKE_PROMPT_FILE + Roadcall tools")
+            return f"{contents}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
 
-    # Canonical committed file is treated as "console instructions" too — append tools.
     committed = _read_file_stripped(_DEFAULT_INTAKE_PROMPT_FILE)
-    if committed and not os.getenv("AGENT_DRIVER_INTAKE_PROMPT") and not os.getenv(
-        "AGENT_DRIVER_INTAKE_PROMPT_FILE"
-    ):
+    if committed:
         logger.info(
             "Driver intake: using committed prompts/driver_intake.md + Roadcall tools"
         )
         return f"{committed}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
 
-    logger.info("Driver intake: using AGENT_DRIVER_INTAKE_* or built-in default prompt")
-    return _driver_intake_builtin_file_or_env_prompt()
+    external = (
+        _first_instruction_text(job_pl)
+        or _first_instruction_text(room_pl)
+        or os.getenv("LIVEKIT_CLOUD_INSTRUCTIONS", "").strip()
+    )
+    if external and _env_truthy("LIVEKIT_USE_EXTERNAL_DRIVER_PROMPT"):
+        logger.info("Driver intake: using external instructions (metadata/env) + Roadcall tools")
+        return f"{external}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
+
+    logger.info("Driver intake: using built-in default prompt + Roadcall tools")
+    return f"{DRIVER_INTAKE_PROMPT}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
 
 
 def _resolve_driver_opening_instruction(ctx: JobContext, room_meta: dict) -> str:
-    """First-turn user instruction; welcome from job/room metadata or env."""
+    """First-turn user instruction; committed welcome wins unless explicitly overridden."""
     job_pl = _metadata_payload(ctx.job.metadata)
     room_pl = _room_instruction_payload(room_meta)
-    welcome = (
-        job_pl.get("opening_instruction")
-        or job_pl.get("welcome_message")
-        or room_pl.get("opening_instruction")
-        or room_pl.get("welcome_message")
-    )
-    if welcome is not None and str(welcome).strip():
-        w = str(welcome).strip()
-        return (
-            "The caller just connected. Speak first in plain spoken English only. "
-            f"Use this greeting (you may adapt slightly for natural flow): {w}"
-        )
+
     env_override = os.getenv("AGENT_DRIVER_OPENING_INSTRUCTION", "").strip()
     if env_override:
         return env_override
+
     committed_welcome = _read_file_stripped(_DEFAULT_INTAKE_WELCOME_FILE)
     if committed_welcome:
         return (
             "The caller just connected. Speak first in plain spoken English only. "
             f"Use this greeting (you may adapt slightly for natural flow): {committed_welcome}"
         )
+
+    welcome = (
+        job_pl.get("opening_instruction")
+        or job_pl.get("welcome_message")
+        or room_pl.get("opening_instruction")
+        or room_pl.get("welcome_message")
+    )
+    if welcome is not None and str(welcome).strip() and _env_truthy(
+        "LIVEKIT_USE_EXTERNAL_DRIVER_PROMPT"
+    ):
+        w = str(welcome).strip()
+        return (
+            "The caller just connected. Speak first in plain spoken English only. "
+            f"Use this greeting (you may adapt slightly for natural flow): {w}"
+        )
+
     return (
         "A motorist or truck driver just connected for roadside assistance. "
         "Speak first — plain spoken English only. "
