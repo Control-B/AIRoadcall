@@ -26,6 +26,7 @@ from typing import Any
 import httpx
 from dotenv import load_dotenv
 from livekit import rtc
+from livekit.plugins import deepgram, elevenlabs
 from livekit.agents import (
     Agent,
     AgentSession,
@@ -50,12 +51,11 @@ _SIP_PARTICIPANT_TIMEOUT_S = float(os.getenv("SIP_PARTICIPANT_TIMEOUT_S", "60"))
 # SIP/telephony jobs are handled by THIS worker's prompts below unless you route
 # calls to a hosted agent instead. Set AGENT_DRIVER_INTAKE_PROMPT to mirror console text.
 _DEFAULT_INFERENCE_LLM = "openai/gpt-4o-mini"
-_DEFAULT_INFERENCE_STT = "deepgram/nova-2-phonecall"
-_DEFAULT_INFERENCE_TTS = "cartesia/sonic-3"
-# Cartesia via LiveKit Inference expects `provider/model:voice_id`; without a voice,
-# synthesis can succeed in API terms but produce no audible output.
-# Docs example voice (public sample): https://docs.livekit.io/agents/models/tts/inference/cartesia/
-_DEFAULT_CARTESIA_VOICE_ID = "9626c31c-bec5-4cca-baa8-f8ba9e84c8bc"
+# ElevenLabs multilingual v2 — direct plugin, supports 29+ languages
+_DEFAULT_ELEVENLABS_MODEL = "eleven_multilingual_v2"
+_DEFAULT_ELEVENLABS_VOICE_ID = "nf4MCGNSdM0hxM95ZBQR"  # Sarah voice
+# Speaking rate: 0.85 = ~15% slower than default (1.0). Range: 0.7–1.2
+_DEFAULT_SPEAKING_RATE = float(os.getenv("AGENT_SPEAKING_RATE", "0.85"))
 
 # Backend API base URL for database operations
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
@@ -120,38 +120,33 @@ async def _wait_for_sip_participant(
         logger.warning("wait_for_participant failed: %s", e)
 
 
-def _inference_tts_model_string() -> str:
-    tts = os.getenv("LIVEKIT_INFERENCE_TTS", _DEFAULT_INFERENCE_TTS)
-    voice = os.getenv("LIVEKIT_INFERENCE_TTS_VOICE", "").strip()
-    if ":" in tts:
-        return tts
-    if voice:
-        return f"{tts}:{voice}"
-    if tts.startswith("cartesia/"):
-        return f"{tts}:{_DEFAULT_CARTESIA_VOICE_ID}"
-    return tts
-
-
 def _voice_agent_session(
     *,
     userdata: Any,
     min_endpointing_delay: float,
     max_endpointing_delay: float,
 ) -> AgentSession:
-    """Wire LiveKit Cloud Inference (billing is via your LiveKit project)."""
+    """Voice pipeline: ElevenLabs multilingual TTS + Deepgram multilingual STT (direct plugins)."""
     llm_id = os.getenv("LIVEKIT_INFERENCE_LLM", _DEFAULT_INFERENCE_LLM)
-    stt_id = os.getenv("LIVEKIT_INFERENCE_STT", _DEFAULT_INFERENCE_STT)
-    tts_id = _inference_tts_model_string()
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", _DEFAULT_ELEVENLABS_VOICE_ID)
+    el_model = os.getenv("ELEVENLABS_MODEL", _DEFAULT_ELEVENLABS_MODEL)
+    dg_model = os.getenv("DEEPGRAM_MODEL", "nova-3")
     logger.info(
-        "Voice pipeline: llm=%s stt=%s tts=%s",
-        llm_id,
-        stt_id,
-        tts_id,
+        "Voice pipeline: llm=%s tts=elevenlabs/%s voice=%s stt=deepgram/%s",
+        llm_id, el_model, voice_id, dg_model,
     )
     return AgentSession(
         llm=llm_id,
-        stt=stt_id,
-        tts=tts_id,
+        tts=elevenlabs.TTS(
+            model=el_model,
+            voice_id=voice_id,
+            api_key=os.getenv("ELEVENLABS_API_KEY") or None,
+        ),
+        stt=deepgram.STT(
+            model=dg_model,
+            detect_language=True,
+            api_key=os.getenv("DEEPGRAM_API_KEY") or None,
+        ),
         turn_handling={
             "turn_detection": "stt",
             "endpointing": {
@@ -962,5 +957,8 @@ if __name__ == "__main__":
             api_key=os.getenv("LIVEKIT_API_KEY", ""),
             api_secret=os.getenv("LIVEKIT_API_SECRET", ""),
             ws_url=os.getenv("LIVEKIT_URL", ""),
+            # Each worker process handles up to num_idle_processes concurrent jobs.
+            # Scale horizontally by running more containers/replicas on DigitalOcean.
+            num_idle_processes=int(os.getenv("AGENT_NUM_IDLE_PROCESSES", "5")),
         )
     )

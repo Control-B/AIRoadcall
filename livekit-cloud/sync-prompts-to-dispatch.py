@@ -45,10 +45,7 @@ from pathlib import Path
 
 from livekit import api
 from livekit.protocol.agent_dispatch import RoomAgentDispatch
-from livekit.protocol.sip import (
-    ListSIPDispatchRuleRequest,
-    UpdateSIPDispatchRuleRequest,
-)
+from livekit.protocol.sip import ListSIPDispatchRuleRequest
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -73,8 +70,8 @@ def _load_text(path: Path) -> str:
 
 async def main() -> None:
     lk_url = _require_env("LIVEKIT_URL")
-    _require_env("LIVEKIT_API_KEY")
-    _require_env("LIVEKIT_API_SECRET")
+    api_key = _require_env("LIVEKIT_API_KEY")
+    api_secret = _require_env("LIVEKIT_API_SECRET")
     rule_id = _require_env("LIVEKIT_DISPATCH_RULE_ID")
     agent_name = os.getenv("LIVEKIT_AGENT_NAME", "roadcall-agent").strip()
 
@@ -103,8 +100,8 @@ async def main() -> None:
 
     job_metadata = json.dumps(payload)
 
-    async with api.LiveKitAPI(url=lk_url) as lkapi:
-        listing = await lkapi.sip.list_sip_dispatch_rule(ListSIPDispatchRuleRequest())
+    async with api.LiveKitAPI(url=lk_url, api_key=api_key, api_secret=api_secret) as lkapi:
+        listing = await lkapi.sip.list_dispatch_rule(ListSIPDispatchRuleRequest())
         rule = next(
             (r for r in listing.items if r.sip_dispatch_rule_id == rule_id),
             None,
@@ -130,12 +127,7 @@ async def main() -> None:
 
         del replacement.room_config.agents[:]
         replacement.room_config.agents.extend(agents)
-
-        req = UpdateSIPDispatchRuleRequest(
-            sip_dispatch_rule_id=rule_id,
-            replace=replacement,
-        )
-        updated = await lkapi.sip.update_sip_dispatch_rule(req)
+        updated = await lkapi.sip.update_dispatch_rule(rule_id, replacement)
 
     print(f"updated dispatch rule {rule_id}")
     print(f"  name:        {updated.name or '(unnamed)'}")

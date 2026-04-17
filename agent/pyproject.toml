@@ -8,6 +8,8 @@ dependencies = [
     "livekit-api>=1.0.0",
     "httpx==0.28.1",
     "python-dotenv>=1.0.0",
+    "livekit-plugins-elevenlabs>=1.5.2",
+    "livekit-plugins-deepgram>=1.5.2",
 ]
 
 [project.optional-dependencies]

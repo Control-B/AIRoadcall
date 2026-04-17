@@ -55,16 +55,16 @@ services:
         value: whsec_placeholder
       - key: LIVEKIT_API_KEY
         scope: RUN_TIME
-        value: APISAgVDHQHqWCJ
+        value: API4TxLvaSLjdLm
       - key: LIVEKIT_API_SECRET
         scope: RUN_TIME
         type: SECRET
       - key: LIVEKIT_URL
         scope: RUN_TIME
-        value: wss://roadside-sd5ra19w.livekit.cloud
+        value: wss://roadcall-vob5sadf.livekit.cloud
       - key: LIVEKIT_SIP_TRUNK_ID
         scope: RUN_TIME
-        value: ST_placeholder
+        value: ST_6X5DkFGsA5at
       - key: LIVEKIT_AGENT_NAME
         scope: RUN_TIME
         value: roadcall-agent
@@ -163,16 +163,28 @@ workers:
     envs:
       - key: LIVEKIT_API_KEY
         scope: RUN_TIME
-        value: APISAgVDHQHqWCJ
+        value: API4TxLvaSLjdLm
       - key: LIVEKIT_API_SECRET
         scope: RUN_TIME
         type: SECRET
       - key: LIVEKIT_URL
         scope: RUN_TIME
-        value: wss://roadside-sd5ra19w.livekit.cloud
+        value: wss://roadcall-vob5sadf.livekit.cloud
       - key: LIVEKIT_AGENT_NAME
         scope: RUN_TIME
         value: roadcall-agent
+      - key: AGENT_NUM_IDLE_PROCESSES
+        scope: RUN_TIME
+        value: "5"
+      - key: LIVEKIT_INFERENCE_TTS
+        scope: RUN_TIME
+        value: elevenlabs/eleven_multilingual_v2
+      - key: LIVEKIT_INFERENCE_TTS_VOICE
+        scope: RUN_TIME
+        value: 21m00Tcm4TlvDq8ikWAM
+      - key: LIVEKIT_INFERENCE_STT
+        scope: RUN_TIME
+        value: deepgram/nova-3-general
       - key: BACKEND_URL
         scope: RUN_TIME
         value: ${backend.PRIVATE_URL}

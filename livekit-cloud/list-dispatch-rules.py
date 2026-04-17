@@ -30,11 +30,11 @@ def _require(name: str) -> str:
 
 async def main() -> None:
     url = _require("LIVEKIT_URL")
-    _require("LIVEKIT_API_KEY")
-    _require("LIVEKIT_API_SECRET")
+    api_key = _require("LIVEKIT_API_KEY")
+    api_secret = _require("LIVEKIT_API_SECRET")
 
-    async with api.LiveKitAPI(url=url) as lkapi:
-        resp = await lkapi.sip.list_sip_dispatch_rule(ListSIPDispatchRuleRequest())
+    async with api.LiveKitAPI(url=url, api_key=api_key, api_secret=api_secret) as lkapi:
+        resp = await lkapi.sip.list_dispatch_rule(ListSIPDispatchRuleRequest())
 
     if not resp.items:
         print("(no SIP dispatch rules configured)")
