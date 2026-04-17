@@ -1,7 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.core.config import get_settings
+from app.core.database import engine
 from app.core.logging import setup_logging
 from app.api.routes import (
     jobs,
@@ -16,7 +18,9 @@ from app.api.routes import (
     outreach,
     admin_auth,
     rag,
+    call_summaries,
 )
+from app.models.call_summary import CallSummary
 
 settings = get_settings()
 setup_logging()
@@ -54,6 +58,13 @@ app.include_router(data_pipeline.router, prefix="/api")
 app.include_router(shops.router, prefix="/api")
 app.include_router(outreach.router, prefix="/api")
 app.include_router(admin_auth.router, prefix="/api")
+app.include_router(call_summaries.router, prefix="/api")
+
+
+@app.on_event("startup")
+async def ensure_call_summary_table() -> None:
+    async with engine.begin() as conn:
+        await conn.run_sync(CallSummary.__table__.create, checkfirst=True)
 
 
 @app.get("/health")
