@@ -76,11 +76,24 @@ async def api_call(
     url = f"{BACKEND_URL}/api{path}"
     headers = {"X-Admin-Key": ADMIN_API_KEY, "Content-Type": "application/json"}
     async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.request(
-            method, url, json=json_body, params=params, headers=headers
-        )
-        resp.raise_for_status()
-        return resp.json()
+        try:
+            resp = await client.request(
+                method, url, json=json_body, params=params, headers=headers
+            )
+            resp.raise_for_status()
+            return resp.json()
+        except httpx.HTTPStatusError as exc:
+            logger.error(
+                "Backend API HTTP error %s %s -> %s body=%s",
+                method,
+                url,
+                exc.response.status_code,
+                exc.response.text[:500],
+            )
+            raise
+        except Exception as exc:
+            logger.error("Backend API request failed %s %s: %s", method, url, exc)
+            raise
 
 
 # ─── Dataclass for per-call state ───────────────────────
@@ -268,10 +281,10 @@ def _env_truthy(name: str) -> bool:
 
 
 def _driver_prompt_source() -> str:
-    source = os.getenv("LIVEKIT_DRIVER_PROMPT_SOURCE", "external").strip().lower()
+    source = os.getenv("LIVEKIT_DRIVER_PROMPT_SOURCE", "repo").strip().lower()
     if source in {"external", "repo", "env"}:
         return source
-    return "external"
+    return "repo"
 
 
 # Appended when instructions come from the LiveKit Console (or dispatch metadata) so
@@ -599,6 +612,18 @@ async def find_nearby_mechanics(
     if not city and not state and latitude is None:
         return "I need at least a city and state to find mechanics."
 
+    search_params: dict[str, Any] = {"limit": limit}
+    if latitude is not None and longitude is not None:
+        search_params["lat"] = latitude
+        search_params["lng"] = longitude
+    else:
+        search_params["city"] = city
+        search_params["state"] = state
+    if issue_type:
+        search_params["issue_type"] = issue_type
+    if vehicle_type:
+        search_params["vehicle_type"] = vehicle_type
+
     try:
         body: dict[str, Any] = {
             "limit": limit,
@@ -642,7 +667,30 @@ async def find_nearby_mechanics(
 
         return "\n".join(lines)
     except Exception as e:
-        logger.error(f"Failed to look up mechanic recommendations: {e}")
+        logger.warning("Recommendations lookup failed, falling back to mechanic search: %s", e)
+
+    try:
+        result = await api_call("GET", "/mechanics", params=search_params)
+        mechanics = result if isinstance(result, list) else result.get("items", [])
+        if not mechanics:
+            return (
+                f"No available mechanics found near {city}, {state} right now. "
+                "I've logged the job and dispatch will follow up shortly."
+            )
+
+        lines = [f"I found {len(mechanics[:limit])} mechanics near {city}, {state}."]
+        for mechanic in mechanics[:limit]:
+            name = mechanic.get("company_name", "Unknown")
+            phone = mechanic.get("phone", "")
+            dist = mechanic.get("distance_miles")
+            rating = mechanic.get("rating")
+            area = ", ".join(filter(None, [mechanic.get("city"), mechanic.get("state")]))
+            dist_text = f"{dist:.1f} mi away" if dist is not None else area
+            rating_text = f", rated {rating:.1f}" if isinstance(rating, (int, float)) else ""
+            lines.append(f"- {name} ({phone}) — {dist_text}{rating_text}")
+        return "\n".join(lines)
+    except Exception as fallback_error:
+        logger.error("Fallback mechanic search also failed: %s", fallback_error)
         return "Couldn't look up mechanics right now — job is logged and dispatch will follow up."
 
 
@@ -982,6 +1030,6 @@ if __name__ == "__main__":
             api_key=os.getenv("LIVEKIT_API_KEY", ""),
             api_secret=os.getenv("LIVEKIT_API_SECRET", ""),
             ws_url=os.getenv("LIVEKIT_URL", ""),
-            num_idle_processes=int(os.getenv("AGENT_NUM_IDLE_PROCESSES", "5")),
+            num_idle_processes=int(os.getenv("AGENT_NUM_IDLE_PROCESSES", "2")),
         )
     )

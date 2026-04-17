@@ -158,8 +158,8 @@ workers:
       deploy_on_push: true
     dockerfile_path: agent/Dockerfile
     source_dir: agent
-    instance_count: 1
-    instance_size_slug: apps-s-1vcpu-0.5gb
+    instance_count: 2
+    instance_size_slug: apps-s-1vcpu-1gb
     envs:
       - key: LIVEKIT_API_KEY
         scope: RUN_TIME
@@ -173,9 +173,12 @@ workers:
       - key: LIVEKIT_AGENT_NAME
         scope: RUN_TIME
         value: roadcall-agent
+      - key: LIVEKIT_DRIVER_PROMPT_SOURCE
+        scope: RUN_TIME
+        value: repo
       - key: AGENT_NUM_IDLE_PROCESSES
         scope: RUN_TIME
-        value: "5"
+        value: "2"
       - key: LIVEKIT_INFERENCE_TTS
         scope: RUN_TIME
         value: elevenlabs/eleven_multilingual_v2
