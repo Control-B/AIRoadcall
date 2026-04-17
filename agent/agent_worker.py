@@ -237,6 +237,20 @@ lined up, and end warmly. Keep the call efficient (roughly under two minutes whe
 """
 
 
+_PROMPTS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "prompts")
+_DEFAULT_INTAKE_PROMPT_FILE = os.path.join(_PROMPTS_DIR, "driver_intake.md")
+_DEFAULT_INTAKE_WELCOME_FILE = os.path.join(_PROMPTS_DIR, "driver_welcome.txt")
+
+
+def _read_file_stripped(path: str) -> str | None:
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = f.read().strip()
+        return data or None
+    except OSError:
+        return None
+
+
 def _driver_intake_builtin_file_or_env_prompt() -> str:
     """Fallback when LiveKit job/room metadata and LIVEKIT_CLOUD_INSTRUCTIONS are not set."""
     direct = os.getenv("AGENT_DRIVER_INTAKE_PROMPT", "").strip()
@@ -244,8 +258,12 @@ def _driver_intake_builtin_file_or_env_prompt() -> str:
         return direct
     path = os.getenv("AGENT_DRIVER_INTAKE_PROMPT_FILE", "").strip()
     if path and os.path.isfile(path):
-        with open(path, encoding="utf-8") as f:
-            return f.read().strip()
+        contents = _read_file_stripped(path)
+        if contents:
+            return contents
+    committed = _read_file_stripped(_DEFAULT_INTAKE_PROMPT_FILE)
+    if committed:
+        return committed
     return DRIVER_INTAKE_PROMPT
 
 
@@ -307,7 +325,8 @@ def _room_instruction_payload(room_meta: dict) -> dict[str, Any]:
 
 
 def _resolve_driver_intake_system_prompt(ctx: JobContext, room_meta: dict) -> str:
-    """Prefer LiveKit Console instructions: job.metadata → room → LIVEKIT_CLOUD_INSTRUCTIONS.
+    """Prefer LiveKit Console-style instructions (job/room metadata or env),
+    then fall back to the canonical prompt file committed with the worker.
 
     See: https://docs.livekit.io/telephony/accepting-calls/dispatch-rule/ (roomConfig.agents[].metadata)
     """
@@ -320,8 +339,18 @@ def _resolve_driver_intake_system_prompt(ctx: JobContext, room_meta: dict) -> st
         or os.getenv("LIVEKIT_CLOUD_INSTRUCTIONS", "").strip()
     )
     if external:
-        logger.info("Driver intake: using console-synced instructions + Roadcall tool appendix")
+        logger.info("Driver intake: using external instructions (metadata/env) + Roadcall tools")
         return f"{external}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
+
+    # Canonical committed file is treated as "console instructions" too — append tools.
+    committed = _read_file_stripped(_DEFAULT_INTAKE_PROMPT_FILE)
+    if committed and not os.getenv("AGENT_DRIVER_INTAKE_PROMPT") and not os.getenv(
+        "AGENT_DRIVER_INTAKE_PROMPT_FILE"
+    ):
+        logger.info(
+            "Driver intake: using committed prompts/driver_intake.md + Roadcall tools"
+        )
+        return f"{committed}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
 
     logger.info("Driver intake: using AGENT_DRIVER_INTAKE_* or built-in default prompt")
     return _driver_intake_builtin_file_or_env_prompt()
@@ -343,12 +372,20 @@ def _resolve_driver_opening_instruction(ctx: JobContext, room_meta: dict) -> str
             "The caller just connected. Speak first in plain spoken English only. "
             f"Use this greeting (you may adapt slightly for natural flow): {w}"
         )
-    return os.getenv(
-        "AGENT_DRIVER_OPENING_INSTRUCTION",
+    env_override = os.getenv("AGENT_DRIVER_OPENING_INSTRUCTION", "").strip()
+    if env_override:
+        return env_override
+    committed_welcome = _read_file_stripped(_DEFAULT_INTAKE_WELCOME_FILE)
+    if committed_welcome:
+        return (
+            "The caller just connected. Speak first in plain spoken English only. "
+            f"Use this greeting (you may adapt slightly for natural flow): {committed_welcome}"
+        )
+    return (
         "A motorist or truck driver just connected for roadside assistance. "
         "Speak first — plain spoken English only. "
         "Open like: thank them for calling Roadside, say you are Mara, ask how you can help today. "
-        "Keep the greeting to one or two short sentences, then listen.",
+        "Keep the greeting to one or two short sentences, then listen."
     )
 
 
