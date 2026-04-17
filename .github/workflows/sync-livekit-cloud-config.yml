@@ -4,11 +4,9 @@
 # pulls the canonical deployment file (livekit.toml) via the official CLI and commits
 # when it changes — the push can trigger your DigitalOcean auto-deploy like any commit.
 #
-# Required repo secrets:
-#   LIVEKIT_URL
-#   LIVEKIT_API_KEY
-#   LIVEKIT_API_SECRET
-#   LIVEKIT_CLOUD_AGENT_ID   (e.g. CA_… from `lk agent list` in the same project)
+# Credentials must be available to GitHub Actions (see livekit-cloud/README.md).
+# They are NOT read from DigitalOcean — copy the same values into GitHub Secrets,
+# or run livekit-cloud/sync-from-env.sh locally/CI where DO env vars exist.
 #
 # Optional: adjust schedule below or rely on "Run workflow" only.
 
@@ -37,14 +35,14 @@ jobs:
       LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
       LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
       LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
-      LIVEKIT_AGENT_ID: ${{ secrets.LIVEKIT_CLOUD_AGENT_ID }}
+      LIVEKIT_CLOUD_AGENT_ID: ${{ secrets.LIVEKIT_CLOUD_AGENT_ID }}
       LK_VERSION: v2.16.2
 
     steps:
       - name: Check required secrets
         run: |
           missing=0
-          for v in LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET LIVEKIT_AGENT_ID; do
+          for v in LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET LIVEKIT_CLOUD_AGENT_ID; do
             eval "x=\$$v"
             if [ -z "$x" ]; then echo "Missing secret: $v"; missing=1; fi
           done
@@ -57,30 +55,23 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Install LiveKit CLI
+      - name: Pull livekit.toml (same logic as livekit-cloud/sync-from-env.sh)
         run: |
           set -eux
+          # GitHub-hosted runner is linux-amd64; keep install explicit here
           curl -sSL -o lk.tgz "https://github.com/livekit/livekit-cli/releases/download/${LK_VERSION}/lk_${LK_VERSION#v}_linux_amd64.tar.gz"
           tar xzf lk.tgz
           sudo install -m 0755 lk /usr/local/bin/lk
-          lk version
-
-      - name: Pull livekit.toml from LiveKit Cloud
-        run: |
-          set -eux
           export HOME="${GITHUB_WORKSPACE}/.lk-home"
           rm -rf "$HOME"
           mkdir -p "$HOME"
-
           lk project add ci-github-sync \
             --url "$LIVEKIT_URL" \
             --api-key "$LIVEKIT_API_KEY" \
             --api-secret "$LIVEKIT_API_SECRET" \
             --default
-
           mkdir -p livekit-cloud
-          cd livekit-cloud
-          lk agent config --id "$LIVEKIT_AGENT_ID"
+          ( cd livekit-cloud && lk agent config --id "${LIVEKIT_CLOUD_AGENT_ID}" )
 
       - name: Commit and push if changed
         run: |

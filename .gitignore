@@ -1,5 +1,6 @@
 # Ephemeral LiveKit CLI home (local or CI experiments)
 .lk-home/
+.livekit-cli/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
