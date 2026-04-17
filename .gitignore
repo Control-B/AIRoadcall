@@ -1,3 +1,6 @@
+# Ephemeral LiveKit CLI home (local or CI experiments)
+.lk-home/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

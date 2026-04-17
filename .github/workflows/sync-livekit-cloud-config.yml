@@ -1,0 +1,100 @@
+# Sync LiveKit Cloud agent deployment metadata into this repo.
+#
+# LiveKit does not push to GitHub when you click Save in the Console. This workflow
+# pulls the canonical deployment file (livekit.toml) via the official CLI and commits
+# when it changes — the push can trigger your DigitalOcean auto-deploy like any commit.
+#
+# Required repo secrets:
+#   LIVEKIT_URL
+#   LIVEKIT_API_KEY
+#   LIVEKIT_API_SECRET
+#   LIVEKIT_CLOUD_AGENT_ID   (e.g. CA_… from `lk agent list` in the same project)
+#
+# Optional: adjust schedule below or rely on "Run workflow" only.
+
+name: Sync LiveKit Cloud config
+
+on:
+  workflow_dispatch:
+  # After GitHub secrets are set, optionally poll LiveKit on a schedule (uncomment):
+  # schedule:
+  #   - cron: "0 */6 * * *"
+
+concurrency:
+  group: sync-livekit-cloud
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    # Skip silently if the integration is not configured yet
+    if: ${{ vars.LIVEKIT_SYNC_DISABLED != 'true' }}
+
+    env:
+      LIVEKIT_URL: ${{ secrets.LIVEKIT_URL }}
+      LIVEKIT_API_KEY: ${{ secrets.LIVEKIT_API_KEY }}
+      LIVEKIT_API_SECRET: ${{ secrets.LIVEKIT_API_SECRET }}
+      LIVEKIT_AGENT_ID: ${{ secrets.LIVEKIT_CLOUD_AGENT_ID }}
+      LK_VERSION: v2.16.2
+
+    steps:
+      - name: Check required secrets
+        run: |
+          missing=0
+          for v in LIVEKIT_URL LIVEKIT_API_KEY LIVEKIT_API_SECRET LIVEKIT_AGENT_ID; do
+            eval "x=\$$v"
+            if [ -z "$x" ]; then echo "Missing secret: $v"; missing=1; fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Configure GitHub Actions secrets (see livekit-cloud/README.md) or set repo variable LIVEKIT_SYNC_DISABLED=true to skip this job."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install LiveKit CLI
+        run: |
+          set -eux
+          curl -sSL -o lk.tgz "https://github.com/livekit/livekit-cli/releases/download/${LK_VERSION}/lk_${LK_VERSION#v}_linux_amd64.tar.gz"
+          tar xzf lk.tgz
+          sudo install -m 0755 lk /usr/local/bin/lk
+          lk version
+
+      - name: Pull livekit.toml from LiveKit Cloud
+        run: |
+          set -eux
+          export HOME="${GITHUB_WORKSPACE}/.lk-home"
+          rm -rf "$HOME"
+          mkdir -p "$HOME"
+
+          lk project add ci-github-sync \
+            --url "$LIVEKIT_URL" \
+            --api-key "$LIVEKIT_API_KEY" \
+            --api-secret "$LIVEKIT_API_SECRET" \
+            --default
+
+          mkdir -p livekit-cloud
+          cd livekit-cloud
+          lk agent config --id "$LIVEKIT_AGENT_ID"
+
+      - name: Commit and push if changed
+        run: |
+          set -eux
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add livekit-cloud/livekit.toml
+          if git diff --cached --quiet; then
+            echo "No changes to livekit.toml — nothing to commit."
+            exit 0
+          fi
+
+          git commit -m "chore(livekit): sync Cloud agent config from LiveKit
+
+          Automated sync via lk agent config (workflow: sync-livekit-cloud-config)."
+          git push
