@@ -65,6 +65,9 @@ services:
       - key: LIVEKIT_SIP_TRUNK_ID
         scope: RUN_TIME
         value: ST_placeholder
+      - key: LIVEKIT_AGENT_NAME
+        scope: RUN_TIME
+        value: roadcall-agent
       - key: TWILIO_ACCOUNT_SID
         scope: RUN_TIME
         type: SECRET

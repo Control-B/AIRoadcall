@@ -193,8 +193,10 @@ async def save_driver_info(
         )
 
 
-# Module-level variable set per-call by handle_driver_intake
+# Module-level variables set per-call by handlers (tools read these)
 _current_caller_phone: str = ""
+_current_dispatch_job_id: str = ""
+_current_dispatch_attempt_id: str = ""
 
 
 # ════════════════════════════════════════════════════════
@@ -214,15 +216,35 @@ async def record_mechanic_response(
     notes: str = "",
 ):
     """Save whether the mechanic accepted/declined, with optional ETA."""
+    global _current_dispatch_job_id, _current_dispatch_attempt_id
+
     normalized = _normalize_mechanic_response(response)
     logger.info(f"Mechanic response: {normalized}, ETA: {eta_minutes}min")
 
+    if not _current_dispatch_job_id or not _current_dispatch_attempt_id:
+        logger.error("record_mechanic_response: missing job/dispatch context")
+        return "Couldn't log the response — system error. Hang up."
+
+    try:
+        await api_call(
+            "POST",
+            f"/dispatch/{_current_dispatch_job_id}/mechanic-response",
+            json_body={
+                "dispatch_attempt_id": _current_dispatch_attempt_id,
+                "response": normalized,
+                "eta_minutes": eta_minutes if eta_minutes > 0 else None,
+                "notes": notes or None,
+            },
+        )
+    except Exception as e:
+        logger.error(f"Failed to record mechanic response via API: {e}")
+        return "Having trouble saving that — try again briefly."
+
     if normalized == "accepted":
         return f"Confirmed — logged acceptance with a {eta_minutes}-minute ETA."
-    elif normalized == "no_answer":
+    if normalized == "no_answer":
         return "Noted — no answer. Moving to the next mechanic."
-    else:
-        return "Got it — they can't take this one."
+    return "Got it — they can't take this one."
 
 
 @llm.function_tool(
@@ -350,6 +372,10 @@ async def entrypoint(ctx: JobContext):
         room_metadata = {}
 
     call_type = room_metadata.get("type", "")
+    # Inbound SIP often omits room metadata — treat as driver intake
+    if not call_type:
+        room_metadata = {**room_metadata, "type": "driver_intake"}
+        call_type = "driver_intake"
 
     if call_type == "driver_intake":
         await handle_driver_intake(ctx, room_metadata)
@@ -422,10 +448,14 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
 
 
 async def handle_mechanic_dispatch(ctx: JobContext, meta: dict):
+    global _current_dispatch_job_id, _current_dispatch_attempt_id
+
     mechanic_name = meta.get("mechanic_name", "there")
     job_summary = meta.get("job_summary", "a roadside job nearby")
     job_id = meta.get("job_id", "")
     dispatch_attempt_id = meta.get("dispatch_attempt_id", "")
+    _current_dispatch_job_id = job_id
+    _current_dispatch_attempt_id = dispatch_attempt_id
 
     logger.info(
         f"Dispatch call in {ctx.room.name} to {mechanic_name} for job {job_id}"
@@ -558,6 +588,7 @@ if __name__ == "__main__":
     cli.run_app(
         WorkerOptions(
             entrypoint_fnc=entrypoint,
+            agent_name=os.getenv("LIVEKIT_AGENT_NAME", "roadcall-agent"),
             api_key=os.getenv("LIVEKIT_API_KEY", ""),
             api_secret=os.getenv("LIVEKIT_API_SECRET", ""),
             ws_url=os.getenv("LIVEKIT_URL", ""),

@@ -195,6 +195,20 @@ class DispatchService:
         if not job:
             raise ValueError("Job not found")
 
+        if attempt.dispatch_status != DispatchStatus.queued:
+            logger.info(
+                f"Dispatch attempt {attempt_id} already finalized ({attempt.dispatch_status}), "
+                "skipping duplicate record"
+            )
+            return MechanicResponseResponse(
+                success=True,
+                dispatch_status=attempt.dispatch_status,
+                job_status=job.status,
+                assigned_mechanic_id=(
+                    str(job.assigned_mechanic_id) if job.assigned_mechanic_id else None
+                ),
+            )
+
         now = datetime.now(timezone.utc)
         attempt.responded_at = now
         attempt.response_notes = notes
@@ -261,6 +275,23 @@ class DispatchService:
         )
 
         await db.flush()
+
+        # Offer the next mechanic (outbound SIP + AI) when this one could not take the job
+        if response in ("declined", "unavailable", "no_answer", "timed_out"):
+            from app.services.livekit_service import LiveKitService
+
+            next_attempt = await DispatchService.dispatch_next_mechanic(db, job_id)
+            if next_attempt:
+                job_summary = (
+                    f"{job.issue_type}: {job.issue_summary or ''} — {job.vehicle_type or 'vehicle'}"
+                )
+                await LiveKitService.initiate_mechanic_call(
+                    mechanic_phone=next_attempt.mechanic_phone,
+                    mechanic_name=next_attempt.mechanic_company,
+                    job_summary=job_summary,
+                    job_id=str(job_id),
+                    dispatch_attempt_id=next_attempt.dispatch_attempt_id,
+                )
 
         return MechanicResponseResponse(
             success=True,

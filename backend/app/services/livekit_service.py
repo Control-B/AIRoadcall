@@ -21,6 +21,7 @@ from typing import Optional
 
 import httpx
 from livekit.api import LiveKitAPI
+from livekit.protocol.agent_dispatch import CreateAgentDispatchRequest
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -100,7 +101,7 @@ class LiveKitService:
         Flow:
         1. Create a LiveKit room for this dispatch attempt
         2. Create a SIP participant (outbound call) in that room
-        3. The AI agent (configured in LiveKit Cloud) auto-joins and speaks
+        3. Explicit agent dispatch joins the voice agent worker to the room
         4. When the call ends, LiveKit fires a webhook to /webhooks/livekit
 
         Args:
@@ -126,11 +127,10 @@ class LiveKitService:
 
         room_name = f"dispatch-{dispatch_attempt_id}"
 
+        api = LiveKitService._get_api()
         try:
-            api = LiveKitService._get_api()
-
             # 1. Create a room for the call
-            room = await api.room.create_room(
+            await api.room.create_room(
                 name=room_name,
                 metadata=json.dumps({
                     "type": "mechanic_dispatch",
@@ -140,14 +140,13 @@ class LiveKitService:
                     "mechanic_phone": mechanic_phone,
                     "job_summary": job_summary,
                 }),
-                # Auto-close room after 5 minutes (call timeout)
                 empty_timeout=300,
-                max_participants=3,  # AI agent + SIP participant + optional monitor
+                max_participants=3,
             )
 
             logger.info(f"Created LiveKit room: {room_name} for dispatch {dispatch_attempt_id}")
 
-            # 2. Create outbound SIP call to the mechanic
+            # 2. Outbound SIP leg to the mechanic
             sip_participant = await api.sip.create_sip_participant(
                 room_name=room_name,
                 sip_trunk_id=settings.LIVEKIT_SIP_TRUNK_ID,
@@ -166,6 +165,22 @@ class LiveKitService:
                 f"participant: {sip_participant.participant_id if hasattr(sip_participant, 'participant_id') else 'unknown'}"
             )
 
+            # 3. Join the registered voice agent worker (explicit dispatch)
+            agent_name = (settings.LIVEKIT_AGENT_NAME or "").strip()
+            if agent_name:
+                await api.agent_dispatch.create_dispatch(
+                    CreateAgentDispatchRequest(
+                        agent_name=agent_name,
+                        room=room_name,
+                    )
+                )
+                logger.info(f"Dispatched AI agent '{agent_name}' to room {room_name}")
+            else:
+                logger.warning(
+                    "LIVEKIT_AGENT_NAME is empty — outbound rooms will ring without an AI agent. "
+                    "Set LIVEKIT_AGENT_NAME to match the agent worker registration."
+                )
+
             return {
                 "status": "calling",
                 "room_name": room_name,
@@ -180,6 +195,8 @@ class LiveKitService:
                 "error": str(e),
                 "room_name": room_name,
             }
+        finally:
+            await api.aclose()
 
     @staticmethod
     async def end_room(room_name: str) -> bool:

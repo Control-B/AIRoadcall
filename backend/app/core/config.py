@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     LIVEKIT_URL: str = ""  # e.g. wss://your-project.livekit.cloud
     LIVEKIT_SIP_TRUNK_ID: str = ""  # SIP trunk for outbound calls
     LIVEKIT_OUTBOUND_AGENT_ID: str = ""  # Agent dispatch room prefix
+    # Must match the LiveKit Agents worker (WorkerOptions.agent_name)
+    LIVEKIT_AGENT_NAME: str = "roadcall-agent"
 
     # Twilio
     TWILIO_ACCOUNT_SID: str = ""

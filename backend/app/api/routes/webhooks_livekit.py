@@ -270,17 +270,7 @@ async def _handle_dispatch_call_ended(
             f"(attempt: {dispatch_attempt_id_str})"
         )
 
-        # If mechanic declined/unavailable, auto-dispatch next mechanic
-        if mechanic_response in ("declined", "unavailable", "no_answer", "timed_out"):
-            next_attempt = await DispatchService.dispatch_next_mechanic(
-                db, uuid.UUID(job_id_str)
-            )
-            if next_attempt:
-                logger.info(
-                    f"Auto-dispatching next mechanic for job {job_id_str}: "
-                    f"{next_attempt.mechanic_company}"
-                )
-                # The dispatch service will trigger the next call via LiveKitService
+        # Next mechanic outbound call is triggered from DispatchService.record_mechanic_response
 
         # If mechanic accepted, cancel other active dispatch calls
         elif mechanic_response == "accepted":
