@@ -126,14 +126,14 @@ def _voice_agent_session(
     min_endpointing_delay: float,
     max_endpointing_delay: float,
 ) -> AgentSession:
-    """Voice pipeline: ElevenLabs multilingual TTS + Deepgram multilingual STT (direct plugins)."""
+    """Voice pipeline: ElevenLabs TTS (direct) + LiveKit Inference STT."""
     llm_id = os.getenv("LIVEKIT_INFERENCE_LLM", _DEFAULT_INFERENCE_LLM)
     voice_id = os.getenv("ELEVENLABS_VOICE_ID", _DEFAULT_ELEVENLABS_VOICE_ID)
     el_model = os.getenv("ELEVENLABS_MODEL", _DEFAULT_ELEVENLABS_MODEL)
-    dg_model = os.getenv("DEEPGRAM_MODEL", "nova-2")
+    stt_id = os.getenv("LIVEKIT_INFERENCE_STT", "deepgram/nova-2-phonecall")
     logger.info(
-        "Voice pipeline: llm=%s tts=elevenlabs/%s voice=%s stt=deepgram/%s",
-        llm_id, el_model, voice_id, dg_model,
+        "Voice pipeline: llm=%s tts=elevenlabs/%s voice=%s stt=%s",
+        llm_id, el_model, voice_id, stt_id,
     )
     return AgentSession(
         llm=llm_id,
@@ -142,11 +142,7 @@ def _voice_agent_session(
             voice_id=voice_id,
             api_key=os.getenv("ELEVENLABS_API_KEY") or None,
         ),
-        stt=deepgram.STT(
-            model=dg_model,
-            detect_language=True,
-            api_key=os.getenv("DEEPGRAM_API_KEY") or None,
-        ),
+        stt=stt_id,
         turn_handling={
             "turn_detection": "stt",
             "endpointing": {
