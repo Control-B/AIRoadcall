@@ -273,7 +273,7 @@ async def _handle_dispatch_call_ended(
         # Next mechanic outbound call is triggered from DispatchService.record_mechanic_response
 
         # If mechanic accepted, cancel other active dispatch calls
-        elif mechanic_response == "accepted":
+        if mechanic_response == "accepted":
             room_name = room_data.get("name", "")
             cancelled = await LiveKitService.cancel_dispatch_calls(
                 job_id_str, except_room=room_name
