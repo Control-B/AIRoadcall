@@ -43,6 +43,15 @@ logger.setLevel(logging.INFO)
 # Seconds to wait for the SIP leg before prompting the agent (outbound / inbound)
 _SIP_PARTICIPANT_TIMEOUT_S = float(os.getenv("SIP_PARTICIPANT_TIMEOUT_S", "60"))
 
+# LiveKit Inference model IDs (STT → LLM → TTS). Without these, AgentSession has no
+# llm/stt/tts and generate_reply() raises — the agent will never speak.
+# See: https://docs.livekit.io/agents/models/
+# NOTE: The "Agents" UI in LiveKit Cloud (e.g. Blake) is a separate hosted product;
+# this self-hosted worker must still declare inference models here.
+_DEFAULT_INFERENCE_LLM = "openai/gpt-4o-mini"
+_DEFAULT_INFERENCE_STT = "deepgram/nova-2-phonecall"
+_DEFAULT_INFERENCE_TTS = "cartesia/sonic-3"
+
 # Backend API base URL for database operations
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
@@ -106,9 +115,56 @@ async def _wait_for_sip_participant(
         logger.warning("wait_for_participant failed: %s", e)
 
 
+def _inference_tts_model_string() -> str:
+    tts = os.getenv("LIVEKIT_INFERENCE_TTS", _DEFAULT_INFERENCE_TTS)
+    voice = os.getenv("LIVEKIT_INFERENCE_TTS_VOICE", "").strip()
+    if voice and ":" not in tts:
+        return f"{tts}:{voice}"
+    return tts
+
+
+def _voice_agent_session(
+    *,
+    userdata: Any,
+    min_endpointing_delay: float,
+    max_endpointing_delay: float,
+) -> AgentSession:
+    """Wire LiveKit Cloud Inference (billing is via your LiveKit project)."""
+    llm_id = os.getenv("LIVEKIT_INFERENCE_LLM", _DEFAULT_INFERENCE_LLM)
+    stt_id = os.getenv("LIVEKIT_INFERENCE_STT", _DEFAULT_INFERENCE_STT)
+    tts_id = _inference_tts_model_string()
+    logger.info(
+        "Voice pipeline: llm=%s stt=%s tts=%s",
+        llm_id,
+        stt_id,
+        tts_id.split(":", 1)[0],
+    )
+    return AgentSession(
+        llm=llm_id,
+        stt=stt_id,
+        tts=tts_id,
+        turn_handling={
+            "turn_detection": "stt",
+            "endpointing": {
+                "min_delay": min_endpointing_delay,
+                "max_delay": max_endpointing_delay,
+            },
+            "interruption": {"enabled": True},
+        },
+        userdata=userdata,
+    )
+
+
 def _kickoff_agent_speech(session: AgentSession, instructions: str) -> None:
     """Start a model turn without waiting for user speech (required for telephony)."""
-    session.generate_reply(instructions=instructions)
+    try:
+        session.generate_reply(instructions=instructions)
+    except RuntimeError as e:
+        logger.error(
+            "Could not start agent speech (%s). "
+            "Ensure LIVEKIT_INFERENCE_LLM/STT/TTS are set on the worker.",
+            e,
+        )
 
 
 # ════════════════════════════════════════════════════════
@@ -466,13 +522,10 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
         tools=[find_nearby_mechanics, save_driver_info],
     )
 
-    session = AgentSession(
-        # ── Voice-call tuning ──
-        turn_detection="server_vad",       # server-side VAD for phone audio
-        min_endpointing_delay=0.5,         # 500ms silence before responding
-        max_endpointing_delay=5.0,         # max 5s wait
-        allow_interruptions=True,          # let the caller cut in naturally
+    session = _voice_agent_session(
         userdata=state,
+        min_endpointing_delay=0.5,
+        max_endpointing_delay=5.0,
     )
 
     await session.start(agent=agent, room=ctx.room)
@@ -524,12 +577,10 @@ async def handle_mechanic_dispatch(ctx: JobContext, meta: dict):
         tools=[record_mechanic_response],
     )
 
-    session = AgentSession(
-        turn_detection="server_vad",
-        min_endpointing_delay=0.4,     # dispatchers are snappy
-        max_endpointing_delay=3.0,
-        allow_interruptions=True,
+    session = _voice_agent_session(
         userdata=state,
+        min_endpointing_delay=0.4,
+        max_endpointing_delay=3.0,
     )
 
     await session.start(agent=agent, room=ctx.room)
@@ -582,12 +633,10 @@ async def handle_shop_inbound(ctx: JobContext, meta: dict):
         tools=[save_call_info, transfer_to_human],
     )
 
-    session = AgentSession(
-        turn_detection="server_vad",
+    session = _voice_agent_session(
+        userdata=state,
         min_endpointing_delay=0.5,
         max_endpointing_delay=5.0,
-        allow_interruptions=True,
-        userdata=state,
     )
 
     await session.start(agent=agent, room=ctx.room)
