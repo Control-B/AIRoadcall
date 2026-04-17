@@ -146,7 +146,6 @@ def _voice_agent_session(
             model=dg_model,
             detect_language=True,
             api_key=os.getenv("DEEPGRAM_API_KEY") or None,
-            language="multi",
         ),
         turn_handling={
             "turn_detection": "stt",
