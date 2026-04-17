@@ -67,6 +67,43 @@ class MechanicSearchResult(BaseModel):
     rank_score: float
 
 
+class MechanicRecommendationRequest(BaseModel):
+    lat: Optional[float] = Field(default=None, ge=-90, le=90)
+    lng: Optional[float] = Field(default=None, ge=-180, le=180)
+    city: Optional[str] = None
+    state: Optional[str] = None
+    issue_type: str = ""
+    vehicle_type: Optional[str] = None
+    trailer_type: Optional[str] = None
+    require_mobile_roadside: bool = True
+    prefer_immediate: bool = True
+    min_rating: Optional[float] = Field(default=None, ge=0, le=5)
+    limit: int = Field(default=3, ge=1, le=10)
+
+
+class MechanicRecommendationView(BaseModel):
+    id: str
+    company_name: str
+    contact_name: str
+    phone: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    distance_miles: Optional[float] = None
+    rating: Optional[float] = None
+    accepts_mobile_roadside: bool
+    estimated_response_minutes: Optional[int] = None
+    reliability_score: float
+    specialty_score: float
+    availability_score: float
+    recommendation_score: float
+    reasons: list[str] = []
+
+
+class MechanicRecommendationResponse(BaseModel):
+    summary: str
+    recommendations: list[MechanicRecommendationView]
+
+
 # ── Pipeline Schemas ────────────────────────────────────
 
 

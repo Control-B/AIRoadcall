@@ -2,9 +2,11 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_session
+from app.api.deps import get_session, require_admin_api_key
 from app.schemas.mechanic import (
     MechanicCreateRequest,
+    MechanicRecommendationRequest,
+    MechanicRecommendationResponse,
     MechanicSearchResult,
     MechanicView,
     MechanicLocationUpdate,
@@ -42,6 +44,25 @@ async def search_mechanics(
         vehicle_type=vehicle_type,
         limit=limit,
     )
+
+
+@router.post(
+    "/recommendations",
+    response_model=MechanicRecommendationResponse,
+    dependencies=[Depends(require_admin_api_key)],
+)
+async def recommend_mechanics(
+    request: MechanicRecommendationRequest,
+    db: AsyncSession = Depends(get_session),
+):
+    """Rank nearby mechanics for LiveKit/agent actions using fit, reliability, and response speed."""
+    if request.lat is None and request.lng is None and not (request.city and request.state):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide either lat/lng or city/state",
+        )
+
+    return await MechanicDataService.recommend_mechanics(db, request)
 
 
 @router.post("", response_model=MechanicView, status_code=status.HTTP_201_CREATED)
