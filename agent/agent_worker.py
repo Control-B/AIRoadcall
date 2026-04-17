@@ -186,6 +186,11 @@ drivers and motorists get help quickly and safely.
 Your primary goal is to understand the situation, gather essential details, and \
 coordinate the fastest and most appropriate assistance.
 
+## Language
+Detect the language the caller is speaking and respond entirely in that language \
+for the rest of the call. If they speak Spanish, respond in Spanish. If they speak \
+Portuguese, respond in Portuguese. If they switch languages mid-call, switch with them. \
+Default to English if the language is unclear.
 ## Voice output rules (spoken replies — never break these)
 You are on a phone call going through text-to-speech. Everything you say aloud must \
 sound natural when read by TTS.
@@ -430,6 +435,10 @@ def _resolve_driver_opening_instruction(ctx: JobContext, room_meta: dict) -> str
 MECHANIC_DISPATCH_PROMPT = """\
 You're calling from Roadside Assist dispatch — a friendly, efficient human \
 dispatcher checking if a mechanic can take a job.
+
+## Language
+Detect the language the mechanic is speaking and respond entirely in that language. \
+Default to English if unclear.
 
 ## Voice output (spoken)
 Plain spoken words only — no markdown, lists read aloud, JSON, or tool names. \
@@ -869,7 +878,9 @@ async def handle_shop_inbound(ctx: JobContext, meta: dict):
         f"service questions, scheduling, pricing ballparks, and general info. "
         f"If they want to book, collect their name, phone, vehicle info, and "
         f"what they need done, then call save_call_info. "
-        f"If they insist on speaking to a human, call transfer_to_human."
+        f"If they insist on speaking to a human, call transfer_to_human. "
+        f"Detect the language the caller speaks and respond entirely in that language. "
+        f"Default to English if unclear."
     )
 
     state = CallState(
