@@ -42,7 +42,7 @@ logger = logging.getLogger("roadcall-agent")
 logger.setLevel(logging.INFO)
 
 # Seconds to wait for the SIP leg before prompting the agent (outbound / inbound)
-_SIP_PARTICIPANT_TIMEOUT_S = float(os.getenv("SIP_PARTICIPANT_TIMEOUT_S", "60"))
+_SIP_PARTICIPANT_TIMEOUT_S = float(os.getenv("SIP_PARTICIPANT_TIMEOUT_S", "10"))
 
 # LiveKit Inference model IDs (STT → LLM → TTS). Without these, AgentSession has no
 # llm/stt/tts and generate_reply() raises — the agent will never speak.
@@ -804,8 +804,8 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
 
     session = _voice_agent_session(
         userdata=state,
-        min_endpointing_delay=0.5,
-        max_endpointing_delay=5.0,
+        min_endpointing_delay=0.2,
+        max_endpointing_delay=1.5,
     )
 
     await _wait_for_sip_participant(ctx, identity=None)
@@ -982,8 +982,6 @@ if __name__ == "__main__":
             api_key=os.getenv("LIVEKIT_API_KEY", ""),
             api_secret=os.getenv("LIVEKIT_API_SECRET", ""),
             ws_url=os.getenv("LIVEKIT_URL", ""),
-            # Each worker process handles up to num_idle_processes concurrent jobs.
-            # Scale horizontally by running more containers/replicas on DigitalOcean.
             num_idle_processes=int(os.getenv("AGENT_NUM_IDLE_PROCESSES", "5")),
         )
     )
