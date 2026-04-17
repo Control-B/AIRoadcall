@@ -130,7 +130,7 @@ def _voice_agent_session(
     llm_id = os.getenv("LIVEKIT_INFERENCE_LLM", _DEFAULT_INFERENCE_LLM)
     voice_id = os.getenv("ELEVENLABS_VOICE_ID", _DEFAULT_ELEVENLABS_VOICE_ID)
     el_model = os.getenv("ELEVENLABS_MODEL", _DEFAULT_ELEVENLABS_MODEL)
-    dg_model = os.getenv("DEEPGRAM_MODEL", "nova-3")
+    dg_model = os.getenv("DEEPGRAM_MODEL", "nova-2")
     logger.info(
         "Voice pipeline: llm=%s tts=elevenlabs/%s voice=%s stt=deepgram/%s",
         llm_id, el_model, voice_id, dg_model,
@@ -146,6 +146,7 @@ def _voice_agent_session(
             model=dg_model,
             detect_language=True,
             api_key=os.getenv("DEEPGRAM_API_KEY") or None,
+            language="multi",
         ),
         turn_handling={
             "turn_detection": "stt",
@@ -812,8 +813,8 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
         max_endpointing_delay=5.0,
     )
 
-    await session.start(agent=agent, room=ctx.room)
     await _wait_for_sip_participant(ctx, identity=None)
+    await session.start(agent=agent, room=ctx.room)
     await _kickoff_agent_speech(
         session, instructions=_resolve_driver_opening_instruction(ctx, meta)
     )
@@ -918,8 +919,8 @@ async def handle_shop_inbound(ctx: JobContext, meta: dict):
         max_endpointing_delay=5.0,
     )
 
-    await session.start(agent=agent, room=ctx.room)
     await _wait_for_sip_participant(ctx, identity=None)
+    await session.start(agent=agent, room=ctx.room)
 
     # Say the custom greeting immediately if configured
     if greeting:
