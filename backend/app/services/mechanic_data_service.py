@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import re
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -21,6 +22,16 @@ logger = get_logger(__name__)
 
 class MechanicDataService:
     """Service for creating, updating, and managing mechanic records."""
+
+    _DAY_KEYS = {
+        0: ("mon", "monday"),
+        1: ("tue", "tues", "tuesday"),
+        2: ("wed", "wednesday"),
+        3: ("thu", "thur", "thurs", "thursday"),
+        4: ("fri", "friday"),
+        5: ("sat", "saturday"),
+        6: ("sun", "sunday"),
+    }
 
     @staticmethod
     def _reliability_score(mechanic: Mechanic) -> float:
@@ -54,14 +65,112 @@ class MechanicDataService:
 
     @staticmethod
     def _availability_score(mechanic: Mechanic, prefer_immediate: bool) -> float:
+        available_now, status = MechanicDataService._available_now(mechanic)
+        if available_now is False:
+            return 0.0
         score = 1.0 if mechanic.active else 0.0
         if mechanic.accepts_mobile_roadside:
             score *= 1.0
         else:
             score *= 0.55
+        if available_now is True:
+            score *= 1.0
+        elif available_now is None:
+            score *= 0.7
         if prefer_immediate and mechanic.avg_response_time_min is not None:
             score *= 1.0 if mechanic.avg_response_time_min <= 30 else 0.75
         return round(score, 4)
+
+    @staticmethod
+    def _available_now(mechanic: Mechanic, now: datetime | None = None) -> tuple[bool | None, str]:
+        if not mechanic.active:
+            return False, "inactive"
+
+        hours = mechanic.hours_of_operation
+        if not hours:
+            return None, "hours_unknown"
+
+        now = now or datetime.now(timezone.utc)
+        haystacks: list[str] = []
+        if isinstance(hours, dict):
+            note = hours.get("note")
+            if note:
+                haystacks.append(str(note))
+            schedule = hours.get("schedule")
+            if isinstance(schedule, list):
+                haystacks.extend(str(item) for item in schedule if item)
+            for value in hours.values():
+                if isinstance(value, str):
+                    haystacks.append(value)
+        elif isinstance(hours, list):
+            haystacks.extend(str(item) for item in hours if item)
+        elif isinstance(hours, str):
+            haystacks.append(hours)
+
+        combined = " ".join(haystacks).lower()
+        if any(token in combined for token in ("24/7", "24 hours", "open 24", "open twenty four")):
+            return True, "open_24_7"
+        if "closed permanently" in combined or "permanently closed" in combined:
+            return False, "permanently_closed"
+
+        day_text = MechanicDataService._current_day_hours_text(hours, now.weekday())
+        if day_text is None:
+            return None, "hours_unknown"
+
+        normalized = day_text.lower().strip()
+        if any(token in normalized for token in ("closed", "not open")):
+            return False, "closed_today"
+        if any(token in normalized for token in ("24/7", "24 hours", "open 24")):
+            return True, "open_24_hours"
+
+        minutes = MechanicDataService._minutes_from_hours_text(normalized)
+        if len(minutes) >= 2:
+            current_minutes = now.hour * 60 + now.minute
+            open_minutes, close_minutes = minutes[0], minutes[1]
+            if close_minutes < open_minutes:
+                is_open = current_minutes >= open_minutes or current_minutes <= close_minutes
+            else:
+                is_open = open_minutes <= current_minutes <= close_minutes
+            return (True, "open_now") if is_open else (False, "closed_now")
+
+        if "open" in normalized:
+            return True, "marked_open"
+        return None, "hours_unparsed"
+
+    @staticmethod
+    def _current_day_hours_text(hours: object, weekday: int) -> str | None:
+        day_keys = MechanicDataService._DAY_KEYS.get(weekday, ())
+        if isinstance(hours, dict):
+            for key in day_keys:
+                if key in hours and isinstance(hours[key], str):
+                    return str(hours[key])
+                title_key = key.title()
+                if title_key in hours and isinstance(hours[title_key], str):
+                    return str(hours[title_key])
+            schedule = hours.get("schedule")
+            if isinstance(schedule, list):
+                for item in schedule:
+                    text = str(item)
+                    if any(text.lower().startswith(key) for key in day_keys):
+                        return text
+        if isinstance(hours, list):
+            for item in hours:
+                text = str(item)
+                if any(text.lower().startswith(key) for key in day_keys):
+                    return text
+        return None
+
+    @staticmethod
+    def _minutes_from_hours_text(text: str) -> list[int]:
+        matches = re.findall(r"(\d{1,2})(?::(\d{2}))?\s*(am|pm)", text.lower())
+        minutes: list[int] = []
+        for hour_str, minute_str, meridiem in matches:
+            hour = int(hour_str) % 12
+            minute = int(minute_str or 0)
+            if meridiem == "pm":
+                hour += 12
+            minutes.append(hour * 60 + minute)
+        return minutes
 
     @staticmethod
     def _specialty_score(
@@ -85,6 +194,8 @@ class MechanicDataService:
         distance_miles: float | None,
         estimated_response_minutes: int | None,
         reliability_score: float,
+        available_now: bool | None,
+        availability_status: str,
     ) -> list[str]:
         reasons: list[str] = []
         if distance_miles is not None:
@@ -98,6 +209,10 @@ class MechanicDataService:
                 break
         if mechanic.accepts_mobile_roadside:
             reasons.append("offers mobile roadside service")
+        if available_now is True:
+            reasons.append("appears available right now")
+        elif availability_status == "hours_unknown":
+            reasons.append("availability not confirmed from hours data")
         if estimated_response_minutes is not None:
             reasons.append(f"historical response around {estimated_response_minutes} minutes")
         if reliability_score >= 0.75:
@@ -315,6 +430,8 @@ class MechanicDataService:
 
         result = await db.execute(query)
         mechanics = list(result.scalars().all())
+        if request.require_available_now:
+            mechanics = [m for m in mechanics if MechanicDataService._available_now(m)[0] is True]
         if not mechanics:
             return MechanicRecommendationResponse(
                 summary="No matching mechanics found for those criteria.",
@@ -361,6 +478,7 @@ class MechanicDataService:
                 )
 
             reliability_score = MechanicDataService._reliability_score(mechanic)
+            available_now, availability_status = MechanicDataService._available_now(mechanic)
             specialty_score = MechanicDataService._specialty_score(
                 mechanic,
                 issue_type=request.issue_type,
@@ -398,6 +516,8 @@ class MechanicDataService:
                     distance_miles=distance_miles,
                     rating=float(mechanic.rating) if mechanic.rating else None,
                     accepts_mobile_roadside=mechanic.accepts_mobile_roadside,
+                    available_now=available_now,
+                    availability_status=availability_status,
                     estimated_response_minutes=estimated_response_minutes,
                     reliability_score=reliability_score,
                     specialty_score=specialty_score,
@@ -411,6 +531,8 @@ class MechanicDataService:
                         distance_miles=distance_miles,
                         estimated_response_minutes=estimated_response_minutes,
                         reliability_score=reliability_score,
+                        available_now=available_now,
+                        availability_status=availability_status,
                     ),
                 )
             )

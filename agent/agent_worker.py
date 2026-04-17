@@ -271,6 +271,13 @@ def _env_truthy(name: str) -> bool:
     return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _driver_prompt_source() -> str:
+    source = os.getenv("LIVEKIT_DRIVER_PROMPT_SOURCE", "external").strip().lower()
+    if source in {"external", "repo", "env"}:
+        return source
+    return "external"
+
+
 # Appended when instructions come from the LiveKit Console (or dispatch metadata) so
 # Roadcall tools still exist in the same session.
 DRIVER_INTAKE_TOOL_APPENDIX = """\
@@ -330,62 +337,58 @@ def _room_instruction_payload(room_meta: dict) -> dict[str, Any]:
 
 
 def _resolve_driver_intake_system_prompt(ctx: JobContext, room_meta: dict) -> str:
-    """Use the committed repo prompt by default.
+    """Resolve the driver intake prompt.
 
-    External LiveKit metadata/env can still override when explicitly enabled via
-    LIVEKIT_USE_EXTERNAL_DRIVER_PROMPT=true.
+    Default source is LiveKit-side instructions/metadata so Console-managed flows
+    can control prompt behavior again. Set LIVEKIT_DRIVER_PROMPT_SOURCE to:
+    - external: prefer LiveKit metadata/env first
+    - repo: prefer committed prompt files first
+    - env: prefer AGENT_DRIVER_INTAKE_PROMPT* first
 
     See: https://docs.livekit.io/telephony/accepting-calls/dispatch-rule/ (roomConfig.agents[].metadata)
     """
     job_pl = _metadata_payload(ctx.job.metadata)
     room_pl = _room_instruction_payload(room_meta)
+    source = _driver_prompt_source()
 
     direct = os.getenv("AGENT_DRIVER_INTAKE_PROMPT", "").strip()
     path = os.getenv("AGENT_DRIVER_INTAKE_PROMPT_FILE", "").strip()
-    if direct:
-        logger.info("Driver intake: using AGENT_DRIVER_INTAKE_PROMPT + Roadcall tools")
-        return f"{direct}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
-    if path and os.path.isfile(path):
-        contents = _read_file_stripped(path)
-        if contents:
-            logger.info("Driver intake: using AGENT_DRIVER_INTAKE_PROMPT_FILE + Roadcall tools")
-            return f"{contents}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
-
-    committed = _read_file_stripped(_DEFAULT_INTAKE_PROMPT_FILE)
-    if committed:
-        logger.info(
-            "Driver intake: using committed prompts/driver_intake.md + Roadcall tools"
-        )
-        return f"{committed}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
 
     external = (
         _first_instruction_text(job_pl)
         or _first_instruction_text(room_pl)
         or os.getenv("LIVEKIT_CLOUD_INSTRUCTIONS", "").strip()
     )
-    if external and _env_truthy("LIVEKIT_USE_EXTERNAL_DRIVER_PROMPT"):
-        logger.info("Driver intake: using external instructions (metadata/env) + Roadcall tools")
-        return f"{external}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
+    committed = _read_file_stripped(_DEFAULT_INTAKE_PROMPT_FILE)
+    env_file_prompt = _read_file_stripped(path) if path and os.path.isfile(path) else None
 
-    logger.info("Driver intake: using built-in default prompt + Roadcall tools")
+    candidates = {
+        "external": external,
+        "env": direct or env_file_prompt,
+        "repo": committed,
+        "builtin": DRIVER_INTAKE_PROMPT,
+    }
+    order = {
+        "external": ("external", "env", "repo", "builtin"),
+        "env": ("env", "external", "repo", "builtin"),
+        "repo": ("repo", "env", "external", "builtin"),
+    }[source]
+
+    for key in order:
+        candidate = candidates.get(key)
+        if candidate and str(candidate).strip():
+            logger.info("Driver intake: using %s prompt source + Roadcall tools", key)
+            return f"{str(candidate).strip()}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
+
+    logger.info("Driver intake: falling back to built-in default prompt + Roadcall tools")
     return f"{DRIVER_INTAKE_PROMPT}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
 
 
 def _resolve_driver_opening_instruction(ctx: JobContext, room_meta: dict) -> str:
-    """First-turn user instruction; committed welcome wins unless explicitly overridden."""
+    """Resolve the first spoken line using the same prompt-source precedence."""
     job_pl = _metadata_payload(ctx.job.metadata)
     room_pl = _room_instruction_payload(room_meta)
-
-    env_override = os.getenv("AGENT_DRIVER_OPENING_INSTRUCTION", "").strip()
-    if env_override:
-        return env_override
-
-    committed_welcome = _read_file_stripped(_DEFAULT_INTAKE_WELCOME_FILE)
-    if committed_welcome:
-        return (
-            "The caller just connected. Speak first in plain spoken English only. "
-            f"Use this greeting (you may adapt slightly for natural flow): {committed_welcome}"
-        )
+    source = _driver_prompt_source()
 
     welcome = (
         job_pl.get("opening_instruction")
@@ -393,13 +396,32 @@ def _resolve_driver_opening_instruction(ctx: JobContext, room_meta: dict) -> str
         or room_pl.get("opening_instruction")
         or room_pl.get("welcome_message")
     )
-    if welcome is not None and str(welcome).strip() and _env_truthy(
-        "LIVEKIT_USE_EXTERNAL_DRIVER_PROMPT"
-    ):
-        w = str(welcome).strip()
+
+    env_override = os.getenv("AGENT_DRIVER_OPENING_INSTRUCTION", "").strip()
+    committed_welcome = _read_file_stripped(_DEFAULT_INTAKE_WELCOME_FILE)
+    candidates = {
+        "external": str(welcome).strip() if welcome is not None and str(welcome).strip() else None,
+        "env": env_override or None,
+        "repo": committed_welcome,
+    }
+    order = {
+        "external": ("external", "env", "repo"),
+        "env": ("env", "external", "repo"),
+        "repo": ("repo", "env", "external"),
+    }[source]
+    for key in order:
+        greeting = candidates.get(key)
+        if greeting:
+            logger.info("Driver intake: using %s opening source", key)
+            return (
+                "The caller just connected. Speak first in plain spoken English only. "
+                f"Use this greeting (you may adapt slightly for natural flow): {greeting}"
+            )
+
+    if committed_welcome:
         return (
             "The caller just connected. Speak first in plain spoken English only. "
-            f"Use this greeting (you may adapt slightly for natural flow): {w}"
+            f"Use this greeting (you may adapt slightly for natural flow): {committed_welcome}"
         )
 
     return (

@@ -76,6 +76,7 @@ class MechanicRecommendationRequest(BaseModel):
     vehicle_type: Optional[str] = None
     trailer_type: Optional[str] = None
     require_mobile_roadside: bool = True
+    require_available_now: bool = False
     prefer_immediate: bool = True
     min_rating: Optional[float] = Field(default=None, ge=0, le=5)
     limit: int = Field(default=3, ge=1, le=10)
@@ -91,6 +92,8 @@ class MechanicRecommendationView(BaseModel):
     distance_miles: Optional[float] = None
     rating: Optional[float] = None
     accepts_mobile_roadside: bool
+    available_now: Optional[bool] = None
+    availability_status: str
     estimated_response_minutes: Optional[int] = None
     reliability_score: float
     specialty_score: float
