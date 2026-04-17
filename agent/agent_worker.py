@@ -16,6 +16,7 @@ This agent connects to LiveKit Cloud and handles three call types:
    receptionist using their custom config.
 """
 
+import asyncio
 import json
 import logging
 import os
@@ -24,6 +25,7 @@ from typing import Any
 
 import httpx
 from dotenv import load_dotenv
+from livekit import rtc
 from livekit.agents import (
     Agent,
     AgentSession,
@@ -37,6 +39,9 @@ load_dotenv()
 
 logger = logging.getLogger("roadcall-agent")
 logger.setLevel(logging.INFO)
+
+# Seconds to wait for the SIP leg before prompting the agent (outbound / inbound)
+_SIP_PARTICIPANT_TIMEOUT_S = float(os.getenv("SIP_PARTICIPANT_TIMEOUT_S", "60"))
 
 # Backend API base URL for database operations
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
@@ -74,6 +79,36 @@ class CallState:
     room_metadata: dict = field(default_factory=dict)
     collected: dict = field(default_factory=dict)
     ctx: Any = None  # JobContext reference
+
+
+async def _wait_for_sip_participant(
+    ctx: JobContext,
+    *,
+    identity: str | None,
+    timeout_s: float = _SIP_PARTICIPANT_TIMEOUT_S,
+) -> None:
+    """Block until the phone leg is in the room so the first utterance is not lost."""
+    try:
+        await asyncio.wait_for(
+            ctx.wait_for_participant(
+                identity=identity,
+                kind=rtc.ParticipantKind.PARTICIPANT_KIND_SIP,
+            ),
+            timeout=timeout_s,
+        )
+        logger.info("SIP participant ready (identity=%s)", identity or "any")
+    except asyncio.TimeoutError:
+        logger.warning(
+            "Timeout waiting for SIP participant (identity=%s) — continuing anyway",
+            identity or "any",
+        )
+    except Exception as e:
+        logger.warning("wait_for_participant failed: %s", e)
+
+
+def _kickoff_agent_speech(session: AgentSession, instructions: str) -> None:
+    """Start a model turn without waiting for user speech (required for telephony)."""
+    session.generate_reply(instructions=instructions)
 
 
 # ════════════════════════════════════════════════════════
@@ -441,6 +476,15 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
     )
 
     await session.start(agent=agent, room=ctx.room)
+    await _wait_for_sip_participant(ctx, identity=None)
+    _kickoff_agent_speech(
+        session,
+        instructions=(
+            "A driver is on the line (roadside assistance). "
+            "Immediately greet them as Sam from Roadside Assist and start helping — "
+            "do not wait in silence for them to speak first."
+        ),
+    )
     logger.info(f"Driver intake agent running in {ctx.room.name} (caller: {_current_caller_phone})")
 
 
@@ -489,6 +533,18 @@ async def handle_mechanic_dispatch(ctx: JobContext, meta: dict):
     )
 
     await session.start(agent=agent, room=ctx.room)
+    await _wait_for_sip_participant(
+        ctx,
+        identity=f"mechanic-{dispatch_attempt_id}",
+    )
+    _kickoff_agent_speech(
+        session,
+        instructions=(
+            "The mechanic just answered your outbound call. "
+            "Speak immediately: greet them by name, summarize the roadside job briefly, "
+            "and ask if they can take it — do not wait for them to talk first."
+        ),
+    )
     logger.info(f"Dispatch agent running in {ctx.room.name}")
 
 
@@ -535,10 +591,19 @@ async def handle_shop_inbound(ctx: JobContext, meta: dict):
     )
 
     await session.start(agent=agent, room=ctx.room)
+    await _wait_for_sip_participant(ctx, identity=None)
 
     # Say the custom greeting immediately if configured
     if greeting:
         await session.say(greeting)
+    else:
+        _kickoff_agent_speech(
+            session,
+            instructions=(
+                f"A caller just reached {business_name}. "
+                "Greet them professionally and help with their request — speak first."
+            ),
+        )
 
     logger.info(f"Shop agent running for {business_name} in {ctx.room.name}")
 
