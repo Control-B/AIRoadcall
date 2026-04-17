@@ -583,53 +583,71 @@ async def record_mechanic_response(
 
 @llm.function_tool(
     description=(
-        "Look up nearby mechanics from the database for a given location. "
-        "Use this to find available mechanics near the driver."
+        "Search the database and return the best-matched mechanics for this driver. "
+        "Uses scored ranking by distance, issue type, vehicle type, rating, and mobile roadside capability. "
+        "Call this as soon as you have the driver's city/state and issue type. "
+        "Pass vehicle_type if known (e.g. 'semi truck', 'pickup truck', 'car'). "
+        "Returns the top matches with ETA estimates and reasons why each was selected."
     )
 )
 async def find_nearby_mechanics(
-    latitude: float | None = None,
-    longitude: float | None = None,
     city: str = "",
     state: str = "",
     issue_type: str = "",
-    limit: int = 5,
+    vehicle_type: str = "",
+    latitude: float | None = None,
+    longitude: float | None = None,
+    limit: int = 3,
 ):
-    """Query the backend for the closest available mechanics."""
+    """Query the backend recommendations engine for the best-matched mechanics."""
+    if not city and not state and latitude is None:
+        return "I need at least a city and state to find mechanics."
+
     try:
-        params: dict[str, Any] = {"limit": limit}
+        body: dict[str, Any] = {
+            "limit": limit,
+            "issue_type": issue_type,
+            "require_mobile_roadside": True,
+            "prefer_immediate": True,
+        }
         if latitude is not None and longitude is not None:
-            params["lat"] = latitude
-            params["lng"] = longitude
-        elif city and state:
-            params["city"] = city
-            params["state"] = state
+            body["lat"] = latitude
+            body["lng"] = longitude
         else:
-            return "I need either GPS coordinates or a city and state to look up mechanics."
+            body["city"] = city
+            body["state"] = state
+        if vehicle_type:
+            body["vehicle_type"] = vehicle_type
 
-        if issue_type:
-            params["issue_type"] = issue_type
+        result = await api_call("POST", "/mechanics/recommendations", json_body=body)
+        recommendations = result.get("recommendations", [])
+        summary = result.get("summary", "")
 
-        result = await api_call("GET", "/mechanics", params=params)
-        mechanics = result if isinstance(result, list) else result.get("items", [])
+        if not recommendations:
+            return (
+                f"No available mechanics found near {city}, {state} right now. "
+                f"I've logged the job and dispatch will follow up shortly."
+            )
 
-        if not mechanics:
-            return "No available mechanics found near that location right now."
-
-        lines = []
-        for m in mechanics[:limit]:
+        lines = [summary] if summary else []
+        for m in recommendations:
             name = m.get("company_name", "Unknown")
             phone = m.get("phone", "")
             dist = m.get("distance_miles")
-            rating = m.get("rating", "N/A")
-            area = ", ".join(filter(None, [m.get("city"), m.get("state")])) or "area unknown"
-            distance_text = f"{dist} mi away" if dist is not None else area
-            lines.append(f"- {name} ({phone}) — {distance_text}, rated {rating}")
+            eta = m.get("estimated_response_minutes")
+            rating = m.get("rating")
+            reasons = m.get("reasons", [])
+            dist_text = f"{dist:.1f} mi away" if dist is not None else ""
+            eta_text = f"~{eta} min ETA" if eta else ""
+            rating_text = f"rated {rating:.1f}" if rating else ""
+            detail = ", ".join(filter(None, [dist_text, eta_text, rating_text]))
+            reason_text = "; ".join(reasons[:2]) if reasons else ""
+            lines.append(f"- {name} ({phone}){' — ' + detail if detail else ''}{'. ' + reason_text if reason_text else ''}")
 
-        return "Closest mechanics:\n" + "\n".join(lines)
+        return "\n".join(lines)
     except Exception as e:
-        logger.error(f"Failed to look up mechanics: {e}")
-        return "Couldn't look up nearby mechanics right now."
+        logger.error(f"Failed to look up mechanic recommendations: {e}")
+        return "Couldn't look up mechanics right now — job is logged and dispatch will follow up."
 
 
 @llm.function_tool(
