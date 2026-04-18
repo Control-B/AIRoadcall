@@ -226,6 +226,16 @@ export default function HomePage() {
                     {HELP_PHONE}
                   </Button>
                 </a>
+                <Link href="/go" className="block mt-3">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full border-white/15 bg-white/5 text-white hover:bg-white/10 hover:text-white"
+                  >
+                    <MapPin className="mr-2 h-5 w-5" />
+                    Enter your code
+                  </Button>
+                </Link>
                 <p className="text-sm text-slate-500 mt-3">
                   Free call · No signup · Takes 60 seconds
                 </p>
