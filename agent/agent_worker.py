@@ -53,7 +53,8 @@ _SIP_PARTICIPANT_TIMEOUT_S = float(os.getenv("SIP_PARTICIPANT_TIMEOUT_S", "10"))
 _DEFAULT_INFERENCE_LLM = "openai/gpt-4o-mini"
 # ElevenLabs multilingual v2 — direct plugin, supports 29+ languages
 _DEFAULT_ELEVENLABS_MODEL = "eleven_multilingual_v2"
-_DEFAULT_ELEVENLABS_VOICE_ID = "nf4MCGNSdM0hxM95ZBQR"  # Sarah voice
+_SARAH_VOICE_ID = "nf4MCGNSdM0hxM95ZBQR"
+_DEFAULT_ELEVENLABS_VOICE_ID = _SARAH_VOICE_ID  # Sarah voice
 # Speaking rate: 0.85 = ~15% slower than default (1.0). Range: 0.7–1.2
 _DEFAULT_SPEAKING_RATE = float(os.getenv("AGENT_SPEAKING_RATE", "0.85"))
 
@@ -205,11 +206,14 @@ def _voice_agent_session(
     else:
         el_model = os.getenv("ELEVENLABS_MODEL", _DEFAULT_ELEVENLABS_MODEL)
 
-    voice_id = (
-        os.getenv("ELEVENLABS_VOICE_ID", "").strip()
-        or os.getenv("LIVEKIT_INFERENCE_TTS_VOICE", "").strip()
-        or _DEFAULT_ELEVENLABS_VOICE_ID
-    )
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "").strip() or _DEFAULT_ELEVENLABS_VOICE_ID
+    legacy_voice_id = os.getenv("LIVEKIT_INFERENCE_TTS_VOICE", "").strip()
+    if legacy_voice_id and legacy_voice_id != voice_id:
+        logger.warning(
+            "Ignoring LIVEKIT_INFERENCE_TTS_VOICE=%s in favor of ELEVENLABS_VOICE_ID=%s",
+            legacy_voice_id,
+            voice_id,
+        )
     stt_id = os.getenv("LIVEKIT_INFERENCE_STT", "deepgram/nova-2-phonecall")
     elevenlabs_api_key = (
         os.getenv("ELEVENLABS_API_KEY", "").strip()
@@ -318,9 +322,10 @@ stay general and safety-focused.
 When you have their name, vehicle make and model, issue, and a short situation note:
 - Use save_driver_info immediately to create the case.
 - Then use set_driver_location with their address, city, and state to pin them on the map.
-- After both tools succeed, give the driver their access code and backup link. Say something like:
+- After both tools succeed, call get_knowledge_base and find_nearby_mechanics so you can explain what help is available nearby.
+- After that, give the driver their access code and backup link. Say something like:
   "Your case number is R C dash (spell it out). If you can, go to roadcall dot com slash go on your phone and enter that code — it will confirm your exact location on a map."
-- Do NOT search for mechanics during this call. The system handles that automatically after the location is set.
+- Once the location is set, you may use the knowledge and mechanic tools to summarize likely nearby help before closing the call.
 
 ## Closing
 Confirm the essentials in one short casual sentence, tell them you're getting help \
@@ -377,10 +382,12 @@ You have function tools for this app. Use them when appropriate; never say "tool
 "function", or raw JSON aloud.
 - save_driver_info: persist the case and create the job. Call this as soon as you have name, vehicle make and model, issue type, and a short situation note. City and state are optional.
 - set_driver_location: geocode the driver's verbal address (street, highway, landmark) plus city and state, and pin their location on the map. Call this right after save_driver_info if the driver gave any address info.
+- get_knowledge_base: pull the mechanic/service knowledge base for the caller's area from the RAG endpoint.
+- find_nearby_mechanics: query the mechanic database and return the best nearby matches using the backend recommendations engine.
 - remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
 
 After save_driver_info, give the driver their case code and tell them to visit roadcall dot com slash go to confirm their location.
-Do NOT search for mechanics during this call. The system handles that automatically.
+After location is known, use the mechanic knowledge tools to explain what help is nearby when useful.
 Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
 """
 
@@ -1150,7 +1157,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
             _resolve_driver_intake_system_prompt(ctx, meta)
             + (f"\n\n## Caller memory\n{memory_block}" if memory_block else "")
         ),
-        tools=[save_driver_info, set_driver_location, remember_caller_memory],
+        tools=[save_driver_info, set_driver_location, get_knowledge_base, find_nearby_mechanics, remember_caller_memory],
     )
 
     session = _voice_agent_session(

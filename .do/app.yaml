@@ -196,7 +196,7 @@ workers:
         value: elevenlabs/eleven_multilingual_v2
       - key: LIVEKIT_INFERENCE_TTS_VOICE
         scope: RUN_TIME
-        value: 21m00Tcm4TlvDq8ikWAM
+        value: nf4MCGNSdM0hxM95ZBQR
       - key: LIVEKIT_INFERENCE_STT
         scope: RUN_TIME
         value: deepgram/nova-3-general
