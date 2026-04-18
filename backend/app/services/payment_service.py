@@ -128,13 +128,18 @@ class PaymentService:
                 from app.services.dispatch_service import DispatchService
 
                 await DispatchService.start_dispatch(db, job.id)
-                next_mechanic = await DispatchService.dispatch_next_mechanic(db, job.id)
-                if next_mechanic:
+                batch = await DispatchService.dispatch_mechanics_batch(
+                    db, job.id, settings.DISPATCH_BATCH_SIZE
+                )
+                if batch:
                     logger.info(
-                        f"Auto-dispatch triggered for job {job.public_job_id}: "
-                        f"{next_mechanic.mechanic_company} ({next_mechanic.mechanic_phone})"
+                        f"Auto-dispatch batch for job {job.public_job_id}: "
+                        f"{len(batch)} mechanic(s) notified"
                     )
-                    await DispatchService.launch_outbound_call(db, job, next_mechanic)
+                    await db.refresh(job)
+                    if settings.DISPATCH_VOICE_ON_BATCH:
+                        for item in batch:
+                            await DispatchService.launch_outbound_call(db, job, item)
                 else:
                     logger.warning(f"No mechanics available for job {job.public_job_id}")
             except Exception as e:

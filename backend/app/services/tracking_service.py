@@ -144,6 +144,7 @@ class TrackingService:
             distance_miles=distance_miles,
             started_at=started_at,
             job_status=job.status,
+            driver_eta_decision=job.driver_eta_decision,
         )
 
     @staticmethod

@@ -39,6 +39,7 @@ class JobDriverView(BaseModel):
     driver_lng: Optional[float]
     driver_location_captured_at: Optional[datetime]
     assigned_mechanic: Optional["AssignedMechanicSummary"] = None
+    driver_eta_decision: Optional[str] = None
     created_at: datetime
 
 

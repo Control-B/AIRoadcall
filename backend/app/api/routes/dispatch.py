@@ -2,13 +2,21 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_session, require_admin_api_key
+from app.api.deps import (
+    get_session,
+    require_admin_api_key,
+    get_mechanic_dispatch_offer_context,
+)
 from app.models.job import Job
+from app.models.dispatch_attempt import DispatchAttempt
 from app.schemas.dispatch import (
     DispatchStartResponse,
     DispatchNextResponse,
     MechanicResponseRequest,
     MechanicResponseResponse,
+    MechanicOfferView,
+    MechanicOfferStatusView,
+    MechanicOfferRespondRequest,
 )
 from app.schemas.tracking import MechanicTrackingView
 from app.services.dispatch_service import DispatchService
@@ -16,6 +24,65 @@ from app.services.tracking_service import TrackingService
 from sqlalchemy import select
 
 router = APIRouter(prefix="/dispatch", tags=["dispatch"])
+
+
+def _normalize_mechanic_offer_response(raw: str) -> str:
+    lower = raw.lower().strip()
+    if lower in ("accepted", "declined"):
+        return lower
+    if lower in ("yes", "accept", "ok", "sure"):
+        return "accepted"
+    if lower in ("no", "decline", "pass", "cant", "can't"):
+        return "declined"
+    raise ValueError("response must be accepted or declined")
+
+
+@router.get("/mechanic-offer/{token}", response_model=MechanicOfferView)
+async def get_mechanic_offer(
+    token: str,
+    ctx: tuple[Job, DispatchAttempt] = Depends(get_mechanic_dispatch_offer_context),
+):
+    job, attempt = ctx
+    return await DispatchService.build_mechanic_offer_view(job, attempt)
+
+
+@router.get("/mechanic-offer/{token}/status", response_model=MechanicOfferStatusView)
+async def poll_mechanic_offer_status(
+    token: str,
+    db: AsyncSession = Depends(get_session),
+    ctx: tuple[Job, DispatchAttempt] = Depends(get_mechanic_dispatch_offer_context),
+):
+    job, attempt = ctx
+    await db.refresh(job)
+    await db.refresh(attempt)
+    return await DispatchService.mechanic_offer_status(job, attempt)
+
+
+@router.post("/mechanic-offer/{token}/respond", response_model=MechanicResponseResponse)
+async def respond_mechanic_offer(
+    token: str,
+    request: MechanicOfferRespondRequest,
+    db: AsyncSession = Depends(get_session),
+    ctx: tuple[Job, DispatchAttempt] = Depends(get_mechanic_dispatch_offer_context),
+):
+    job, attempt = ctx
+    await db.refresh(job)
+    await db.refresh(attempt)
+    try:
+        normalized = _normalize_mechanic_offer_response(request.response)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    try:
+        return await DispatchService.record_mechanic_response(
+            db=db,
+            job_id=job.id,
+            attempt_id=attempt.id,
+            response=normalized,
+            eta_minutes=request.eta_minutes,
+            notes=request.notes,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.post("/{job_id}/start", response_model=DispatchStartResponse)

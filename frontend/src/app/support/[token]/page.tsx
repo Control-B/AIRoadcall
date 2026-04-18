@@ -2,7 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { getJobByToken, getJobStatus, type JobDriverView } from "@/lib/api-client";
+import {
+  getJobByToken,
+  getJobStatus,
+  type JobDriverView,
+} from "@/lib/api-client";
 import { getStatusStep } from "@/lib/utils";
 import { StepIndicator } from "@/components/step-indicator";
 import { JobSummaryStep } from "@/components/steps/job-summary-step";
@@ -10,6 +14,7 @@ import { LocationStep } from "@/components/steps/location-step";
 import { PaymentStep } from "@/components/steps/payment-step";
 import { DispatchStep } from "@/components/steps/dispatch-step";
 import { TrackingStep } from "@/components/steps/tracking-step";
+import { RematchStep } from "@/components/steps/rematch-step";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertTriangle, ShieldAlert, Clock } from "lucide-react";
@@ -59,6 +64,14 @@ export default function SupportPage() {
           data.status === "mechanic_assigned" ||
           data.status === "mechanic_en_route" ||
           data.status === "mechanic_arrived"
+        ) {
+          setCurrentStep(5);
+        }
+
+        if (
+          data.driver_eta_decision === "rejected" &&
+          (data.status === "matching_mechanics" ||
+            data.status === "calling_mechanics")
         ) {
           setCurrentStep(5);
         }
@@ -160,6 +173,21 @@ export default function SupportPage() {
     setJob(updatedJob);
     setCurrentStep(5);
   }, []);
+
+  const handleJobUpdatedFromTracking = useCallback((updatedJob: JobDriverView) => {
+    setJob(updatedJob);
+    if (
+      updatedJob.driver_eta_decision === "rejected" &&
+      (updatedJob.status === "matching_mechanics" ||
+        updatedJob.status === "calling_mechanics")
+    ) {
+      setCurrentStep(5);
+    }
+  }, []);
+
+  const showRematch =
+    job?.driver_eta_decision === "rejected" &&
+    (job.status === "matching_mechanics" || job.status === "calling_mechanics");
 
   // Loading state
   if (loading) {
@@ -272,13 +300,24 @@ export default function SupportPage() {
           />
         )}
 
-        {currentStep === 5 && (
+        {currentStep === 5 && showRematch ? (
+          <RematchStep
+            token={token}
+            onOfferSent={(updated) => {
+              setJob(updated);
+              setCurrentStep(4);
+            }}
+          />
+        ) : null}
+
+        {currentStep === 5 && !showRematch ? (
           <TrackingStep
             token={token}
             mechanicCompany={job.assigned_mechanic?.company_name}
             mechanicContact={job.assigned_mechanic?.contact_name}
+            onJobUpdated={handleJobUpdatedFromTracking}
           />
-        )}
+        ) : null}
       </div>
     </div>
   );

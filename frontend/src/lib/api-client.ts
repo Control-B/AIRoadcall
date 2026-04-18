@@ -63,6 +63,7 @@ export interface JobDriverView {
   driver_lng?: number | null;
   payment_hold_amount: number | null;
   assigned_mechanic?: AssignedMechanic | null;
+  driver_eta_decision?: string | null;
 }
 
 export interface LocationUpdateResponse {
@@ -88,6 +89,34 @@ export interface TrackingView {
   mechanic_city?: string | null;
   mechanic_state?: string | null;
   mechanic_last_updated?: string | null;
+  driver_eta_decision?: string | null;
+}
+
+export interface MechanicOfferView {
+  public_job_id: string;
+  issue_type: string;
+  issue_summary?: string | null;
+  vehicle_type?: string | null;
+  driver_area?: string | null;
+  driver_lat?: number | null;
+  driver_lng?: number | null;
+  dispatch_attempt_id: string;
+  dispatch_status: string;
+  offer_state: string;
+  job_filled: boolean;
+}
+
+export interface RematchCandidate {
+  mechanic_id: string;
+  company_name: string;
+  contact_name: string;
+  city?: string | null;
+  state?: string | null;
+  rating?: number | null;
+  distance_miles?: number | null;
+  rank_score: number;
+  base_lat: number;
+  base_lng: number;
 }
 
 export interface MechanicTrackingView {
@@ -164,4 +193,57 @@ export async function getMechanicTracking(
   token: string
 ): Promise<MechanicTrackingView> {
   return request<MechanicTrackingView>(`/jobs/mechanic-tracking/${token}`);
+}
+
+export async function getMechanicOffer(token: string): Promise<MechanicOfferView> {
+  return request<MechanicOfferView>(`/dispatch/mechanic-offer/${encodeURIComponent(token)}`);
+}
+
+export async function getMechanicOfferStatus(token: string): Promise<{
+  offer_state: string;
+  job_filled: boolean;
+  dispatch_status: string;
+  public_job_id: string;
+}> {
+  return request(`/dispatch/mechanic-offer/${encodeURIComponent(token)}/status`);
+}
+
+export async function respondMechanicOffer(
+  token: string,
+  body: { response: string; eta_minutes?: number | null; notes?: string | null }
+): Promise<{ success: boolean; dispatch_status: string; job_status: string }> {
+  return request(`/dispatch/mechanic-offer/${encodeURIComponent(token)}/respond`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export async function patchDriverEta(
+  token: string,
+  decision: "accepted" | "rejected"
+): Promise<JobDriverView> {
+  return request<JobDriverView>(`/jobs/${encodeURIComponent(token)}/driver-eta`, {
+    method: "PATCH",
+    body: JSON.stringify({ decision }),
+  });
+}
+
+export async function getRematchCandidates(
+  token: string,
+  limit = 15
+): Promise<RematchCandidate[]> {
+  const q = new URLSearchParams({ limit: String(limit) });
+  return request<RematchCandidate[]>(
+    `/jobs/${encodeURIComponent(token)}/rematch-candidates?${q.toString()}`
+  );
+}
+
+export async function selectRematchMechanic(
+  token: string,
+  mechanicId: string
+): Promise<JobDriverView> {
+  return request<JobDriverView>(`/jobs/${encodeURIComponent(token)}/rematch-select`, {
+    method: "POST",
+    body: JSON.stringify({ mechanic_id: mechanicId }),
+  });
 }

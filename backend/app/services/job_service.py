@@ -5,7 +5,10 @@ from sqlalchemy import select
 from app.models.job import Job
 from app.models.mechanic import Mechanic
 from app.models.dispatch_attempt import DispatchAttempt
+from app.models.tracking_session import TrackingSession
 from app.enums.dispatch_status import DispatchStatus
+from app.enums.tracking_status import TrackingStatus
+from app.enums.driver_eta import DriverEtaDecision
 from app.schemas.job import (
     JobCreateRequest,
     JobCreateResponse,
@@ -127,6 +130,7 @@ class JobService:
             driver_lng=job.driver_lng,
             driver_location_captured_at=job.driver_location_captured_at,
             assigned_mechanic=mechanic_summary,
+            driver_eta_decision=job.driver_eta_decision,
             created_at=job.created_at,
         )
 
@@ -206,3 +210,59 @@ class JobService:
             driver_lat=job.driver_lat,
             driver_lng=job.driver_lng,
         )
+
+    @staticmethod
+    async def apply_driver_eta_decision(
+        db: AsyncSession, job: Job, decision: str
+    ) -> JobDriverView:
+        """Record whether the driver accepts or rejects the proposed ETA."""
+        d = (decision or "").lower().strip()
+        if d == DriverEtaDecision.accepted.value:
+            job.driver_eta_decision = DriverEtaDecision.accepted.value
+            await AuditService.log(
+                db,
+                job_id=job.id,
+                event_type="driver.eta_accepted",
+                actor_type="driver",
+                payload={},
+            )
+            await db.flush()
+            return await JobService.get_job_driver_view(job, db)
+
+        if d == DriverEtaDecision.rejected.value:
+            await JobService._release_mechanic_after_eta_rejection(db, job)
+            return await JobService.get_job_driver_view(job, db)
+
+        raise ValueError("decision must be 'accepted' or 'rejected'")
+
+    @staticmethod
+    async def _release_mechanic_after_eta_rejection(db: AsyncSession, job: Job) -> None:
+        """Clear assignment after the driver rejects ETA so they can pick another provider."""
+        job.assigned_mechanic_id = None
+        job.status = JobStatus.matching_mechanics
+        job.driver_eta_decision = DriverEtaDecision.rejected.value
+
+        att_result = await db.execute(
+            select(DispatchAttempt).where(
+                DispatchAttempt.job_id == job.id,
+                DispatchAttempt.dispatch_status == DispatchStatus.accepted,
+            )
+        )
+        for att in att_result.scalars().all():
+            att.dispatch_status = DispatchStatus.declined
+            att.response_notes = "driver_rejected_eta"
+
+        ts_result = await db.execute(
+            select(TrackingSession).where(TrackingSession.job_id == job.id)
+        )
+        for session in ts_result.scalars().all():
+            session.tracking_status = TrackingStatus.ended
+
+        await AuditService.log(
+            db,
+            job_id=job.id,
+            event_type="driver.eta_rejected",
+            actor_type="driver",
+            payload={},
+        )
+        await db.flush()

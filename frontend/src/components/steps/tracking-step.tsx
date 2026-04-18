@@ -4,7 +4,12 @@ import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getTracking, type TrackingView } from "@/lib/api-client";
+import {
+  getTracking,
+  patchDriverEta,
+  type TrackingView,
+  type JobDriverView,
+} from "@/lib/api-client";
 import { LiveTrackingMap } from "@/components/maps/live-tracking-map";
 import {
   Wrench,
@@ -18,15 +23,18 @@ interface TrackingStepProps {
   token: string;
   mechanicCompany?: string;
   mechanicContact?: string;
+  onJobUpdated?: (job: JobDriverView) => void;
 }
 
 export function TrackingStep({
   token,
   mechanicCompany,
   mechanicContact,
+  onJobUpdated,
 }: TrackingStepProps) {
   const [tracking, setTracking] = useState<TrackingView | null>(null);
   const [loading, setLoading] = useState(true);
+  const [etaSubmitting, setEtaSubmitting] = useState(false);
 
   const pollTracking = useCallback(async () => {
     try {
@@ -88,6 +96,49 @@ export function TrackingStep({
             ETA: ~{tracking.eta_minutes} minutes
           </p>
         )}
+
+        {tracking?.driver_eta_decision === "pending" && tracking?.eta_minutes ? (
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              disabled={etaSubmitting}
+              onClick={async () => {
+                setEtaSubmitting(true);
+                try {
+                  const j = await patchDriverEta(token, "accepted");
+                  onJobUpdated?.(j);
+                  await pollTracking();
+                } finally {
+                  setEtaSubmitting(false);
+                }
+              }}
+              className="rounded-full bg-green-600 px-5 py-2 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              Accept ETA
+            </button>
+            <button
+              type="button"
+              disabled={etaSubmitting}
+              onClick={async () => {
+                setEtaSubmitting(true);
+                try {
+                  const j = await patchDriverEta(token, "rejected");
+                  onJobUpdated?.(j);
+                  await pollTracking();
+                } finally {
+                  setEtaSubmitting(false);
+                }
+              }}
+              className="rounded-full border border-destructive/60 px-5 py-2 text-sm font-semibold text-destructive hover:bg-destructive/10 disabled:opacity-50"
+            >
+              Reject ETA
+            </button>
+          </div>
+        ) : null}
+
+        {tracking?.driver_eta_decision === "accepted" ? (
+          <p className="mt-2 text-sm text-green-700">You accepted this ETA.</p>
+        ) : null}
         {tracking?.distance_miles && (
           <p className="mt-1 text-sm text-muted-foreground">
             Distance: {tracking.distance_miles.toFixed(1)} miles away

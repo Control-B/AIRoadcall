@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     MECHANIC_ARRIVAL_THRESHOLD_METERS: float = 200.0
     DEMO_AUTO_ASSIGN_NEAREST_MECHANIC: bool = False
     DEMO_SKIP_PAYMENT_AUTHORIZATION: bool = False
+    # Parallel mechanic outreach: SMS with web accept/decline; optional LiveKit per mechanic
+    DISPATCH_BATCH_SIZE: int = 3
+    DISPATCH_VOICE_ON_BATCH: bool = False
     JOB_DUPLICATE_WINDOW_MINUTES: int = 15
 
     # Mapbox

@@ -6,8 +6,13 @@ import uuid
 
 from app.core.database import get_db
 from app.core.config import get_settings
-from app.core.security import decode_magic_link_token, decode_mechanic_tracking_token
+from app.core.security import (
+    decode_magic_link_token,
+    decode_mechanic_tracking_token,
+    decode_mechanic_dispatch_offer_token,
+)
 from app.models.job import Job
+from app.models.dispatch_attempt import DispatchAttempt
 
 
 async def get_session(db: AsyncSession = Depends(get_db)) -> AsyncSession:
@@ -114,3 +119,66 @@ async def validate_mechanic_tracking_token(
         )
 
     return job
+
+
+async def get_mechanic_dispatch_offer_context(
+    token: str, db: AsyncSession = Depends(get_db)
+) -> tuple[Job, DispatchAttempt]:
+    """Validate mechanic dispatch offer JWT and return job + dispatch attempt."""
+    claims = decode_mechanic_dispatch_offer_token(token)
+    if not claims:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired dispatch link",
+        )
+
+    job_id = claims.get("job_id")
+    attempt_id = claims.get("dispatch_attempt_id")
+    mechanic_id = claims.get("mechanic_id")
+    if not job_id or not attempt_id or not mechanic_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid dispatch link",
+        )
+
+    try:
+        job_uuid = uuid.UUID(str(job_id))
+        attempt_uuid = uuid.UUID(str(attempt_id))
+        mechanic_uuid = uuid.UUID(str(mechanic_id))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid dispatch link",
+        ) from exc
+
+    result = await db.execute(select(Job).where(Job.id == job_uuid))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found",
+        )
+
+    if job.public_job_id != claims.get("sub"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Dispatch link is no longer valid",
+        )
+
+    att_result = await db.execute(
+        select(DispatchAttempt).where(DispatchAttempt.id == attempt_uuid)
+    )
+    attempt = att_result.scalar_one_or_none()
+    if not attempt or attempt.job_id != job.id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Dispatch attempt not found",
+        )
+
+    if attempt.mechanic_id != mechanic_uuid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Dispatch link does not match this provider",
+        )
+
+    return job, attempt

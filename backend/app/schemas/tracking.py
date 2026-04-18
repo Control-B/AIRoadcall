@@ -20,6 +20,7 @@ class TrackingView(BaseModel):
     distance_miles: Optional[float] = None
     started_at: Optional[datetime]
     job_status: str
+    driver_eta_decision: Optional[str] = None
 
 
 class MechanicTrackingView(BaseModel):

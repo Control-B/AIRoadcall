@@ -25,6 +25,7 @@ def _create_signed_token(
     role: str,
     *,
     mechanic_id: str | None = None,
+    dispatch_attempt_id: str | None = None,
 ) -> str:
     raw_token = generate_magic_link_token()
     payload = {
@@ -37,6 +38,8 @@ def _create_signed_token(
     }
     if mechanic_id:
         payload["mechanic_id"] = str(mechanic_id)
+    if dispatch_attempt_id:
+        payload["dispatch_attempt_id"] = str(dispatch_attempt_id)
     return jwt.encode(payload, settings.MAGIC_LINK_SECRET, algorithm=ALGORITHM)
 
 
@@ -54,6 +57,22 @@ def create_mechanic_tracking_token(
         public_job_id,
         role="mechanic_tracking",
         mechanic_id=mechanic_id,
+    )
+
+
+def create_mechanic_dispatch_offer_token(
+    job_id: str,
+    public_job_id: str,
+    dispatch_attempt_id: str,
+    mechanic_id: str,
+) -> str:
+    """Signed token for a mechanic to open the web dispatch offer (map + accept/decline)."""
+    return _create_signed_token(
+        job_id,
+        public_job_id,
+        role="mechanic_dispatch_offer",
+        mechanic_id=mechanic_id,
+        dispatch_attempt_id=dispatch_attempt_id,
     )
 
 
@@ -81,6 +100,14 @@ def decode_mechanic_tracking_token(token: str) -> dict | None:
     """Decode and validate a mechanic tracking JWT token. Returns claims or None."""
     payload = decode_signed_token(token)
     if not payload or payload.get("role") != "mechanic_tracking":
+        return None
+    return payload
+
+
+def decode_mechanic_dispatch_offer_token(token: str) -> dict | None:
+    """Decode and validate a mechanic dispatch offer JWT. Returns claims or None."""
+    payload = decode_signed_token(token)
+    if not payload or payload.get("role") != "mechanic_dispatch_offer":
         return None
     return payload
 

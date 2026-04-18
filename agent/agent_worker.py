@@ -444,7 +444,13 @@ def _driver_intake_tool_appendix() -> str:
 
 
 def _driver_intake_tools() -> list[Any]:
-    tools: list[Any] = [find_nearest_shop, save_driver_info, set_driver_location, remember_caller_memory]
+    tools: list[Any] = [
+        find_nearest_shop,
+        save_driver_info,
+        set_driver_location,
+        remember_caller_memory,
+        get_driver_eta_status,
+    ]
     if _driver_extended_tools_enabled():
         tools.extend([get_knowledge_base, find_nearby_mechanics])
     return tools
@@ -1110,6 +1116,29 @@ async def check_job_status(job_id: str):
     except Exception as e:
         logger.error(f"Failed to check job status: {e}")
         return f"Couldn't look up job {job_id} right now."
+
+
+@llm.function_tool(
+    description=(
+        "Check whether the driver accepted or rejected the proposed mechanic ETA for a job. "
+        "Pass the public job id (for example R C dash A 1 B 2 C 3 D 4)."
+    )
+)
+async def get_driver_eta_status(public_job_id: str):
+    """Return driver_eta_decision and job status for follow-up scripting."""
+    code = (public_job_id or "").upper().strip()
+    try:
+        result = await api_call("GET", f"/jobs/admin/by-public-id/{code}")
+        st = result.get("status", "unknown")
+        eta = result.get("driver_eta_decision")
+        eta_text = eta if eta else "not waiting on ETA confirmation"
+        return (
+            f"Job {result.get('public_job_id', code)}: status is {st}. "
+            f"Driver ETA decision: {eta_text}."
+        )
+    except Exception as e:
+        logger.error("Failed to get driver ETA status: %s", e)
+        return "Couldn't read ETA status for that job right now."
 
 
 @llm.function_tool(

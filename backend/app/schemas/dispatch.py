@@ -46,5 +46,60 @@ class AssignedMechanicDispatchView(BaseModel):
     eta_minutes: Optional[int] = None
 
 
+class MechanicOfferView(BaseModel):
+    """Mechanic-facing dispatch offer (from signed link)."""
+
+    public_job_id: str
+    issue_type: str
+    issue_summary: Optional[str] = None
+    vehicle_type: Optional[str] = None
+    driver_area: Optional[str] = None
+    driver_lat: Optional[float] = None
+    driver_lng: Optional[float] = None
+    dispatch_attempt_id: str
+    dispatch_status: str
+    offer_state: str = Field(
+        ...,
+        description="active | superseded | filled | closed",
+    )
+    job_filled: bool = False
+
+
+class MechanicOfferStatusView(BaseModel):
+    """Lightweight poll payload for non-winning mechanics."""
+
+    offer_state: str
+    job_filled: bool
+    dispatch_status: str
+    public_job_id: str
+
+
+class MechanicOfferRespondRequest(BaseModel):
+    response: str = Field(..., description="accepted or declined")
+    eta_minutes: Optional[int] = Field(default=None, ge=1, le=600)
+    notes: Optional[str] = None
+
+
+class RematchCandidateView(BaseModel):
+    mechanic_id: str
+    company_name: str
+    contact_name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    rating: Optional[float] = None
+    distance_miles: Optional[float] = None
+    rank_score: float
+    base_lat: float
+    base_lng: float
+
+
+class DriverEtaDecisionRequest(BaseModel):
+    decision: str = Field(..., description="accepted or rejected")
+
+
+class RematchSelectRequest(BaseModel):
+    mechanic_id: str = Field(..., description="UUID of chosen mechanic from rematch list")
+
+
 # Forward ref
 DispatchStatusView.model_rebuild()

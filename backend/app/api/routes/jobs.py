@@ -1,9 +1,16 @@
 import asyncio
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
-from app.api.deps import get_session, validate_magic_token, validate_mechanic_tracking_token
+from app.api.deps import (
+    get_session,
+    validate_magic_token,
+    validate_mechanic_tracking_token,
+    require_admin_api_key,
+)
 from app.models.job import Job
 from app.schemas.job import (
     JobCreateRequest,
@@ -12,7 +19,13 @@ from app.schemas.job import (
     LocationUpdateRequest,
     LocationUpdateResponse,
 )
+from app.schemas.dispatch import (
+    DriverEtaDecisionRequest,
+    RematchCandidateView,
+    RematchSelectRequest,
+)
 from app.services.job_service import JobService
+from app.services.dispatch_service import DispatchService
 from app.services.sms_service import SMSService
 from app.services.tracking_service import TrackingService
 from app.schemas.tracking import MechanicTrackingView
@@ -107,6 +120,71 @@ async def get_mechanic_tracking_by_token(
     """Retrieve safe mechanic-facing live tracking by signed token."""
     job = await validate_mechanic_tracking_token(token, db)
     return await TrackingService.get_mechanic_tracking_view(db, job)
+
+
+@router.get(
+    "/admin/by-public-id/{public_job_id}",
+    response_model=JobDriverView,
+    dependencies=[Depends(require_admin_api_key)],
+)
+async def admin_get_job_by_public_id(
+    public_job_id: str,
+    db: AsyncSession = Depends(get_session),
+):
+    """Agent/automation: load driver-safe job view by public job id (e.g. RC-XXXX)."""
+    code = public_job_id.upper().strip()
+    result = await db.execute(select(Job).where(Job.public_job_id == code))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return await JobService.get_job_driver_view(job, db)
+
+
+@router.patch("/{token}/driver-eta", response_model=JobDriverView)
+async def patch_driver_eta_decision(
+    token: str,
+    body: DriverEtaDecisionRequest,
+    db: AsyncSession = Depends(get_session),
+):
+    """Driver accepts or rejects the proposed mechanic ETA."""
+    job = await validate_magic_token(token, db)
+    try:
+        return await JobService.apply_driver_eta_decision(db, job, body.decision)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+
+
+@router.get("/{token}/rematch-candidates", response_model=list[RematchCandidateView])
+async def list_rematch_candidates_route(
+    token: str,
+    db: AsyncSession = Depends(get_session),
+    limit: int = 15,
+):
+    """Nearby mechanics excluding those already attempted for this job (after ETA rejection)."""
+    job = await validate_magic_token(token, db)
+    if job.driver_eta_decision != "rejected":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Rematch is only available after rejecting the ETA",
+        )
+    return await DispatchService.list_rematch_candidates(db, job, limit=limit)
+
+
+@router.post("/{token}/rematch-select", response_model=JobDriverView)
+async def rematch_select_route(
+    token: str,
+    body: RematchSelectRequest,
+    db: AsyncSession = Depends(get_session),
+):
+    """Driver selects a specific mechanic from the rematch list."""
+    job = await validate_magic_token(token, db)
+    try:
+        mid = uuid.UUID(body.mechanic_id)
+        await DispatchService.rematch_select_mechanic(db, job, mid)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    job = await validate_magic_token(token, db)
+    return await JobService.get_job_driver_view(job, db)
 
 
 @router.get("/{token}", response_model=JobDriverView)

@@ -72,6 +72,9 @@ class Job(Base):
         UUID(as_uuid=True), nullable=True
     )
 
+    # Driver confirmation of proposed ETA (set pending when a mechanic is assigned)
+    driver_eta_decision: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
