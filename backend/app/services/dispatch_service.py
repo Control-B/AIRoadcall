@@ -18,10 +18,14 @@ from app.enums.dispatch_status import DispatchStatus
 from app.enums.tracking_status import TrackingStatus
 from app.services.mechanic_scoring_service import MechanicScoringService
 from app.services.audit_service import AuditService
+from app.services.sms_service import SMSService
+from app.core.config import get_settings
+from app.core.security import create_mechanic_tracking_token
 from app.core.logging import get_logger
 from app.utils.location import normalize_state
 
 logger = get_logger(__name__)
+settings = get_settings()
 
 
 class DispatchService:
@@ -253,6 +257,43 @@ class DispatchService:
             )
 
             logger.info(f"Mechanic assigned to job {job.public_job_id}")
+
+            mechanic_result = await db.execute(
+                select(Mechanic).where(Mechanic.id == attempt.mechanic_id)
+            )
+            mechanic = mechanic_result.scalar_one_or_none()
+            if mechanic and mechanic.phone:
+                tracking_token = create_mechanic_tracking_token(
+                    str(job.id),
+                    job.public_job_id,
+                    str(attempt.mechanic_id),
+                )
+                tracking_url = f"{settings.APP_BASE_URL}/mechanic-track/{tracking_token}"
+                driver_location_hint = ", ".join(
+                    part for part in [job.driver_city, job.driver_state] if part
+                )
+                issue_summary = job.issue_summary or job.issue_type
+                sms_body = (
+                    f"Roadcall dispatch {job.public_job_id} is confirmed. "
+                    f"Driver: {job.driver_name}. "
+                    f"Issue: {issue_summary}. "
+                    f"Open the live map for driver location, route, and ETA:\n"
+                    f"{tracking_url}"
+                )
+                if driver_location_hint:
+                    sms_body = (
+                        f"Roadcall dispatch {job.public_job_id} is confirmed. "
+                        f"Driver area: {driver_location_hint}. "
+                        f"Issue: {issue_summary}. "
+                        f"Open the live map for driver location, route, and ETA:\n"
+                        f"{tracking_url}"
+                    )
+                sent = await SMSService.send_sms(mechanic.phone, sms_body)
+                if not sent:
+                    logger.warning(
+                        "Failed to send mechanic tracking SMS for job %s",
+                        job.public_job_id,
+                    )
 
         elif response == "declined":
             attempt.dispatch_status = DispatchStatus.declined

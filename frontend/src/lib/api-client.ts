@@ -81,6 +81,24 @@ export interface TrackingView {
   mechanic_last_updated?: string | null;
 }
 
+export interface MechanicTrackingView {
+  public_job_id: string;
+  job_status: string;
+  driver_name?: string | null;
+  vehicle_type?: string | null;
+  issue_type?: string | null;
+  issue_summary?: string | null;
+  driver_lat?: number | null;
+  driver_lng?: number | null;
+  driver_location_captured_at?: string | null;
+  mechanic_lat?: number | null;
+  mechanic_lng?: number | null;
+  mechanic_company?: string | null;
+  mechanic_contact?: string | null;
+  eta_minutes?: number | null;
+  distance_miles?: number | null;
+}
+
 export interface PaymentIntentResponse {
   client_secret: string;
   payment_intent_id: string;
@@ -131,4 +149,10 @@ export async function getJobStatus(token: string): Promise<JobDriverView> {
 
 export async function getTracking(token: string): Promise<TrackingView> {
   return request<TrackingView>(`/jobs/${token}/tracking`);
+}
+
+export async function getMechanicTracking(
+  token: string
+): Promise<MechanicTrackingView> {
+  return request<MechanicTrackingView>(`/jobs/mechanic-tracking/${token}`);
 }

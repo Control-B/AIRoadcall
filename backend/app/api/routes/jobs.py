@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_session, validate_magic_token
+from app.api.deps import get_session, validate_magic_token, validate_mechanic_tracking_token
 from app.models.job import Job
 from app.schemas.job import (
     JobCreateRequest,
@@ -12,6 +12,8 @@ from app.schemas.job import (
 )
 from app.services.job_service import JobService
 from app.services.sms_service import SMSService
+from app.services.tracking_service import TrackingService
+from app.schemas.tracking import MechanicTrackingView
 from app.core.config import get_settings
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -38,6 +40,16 @@ async def create_job(
     )
 
     return result
+
+
+@router.get("/mechanic-tracking/{token}", response_model=MechanicTrackingView)
+async def get_mechanic_tracking_by_token(
+    token: str,
+    db: AsyncSession = Depends(get_session),
+):
+    """Retrieve safe mechanic-facing live tracking by signed token."""
+    job = await validate_mechanic_tracking_token(token, db)
+    return await TrackingService.get_mechanic_tracking_view(db, job)
 
 
 @router.get("/{token}", response_model=JobDriverView)

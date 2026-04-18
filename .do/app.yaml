@@ -76,7 +76,7 @@ services:
         type: SECRET
       - key: TWILIO_FROM_NUMBER
         scope: RUN_TIME
-        value: "+18664159494"
+        value: "+18666501939"
       - key: APIFY_API_TOKEN
         scope: RUN_TIME
         type: SECRET
