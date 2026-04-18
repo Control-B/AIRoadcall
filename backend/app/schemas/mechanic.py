@@ -107,6 +107,32 @@ class MechanicRecommendationResponse(BaseModel):
     recommendations: list[MechanicRecommendationView]
 
 
+class ShopLookupRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=255)
+    lat: Optional[float] = Field(default=None, ge=-90, le=90)
+    lng: Optional[float] = Field(default=None, ge=-180, le=180)
+    city: Optional[str] = None
+    state: Optional[str] = None
+    limit: int = Field(default=3, ge=1, le=5)
+
+
+class ShopLookupResult(BaseModel):
+    id: str
+    company_name: str
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    phone: str
+    rating: Optional[float] = None
+    distance_miles: Optional[float] = None
+    reason: str
+
+
+class ShopLookupResponse(BaseModel):
+    summary: str
+    matches: list[ShopLookupResult]
+
+
 # ── Pipeline Schemas ────────────────────────────────────
 
 

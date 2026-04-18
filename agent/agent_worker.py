@@ -384,6 +384,7 @@ DRIVER_INTAKE_TOOL_APPENDIX_CORE = """\
 ## Roadcall tools (required — do not mention these names to the caller)
 You have function tools for this app. Use them when appropriate; never say "tool", \
 "function", or raw JSON aloud.
+- find_nearest_shop: if the caller directly asks for the nearest Love's, tire shop, trailer shop, engine repair shop, or similar, use this first and answer that request before normal intake.
 - save_driver_info: persist the case and create the job. Call this as soon as you have name, vehicle make and model, issue type, and a short situation note. City and state are optional.
 - set_driver_location: geocode the driver's verbal address (street, highway, landmark) plus city and state, and pin their location on the map. Call this right after save_driver_info if the driver gave any address info.
 - remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
@@ -409,7 +410,7 @@ def _driver_intake_tool_appendix() -> str:
 
 
 def _driver_intake_tools() -> list[Any]:
-    tools: list[Any] = [save_driver_info, set_driver_location, remember_caller_memory]
+    tools: list[Any] = [find_nearest_shop, save_driver_info, set_driver_location, remember_caller_memory]
     if _driver_extended_tools_enabled():
         tools.extend([get_knowledge_base, find_nearby_mechanics])
     return tools
@@ -599,6 +600,57 @@ def _resolve_mechanic_system_prompt(ctx: JobContext, meta: dict, mechanic_name: 
 # ════════════════════════════════════════════════════════
 #  TOOLS — Driver Intake
 # ════════════════════════════════════════════════════════
+
+
+@llm.function_tool(
+    description=(
+        "Find the nearest matching shop for direct caller requests like nearest Love's, "
+        "tire shop, trailer shop, engine repair, or general mechanic shop. "
+        "Use this before normal intake when the caller mainly wants a nearby shop location."
+    )
+)
+async def find_nearest_shop(
+    requested_shop: str,
+    city: str = "",
+    state: str = "",
+    latitude: float | None = None,
+    longitude: float | None = None,
+    limit: int = 3,
+):
+    """Look up the nearest matching shop from the mechanic database."""
+    requested_shop = (requested_shop or "").strip()
+    city = (city or "").strip()
+    state = (state or "").strip()
+    city, state = _normalize_city_state_args(city, state)
+    has_coordinates = latitude is not None and longitude is not None
+
+    if not requested_shop:
+        return "I need the type of shop or chain name to look that up."
+    if not has_coordinates and not (city and state):
+        return "I need the city and state, or precise coordinates, to find the nearest matching shop."
+
+    body: dict[str, Any] = {"query": requested_shop, "limit": limit}
+    if has_coordinates:
+        body["lat"] = latitude
+        body["lng"] = longitude
+    else:
+        body["city"] = city
+        body["state"] = state
+
+    try:
+        result = await api_call("POST", "/mechanics/shop-lookup", json_body=body)
+        matches = result.get("matches", [])
+        if not matches:
+            return f"I couldn't find a nearby {requested_shop} near {_spoken_place(city, state)}."
+
+        lines = [_format_shop_lookup_summary(result.get("summary", ""), requested_shop, city, state)]
+        for match in matches[:limit]:
+            lines.append(_format_shop_for_voice(match))
+        lines.append("If you want, I can also open a roadside assistance case for you right now.")
+        return "\n".join(lines)
+    except Exception as exc:
+        logger.error("Shop lookup failed: %s", exc)
+        return "I couldn't look up shops right now, but I can still help open a roadside assistance case."
 
 
 @llm.function_tool(
@@ -1424,6 +1476,38 @@ def _format_spoken_recommendation_summary(summary: str, city: str, state: str) -
     if summary:
         return _tts_friendly_text(summary)
     return f"I found some recommended mechanics near {place}."
+
+
+def _format_shop_lookup_summary(summary: str, requested_shop: str, city: str, state: str) -> str:
+    if summary:
+        return _tts_friendly_text(summary)
+    return f"I found nearby matches for {_tts_friendly_text(requested_shop)} near {_spoken_place(city, state)}."
+
+
+def _format_shop_for_voice(shop: dict[str, Any]) -> str:
+    name = _tts_friendly_text(str(shop.get("company_name") or "a nearby shop"))
+    address = _tts_friendly_text(str(shop.get("address") or "")).strip()
+    city = str(shop.get("city") or "").strip()
+    state = str(shop.get("state") or "").strip()
+    rating = shop.get("rating")
+    distance = shop.get("distance_miles")
+    reason = _tts_friendly_text(str(shop.get("reason") or "")).strip()
+
+    location_bits = [bit for bit in [address, _spoken_place(city, state) if city or state else ""] if bit]
+    details: list[str] = []
+    if location_bits:
+        details.append("at " + ", ".join(location_bits))
+    if isinstance(distance, (int, float)):
+        details.append(f"about {distance:.1f} miles away")
+    if isinstance(rating, (int, float)):
+        details.append(f"rated {rating:.1f} out of five")
+    if reason:
+        details.append(reason)
+
+    sentence = name
+    if details:
+        sentence += " is " + ", ".join(details)
+    return sentence.strip() + "."
 
 
 def _format_mechanic_for_voice(mechanic: dict[str, Any]) -> str:

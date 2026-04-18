@@ -34,6 +34,33 @@ class MechanicDataService:
         6: ("sun", "sunday"),
     }
 
+    _QUERY_STOP_WORDS = {
+        "the", "a", "an", "nearest", "nearby", "shop", "shops", "location",
+        "please", "find", "need", "me", "to", "for", "that", "does", "do",
+        "with", "and", "or", "service", "services",
+    }
+
+    _SERVICE_HINTS = {
+        "tire": "flat_tire",
+        "tyre": "flat_tire",
+        "flat": "flat_tire",
+        "engine": "engine_trouble",
+        "motor": "engine_trouble",
+        "tow": "tow_needed",
+        "towing": "tow_needed",
+        "battery": "dead_battery",
+        "jump": "dead_battery",
+        "fuel": "fuel_delivery",
+        "gas": "fuel_delivery",
+        "lockout": "lockout",
+        "keys": "lockout",
+        "trailer": "trailer",
+        "semi": "semi truck",
+        "truck": "truck",
+        "mechanic": "engine_trouble",
+        "repair": "engine_trouble",
+    }
+
     @staticmethod
     def _bounding_box(lat: float, lng: float, radius_km: float = 160.0) -> tuple[float, float, float, float]:
         lat_delta = radius_km / 111.0
@@ -228,6 +255,80 @@ class MechanicDataService:
         elif mechanic.rating and float(mechanic.rating) >= 4.5:
             reasons.append("high customer rating")
         return reasons[:4]
+
+    @staticmethod
+    def _query_terms(query: str) -> list[str]:
+        lowered = re.sub(r"[^a-z0-9' ]+", " ", (query or "").lower())
+        terms = [term for term in lowered.split() if term and term not in MechanicDataService._QUERY_STOP_WORDS]
+        return terms
+
+    @staticmethod
+    def _query_hints(query: str) -> tuple[str, str | None]:
+        terms = MechanicDataService._query_terms(query)
+        service_hint = ""
+        vehicle_hint = None
+        for term in terms:
+            mapped = MechanicDataService._SERVICE_HINTS.get(term, "")
+            if mapped in {"trailer", "semi truck", "truck"} and not vehicle_hint:
+                vehicle_hint = mapped
+            elif mapped and not service_hint:
+                service_hint = mapped
+        return service_hint, vehicle_hint
+
+    @staticmethod
+    def _shop_query_score(
+        mechanic: Mechanic,
+        query: str,
+        service_hint: str,
+        vehicle_hint: str | None,
+    ) -> tuple[float, str]:
+        terms = MechanicDataService._query_terms(query)
+        searchable_text = " ".join(
+            part for part in [
+                mechanic.company_name,
+                mechanic.address,
+                mechanic.city,
+                mechanic.state,
+                mechanic.website,
+                " ".join(str(item) for item in (mechanic.service_types or [])),
+                " ".join(str(item) for item in (mechanic.vehicle_types_supported or [])),
+            ]
+            if part
+        ).lower()
+        company_text = (mechanic.company_name or "").lower()
+
+        score = 0.0
+        reasons: list[str] = []
+
+        for term in terms:
+            if term in company_text:
+                score += 2.5
+                reasons.append(f"matches {term} in the shop name")
+            elif term in searchable_text:
+                score += 1.0
+                reasons.append(f"matches {term}")
+
+        if service_hint and service_hint in (mechanic.service_types or []):
+            score += 2.0
+            reasons.append(f"handles {service_hint.replace('_', ' ')} work")
+
+        if vehicle_hint and any(vehicle_hint.lower() in str(item).lower() for item in (mechanic.vehicle_types_supported or [])):
+            score += 1.5
+            reasons.append(f"supports {vehicle_hint}")
+
+        if not terms:
+            reasons.append("closest active shop in the area")
+
+        if mechanic.accepts_mobile_roadside:
+            score += 0.25
+
+        if mechanic.rating and float(mechanic.rating) >= 4.5:
+            score += 0.2
+
+        if not reasons:
+            reasons.append("best nearby match")
+
+        return score, reasons[0]
 
     @staticmethod
     async def upsert_mechanic(
@@ -462,7 +563,6 @@ class MechanicDataService:
                 Mechanic.base_lng >= min_lng,
                 Mechanic.base_lng <= max_lng,
             )
-
         result = await db.execute(query)
         mechanics = list(result.scalars().all())
         if not mechanics and normalized_city and normalized_state:
@@ -599,6 +699,111 @@ class MechanicDataService:
             f" near {request.city + ', ' if request.city else ''}{request.state or 'the requested area'}."
         )
         return MechanicRecommendationResponse(summary=summary, recommendations=top)
+
+    @staticmethod
+    async def lookup_nearest_shops(
+        db: AsyncSession,
+        *,
+        query: str,
+        lat: float | None = None,
+        lng: float | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        limit: int = 3,
+    ) -> dict:
+        normalized_state = normalize_state(state)
+        normalized_city = normalize_city(city)
+        service_hint, vehicle_hint = MechanicDataService._query_hints(query)
+        query_terms = MechanicDataService._query_terms(query)
+
+        mechanic_query = select(Mechanic).where(Mechanic.active == True).order_by(Mechanic.company_name)  # noqa: E712
+        if normalized_state:
+            mechanic_query = mechanic_query.where(Mechanic.state == normalized_state)
+        if lat is not None and lng is not None:
+            min_lat, max_lat, min_lng, max_lng = MechanicDataService._bounding_box(lat, lng)
+            mechanic_query = mechanic_query.where(
+                Mechanic.base_lat >= min_lat,
+                Mechanic.base_lat <= max_lat,
+                Mechanic.base_lng >= min_lng,
+                Mechanic.base_lng <= max_lng,
+            )
+
+        result = await db.execute(mechanic_query)
+        mechanics = list(result.scalars().all())
+        if not mechanics and normalized_city and normalized_state:
+            city_result = await db.execute(
+                select(Mechanic).where(
+                    Mechanic.active == True,  # noqa: E712
+                    Mechanic.state == normalized_state,
+                    func.lower(Mechanic.city) == normalized_city,
+                )
+            )
+            mechanics = list(city_result.scalars().all())
+        if not mechanics and normalized_state:
+            fallback_result = await db.execute(
+                select(Mechanic).where(
+                    Mechanic.active == True,  # noqa: E712
+                    Mechanic.state == normalized_state,
+                ).order_by(Mechanic.company_name)
+            )
+            mechanics = list(fallback_result.scalars().all())
+        if not mechanics:
+            return {"summary": "I couldn't find a matching shop in that area.", "matches": []}
+
+        ranked: list[tuple[Mechanic, float, float | None, str]] = []
+        for mechanic in mechanics:
+            query_score, reason = MechanicDataService._shop_query_score(
+                mechanic,
+                query=query,
+                service_hint=service_hint,
+                vehicle_hint=vehicle_hint,
+            )
+            if query_terms and query_score <= 0:
+                continue
+
+            distance_miles = None
+            proximity_score = 0.0
+            if lat is not None and lng is not None:
+                distance_miles = round(
+                    haversine_distance_km(lat, lng, mechanic.base_lat, mechanic.base_lng) * 0.621371,
+                    1,
+                )
+                proximity_score = max(0.0, 1.0 - min(distance_miles, 100.0) / 100.0)
+            elif normalized_city and normalized_state and city_matches(mechanic.city, normalized_city):
+                proximity_score = 1.0
+            elif normalized_state and normalize_state(mechanic.state) == normalized_state:
+                proximity_score = 0.45
+
+            total_score = (query_score * 2.0) + proximity_score
+            if mechanic.rating:
+                total_score += float(mechanic.rating) / 10.0
+
+            ranked.append((mechanic, total_score, distance_miles, reason))
+
+        ranked.sort(key=lambda item: item[1], reverse=True)
+        top = ranked[:limit]
+        if not top:
+            return {"summary": "I couldn't find a matching shop in that area.", "matches": []}
+
+        location_text = city or state or "that area"
+        summary = f"I found {len(top)} nearby match{'es' if len(top) != 1 else ''} for {query} near {location_text}."
+        matches = []
+        for mechanic, _, distance_miles, reason in top:
+            matches.append(
+                {
+                    "id": str(mechanic.id),
+                    "company_name": mechanic.company_name,
+                    "address": mechanic.address,
+                    "city": mechanic.city,
+                    "state": mechanic.state,
+                    "phone": mechanic.phone,
+                    "rating": float(mechanic.rating) if mechanic.rating else None,
+                    "distance_miles": distance_miles,
+                    "reason": reason,
+                }
+            )
+
+        return {"summary": summary, "matches": matches}
 
     @staticmethod
     async def update_mechanic_location(

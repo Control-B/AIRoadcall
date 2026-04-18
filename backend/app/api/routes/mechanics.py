@@ -8,6 +8,8 @@ from app.schemas.mechanic import (
     MechanicRecommendationRequest,
     MechanicRecommendationResponse,
     MechanicSearchResult,
+    ShopLookupRequest,
+    ShopLookupResponse,
     MechanicView,
     MechanicLocationUpdate,
 )
@@ -63,6 +65,33 @@ async def recommend_mechanics(
         )
 
     return await MechanicDataService.recommend_mechanics(db, request)
+
+
+@router.post(
+    "/shop-lookup",
+    response_model=ShopLookupResponse,
+    dependencies=[Depends(require_admin_api_key)],
+)
+async def lookup_nearest_shops(
+    request: ShopLookupRequest,
+    db: AsyncSession = Depends(get_session),
+):
+    """Find the nearest matching shop or chain for direct caller requests."""
+    if request.lat is None and request.lng is None and not (request.city and request.state):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide either lat/lng or city/state",
+        )
+
+    return await MechanicDataService.lookup_nearest_shops(
+        db,
+        query=request.query,
+        lat=request.lat,
+        lng=request.lng,
+        city=request.city,
+        state=request.state,
+        limit=request.limit,
+    )
 
 
 @router.post("", response_model=MechanicView, status_code=status.HTTP_201_CREATED)
