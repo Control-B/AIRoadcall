@@ -341,7 +341,7 @@ class DispatchService:
                     job.public_job_id,
                     str(attempt.mechanic_id),
                 )
-                tracking_url = f"{settings.APP_BASE_URL}/mechanic-track/{tracking_token}"
+                tracking_url = f"{settings.public_app_base_url}/mechanic-track/{tracking_token}"
                 driver_location_hint = ", ".join(
                     part for part in [job.driver_city, job.driver_state] if part
                 )

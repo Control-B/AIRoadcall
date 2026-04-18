@@ -68,6 +68,17 @@ class Settings(BaseSettings):
     # CORS
     FRONTEND_URL: str = "http://localhost:3000"
 
+    @property
+    def public_app_base_url(self) -> str:
+        app_base_url = (self.APP_BASE_URL or "").strip().rstrip("/")
+        frontend_url = (self.FRONTEND_URL or "").strip().rstrip("/")
+
+        if app_base_url and app_base_url != "http://localhost:3000":
+            return app_base_url
+        if frontend_url:
+            return frontend_url
+        return app_base_url or "http://localhost:3000"
+
     model_config = {"env_file": ".env", "case_sensitive": True}
 
 

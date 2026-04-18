@@ -61,7 +61,7 @@ class JobService:
         job.magic_link_token = token
         await db.flush()
 
-        magic_link_url = f"{settings.APP_BASE_URL}/support/{token}"
+        magic_link_url = f"{settings.public_app_base_url}/support/{token}"
 
         await AuditService.log(
             db,
