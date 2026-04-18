@@ -308,18 +308,18 @@ stay general and safety-focused.
 
 ## Information to collect (any natural order)
 - First name (or how they want to be addressed).
-- Vehicle: make, model, year if they mention it.
-- What happened: flat tire, battery, lockout, tow, etc.
-- Immediate safety status: make sure they are in a safe location or know to call emergency services first if needed.
-- Location: only ask for a rough landmark, highway, or nearby town if it helps. Do not hold the call open waiting for city and state.
+- Vehicle: make and model (e.g. Freightliner Cascadia, Ford F-150). Year too if they mention it.
+- What happened: flat tire, battery, lockout, tow, engine trouble, etc.
+- Immediate safety status: make sure they are safe; if there is an emergency, tell them to call 9 1 1 first.
 - Brief situation note: e.g. shoulder of the highway, parking lot, off-ramp.
+- Do NOT ask for city and state. The text link will capture their exact GPS location.
 
 ## Actions (internal — use tools; never describe tool names to the caller)
-When you have their name, vehicle, issue, and a short situation note:
-- Use save_driver_info right away so the secure text link is sent during the call.
-- Tell the driver: I am sending you a link to match you with the nearest mechanic.
-- Do not delay sending the link just to collect city and state.
-- The support link will capture precise location and show the assigned mechanic on a live map.
+When you have their name, vehicle make and model, issue, and a short situation note:
+- Use save_driver_info immediately so the system sends a secure text link while they are still on the call.
+- Tell the driver: I am texting you a link right now. When you tap it, it will pinpoint your location on a map and match you with the nearest mechanic.
+- Do NOT search for mechanics during this call. The link handles that after the driver shares their GPS.
+- Do not delay sending the link to collect city and state.
 
 ## Closing
 Confirm the essentials in one short casual sentence, tell them you're getting help \
@@ -374,11 +374,10 @@ DRIVER_INTAKE_TOOL_APPENDIX = """\
 ## Roadcall tools (required — do not mention these names to the caller)
 You have function tools for this app. Use them when appropriate; never say "tool", \
 "function", or raw JSON aloud.
-- find_nearby_mechanics: look up real mechanics once you already have a usable location. This is optional during the live call because the secure link will capture exact GPS.
-- get_knowledge_base: retrieve a concise knowledge-base summary for the caller's city and state before you describe options.
-- save_driver_info: persist the case and trigger the secure location link after you have name, vehicle, issue, and a short situation note. City and state are optional.
+- save_driver_info: persist the case and trigger the secure text link. Call this as soon as you have name, vehicle make and model, issue type, and a short situation note. City and state are optional.
 - remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
 
+Do NOT search for mechanics during this call. The text link will capture the driver's GPS and automatically find the nearest mechanic.
 Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
 """
 
@@ -1032,8 +1031,15 @@ async def entrypoint(ctx: JobContext):
 async def handle_driver_intake(ctx: JobContext, meta: dict):
     logger.info(f"Driver intake call in room {ctx.room.name}")
 
-    # Extract the caller's phone number from SIP participant info
+    # Reset all module-level globals so each call starts clean
     global _current_caller_phone, _current_driver_room
+    global _current_dispatch_job_id, _current_dispatch_attempt_id, _current_mechanic_phone
+    _current_caller_phone = ""
+    _current_driver_room = None
+    _current_dispatch_job_id = ""
+    _current_dispatch_attempt_id = ""
+    _current_mechanic_phone = ""
+
     _current_driver_room = ctx.room
     _current_caller_phone = _extract_caller_phone_from_room(ctx.room)
 
@@ -1059,7 +1065,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
             _resolve_driver_intake_system_prompt(ctx, meta)
             + (f"\n\n## Caller memory\n{memory_block}" if memory_block else "")
         ),
-        tools=[find_nearby_mechanics, get_knowledge_base, save_driver_info, remember_caller_memory],
+        tools=[save_driver_info, remember_caller_memory],
     )
 
     session = _voice_agent_session(
@@ -1088,7 +1094,14 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
 
 
 async def handle_mechanic_dispatch(ctx: JobContext, meta: dict):
+    # Reset all module-level globals so each call starts clean
+    global _current_caller_phone, _current_driver_room
     global _current_dispatch_job_id, _current_dispatch_attempt_id, _current_mechanic_phone
+    _current_caller_phone = ""
+    _current_driver_room = None
+    _current_dispatch_job_id = ""
+    _current_dispatch_attempt_id = ""
+    _current_mechanic_phone = ""
 
     mechanic_name = meta.get("mechanic_name", "there")
     job_summary = meta.get("job_summary", "a roadside job nearby")
