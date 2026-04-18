@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { getJobByToken, type JobDriverView } from "@/lib/api-client";
+import { getJobByToken, getJobStatus, type JobDriverView } from "@/lib/api-client";
 import { getStatusStep } from "@/lib/utils";
 import { StepIndicator } from "@/components/step-indicator";
 import { JobSummaryStep } from "@/components/steps/job-summary-step";
@@ -81,18 +81,66 @@ export default function SupportPage() {
 
   // Handler: location captured successfully
   const handleLocationSuccess = useCallback(
-    (lat: number, lng: number) => {
-      if (job) {
-        setJob({
-          ...job,
-          driver_lat: lat,
-          driver_lng: lng,
-          status: "awaiting_payment_authorization",
-        });
+    async (lat: number, lng: number, status: string) => {
+      const fallbackJob = job
+        ? {
+            ...job,
+            driver_lat: lat,
+            driver_lng: lng,
+            status,
+          }
+        : null;
+
+      try {
+        const refreshedJob = await getJobStatus(token);
+        setJob(refreshedJob);
+
+        if (
+          refreshedJob.status === "mechanic_assigned" ||
+          refreshedJob.status === "mechanic_en_route" ||
+          refreshedJob.status === "mechanic_arrived"
+        ) {
+          setCurrentStep(5);
+          return;
+        }
+
+        if (
+          refreshedJob.status === "matching_mechanics" ||
+          refreshedJob.status === "calling_mechanics" ||
+          refreshedJob.status === "payment_authorized"
+        ) {
+          setCurrentStep(4);
+          return;
+        }
+
+        setCurrentStep(3);
+      } catch {
+        if (fallbackJob) {
+          setJob(fallbackJob);
+        }
+
+        if (
+          status === "mechanic_assigned" ||
+          status === "mechanic_en_route" ||
+          status === "mechanic_arrived"
+        ) {
+          setCurrentStep(5);
+          return;
+        }
+
+        if (
+          status === "matching_mechanics" ||
+          status === "calling_mechanics" ||
+          status === "payment_authorized"
+        ) {
+          setCurrentStep(4);
+          return;
+        }
+
+        setCurrentStep(3);
       }
-      setCurrentStep(3);
     },
-    [job]
+    [job, token]
   );
 
   // Handler: payment authorized

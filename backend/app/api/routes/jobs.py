@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +22,20 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 settings = get_settings()
 
 
+def _send_magic_link_background(phone_number: str, magic_link_url: str, driver_name: str) -> None:
+    async def _runner() -> None:
+        try:
+            await SMSService.send_magic_link(
+                phone_number=phone_number,
+                magic_link_url=magic_link_url,
+                driver_name=driver_name,
+            )
+        except Exception:
+            return
+
+    asyncio.create_task(_runner())
+
+
 @router.post("", response_model=JobCreateResponse, status_code=status.HTTP_201_CREATED)
 async def create_job(
     request: JobCreateRequest,
@@ -33,7 +49,7 @@ async def create_job(
     result = await JobService.create_job(db, request)
 
     # Send magic link SMS to driver
-    await SMSService.send_magic_link(
+    _send_magic_link_background(
         phone_number=request.driver_phone,
         magic_link_url=result.magic_link_url,
         driver_name=request.driver_name,

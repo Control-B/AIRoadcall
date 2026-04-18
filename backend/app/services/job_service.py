@@ -141,17 +141,39 @@ class JobService:
 
         # Advance to payment step if currently awaiting location
         if job.status == JobStatus.awaiting_driver_location:
-            job.status = JobStatus.awaiting_payment_authorization
-            await AuditService.log(
-                db,
-                job_id=job.id,
-                event_type="job.status_changed",
-                actor_type="driver",
-                payload={
-                    "from": JobStatus.awaiting_driver_location,
-                    "to": JobStatus.awaiting_payment_authorization,
-                },
-            )
+            if settings.DEMO_SKIP_PAYMENT_AUTHORIZATION:
+                previous_payment_status = job.payment_status
+                job.payment_status = PaymentStatus.authorized
+                job.status = JobStatus.matching_mechanics
+                await AuditService.log(
+                    db,
+                    job_id=job.id,
+                    event_type="payment.demo_authorized",
+                    actor_type="system",
+                    payload={"previous_payment_status": previous_payment_status},
+                )
+                await AuditService.log(
+                    db,
+                    job_id=job.id,
+                    event_type="job.status_changed",
+                    actor_type="driver",
+                    payload={
+                        "from": JobStatus.awaiting_driver_location,
+                        "to": JobStatus.matching_mechanics,
+                    },
+                )
+            else:
+                job.status = JobStatus.awaiting_payment_authorization
+                await AuditService.log(
+                    db,
+                    job_id=job.id,
+                    event_type="job.status_changed",
+                    actor_type="driver",
+                    payload={
+                        "from": JobStatus.awaiting_driver_location,
+                        "to": JobStatus.awaiting_payment_authorization,
+                    },
+                )
 
         await AuditService.log(
             db,
@@ -162,6 +184,20 @@ class JobService:
         )
 
         await db.flush()
+
+        if settings.DEMO_AUTO_ASSIGN_NEAREST_MECHANIC:
+            from app.services.dispatch_service import DispatchService
+
+            try:
+                await DispatchService.auto_assign_demo_mechanic(db, job)
+            except Exception as exc:
+                logger.warning(
+                    "Demo auto-assignment failed for job %s: %s",
+                    job.public_job_id,
+                    exc,
+                )
+
+        await db.refresh(job)
         logger.info(f"Location updated for job {job.public_job_id}")
 
         return LocationUpdateResponse(

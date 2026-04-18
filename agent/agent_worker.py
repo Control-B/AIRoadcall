@@ -310,14 +310,16 @@ stay general and safety-focused.
 - First name (or how they want to be addressed).
 - Vehicle: make, model, year if they mention it.
 - What happened: flat tire, battery, lockout, tow, etc.
-- Location: city and state, or the nearest town or landmark they can name.
+- Immediate safety status: make sure they are in a safe location or know to call emergency services first if needed.
+- Location: only ask for a rough landmark, highway, or nearby town if it helps. Do not hold the call open waiting for city and state.
 - Brief situation note: e.g. shoulder of the highway, parking lot, off-ramp.
 
 ## Actions (internal — use tools; never describe tool names to the caller)
-When you have enough to act:
-- Use find_nearby_mechanics with their location and issue so you can name real options.
-- Give a short spoken summary of one to three nearby options without reading raw data.
-- Use save_driver_info to persist their case before you wrap up.
+When you have their name, vehicle, issue, and a short situation note:
+- Use save_driver_info right away so the secure text link is sent during the call.
+- Tell the driver: I am sending you a link to match you with the nearest mechanic.
+- Do not delay sending the link just to collect city and state.
+- The support link will capture precise location and show the assigned mechanic on a live map.
 
 ## Closing
 Confirm the essentials in one short casual sentence, tell them you're getting help \
@@ -372,9 +374,9 @@ DRIVER_INTAKE_TOOL_APPENDIX = """\
 ## Roadcall tools (required — do not mention these names to the caller)
 You have function tools for this app. Use them when appropriate; never say "tool", \
 "function", or raw JSON aloud.
-- find_nearby_mechanics: look up real mechanics near the caller once you have city/state (or coordinates) and issue type.
+- find_nearby_mechanics: look up real mechanics once you already have a usable location. This is optional during the live call because the secure link will capture exact GPS.
 - get_knowledge_base: retrieve a concise knowledge-base summary for the caller's city and state before you describe options.
-- save_driver_info: persist the case after you have name, vehicle, issue, location, and a short situation note.
+- save_driver_info: persist the case and trigger the secure location link after you have name, vehicle, issue, and a short situation note. City and state are optional.
 - remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
 
 Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
@@ -578,9 +580,9 @@ async def save_driver_info(
     driver_name: str,
     vehicle_type: str,
     issue_type: str,
-    driver_city: str,
-    driver_state: str,
     situation_note: str,
+    driver_city: str = "",
+    driver_state: str = "",
 ):
     """Persist intake data so dispatch can continue after the call."""
     normalized_issue = _normalize_issue_type(issue_type)
@@ -591,6 +593,12 @@ async def save_driver_info(
         _current_caller_phone = _extract_caller_phone_from_room(_current_driver_room)
 
     driver_phone = _current_caller_phone or ""
+    normalized_city = (driver_city or "").strip() or None
+    normalized_state = (driver_state or "").strip() or None
+
+    if not driver_phone:
+        logger.warning("save_driver_info: missing caller phone; cannot send magic link yet")
+        return "I still need a textable phone number on this call before I can send the secure link."
 
     try:
         result = await api_call(
@@ -600,8 +608,8 @@ async def save_driver_info(
                 "driver_name": driver_name,
                 "driver_phone": driver_phone,
                 "vehicle_type": vehicle_type,
-                "driver_city": driver_city,
-                "driver_state": driver_state,
+                "driver_city": normalized_city,
+                "driver_state": normalized_state,
                 "issue_type": normalized_issue,
                 "issue_summary": situation_note,
             },
@@ -612,7 +620,7 @@ async def save_driver_info(
                 driver_phone,
                 memory_note=(
                     f"Driver {driver_name} called about {normalized_issue} for a "
-                    f"{vehicle_type or 'vehicle'} near {driver_city}, {driver_state}. "
+                    f"{vehicle_type or 'vehicle'} near {normalized_city or 'an unknown area'}, {normalized_state or 'unknown state'}. "
                     f"Details: {situation_note or 'No additional details provided.'}"
                 ),
                 category="driver_post_call_summary",
@@ -622,13 +630,12 @@ async def save_driver_info(
         logger.info(f"Job created via API: {job_id} for {driver_name} ({driver_phone})")
         return (
             f"Done — job {job_id} is in the system for {driver_name}. "
-            f"Let them know you're lining up help in {driver_city}, {driver_state}."
+            "Tell them the secure link is on the way now and it will match them with the nearest mechanic."
         )
     except Exception as e:
         logger.error(f"Failed to create job via API: {e}")
         return (
-            f"Information saved. Let {driver_name} know you're checking the "
-            f"best options near {driver_city}, {driver_state}."
+            f"Information saved. Let {driver_name} know the secure link is being prepared now."
         )
 
 

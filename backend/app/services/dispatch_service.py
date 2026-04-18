@@ -1,4 +1,5 @@
 import uuid
+import math
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -23,12 +24,20 @@ from app.core.config import get_settings
 from app.core.security import create_mechanic_tracking_token
 from app.core.logging import get_logger
 from app.utils.location import normalize_state
+from app.utils.geo import haversine_distance_meters
 
 logger = get_logger(__name__)
 settings = get_settings()
 
 
 class DispatchService:
+
+    @staticmethod
+    def _bounding_box(lat: float, lng: float, radius_km: float = 160.0) -> tuple[float, float, float, float]:
+        lat_delta = radius_km / 111.0
+        safe_cos = max(math.cos(math.radians(lat)), 0.2)
+        lng_delta = radius_km / (111.0 * safe_cos)
+        return lat - lat_delta, lat + lat_delta, lng - lng_delta, lng + lng_delta
 
     @staticmethod
     async def launch_outbound_call(
@@ -154,6 +163,15 @@ class DispatchService:
         if attempted_ids:
             mechanic_query = mechanic_query.where(Mechanic.id.notin_(attempted_ids))
 
+        if has_precise_location:
+            min_lat, max_lat, min_lng, max_lng = DispatchService._bounding_box(job.driver_lat, job.driver_lng)
+            mechanic_query = mechanic_query.where(
+                Mechanic.base_lat >= min_lat,
+                Mechanic.base_lat <= max_lat,
+                Mechanic.base_lng >= min_lng,
+                Mechanic.base_lng <= max_lng,
+            )
+
         fallback_query = mechanic_query
         if job.driver_state and normalize_state(job.driver_state):
             mechanic_query = mechanic_query.where(Mechanic.state == normalize_state(job.driver_state))
@@ -239,6 +257,7 @@ class DispatchService:
         response: str,
         eta_minutes: int | None = None,
         notes: str | None = None,
+        notify_mechanic_tracking_sms: bool = True,
     ) -> MechanicResponseResponse:
         """Record a mechanic's response and assign if accepted."""
         result = await db.execute(
@@ -316,7 +335,7 @@ class DispatchService:
                 select(Mechanic).where(Mechanic.id == attempt.mechanic_id)
             )
             mechanic = mechanic_result.scalar_one_or_none()
-            if mechanic and mechanic.phone:
+            if notify_mechanic_tracking_sms and mechanic and mechanic.phone:
                 tracking_token = create_mechanic_tracking_token(
                     str(job.id),
                     job.public_job_id,
@@ -385,3 +404,59 @@ class DispatchService:
                 str(job.assigned_mechanic_id) if job.assigned_mechanic_id else None
             ),
         )
+
+    @staticmethod
+    async def auto_assign_demo_mechanic(
+        db: AsyncSession,
+        job: Job,
+    ) -> DispatchNextResponse | None:
+        if job.assigned_mechanic_id:
+            return None
+
+        next_attempt = await DispatchService.dispatch_next_mechanic(db, job.id)
+        if not next_attempt:
+            return None
+
+        attempt_id = uuid.UUID(next_attempt.dispatch_attempt_id)
+        attempt_result = await db.execute(
+            select(DispatchAttempt).where(DispatchAttempt.id == attempt_id)
+        )
+        attempt = attempt_result.scalar_one_or_none()
+        if not attempt:
+            raise ValueError("Dispatch attempt not found")
+
+        mechanic_result = await db.execute(
+            select(Mechanic).where(Mechanic.id == attempt.mechanic_id)
+        )
+        mechanic = mechanic_result.scalar_one_or_none()
+        if not mechanic:
+            raise ValueError("Mechanic not found")
+
+        mechanic_lat = mechanic.last_known_lat or mechanic.base_lat
+        mechanic_lng = mechanic.last_known_lng or mechanic.base_lng
+        distance_miles = haversine_distance_meters(
+            job.driver_lat,
+            job.driver_lng,
+            mechanic_lat,
+            mechanic_lng,
+        ) / 1609.344
+        eta_minutes = max(5, round((distance_miles / 35.0) * 60))
+
+        await DispatchService.record_mechanic_response(
+            db=db,
+            job_id=job.id,
+            attempt_id=attempt_id,
+            response="accepted",
+            eta_minutes=eta_minutes,
+            notes="Auto-assigned nearest mechanic in demo mode",
+            notify_mechanic_tracking_sms=False,
+        )
+
+        from app.services.tracking_service import TrackingService
+
+        refreshed_job_result = await db.execute(select(Job).where(Job.id == job.id))
+        refreshed_job = refreshed_job_result.scalar_one_or_none()
+        if refreshed_job and refreshed_job.assigned_mechanic_id:
+            await TrackingService.activate_tracking(db, refreshed_job)
+
+        return next_attempt

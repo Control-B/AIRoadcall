@@ -1,4 +1,6 @@
 """SMS delivery service for sending magic links to drivers."""
+import asyncio
+
 from app.core.config import get_settings
 from app.core.logging import get_logger
 
@@ -8,6 +10,25 @@ settings = get_settings()
 
 class SMSService:
     """Twilio SMS service for magic-link delivery."""
+
+    @staticmethod
+    def _send_via_twilio(phone_number: str, body: str) -> bool:
+        try:
+            from twilio.rest import Client
+
+            client = Client(
+                settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN
+            )
+            message = client.messages.create(
+                body=body,
+                from_=settings.TWILIO_FROM_NUMBER,
+                to=phone_number,
+            )
+            logger.info(f"SMS sent to {phone_number}: SID={message.sid}")
+            return True
+        except Exception as e:
+            logger.error(f"Twilio SMS failed to {phone_number}: {e}")
+            return False
 
     @staticmethod
     async def send_magic_link(
@@ -30,24 +51,11 @@ class SMSService:
         # ── Twilio (production) ──
         if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN \
                 and not settings.TWILIO_ACCOUNT_SID.startswith("AC_placeholder"):
-            try:
-                from twilio.rest import Client
-
-                client = Client(
-                    settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN
-                )
-                message = client.messages.create(
-                    body=body,
-                    from_=settings.TWILIO_FROM_NUMBER,
-                    to=phone_number,
-                )
-                logger.info(
-                    f"SMS sent to {phone_number}: SID={message.sid}"
-                )
-                return True
-            except Exception as e:
-                logger.error(f"Twilio SMS failed to {phone_number}: {e}")
-                return False
+            return await asyncio.to_thread(
+                SMSService._send_via_twilio,
+                phone_number,
+                body,
+            )
 
         # ── Dev fallback ──
         logger.info(
@@ -63,22 +71,11 @@ class SMSService:
 
         if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN \
                 and not settings.TWILIO_ACCOUNT_SID.startswith("AC_placeholder"):
-            try:
-                from twilio.rest import Client
-
-                client = Client(
-                    settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN
-                )
-                message = client.messages.create(
-                    body=body,
-                    from_=settings.TWILIO_FROM_NUMBER,
-                    to=phone_number,
-                )
-                logger.info(f"SMS sent to {phone_number}: SID={message.sid}")
-                return True
-            except Exception as e:
-                logger.error(f"Twilio SMS failed to {phone_number}: {e}")
-                return False
+            return await asyncio.to_thread(
+                SMSService._send_via_twilio,
+                phone_number,
+                body,
+            )
 
         logger.info(f"[DEV] SMS to {phone_number}: {body}")
         return True

@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import math
 import re
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -32,6 +33,13 @@ class MechanicDataService:
         5: ("sat", "saturday"),
         6: ("sun", "sunday"),
     }
+
+    @staticmethod
+    def _bounding_box(lat: float, lng: float, radius_km: float = 160.0) -> tuple[float, float, float, float]:
+        lat_delta = radius_km / 111.0
+        safe_cos = max(math.cos(math.radians(lat)), 0.2)
+        lng_delta = radius_km / (111.0 * safe_cos)
+        return lat - lat_delta, lat + lat_delta, lng - lng_delta, lng + lng_delta
 
     @staticmethod
     def _reliability_score(mechanic: Mechanic) -> float:
@@ -329,16 +337,35 @@ class MechanicDataService:
         normalized_state = normalize_state(state)
         normalized_city = normalize_city(city)
 
-        query = select(Mechanic).where(Mechanic.active == True)  # noqa: E712
+        query = select(Mechanic).where(Mechanic.active == True).order_by(Mechanic.state, Mechanic.city, Mechanic.company_name)  # noqa: E712
         if normalized_state:
             query = query.where(Mechanic.state == normalized_state)
+        if lat is not None and lng is not None:
+            min_lat, max_lat, min_lng, max_lng = MechanicDataService._bounding_box(lat, lng)
+            query = query.where(
+                Mechanic.base_lat >= min_lat,
+                Mechanic.base_lat <= max_lat,
+                Mechanic.base_lng >= min_lng,
+                Mechanic.base_lng <= max_lng,
+            )
 
         effective_state = normalized_state
         result = await db.execute(query)
         mechanics = list(result.scalars().all())
+        if not mechanics and normalized_city and normalized_state:
+            city_result = await db.execute(
+                select(Mechanic)
+                .where(
+                    Mechanic.active == True,  # noqa: E712
+                    Mechanic.state == normalized_state,
+                    func.lower(Mechanic.city) == normalized_city,
+                )
+                .order_by(Mechanic.company_name)
+            )
+            mechanics = list(city_result.scalars().all())
         if not mechanics and normalized_state:
             fallback_result = await db.execute(
-                select(Mechanic).where(Mechanic.active == True)  # noqa: E712
+                select(Mechanic).where(Mechanic.active == True).order_by(Mechanic.state, Mechanic.city, Mechanic.company_name)  # noqa: E712
             )
             mechanics = list(fallback_result.scalars().all())
             effective_state = None
@@ -420,16 +447,36 @@ class MechanicDataService:
         normalized_state = normalize_state(request.state)
         normalized_city = normalize_city(request.city)
 
-        query = select(Mechanic).where(Mechanic.active == True)  # noqa: E712
+        query = select(Mechanic).where(Mechanic.active == True).order_by(Mechanic.state, Mechanic.city, Mechanic.company_name)  # noqa: E712
         if normalized_state:
             query = query.where(Mechanic.state == normalized_state)
         if request.require_mobile_roadside:
             query = query.where(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
         if request.min_rating is not None:
             query = query.where(Mechanic.rating >= request.min_rating)
+        if request.lat is not None and request.lng is not None:
+            min_lat, max_lat, min_lng, max_lng = MechanicDataService._bounding_box(request.lat, request.lng)
+            query = query.where(
+                Mechanic.base_lat >= min_lat,
+                Mechanic.base_lat <= max_lat,
+                Mechanic.base_lng >= min_lng,
+                Mechanic.base_lng <= max_lng,
+            )
 
         result = await db.execute(query)
         mechanics = list(result.scalars().all())
+        if not mechanics and normalized_city and normalized_state:
+            city_query = select(Mechanic).where(Mechanic.active == True)  # noqa: E712
+            if request.require_mobile_roadside:
+                city_query = city_query.where(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
+            if request.min_rating is not None:
+                city_query = city_query.where(Mechanic.rating >= request.min_rating)
+            city_query = city_query.where(
+                Mechanic.state == normalized_state,
+                func.lower(Mechanic.city) == normalized_city,
+            ).order_by(Mechanic.company_name)
+            city_result = await db.execute(city_query)
+            mechanics = list(city_result.scalars().all())
         if request.require_available_now:
             mechanics = [m for m in mechanics if MechanicDataService._available_now(m)[0] is True]
         if not mechanics:

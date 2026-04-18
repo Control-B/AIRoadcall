@@ -49,10 +49,10 @@ services:
         value: ${db.DATABASE_URL}
       - key: STRIPE_SECRET_KEY
         scope: RUN_TIME
-        value: sk_test_placeholder
+        type: SECRET
       - key: STRIPE_WEBHOOK_SECRET
         scope: RUN_TIME
-        value: whsec_placeholder
+        type: SECRET
       - key: LIVEKIT_API_KEY
         scope: RUN_TIME
         value: API4TxLvaSLjdLm
@@ -82,16 +82,25 @@ services:
         type: SECRET
       - key: TAVILY_API_KEY
         scope: RUN_TIME
-        value: tvly_placeholder
+        type: SECRET
       - key: FRONTEND_URL
         scope: RUN_TIME
         value: ${APP_URL}
       - key: APP_BASE_URL
         scope: RUN_TIME
         value: ${APP_URL}
+      - key: DEMO_AUTO_ASSIGN_NEAREST_MECHANIC
+        scope: RUN_TIME
+        value: "true"
+      - key: DEMO_SKIP_PAYMENT_AUTHORIZATION
+        scope: RUN_TIME
+        value: "true"
+      - key: JOB_DUPLICATE_WINDOW_MINUTES
+        scope: RUN_TIME
+        value: "15"
       - key: MAGIC_LINK_SECRET
         scope: RUN_TIME
-        value: airoadcall-magic-secret-2026
+        type: SECRET
       - key: ADMIN_USERNAME
         scope: RUN_TIME
         value: Wale
@@ -115,7 +124,7 @@ services:
         value: https://cluster-api.do-ai.run/v1
       - key: DO_AI_API_KEY
         scope: RUN_TIME
-        value: placeholder
+        type: SECRET
       - key: DO_AI_MODEL
         scope: RUN_TIME
         value: meta-llama/Meta-Llama-3.1-70B-Instruct
@@ -141,10 +150,10 @@ services:
         value: ${backend.PUBLIC_URL}/api
       - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
         scope: BUILD_TIME
-        value: pk_test_placeholder
+        value: REPLACE_WITH_STRIPE_PUBLISHABLE_KEY
       - key: NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
         scope: BUILD_TIME
-        value: pk_placeholder
+        value: REPLACE_WITH_MAPBOX_ACCESS_TOKEN
       - key: NEXT_PUBLIC_HELP_PHONE
         scope: BUILD_TIME
         value: "(866) 613-3303"

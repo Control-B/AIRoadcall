@@ -16,7 +16,7 @@ import {
 
 interface LocationStepProps {
   token: string;
-  onSuccess: (lat: number, lng: number) => void;
+  onSuccess: (lat: number, lng: number, status: string) => void;
 }
 
 type LocationState = "idle" | "requesting" | "success" | "error";
@@ -80,8 +80,8 @@ export function LocationStep({ token, onSuccess }: LocationStepProps) {
 
     setSubmitting(true);
     try {
-      await updateDriverLocation(token, coords.lat, coords.lng);
-      onSuccess(coords.lat, coords.lng);
+      const result = await updateDriverLocation(token, coords.lat, coords.lng);
+      onSuccess(coords.lat, coords.lng, result.status);
     } catch (err) {
       setError("Failed to save your location. Please try again.");
       setState("error");

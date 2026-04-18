@@ -17,11 +17,14 @@ attributes when the room finishes.
 
 Webhook docs: https://docs.livekit.io/home/server/webhooks/
 """
+from datetime import datetime, timedelta, timezone
+import asyncio
 import json
 import uuid
 
 from fastapi import APIRouter, Request, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.api.deps import get_session
 from app.models.job import Job
@@ -37,6 +40,20 @@ from app.core.logging import get_logger
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 settings = get_settings()
 logger = get_logger(__name__)
+
+
+def _send_magic_link_background(phone_number: str, magic_link_url: str, driver_name: str) -> None:
+    async def _runner() -> None:
+        try:
+            await SMSService.send_magic_link(
+                phone_number=phone_number,
+                magic_link_url=magic_link_url,
+                driver_name=driver_name,
+            )
+        except Exception:
+            return
+
+    asyncio.create_task(_runner())
 
 
 def _normalize_sip_phone(value: str | None) -> str:
@@ -188,6 +205,28 @@ async def _handle_driver_intake_completed(
         )
         return
 
+    duplicate_cutoff = datetime.now(timezone.utc) - timedelta(
+        minutes=settings.JOB_DUPLICATE_WINDOW_MINUTES
+    )
+    existing_result = await db.execute(
+        select(Job)
+        .where(
+            Job.driver_phone == driver_phone,
+            Job.created_at >= duplicate_cutoff,
+            Job.status != "completed",
+            Job.status != "canceled",
+        )
+        .order_by(Job.created_at.desc())
+    )
+    existing_job = existing_result.scalar_one_or_none()
+    if existing_job:
+        logger.info(
+            "LiveKit intake duplicate skipped for %s; existing job %s",
+            driver_phone,
+            existing_job.public_job_id,
+        )
+        return
+
     job_request = JobCreateRequest(
         driver_name=driver_name,
         driver_phone=driver_phone,
@@ -198,7 +237,7 @@ async def _handle_driver_intake_completed(
 
     result = await JobService.create_job(db, job_request)
 
-    await SMSService.send_magic_link(
+    _send_magic_link_background(
         phone_number=driver_phone,
         magic_link_url=result.magic_link_url,
         driver_name=driver_name,

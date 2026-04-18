@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     MAGIC_LINK_SECRET: str = "change-this-to-a-secure-random-string"
     MAGIC_LINK_EXPIRY_HOURS: int = 24
     MECHANIC_ARRIVAL_THRESHOLD_METERS: float = 200.0
+    DEMO_AUTO_ASSIGN_NEAREST_MECHANIC: bool = False
+    DEMO_SKIP_PAYMENT_AUTHORIZATION: bool = False
+    JOB_DUPLICATE_WINDOW_MINUTES: int = 15
 
     # CORS
     FRONTEND_URL: str = "http://localhost:3000"

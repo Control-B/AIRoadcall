@@ -57,10 +57,19 @@ export interface JobDriverView {
   issue_type: string;
   issue_summary?: string | null;
   vehicle_type?: string | null;
+  driver_city?: string | null;
+  driver_state?: string | null;
   driver_lat?: number | null;
   driver_lng?: number | null;
   payment_hold_amount: number | null;
   assigned_mechanic?: AssignedMechanic | null;
+}
+
+export interface LocationUpdateResponse {
+  success: boolean;
+  status: string;
+  driver_lat: number;
+  driver_lng: number;
 }
 
 export interface TrackingView {
@@ -117,8 +126,8 @@ export async function updateDriverLocation(
   token: string,
   lat: number,
   lng: number
-): Promise<{ success: boolean }> {
-  return request<{ success: boolean }>(`/jobs/${token}/location`, {
+): Promise<LocationUpdateResponse> {
+  return request<LocationUpdateResponse>(`/jobs/${token}/location`, {
     method: "POST",
     body: JSON.stringify({ lat, lng }),
   });
