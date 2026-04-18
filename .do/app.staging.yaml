@@ -1,0 +1,258 @@
+# Staging / test DigitalOcean App Platform spec
+# Create: doctl apps create --spec .do/app.staging.yaml --format ID,DefaultIngress
+# Update: doctl apps update <app-id> --spec .do/app.staging.yaml
+# Notes:
+# - Uses the existing managed Postgres cluster, but a separate database: `airoadcall_staging`
+# - Removes production custom domains
+# - Disables deploy-on-push so staging deployments stay manual until a staging branch exists
+
+databases:
+- cluster_name: app-fe477b43-c0cc-486c-9c32-1c4122fc4553
+  db_name: airoadcall_staging
+  db_user: doadmin
+  engine: PG
+  name: db
+  production: true
+ingress:
+  rules:
+  - component:
+      name: backend
+      preserve_path_prefix: true
+    match:
+      path:
+        prefix: /api
+  - component:
+      name: backend
+      preserve_path_prefix: true
+    match:
+      path:
+        prefix: /health
+  - component:
+      name: frontend
+    match:
+      path:
+        prefix: /
+name: airoadcall-staging
+region: nyc
+services:
+- dockerfile_path: backend/Dockerfile
+  envs:
+  - key: DATABASE_URL
+    scope: RUN_AND_BUILD_TIME
+    value: ${db.DATABASE_URL}
+  - key: STRIPE_SECRET_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: sk_test_placeholder
+  - key: STRIPE_WEBHOOK_SECRET
+    scope: RUN_AND_BUILD_TIME
+    value: whsec_placeholder
+  - key: TWILIO_ACCOUNT_SID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:XjdTr6EbNlj55atjU/0cEuiQPmeheM7w:vlGNvb8ntxj1fLa8VlXTaLKgndAk69xuZSRKwTR0wFOK+apj2Po9xTHWIWR/g0+JLdE=]
+  - key: TWILIO_AUTH_TOKEN
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:7Qc/r3XW5i3N9J8dvKUXIn77g1c8q/hW:emMFTR1lZOWSws0n+nDUrN/5iUGbfCRMyun6Xw8gtD9C6ElU8zZ0oYd6wPlrzpuI]
+  - key: TWILIO_FROM_NUMBER
+    scope: RUN_AND_BUILD_TIME
+    value: '+18666501939'
+  - key: APIFY_API_TOKEN
+    scope: RUN_TIME
+    type: SECRET
+    value: EV[1:uaGnlToPD1/2aiAFyD18JhCnkJr/1n1S:bCYVDdjuxL2FhznKYxTXbg==]
+  - key: TAVILY_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: tvly_placeholder
+  - key: MAGIC_LINK_SECRET
+    scope: RUN_AND_BUILD_TIME
+    value: airoadcall-magic-secret-2026
+  - key: ADMIN_USERNAME
+    scope: RUN_AND_BUILD_TIME
+    value: Wale
+  - key: ADMIN_PASSWORD
+    scope: RUN_TIME
+    type: SECRET
+    value: EV[1:iTcqBNX6+0LzfYYt+htO1qMZE90356Vs:H2y2E3FxCYbjn5TOPGMhVbex8HQr+5cWNrjB]
+  - key: ADMIN_API_KEY
+    scope: RUN_TIME
+    type: SECRET
+    value: EV[1:wyP8x5Y1Ra8gdu9r5tIAAKdiGpTGBGJ0:M+11OR5yhXJJ1UCy9Onlg38XKKKR6JI4jZNTP06Hm+hqQf4YwvCU28BX6LKBdgnRmxa8ITol9R9m2Vva0z0h5XL/N1nShK+2YSRGITKrTog=]
+  - key: RESEND_API_KEY
+    scope: RUN_TIME
+    type: SECRET
+    value: EV[1:CATLfCP9Ncjmr4kYRD1p7rDvqk1Z4uua:R3p08YsIQdmOKsGQGIDk6A==]
+  - key: RESEND_FROM_EMAIL
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:VR9bofDlzsg24ANHwVDN+slpO8m9iIUS:nvyjiA6GJvhbJvsxXDK17RxuvwMgsnU0Owsa50JFf79CDcAUAw==]
+  - key: DEMO_PHONE_NUMBER
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:6mgS+wEa7F3KjHLgoRR82vnpCnzGT72i:dadB7GnUNKDDcCxYClSMcxExoNnWRdkaelrtsw==]
+  - key: DO_AI_ENDPOINT
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:NbcIf/zQhDJHEZGifQD/oMQkKYKD/JAQ:FmR1VMVy+8WZlKbZc+yb9j6g+K5Fha2jq03eV13XEFvx+xfmMEzHYMZ9ap5HpIdE]
+  - key: DO_AI_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:xVzP+bG6jXM2HdJ7/QdjJHROCZ+WE8Vj:aDc+ZgK8Rf4VdS33mTmjWYAZSCuM95UA6QgL]
+  - key: DO_AI_MODEL
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:5qlE0tTJm6dCrkutpiqcnm7hckIITH5h:pt1Sd2WagfBMweLkrGKFcYDgO40M40N4UFg66wmZa3nPSz1q13ZfSb8c1/xcZ59FxeM1+/RO]
+  - key: ELEVENLABS_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:8TguwN9+W2OYAwZ2Uv07Cp4EpoptiCrf:Nb6+xnbsjmrdGp/rw33ENLIPEHm2CHXtsEPNzgdbSQ+517TO/J9F847SUOx1qU0B4Aj1GJ6SkvnhGRnyyFxHepPPuQ==]
+  - key: ELEVENLABS_VOICE_ID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:+F7aAG8n4BwE+VxjRlZy8iZDe51Fah3v:dmHX13YgvHxjNLW7vTcz29k9kE4nPiGR6dR2gBfIkYTIbjqp]
+  - key: DEEPGRAM_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:fnHWgu4QH/EelNvLag5grNfrwZN8jVpL:TNcildRglngj68Iw3RymkmWKrmUdDMv3gs9mIHBhT33Tu6NNUVeShLeuCeWTM8tpttsrWXsvwm8=]
+  - key: LIVEKIT_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:ePuts0+Xpwc1cpHZJWbxoXCZs+dNcFLc:Cs7N+75BwqomvDBDGYlLpSTzk0zANmkwEFwx356eNg==]
+  - key: LIVEKIT_API_SECRET
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:3V+JUY0LgXEu0Ml6C/9wDlVYpBOohCuD:YoEoGshr35cLvhTkD4q+xPu/92LU81CL6lnGRI02X25RK0vbcTV2bhp8sHjuoW5AfX1Pve/ZciYRwBbE]
+  - key: LIVEKIT_URL
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:Ez4m6URDwgd5uiUIBuLIB4MTz5vQyugb:2hmINfzQjh7Zg1iliSVRSuYFfSyIOGhJPMBsJXkPfVPpvA4Beml5+y0CStI/7pf7GQn6j3c=]
+  - key: LIVEKIT_SIP_TRUNK_ID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:YDRhKzpUKDpZNByIrbuoGqGsNiN/sDaU:HpNxrZQjW7sSikcLc29UbSp3QAJsWF/2JKaaRuvafg==]
+  - key: LIVEKIT_OUTBOUND_AGENT_ID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:ruMKt+87bwMsGFkWU5lwtFOTOXSqUqV1:y0a84RFWJ4IGXF3N74peaZp+i1IkClqPZAjHB5PikVcxphb4tx8h]
+  - key: LIVEKIT_AGENT_NAME
+    scope: RUN_AND_BUILD_TIME
+    value: roadcall-agent-staging
+  - key: NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:eIGC6ZrVybBqsMREKmJQP1XWLtm+RyoS:nii1iEtUVHz/av0bqQt9IsB8EwHoKSX6bjARaeY5qVoV0niP6hNWrkAjB0IR95mQeYdIIjMDUrqbAzRv9uQQNRgfihGYoETH6vruZ6hTYWu92UqnT6+l/RFlWqo6HpqQpAha5qGXZvk=]
+  - key: FRONTEND_URL
+    scope: RUN_AND_BUILD_TIME
+    value: ${APP_URL}
+  - key: APP_BASE_URL
+    scope: RUN_AND_BUILD_TIME
+    value: ${APP_URL}
+  github:
+    branch: main
+    deploy_on_push: false
+    repo: Control-B/AIRoadcall
+  health_check:
+    http_path: /health
+    initial_delay_seconds: 15
+    period_seconds: 30
+  http_port: 8000
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-0.5gb
+  name: backend
+  source_dir: backend
+- dockerfile_path: frontend/Dockerfile
+  envs:
+  - key: NEXT_PUBLIC_API_URL
+    scope: BUILD_TIME
+    value: ${backend.PUBLIC_URL}/api
+  - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    scope: BUILD_TIME
+    value: pk_test_placeholder
+  - key: NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+    scope: BUILD_TIME
+    value: pk_placeholder
+  - key: NEXT_PUBLIC_DEMO_PHONE
+    scope: BUILD_TIME
+    value: (866) 613-3303
+  github:
+    branch: main
+    deploy_on_push: false
+    repo: Control-B/AIRoadcall
+  health_check:
+    http_path: /
+    initial_delay_seconds: 20
+    period_seconds: 30
+  http_port: 3000
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-0.5gb
+  name: frontend
+  source_dir: frontend
+workers:
+- dockerfile_path: /Dockerfile
+  envs:
+  - key: LIVEKIT_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:DRfquieVzhqkN0Pg90NIioCyC/wp0ip9:iwi40mGe881bOvmYgNKopMcqTgHiBnED4FMVrB/udg==]
+  - key: LIVEKIT_API_SECRET
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:Rj/EREAJgVy9CnDfP78S1zS1aGxAZwMD:4KnY++NN8lIx5uiONuA0ewLZfUVNphrHczRL1lXzXQcaeDxRfo9bo4fq61rGntWpzpb9GuQcKOSTO/hR]
+  - key: LIVEKIT_URL
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:WjSadMKq6ORMRhAfbTk68uG+f/lN/hg9:d2qYL/IoRIOYa1yp3BfIqRIkLOZNcqVrBsWFK76+VXsVDomS9ihEdh2wPENwDK9J11SWekI=]
+  - key: LIVEKIT_SIP_TRUNK_ID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:+7aLZ2BX6kpK+Mzm9/BlrXXpC3W4CDnt:SdX0nwtrrHX0yw4IcGCZVTNfnsiOP9Qbq8ZgW4djDw==]
+  - key: LIVEKIT_OUTBOUND_AGENT_ID
+    scope: RUN_AND_BUILD_TIME
+    value: outbound-mechanic-agent
+  - key: AGENT_NUM_IDLE_PROCESSES
+    scope: RUN_AND_BUILD_TIME
+    value: '2'
+  - key: LIVEKIT_DRIVER_PROMPT_SOURCE
+    scope: RUN_AND_BUILD_TIME
+    value: repo
+  - key: AGENT_ENABLE_EXTENDED_DRIVER_TOOLS
+    scope: RUN_AND_BUILD_TIME
+    value: 'false'
+  - key: LIVEKIT_INFERENCE_TTS
+    scope: RUN_AND_BUILD_TIME
+    value: elevenlabs/eleven_multilingual_v2
+  - key: LIVEKIT_INFERENCE_TTS_VOICE
+    scope: RUN_AND_BUILD_TIME
+    value: nf4MCGNSdM0hxM95ZBQR
+  - key: LIVEKIT_INFERENCE_STT
+    scope: RUN_AND_BUILD_TIME
+    value: deepgram/nova-3-general
+  - key: ELEVENLABS_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:8TguwN9+W2OYAwZ2Uv07Cp4EpoptiCrf:Nb6+xnbsjmrdGp/rw33ENLIPEHm2CHXtsEPNzgdbSQ+517TO/J9F847SUOx1qU0B4Aj1GJ6SkvnhGRnyyFxHepPPuQ==]
+  - key: ELEVENLABS_VOICE_ID
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: EV[1:El9qtHp3NG+10KynQKwl8wpuMeZBpOvQ:ux0UjoCCKVerl8pFpv+rmQ==]
+  - key: DEEPGRAM_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    value: EV[1:fnHWgu4QH/EelNvLag5grNfrwZN8jVpL:TNcildRglngj68Iw3RymkmWKrmUdDMv3gs9mIHBhT33Tu6NNUVeShLeuCeWTM8tpttsrWXsvwm8=]
+  - key: LIVEKIT_AGENT_NAME
+    scope: RUN_AND_BUILD_TIME
+    value: roadcall-agent-staging
+  - key: BACKEND_URL
+    scope: RUN_AND_BUILD_TIME
+    value: ${backend.PRIVATE_URL}
+  - key: ADMIN_API_KEY
+    scope: RUN_AND_BUILD_TIME
+    type: SECRET
+    value: placeholder
+  github:
+    branch: main
+    deploy_on_push: false
+    repo: Control-B/AIRoadcall
+  instance_count: 1
+  instance_size_slug: apps-s-1vcpu-1gb
+  name: livekit-agent-staging
+  source_dir: agent

@@ -266,6 +266,40 @@ async def _kickoff_agent_speech(session: AgentSession, instructions: str) -> Non
         logger.exception("Agent speech failed: %s", e)
 
 
+async def _speak_text_with_retry(
+    session: AgentSession,
+    text: str,
+    *,
+    label: str,
+    attempts: int = 2,
+    initial_delay_s: float = 0.25,
+) -> bool:
+    """Speak literal text with a short retry window for telephony race conditions."""
+    spoken_text = (text or "").strip()
+    if not spoken_text:
+        return False
+
+    for attempt in range(1, attempts + 1):
+        try:
+            if attempt == 1 and initial_delay_s > 0:
+                await asyncio.sleep(initial_delay_s)
+            elif attempt > 1:
+                await asyncio.sleep(0.4)
+
+            handle = session.say(
+                spoken_text,
+                allow_interruptions=False,
+                add_to_chat_ctx=True,
+            )
+            await handle.wait_for_playout()
+            logger.info("%s played successfully on attempt %s", label, attempt)
+            return True
+        except Exception as exc:
+            logger.warning("%s failed on attempt %s: %s", label, attempt, exc)
+
+    return False
+
+
 # ════════════════════════════════════════════════════════
 #  SYSTEM PROMPTS
 # ════════════════════════════════════════════════════════
@@ -508,8 +542,8 @@ def _resolve_driver_intake_system_prompt(ctx: JobContext, room_meta: dict) -> st
     return f"{DRIVER_INTAKE_PROMPT}\n\n{_driver_intake_tool_appendix()}"
 
 
-def _resolve_driver_opening_instruction(ctx: JobContext, room_meta: dict) -> str:
-    """Resolve the first spoken line using the same prompt-source precedence."""
+def _resolve_driver_opening_text(ctx: JobContext, room_meta: dict) -> str:
+    """Resolve the literal first spoken line using the same prompt-source precedence."""
     job_pl = _metadata_payload(ctx.job.metadata)
     room_pl = _room_instruction_payload(room_meta)
     source = _driver_prompt_source()
@@ -537,22 +571,13 @@ def _resolve_driver_opening_instruction(ctx: JobContext, room_meta: dict) -> str
         greeting = candidates.get(key)
         if greeting:
             logger.info("Driver intake: using %s opening source", key)
-            return (
-                "The caller just connected. Speak first in plain spoken English only. "
-                f"Use this greeting (you may adapt slightly for natural flow): {greeting}"
-            )
+            return str(greeting).strip()
 
     if committed_welcome:
-        return (
-            "The caller just connected. Speak first in plain spoken English only. "
-            f"Use this greeting (you may adapt slightly for natural flow): {committed_welcome}"
-        )
+        return committed_welcome
 
     return (
-        "A motorist or truck driver just connected for roadside assistance. "
-        "Speak first — plain spoken English only. "
-        "Open like: thank them for calling Roadside, say you are Mara, ask how you can help today. "
-        "Keep the greeting to one or two short sentences, then listen."
+        "Thank you for calling Roadside. This is Mara. How can I help you today?"
     )
 
 
@@ -1251,9 +1276,20 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
             logger.warning("Driver intake started without a resolved caller phone")
 
     await session.start(agent=agent, room=ctx.room)
-    await _kickoff_agent_speech(
-        session, instructions=_resolve_driver_opening_instruction(ctx, meta)
+    opening_text = _resolve_driver_opening_text(ctx, meta)
+    opening_spoken = await _speak_text_with_retry(
+        session,
+        opening_text,
+        label="Driver intake opening",
     )
+    if not opening_spoken:
+        await _kickoff_agent_speech(
+            session,
+            instructions=(
+                "The caller just connected. Speak first right now in one or two short sentences. "
+                f"Use this exact greeting: {opening_text}"
+            ),
+        )
     logger.info(f"Driver intake agent running in {ctx.room.name} (caller: {_current_caller_phone})")
 
 
