@@ -43,6 +43,8 @@ logger.setLevel(logging.INFO)
 
 # Seconds to wait for the SIP leg before prompting the agent (outbound / inbound)
 _SIP_PARTICIPANT_TIMEOUT_S = float(os.getenv("SIP_PARTICIPANT_TIMEOUT_S", "10"))
+# Brief guard after SIP join before first TTS playback so telephony audio is attached.
+_FIRST_SPEECH_SETTLE_DELAY_S = float(os.getenv("FIRST_SPEECH_SETTLE_DELAY_S", "0.25"))
 
 # LiveKit Inference model IDs (STT → LLM → TTS). Without these, AgentSession has no
 # llm/stt/tts and generate_reply() raises — the agent will never speak.
@@ -251,9 +253,16 @@ def _voice_agent_session(
     )
 
 
-async def _kickoff_agent_speech(session: AgentSession, instructions: str) -> None:
+async def _kickoff_agent_speech(
+    session: AgentSession,
+    instructions: str,
+    *,
+    initial_delay_s: float = 0.0,
+) -> None:
     """Start a model turn without waiting for user speech (required for telephony)."""
     try:
+        if initial_delay_s > 0:
+            await asyncio.sleep(initial_delay_s)
         handle = session.generate_reply(instructions=instructions)
         await handle.wait_for_playout()
     except RuntimeError as e:
@@ -1409,7 +1418,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
         session,
         opening_text,
         label="Driver intake opening",
-        initial_delay_s=0.0,
+        initial_delay_s=_FIRST_SPEECH_SETTLE_DELAY_S,
     )
     if not opening_spoken:
         await _kickoff_agent_speech(
@@ -1418,6 +1427,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
                 "The caller just connected. Speak first right now in one or two short sentences. "
                 f"Use this exact greeting: {opening_text}"
             ),
+            initial_delay_s=_FIRST_SPEECH_SETTLE_DELAY_S,
         )
     logger.info(f"Driver intake agent running in {ctx.room.name} (caller: {_current_caller_phone})")
 
@@ -1486,6 +1496,7 @@ async def handle_mechanic_dispatch(ctx: JobContext, meta: dict):
             "Speak immediately: greet them by name, summarize the roadside job briefly, "
             "and ask if they can take it — do not wait for them to talk first."
         ),
+        initial_delay_s=_FIRST_SPEECH_SETTLE_DELAY_S,
     )
     logger.info(f"Dispatch agent running in {ctx.room.name}")
 
@@ -1537,8 +1548,21 @@ async def handle_shop_inbound(ctx: JobContext, meta: dict):
 
     # Say the custom greeting immediately if configured
     if greeting:
-        greet_handle = session.say(greeting)
-        await greet_handle.wait_for_playout()
+        greeting_spoken = await _speak_text_with_retry(
+            session,
+            greeting,
+            label="Shop inbound greeting",
+            initial_delay_s=_FIRST_SPEECH_SETTLE_DELAY_S,
+        )
+        if not greeting_spoken:
+            await _kickoff_agent_speech(
+                session,
+                instructions=(
+                    f"A caller just reached {business_name}. "
+                    f"Use this exact greeting first: {greeting}"
+                ),
+                initial_delay_s=_FIRST_SPEECH_SETTLE_DELAY_S,
+            )
     else:
         await _kickoff_agent_speech(
             session,
@@ -1546,6 +1570,7 @@ async def handle_shop_inbound(ctx: JobContext, meta: dict):
                 f"A caller just reached {business_name}. "
                 "Greet them professionally and help with their request — speak first."
             ),
+            initial_delay_s=_FIRST_SPEECH_SETTLE_DELAY_S,
         )
 
     logger.info(f"Shop agent running for {business_name} in {ctx.room.name}")
