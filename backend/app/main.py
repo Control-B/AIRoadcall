@@ -2,9 +2,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncEngine
 
+import app.models  # noqa: F401
 from app.core.config import get_settings
-from app.core.database import engine
-from app.core.logging import setup_logging
+from app.core.database import Base, engine
+from app.core.logging import get_logger, setup_logging
 from app.api.routes import (
     jobs,
     payments,
@@ -20,10 +21,10 @@ from app.api.routes import (
     rag,
     call_summaries,
 )
-from app.models.call_summary import CallSummary
 
 settings = get_settings()
 setup_logging()
+logger = get_logger(__name__)
 
 app = FastAPI(
     title="AI Roadside Support API",
@@ -62,9 +63,10 @@ app.include_router(call_summaries.router, prefix="/api")
 
 
 @app.on_event("startup")
-async def ensure_call_summary_table() -> None:
+async def ensure_database_schema() -> None:
     async with engine.begin() as conn:
-        await conn.run_sync(CallSummary.__table__.create, checkfirst=True)
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database schema verified")
 
 
 @app.get("/health")
