@@ -86,6 +86,9 @@ services:
       - key: FRONTEND_URL
         scope: RUN_TIME
         value: ${APP_URL}
+      - key: APP_BASE_URL
+        scope: RUN_TIME
+        value: ${APP_URL}
       - key: MAGIC_LINK_SECRET
         scope: RUN_TIME
         value: airoadcall-magic-secret-2026

@@ -61,6 +61,22 @@ _DEFAULT_SPEAKING_RATE = float(os.getenv("AGENT_SPEAKING_RATE", "0.85"))
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 ADMIN_API_KEY = os.getenv("ADMIN_API_KEY", "")
 
+_STATE_NAMES = {
+    "AL": "Alabama", "AK": "Alaska", "AZ": "Arizona", "AR": "Arkansas",
+    "CA": "California", "CO": "Colorado", "CT": "Connecticut", "DE": "Delaware",
+    "FL": "Florida", "GA": "Georgia", "HI": "Hawaii", "ID": "Idaho",
+    "IL": "Illinois", "IN": "Indiana", "IA": "Iowa", "KS": "Kansas",
+    "KY": "Kentucky", "LA": "Louisiana", "ME": "Maine", "MD": "Maryland",
+    "MA": "Massachusetts", "MI": "Michigan", "MN": "Minnesota", "MS": "Mississippi",
+    "MO": "Missouri", "MT": "Montana", "NE": "Nebraska", "NV": "Nevada",
+    "NH": "New Hampshire", "NJ": "New Jersey", "NM": "New Mexico", "NY": "New York",
+    "NC": "North Carolina", "ND": "North Dakota", "OH": "Ohio", "OK": "Oklahoma",
+    "OR": "Oregon", "PA": "Pennsylvania", "RI": "Rhode Island", "SC": "South Carolina",
+    "SD": "South Dakota", "TN": "Tennessee", "TX": "Texas", "UT": "Utah",
+    "VT": "Vermont", "VA": "Virginia", "WA": "Washington", "WV": "West Virginia",
+    "WI": "Wisconsin", "WY": "Wyoming", "DC": "District of Columbia",
+}
+
 
 # ─── Shared HTTP helper ────────────────────────────────
 
@@ -74,7 +90,9 @@ async def api_call(
 ) -> dict:
     """Make an authenticated call to the backend API."""
     url = f"{BACKEND_URL}/api{path}"
-    headers = {"X-Admin-Key": ADMIN_API_KEY, "Content-Type": "application/json"}
+    headers = {"Content-Type": "application/json"}
+    if ADMIN_API_KEY.strip():
+        headers["X-Admin-Key"] = ADMIN_API_KEY.strip()
     async with httpx.AsyncClient(timeout=15) as client:
         try:
             resp = await client.request(
@@ -781,29 +799,36 @@ async def find_nearby_mechanics(
     limit: int = 3,
 ):
     """Query the backend recommendations engine for the best-matched mechanics."""
-    if not city and not state and latitude is None:
-        return "I need at least a city and state to find mechanics."
+    city = (city or "").strip()
+    state = (state or "").strip()
+    vehicle_type = (vehicle_type or "").strip()
+    normalized_issue = _normalize_issue_type(issue_type)
+
+    city, state = _normalize_city_state_args(city, state)
+    has_coordinates = latitude is not None and longitude is not None
+    if not has_coordinates and not (city and state):
+        return "I need both the city and state, or precise coordinates, to find nearby mechanics."
 
     search_params: dict[str, Any] = {"limit": limit}
-    if latitude is not None and longitude is not None:
+    if has_coordinates:
         search_params["lat"] = latitude
         search_params["lng"] = longitude
     else:
         search_params["city"] = city
         search_params["state"] = state
-    if issue_type:
-        search_params["issue_type"] = issue_type
+    if normalized_issue:
+        search_params["issue_type"] = normalized_issue
     if vehicle_type:
         search_params["vehicle_type"] = vehicle_type
 
     try:
         body: dict[str, Any] = {
             "limit": limit,
-            "issue_type": issue_type,
+            "issue_type": normalized_issue,
             "require_mobile_roadside": True,
             "prefer_immediate": True,
         }
-        if latitude is not None and longitude is not None:
+        if has_coordinates:
             body["lat"] = latitude
             body["lng"] = longitude
         else:
@@ -814,28 +839,17 @@ async def find_nearby_mechanics(
 
         result = await api_call("POST", "/mechanics/recommendations", json_body=body)
         recommendations = result.get("recommendations", [])
-        summary = result.get("summary", "")
+        summary = _format_spoken_recommendation_summary(result.get("summary", ""), city, state)
 
         if not recommendations:
             return (
-                f"No available mechanics found near {city}, {state} right now. "
+                f"I couldn't find an available mechanic near {_spoken_place(city, state)} right now. "
                 f"I've logged the job and dispatch will follow up shortly."
             )
 
         lines = [summary] if summary else []
-        for m in recommendations:
-            name = m.get("company_name", "Unknown")
-            phone = m.get("phone", "")
-            dist = m.get("distance_miles")
-            eta = m.get("estimated_response_minutes")
-            rating = m.get("rating")
-            reasons = m.get("reasons", [])
-            dist_text = f"{dist:.1f} mi away" if dist is not None else ""
-            eta_text = f"~{eta} min ETA" if eta else ""
-            rating_text = f"rated {rating:.1f}" if rating else ""
-            detail = ", ".join(filter(None, [dist_text, eta_text, rating_text]))
-            reason_text = "; ".join(reasons[:2]) if reasons else ""
-            lines.append(f"- {name} ({phone}){' — ' + detail if detail else ''}{'. ' + reason_text if reason_text else ''}")
+        for mechanic in recommendations[:limit]:
+            lines.append(_format_mechanic_for_voice(mechanic))
 
         return "\n".join(lines)
     except Exception as e:
@@ -846,20 +860,13 @@ async def find_nearby_mechanics(
         mechanics = result if isinstance(result, list) else result.get("items", [])
         if not mechanics:
             return (
-                f"No available mechanics found near {city}, {state} right now. "
+                f"I couldn't find an available mechanic near {_spoken_place(city, state)} right now. "
                 "I've logged the job and dispatch will follow up shortly."
             )
 
-        lines = [f"I found {len(mechanics[:limit])} mechanics near {city}, {state}."]
+        lines = [f"I found {len(mechanics[:limit])} mechanics near {_spoken_place(city, state)}."]
         for mechanic in mechanics[:limit]:
-            name = mechanic.get("company_name", "Unknown")
-            phone = mechanic.get("phone", "")
-            dist = mechanic.get("distance_miles")
-            rating = mechanic.get("rating")
-            area = ", ".join(filter(None, [mechanic.get("city"), mechanic.get("state")]))
-            dist_text = f"{dist:.1f} mi away" if dist is not None else area
-            rating_text = f", rated {rating:.1f}" if isinstance(rating, (int, float)) else ""
-            lines.append(f"- {name} ({phone}) — {dist_text}{rating_text}")
+            lines.append(_format_mechanic_for_voice(mechanic))
         return "\n".join(lines)
     except Exception as fallback_error:
         logger.error("Fallback mechanic search also failed: %s", fallback_error)
@@ -1227,6 +1234,88 @@ def _normalize_issue_type(raw: str) -> str:
         if any(kw in raw_lower for kw in keywords):
             return enum_val
     return "other"
+
+
+def _normalize_city_state_args(city: str, state: str) -> tuple[str, str]:
+    if city and not state:
+        match = re.match(r"^\s*([^,]+?),\s*([A-Za-z]{2}|[A-Za-z][A-Za-z .'-]+)\s*$", city)
+        if match:
+            city = match.group(1).strip()
+            state = match.group(2).strip()
+    return city, state.upper() if len(state) == 2 else state
+
+
+def _spoken_place(city: str, state: str) -> str:
+    if city and state:
+        expanded_state = _STATE_NAMES.get(state.upper(), state)
+        return f"{city}, {expanded_state}"
+    if city:
+        return city
+    if state:
+        return _STATE_NAMES.get(state.upper(), state)
+    return "the area"
+
+
+def _tts_friendly_text(text: str) -> str:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return ""
+    replacements = {
+        "&": " and ",
+        "/": " ",
+        "@": " at ",
+        " llc": " L L C",
+        " inc": " Incorporated",
+        " co.": " Company",
+        " co ": " company ",
+        " hwy ": " highway ",
+        " rd ": " road ",
+        " st ": " street ",
+        " ave ": " avenue ",
+        " blvd ": " boulevard ",
+    }
+    lowered = f" {cleaned} "
+    for source, target in replacements.items():
+        lowered = lowered.replace(source, target)
+    lowered = re.sub(r"\bETA\b", "estimated arrival", lowered, flags=re.IGNORECASE)
+    lowered = re.sub(r"\bI-(\d+)\b", r"Interstate \1", lowered)
+    lowered = re.sub(r"\bUS-(\d+)\b", r"U S \1", lowered)
+    lowered = re.sub(r"\s+", " ", lowered)
+    return lowered.strip(" .,")
+
+
+def _format_spoken_recommendation_summary(summary: str, city: str, state: str) -> str:
+    place = _spoken_place(city, state)
+    if summary:
+        return _tts_friendly_text(summary)
+    return f"I found some recommended mechanics near {place}."
+
+
+def _format_mechanic_for_voice(mechanic: dict[str, Any]) -> str:
+    name = _tts_friendly_text(str(mechanic.get("company_name") or "a nearby mechanic"))
+    distance = mechanic.get("distance_miles")
+    eta = mechanic.get("estimated_response_minutes")
+    rating = mechanic.get("rating")
+    reasons = [_tts_friendly_text(str(reason)) for reason in (mechanic.get("reasons") or []) if str(reason).strip()]
+    location_bits = [mechanic.get("city"), _STATE_NAMES.get(str(mechanic.get("state") or "").upper(), str(mechanic.get("state") or ""))]
+    location_text = ", ".join(bit for bit in location_bits if bit)
+
+    details: list[str] = []
+    if isinstance(distance, (int, float)):
+        details.append(f"about {distance:.1f} miles away")
+    elif location_text:
+        details.append(f"based in {location_text}")
+    if isinstance(eta, int) and eta > 0:
+        details.append(f"with an estimated arrival around {eta} minutes")
+    if isinstance(rating, (int, float)):
+        details.append(f"rated {rating:.1f} out of five")
+
+    sentence = name
+    if details:
+        sentence += " is " + ", ".join(details)
+    if reasons:
+        sentence += ". " + "; ".join(reasons[:2])
+    return sentence.strip() + "."
 
 
 # ════════════════════════════════════════════════════════

@@ -18,6 +18,7 @@ export function getStatusStep(status: string): number {
     case "pending":
     case "intake_complete":
       return 1;
+    case "awaiting_driver_location":
     case "awaiting_location":
       return 2;
     case "location_received":
