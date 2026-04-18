@@ -272,7 +272,7 @@ async def _speak_text_with_retry(
     *,
     label: str,
     attempts: int = 2,
-    initial_delay_s: float = 0.25,
+    initial_delay_s: float = 0.0,
 ) -> bool:
     """Speak literal text with a short retry window for telephony race conditions."""
     spoken_text = (text or "").strip()
@@ -281,6 +281,7 @@ async def _speak_text_with_retry(
 
     for attempt in range(1, attempts + 1):
         try:
+            logger.info("%s attempt %s starting", label, attempt)
             if attempt == 1 and initial_delay_s > 0:
                 await asyncio.sleep(initial_delay_s)
             elif attempt > 1:
@@ -1394,6 +1395,8 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
         max_endpointing_delay=1.5,
     )
 
+    opening_text = _resolve_driver_opening_text(ctx, meta)
+    await session.start(agent=agent, room=ctx.room)
     await _wait_for_sip_participant(ctx, identity=None)
     if not _current_caller_phone:
         _current_caller_phone = _extract_caller_phone_from_room(ctx.room)
@@ -1402,13 +1405,11 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
             logger.info(f"Extracted caller phone after wait: {_current_caller_phone}")
         else:
             logger.warning("Driver intake started without a resolved caller phone")
-
-    await session.start(agent=agent, room=ctx.room)
-    opening_text = _resolve_driver_opening_text(ctx, meta)
     opening_spoken = await _speak_text_with_retry(
         session,
         opening_text,
         label="Driver intake opening",
+        initial_delay_s=0.0,
     )
     if not opening_spoken:
         await _kickoff_agent_speech(
