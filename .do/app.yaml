@@ -200,6 +200,12 @@ workers:
       - key: LIVEKIT_INFERENCE_STT
         scope: RUN_TIME
         value: deepgram/nova-3-general
+      - key: ELEVENLABS_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+      - key: ELEVENLABS_VOICE_ID
+        scope: RUN_TIME
+        value: nf4MCGNSdM0hxM95ZBQR
       - key: BACKEND_URL
         scope: RUN_TIME
         value: ${backend.PRIVATE_URL}
