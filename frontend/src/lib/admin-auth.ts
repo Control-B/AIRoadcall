@@ -134,3 +134,27 @@ export async function adminFetch<T>(
 
   return (await res.json()) as T;
 }
+
+export interface AdminMechanicTrackingView {
+  public_job_id: string;
+  job_status: string;
+  driver_name?: string | null;
+  vehicle_type?: string | null;
+  issue_type?: string | null;
+  issue_summary?: string | null;
+  driver_lat?: number | null;
+  driver_lng?: number | null;
+  driver_location_captured_at?: string | null;
+  mechanic_lat?: number | null;
+  mechanic_lng?: number | null;
+  mechanic_company?: string | null;
+  mechanic_contact?: string | null;
+  eta_minutes?: number | null;
+  distance_miles?: number | null;
+}
+
+export async function getAdminMechanicTracking(
+  jobId: string
+): Promise<AdminMechanicTrackingView> {
+  return adminFetch<AdminMechanicTrackingView>(`/dispatch/${jobId}/mechanic-tracking`);
+}

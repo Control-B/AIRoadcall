@@ -98,6 +98,11 @@ const navItems: NavItem[] = [
         href: "/company#contact",
       },
       {
+        label: "SMS Consent Policy",
+        description: "How SMS opt-in, HELP, STOP, and service texting work",
+        href: "/sms-consent",
+      },
+      {
         label: "Privacy Policy",
         description: "How Roadcall.ai collects, uses, and protects data",
         href: "/privacy",

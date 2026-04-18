@@ -18,6 +18,7 @@ const footerLinks = {
   Company: [
     { label: "About", href: "/company#about" },
     { label: "Contact", href: "/company#contact" },
+    { label: "SMS Consent Policy", href: "/sms-consent" },
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
   ],
