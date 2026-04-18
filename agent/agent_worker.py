@@ -181,9 +181,30 @@ def _voice_agent_session(
 ) -> AgentSession:
     """Voice pipeline: ElevenLabs TTS (direct) + LiveKit Inference STT."""
     llm_id = os.getenv("LIVEKIT_INFERENCE_LLM", _DEFAULT_INFERENCE_LLM)
-    voice_id = os.getenv("ELEVENLABS_VOICE_ID", _DEFAULT_ELEVENLABS_VOICE_ID)
-    el_model = os.getenv("ELEVENLABS_MODEL", _DEFAULT_ELEVENLABS_MODEL)
+    configured_tts = os.getenv("LIVEKIT_INFERENCE_TTS", "").strip()
+    if configured_tts.startswith("elevenlabs/"):
+        el_model = configured_tts.split("/", 1)[1] or _DEFAULT_ELEVENLABS_MODEL
+    else:
+        el_model = os.getenv("ELEVENLABS_MODEL", _DEFAULT_ELEVENLABS_MODEL)
+
+    voice_id = (
+        os.getenv("ELEVENLABS_VOICE_ID", "").strip()
+        or os.getenv("LIVEKIT_INFERENCE_TTS_VOICE", "").strip()
+        or _DEFAULT_ELEVENLABS_VOICE_ID
+    )
     stt_id = os.getenv("LIVEKIT_INFERENCE_STT", "deepgram/nova-2-phonecall")
+    elevenlabs_api_key = (
+        os.getenv("ELEVENLABS_API_KEY", "").strip()
+        or os.getenv("ELEVEN_API_KEY", "").strip()
+        or None
+    )
+
+    if not elevenlabs_api_key:
+        logger.error(
+            "ElevenLabs API key is missing. Set ELEVENLABS_API_KEY on the worker "
+            "when LIVEKIT_INFERENCE_TTS uses an elevenlabs/* voice."
+        )
+
     logger.info(
         "Voice pipeline: llm=%s tts=elevenlabs/%s voice=%s stt=%s",
         llm_id, el_model, voice_id, stt_id,
@@ -193,7 +214,7 @@ def _voice_agent_session(
         tts=elevenlabs.TTS(
             model=el_model,
             voice_id=voice_id,
-            api_key=os.getenv("ELEVENLABS_API_KEY") or None,
+            api_key=elevenlabs_api_key,
         ),
         stt=stt_id,
         turn_handling={

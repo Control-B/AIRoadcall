@@ -26,14 +26,13 @@ ADMIN_API_KEY=...
 
 LIVEKIT_INFERENCE_LLM=openai/gpt-4o-mini
 LIVEKIT_INFERENCE_STT=deepgram/nova-2-phonecall
-LIVEKIT_INFERENCE_TTS=cartesia/sonic-3
+LIVEKIT_INFERENCE_TTS=elevenlabs/eleven_multilingual_v2
+LIVEKIT_INFERENCE_TTS_VOICE=21m00Tcm4TlvDq8ikWAM
+ELEVENLABS_API_KEY=...
 ```
 
-Optional voice override:
-
-```bash
-LIVEKIT_INFERENCE_TTS_VOICE=9626c31c-bec5-4cca-baa8-f8ba9e84c8bc
-```
+The worker currently uses the direct ElevenLabs plugin for speech, so the
+`ELEVENLABS_API_KEY` secret must be present anywhere the agent runs.
 
 ## Local start
 
