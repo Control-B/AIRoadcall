@@ -188,6 +188,9 @@ workers:
       - key: LIVEKIT_DRIVER_PROMPT_SOURCE
         scope: RUN_TIME
         value: repo
+      - key: AGENT_ENABLE_EXTENDED_DRIVER_TOOLS
+        scope: RUN_TIME
+        value: "false"
       - key: AGENT_NUM_IDLE_PROCESSES
         scope: RUN_TIME
         value: "2"

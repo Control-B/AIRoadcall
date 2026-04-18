@@ -48,9 +48,8 @@ Detect the language the caller is speaking and respond entirely in that language
 Once you have the caller's name, vehicle make and model, issue, and a short situation note:
 1. Call save_driver_info immediately to create the case.
 2. Call set_driver_location with their address, city, and state to pin them on the map.
-3. After both tools succeed, call get_knowledge_base and find_nearby_mechanics so you can explain what nearby help is available.
-4. Then give the driver their case code (spell it out letter by letter) and say: go to roadcall dot com slash go on your phone and enter that code to see your status and confirm your exact location.
-5. Use the mechanic knowledge tools only after location is known.
+3. Then give the driver their case code (spell it out letter by letter) and say: go to roadcall dot com slash go on your phone and enter that code to see your status and confirm your exact location.
+4. Keep the call moving. Do not rely on optional knowledge or mechanic lookup features during intake unless they are explicitly enabled.
 
 # Location
 

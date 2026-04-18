@@ -374,22 +374,45 @@ def _driver_prompt_source() -> str:
     return "repo"
 
 
+def _driver_extended_tools_enabled() -> bool:
+    return _env_truthy("AGENT_ENABLE_EXTENDED_DRIVER_TOOLS")
+
+
 # Appended when instructions come from the LiveKit Console (or dispatch metadata) so
 # Roadcall tools still exist in the same session.
-DRIVER_INTAKE_TOOL_APPENDIX = """\
+DRIVER_INTAKE_TOOL_APPENDIX_CORE = """\
 ## Roadcall tools (required — do not mention these names to the caller)
 You have function tools for this app. Use them when appropriate; never say "tool", \
 "function", or raw JSON aloud.
 - save_driver_info: persist the case and create the job. Call this as soon as you have name, vehicle make and model, issue type, and a short situation note. City and state are optional.
 - set_driver_location: geocode the driver's verbal address (street, highway, landmark) plus city and state, and pin their location on the map. Call this right after save_driver_info if the driver gave any address info.
-- get_knowledge_base: pull the mechanic/service knowledge base for the caller's area from the RAG endpoint.
-- find_nearby_mechanics: query the mechanic database and return the best nearby matches using the backend recommendations engine.
 - remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
 
 After save_driver_info, give the driver their case code and tell them to visit roadcall dot com slash go to confirm their location.
-After location is known, use the mechanic knowledge tools to explain what help is nearby when useful.
 Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
 """
+
+
+DRIVER_INTAKE_TOOL_APPENDIX_EXTENDED = """\
+- get_knowledge_base: pull the mechanic/service knowledge base for the caller's area from the RAG endpoint.
+- find_nearby_mechanics: query the mechanic database and return the best nearby matches using the backend recommendations engine.
+
+After location is known, you may use the mechanic knowledge tools to explain what help is nearby when useful.\
+"""
+
+
+def _driver_intake_tool_appendix() -> str:
+    appendix = DRIVER_INTAKE_TOOL_APPENDIX_CORE
+    if _driver_extended_tools_enabled():
+        appendix += "\n" + DRIVER_INTAKE_TOOL_APPENDIX_EXTENDED
+    return appendix
+
+
+def _driver_intake_tools() -> list[Any]:
+    tools: list[Any] = [save_driver_info, set_driver_location, remember_caller_memory]
+    if _driver_extended_tools_enabled():
+        tools.extend([get_knowledge_base, find_nearby_mechanics])
+    return tools
 
 
 def _metadata_payload(raw: str | None) -> dict[str, Any]:
@@ -478,10 +501,10 @@ def _resolve_driver_intake_system_prompt(ctx: JobContext, room_meta: dict) -> st
         candidate = candidates.get(key)
         if candidate and str(candidate).strip():
             logger.info("Driver intake: using %s prompt source + Roadcall tools", key)
-            return f"{str(candidate).strip()}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
+            return f"{str(candidate).strip()}\n\n{_driver_intake_tool_appendix()}"
 
     logger.info("Driver intake: falling back to built-in default prompt + Roadcall tools")
-    return f"{DRIVER_INTAKE_PROMPT}\n\n{DRIVER_INTAKE_TOOL_APPENDIX}"
+    return f"{DRIVER_INTAKE_PROMPT}\n\n{_driver_intake_tool_appendix()}"
 
 
 def _resolve_driver_opening_instruction(ctx: JobContext, room_meta: dict) -> str:
@@ -1157,7 +1180,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
             _resolve_driver_intake_system_prompt(ctx, meta)
             + (f"\n\n## Caller memory\n{memory_block}" if memory_block else "")
         ),
-        tools=[save_driver_info, set_driver_location, get_knowledge_base, find_nearby_mechanics, remember_caller_memory],
+        tools=_driver_intake_tools(),
     )
 
     session = _voice_agent_session(
