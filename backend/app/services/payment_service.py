@@ -134,15 +134,7 @@ class PaymentService:
                         f"Auto-dispatch triggered for job {job.public_job_id}: "
                         f"{next_mechanic.mechanic_company} ({next_mechanic.mechanic_phone})"
                     )
-                    # Initiate outbound call to the mechanic via LiveKit SIP
-                    from app.services.livekit_service import LiveKitService
-                    await LiveKitService.initiate_mechanic_call(
-                        mechanic_phone=next_mechanic.mechanic_phone,
-                        mechanic_name=next_mechanic.mechanic_company,
-                        job_summary=f"{job.issue_type}: {job.issue_summary or ''} — {job.vehicle_type or 'vehicle'}",
-                        job_id=str(job.id),
-                        dispatch_attempt_id=next_mechanic.dispatch_attempt_id,
-                    )
+                    await DispatchService.launch_outbound_call(db, job, next_mechanic)
                 else:
                     logger.warning(f"No mechanics available for job {job.public_job_id}")
             except Exception as e:

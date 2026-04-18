@@ -568,6 +568,10 @@ async def save_driver_info(
     normalized_issue = _normalize_issue_type(issue_type)
 
     # Retrieve the caller's phone number stored in CallState by the entrypoint
+    global _current_driver_room, _current_caller_phone
+    if not _current_caller_phone and _current_driver_room is not None:
+        _current_caller_phone = _extract_caller_phone_from_room(_current_driver_room)
+
     driver_phone = _current_caller_phone or ""
 
     try:
@@ -615,6 +619,61 @@ _current_caller_phone: str = ""
 _current_dispatch_job_id: str = ""
 _current_dispatch_attempt_id: str = ""
 _current_mechanic_phone: str = ""
+_current_driver_room: rtc.Room | None = None
+
+
+def _normalize_sip_phone(value: str | None) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+
+    if raw.startswith("sip:"):
+        raw = raw.split("@", 1)[0].replace("sip:", "", 1)
+    elif "@" in raw and raw.startswith("+"):
+        raw = raw.split("@", 1)[0]
+
+    lowered = raw.lower()
+    if lowered.startswith("call-"):
+        return ""
+    if lowered.startswith("ca") and len(raw) > 20:
+        return ""
+
+    cleaned = "".join(ch for ch in raw if ch.isdigit() or ch == "+")
+    if not cleaned:
+        return ""
+    if cleaned.startswith("+"):
+        return "+" + "".join(ch for ch in cleaned[1:] if ch.isdigit())
+    if len(cleaned) >= 10:
+        return f"+{cleaned}"
+    return ""
+
+
+def _extract_phone_from_participant(participant: rtc.RemoteParticipant) -> str:
+    attrs = participant.attributes or {}
+    candidates = [
+        attrs.get("sip.phoneNumber"),
+        attrs.get("sip.phone_number"),
+        attrs.get("sip.from"),
+        attrs.get("sip.from_number"),
+        attrs.get("sip.caller_number"),
+        attrs.get("sip.callerid"),
+        participant.identity,
+        participant.name,
+    ]
+
+    for candidate in candidates:
+        phone = _normalize_sip_phone(str(candidate) if candidate is not None else "")
+        if phone:
+            return phone
+    return ""
+
+
+def _extract_caller_phone_from_room(room: rtc.Room) -> str:
+    for participant in room.remote_participants.values():
+        phone = _extract_phone_from_participant(participant)
+        if phone:
+            return phone
+    return ""
 
 
 async def save_phone_memory(
@@ -960,31 +1019,16 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
     logger.info(f"Driver intake call in room {ctx.room.name}")
 
     # Extract the caller's phone number from SIP participant info
-    global _current_caller_phone
-    _current_caller_phone = ""
-    for p in ctx.room.remote_participants.values():
-        # SIP participants have the caller's number in their identity or attributes
-        identity = p.identity or ""
-        attrs = p.attributes or {}
-        phone = (
-            attrs.get("sip.phoneNumber")
-            or attrs.get("sip.from")
-            or attrs.get("sip.callId")
-            or ""
-        )
-        if not phone and identity.startswith("sip_"):
-            phone = identity.replace("sip_", "+")
-        if phone:
-            # Clean SIP URI format: sip:+15551234567@trunk → +15551234567
-            if phone.startswith("sip:"):
-                phone = phone.split("@")[0].replace("sip:", "")
-            _current_caller_phone = phone
-            logger.info(f"Extracted caller phone: {phone}")
-            break
+    global _current_caller_phone, _current_driver_room
+    _current_driver_room = ctx.room
+    _current_caller_phone = _extract_caller_phone_from_room(ctx.room)
 
     # Also check room metadata for caller_phone (set by SIP trunk config)
     if not _current_caller_phone:
-        _current_caller_phone = meta.get("caller_phone", "")
+        _current_caller_phone = _normalize_sip_phone(meta.get("caller_phone", ""))
+
+    if _current_caller_phone:
+        logger.info(f"Extracted caller phone before wait: {_current_caller_phone}")
 
     state = CallState(
         room_metadata=meta,
@@ -1011,6 +1055,14 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
     )
 
     await _wait_for_sip_participant(ctx, identity=None)
+    if not _current_caller_phone:
+        _current_caller_phone = _extract_caller_phone_from_room(ctx.room)
+        if _current_caller_phone:
+            state.collected["caller_phone"] = _current_caller_phone
+            logger.info(f"Extracted caller phone after wait: {_current_caller_phone}")
+        else:
+            logger.warning("Driver intake started without a resolved caller phone")
+
     await session.start(agent=agent, room=ctx.room)
     await _kickoff_agent_speech(
         session, instructions=_resolve_driver_opening_instruction(ctx, meta)

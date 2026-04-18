@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     LIVEKIT_CLOUD_INSTRUCTIONS: str = ""
     # Optional JSON object merged into agent dispatch metadata (e.g. {"welcome_message": "..."}).
     LIVEKIT_AGENT_DISPATCH_METADATA_EXTRA: str = ""
+    LIVEKIT_DISPATCH_RING_TIMEOUT_SECONDS: int = 18
 
     # Twilio
     TWILIO_ACCOUNT_SID: str = ""

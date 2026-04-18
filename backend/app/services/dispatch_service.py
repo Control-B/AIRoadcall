@@ -31,6 +31,60 @@ settings = get_settings()
 class DispatchService:
 
     @staticmethod
+    async def launch_outbound_call(
+        db: AsyncSession,
+        job: Job,
+        next_attempt: DispatchNextResponse,
+    ) -> None:
+        attempt_id = uuid.UUID(next_attempt.dispatch_attempt_id)
+        attempt_result = await db.execute(
+            select(DispatchAttempt).where(DispatchAttempt.id == attempt_id)
+        )
+        attempt = attempt_result.scalar_one_or_none()
+        if not attempt:
+            raise ValueError("Dispatch attempt not found")
+
+        if attempt.dispatch_status == DispatchStatus.queued:
+            attempt.dispatch_status = DispatchStatus.calling
+            if not attempt.called_at:
+                attempt.called_at = datetime.now(timezone.utc)
+            await db.flush()
+        elif attempt.dispatch_status != DispatchStatus.calling:
+            logger.info(
+                "Dispatch attempt %s not launchable (%s)",
+                attempt_id,
+                attempt.dispatch_status,
+            )
+            return
+
+        from app.services.livekit_service import LiveKitService
+
+        job_summary = (
+            f"{job.issue_type}: {job.issue_summary or ''} — {job.vehicle_type or 'vehicle'}"
+        )
+        call_result = await LiveKitService.initiate_mechanic_call(
+            mechanic_phone=next_attempt.mechanic_phone,
+            mechanic_name=next_attempt.mechanic_company,
+            job_summary=job_summary,
+            job_id=str(job.id),
+            dispatch_attempt_id=next_attempt.dispatch_attempt_id,
+        )
+
+        if call_result.get("status") == "error":
+            logger.error(
+                "LiveKit call launch failed for attempt %s: %s",
+                attempt_id,
+                call_result.get("error", "unknown error"),
+            )
+            await DispatchService.record_mechanic_response(
+                db=db,
+                job_id=job.id,
+                attempt_id=attempt_id,
+                response="timed_out",
+                notes=f"LiveKit call launch failed: {call_result.get('error', 'unknown error')}",
+            )
+
+    @staticmethod
     async def start_dispatch(
         db: AsyncSession, job_id: uuid.UUID
     ) -> DispatchStartResponse:
@@ -199,7 +253,7 @@ class DispatchService:
         if not job:
             raise ValueError("Job not found")
 
-        if attempt.dispatch_status != DispatchStatus.queued:
+        if attempt.dispatch_status not in (DispatchStatus.queued, DispatchStatus.calling):
             logger.info(
                 f"Dispatch attempt {attempt_id} already finalized ({attempt.dispatch_status}), "
                 "skipping duplicate record"
@@ -319,20 +373,9 @@ class DispatchService:
 
         # Offer the next mechanic (outbound SIP + AI) when this one could not take the job
         if response in ("declined", "unavailable", "no_answer", "timed_out"):
-            from app.services.livekit_service import LiveKitService
-
             next_attempt = await DispatchService.dispatch_next_mechanic(db, job_id)
             if next_attempt:
-                job_summary = (
-                    f"{job.issue_type}: {job.issue_summary or ''} — {job.vehicle_type or 'vehicle'}"
-                )
-                await LiveKitService.initiate_mechanic_call(
-                    mechanic_phone=next_attempt.mechanic_phone,
-                    mechanic_name=next_attempt.mechanic_company,
-                    job_summary=job_summary,
-                    job_id=str(job_id),
-                    dispatch_attempt_id=next_attempt.dispatch_attempt_id,
-                )
+                await DispatchService.launch_outbound_call(db, job, next_attempt)
 
         return MechanicResponseResponse(
             success=True,

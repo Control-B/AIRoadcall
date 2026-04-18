@@ -11,6 +11,7 @@ LiveKit Cloud Architecture:
   the agent to the mechanic via SIP trunk → mechanic answers →
   AI agent determines availability → webhook fires back to FastAPI
 """
+import asyncio
 import hashlib
 import hmac
 import base64
@@ -32,6 +33,99 @@ settings = get_settings()
 
 class LiveKitService:
     """LiveKit Cloud telephony integration for mechanic dispatch calls."""
+
+    _timeout_tasks: set[asyncio.Task] = set()
+
+    @staticmethod
+    def _track_background_task(task: asyncio.Task) -> None:
+        LiveKitService._timeout_tasks.add(task)
+        task.add_done_callback(LiveKitService._timeout_tasks.discard)
+
+    @staticmethod
+    def _schedule_dispatch_timeout(
+        *,
+        dispatch_attempt_id: str,
+        job_id: str,
+        room_name: str,
+    ) -> None:
+        timeout_seconds = max(0, int(settings.LIVEKIT_DISPATCH_RING_TIMEOUT_SECONDS or 0))
+        if timeout_seconds <= 0:
+            return
+
+        task = asyncio.create_task(
+            LiveKitService._expire_dispatch_attempt_after_timeout(
+                dispatch_attempt_id=dispatch_attempt_id,
+                job_id=job_id,
+                room_name=room_name,
+                timeout_seconds=timeout_seconds,
+            )
+        )
+        LiveKitService._track_background_task(task)
+
+    @staticmethod
+    async def _expire_dispatch_attempt_after_timeout(
+        *,
+        dispatch_attempt_id: str,
+        job_id: str,
+        room_name: str,
+        timeout_seconds: int,
+    ) -> None:
+        from sqlalchemy import select
+
+        from app.core.database import async_session_factory
+        from app.enums.dispatch_status import DispatchStatus
+        from app.models.dispatch_attempt import DispatchAttempt
+        from app.models.job import Job
+        from app.services.dispatch_service import DispatchService
+
+        await asyncio.sleep(timeout_seconds)
+
+        async with async_session_factory() as db:
+            attempt_result = await db.execute(
+                select(DispatchAttempt).where(DispatchAttempt.id == uuid.UUID(dispatch_attempt_id))
+            )
+            attempt = attempt_result.scalar_one_or_none()
+
+            job_result = await db.execute(select(Job).where(Job.id == uuid.UUID(job_id)))
+            job = job_result.scalar_one_or_none()
+
+            if not attempt or not job:
+                return
+
+            if attempt.dispatch_status not in (DispatchStatus.queued, DispatchStatus.calling):
+                return
+
+            if job.assigned_mechanic_id:
+                return
+
+        logger.warning(
+            "Dispatch attempt %s exceeded ring timeout (%ss); ending room %s",
+            dispatch_attempt_id,
+            timeout_seconds,
+            room_name,
+        )
+        await LiveKitService.end_room(room_name)
+
+        async with async_session_factory() as db:
+            try:
+                await DispatchService.record_mechanic_response(
+                    db=db,
+                    job_id=uuid.UUID(job_id),
+                    attempt_id=uuid.UUID(dispatch_attempt_id),
+                    response="timed_out",
+                    notes=(
+                        "Automatic ring timeout reached after "
+                        f"{timeout_seconds} seconds"
+                    ),
+                )
+                await db.commit()
+            except ValueError as exc:
+                await db.rollback()
+                logger.info(
+                    "Dispatch timeout finalize skipped for attempt %s: %s",
+                    dispatch_attempt_id,
+                    exc,
+                )
 
     @staticmethod
     def _get_api() -> LiveKitAPI:
@@ -198,6 +292,12 @@ class LiveKitService:
                     "Set LIVEKIT_AGENT_NAME to match the agent worker registration."
                 )
 
+            LiveKitService._schedule_dispatch_timeout(
+                dispatch_attempt_id=dispatch_attempt_id,
+                job_id=job_id,
+                room_name=room_name,
+            )
+
             return {
                 "status": "calling",
                 "room_name": room_name,
@@ -228,14 +328,16 @@ class LiveKitService:
         if not settings.LIVEKIT_API_KEY:
             return True
 
+        api = LiveKitService._get_api()
         try:
-            api = LiveKitService._get_api()
             await api.room.delete_room(room_name)
             logger.info(f"Closed LiveKit room: {room_name}")
             return True
         except Exception as e:
             logger.warning(f"Failed to close LiveKit room {room_name}: {e}")
             return False
+        finally:
+            await api.aclose()
 
     @staticmethod
     async def cancel_dispatch_calls(job_id: str, except_room: str | None = None) -> int:
@@ -253,8 +355,8 @@ class LiveKitService:
         if not settings.LIVEKIT_API_KEY:
             return 0
 
+        api = LiveKitService._get_api()
         try:
-            api = LiveKitService._get_api()
             rooms = await api.room.list_rooms()
             closed = 0
 
@@ -275,3 +377,5 @@ class LiveKitService:
         except Exception as e:
             logger.error(f"Failed to cancel dispatch calls for job {job_id}: {e}")
             return 0
+        finally:
+            await api.aclose()

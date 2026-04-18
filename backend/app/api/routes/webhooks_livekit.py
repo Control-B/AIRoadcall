@@ -39,6 +39,32 @@ settings = get_settings()
 logger = get_logger(__name__)
 
 
+def _normalize_sip_phone(value: str | None) -> str:
+    raw = (value or "").strip()
+    if not raw:
+        return ""
+
+    if raw.startswith("sip:"):
+        raw = raw.split("@", 1)[0].replace("sip:", "", 1)
+    elif "@" in raw and raw.startswith("+"):
+        raw = raw.split("@", 1)[0]
+
+    lowered = raw.lower()
+    if lowered.startswith("call-"):
+        return ""
+    if lowered.startswith("ca") and len(raw) > 20:
+        return ""
+
+    cleaned = "".join(ch for ch in raw if ch.isdigit() or ch == "+")
+    if not cleaned:
+        return ""
+    if cleaned.startswith("+"):
+        return "+" + "".join(ch for ch in cleaned[1:] if ch.isdigit())
+    if len(cleaned) >= 10:
+        return f"+{cleaned}"
+    return ""
+
+
 @router.post("/livekit")
 async def livekit_webhook(
     request: Request,
@@ -136,7 +162,7 @@ async def _handle_driver_intake_completed(
                 pass
 
     driver_name = agent_data.get("driver_name", "Unknown Driver")
-    driver_phone = agent_data.get("driver_phone", "")
+    driver_phone = _normalize_sip_phone(agent_data.get("driver_phone", ""))
     vehicle_type = agent_data.get("vehicle_type")
     issue_type = agent_data.get("issue_type", "other")
     issue_summary = agent_data.get("issue_summary", "")
@@ -146,20 +172,21 @@ async def _handle_driver_intake_completed(
         for p in participants:
             if not p.get("identity", "").startswith("agent-"):
                 sip_attrs = p.get("attributes", {})
-                driver_phone = sip_attrs.get("sip.callId", "") or sip_attrs.get(
-                    "sip.from", ""
+                driver_phone = (
+                    _normalize_sip_phone(sip_attrs.get("sip.phoneNumber"))
+                    or _normalize_sip_phone(sip_attrs.get("sip.phone_number"))
+                    or _normalize_sip_phone(sip_attrs.get("sip.from"))
+                    or _normalize_sip_phone(sip_attrs.get("sip.from_number"))
+                    or _normalize_sip_phone(p.get("identity", ""))
                 )
-                break
+                if driver_phone:
+                    break
 
     if not driver_phone:
         logger.warning(
             "LiveKit driver_intake room_finished: no driver phone, skipping"
         )
         return
-
-    # Clean phone number (remove SIP URI if present)
-    if driver_phone.startswith("sip:"):
-        driver_phone = driver_phone.split("@")[0].replace("sip:", "")
 
     job_request = JobCreateRequest(
         driver_name=driver_name,
@@ -322,23 +349,13 @@ async def _handle_sip_status(
 
     if call_status in sip_failure_map:
         try:
-            result = await DispatchService.record_mechanic_response(
+            await DispatchService.record_mechanic_response(
                 db=db,
                 job_id=uuid.UUID(job_id_str),
                 attempt_id=uuid.UUID(dispatch_attempt_id_str),
                 response=sip_failure_map[call_status],
                 notes=f"SIP call status: {call_status}",
             )
-
-            # Auto-dispatch next mechanic
-            next_attempt = await DispatchService.dispatch_next_mechanic(
-                db, uuid.UUID(job_id_str)
-            )
-            if next_attempt:
-                logger.info(
-                    f"SIP {call_status} → auto-dispatching next mechanic "
-                    f"for job {job_id_str}: {next_attempt.mechanic_company}"
-                )
 
         except ValueError as e:
             logger.error(f"SIP status handler error: {e}")
