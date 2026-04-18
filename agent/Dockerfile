@@ -6,12 +6,10 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 WORKDIR /app
 
 COPY pyproject.toml ./
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev --no-install-project
+RUN uv sync --no-dev --no-install-project
 
 COPY . .
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --no-dev
+RUN uv sync --no-dev
 
 # ── Stage 2: Runtime ───────────────────────────────────
 FROM python:3.12-slim AS runtime
