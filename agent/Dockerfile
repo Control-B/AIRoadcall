@@ -1,7 +1,7 @@
 # ── Stage 1: Build ──────────────────────────────────────
 FROM python:3.12-slim AS builder
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+RUN python -m pip install --no-cache-dir uv
 
 WORKDIR /app
 
