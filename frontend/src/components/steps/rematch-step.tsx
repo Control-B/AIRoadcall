@@ -141,6 +141,9 @@ export function RematchStep({ token, onOfferSent }: RematchStepProps) {
                 {c.distance_miles != null ? (
                   <span className="ml-2">~{c.distance_miles.toFixed(1)} mi</span>
                 ) : null}
+                {c.estimated_eta_minutes != null ? (
+                  <span className="ml-2">ETA ~{c.estimated_eta_minutes} min</span>
+                ) : null}
                 {c.rating != null ? (
                   <span className="ml-2">Rating {c.rating.toFixed(1)}</span>
                 ) : null}

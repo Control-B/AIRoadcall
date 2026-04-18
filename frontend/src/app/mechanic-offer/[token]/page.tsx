@@ -23,6 +23,8 @@ export default function MechanicOfferPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [pollState, setPollState] = useState<string | null>(null);
+  const [etaMinutes, setEtaMinutes] = useState("25");
+  const [notes, setNotes] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -39,6 +41,12 @@ export default function MechanicOfferPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (offer?.suggested_eta_minutes) {
+      setEtaMinutes(String(offer.suggested_eta_minutes));
+    }
+  }, [offer?.suggested_eta_minutes]);
 
   useEffect(() => {
     if (!offer?.driver_lat || !offer?.driver_lng || !mapRef.current) return;
@@ -82,9 +90,14 @@ export default function MechanicOfferPage() {
   const onRespond = async (response: "accepted" | "declined") => {
     setSubmitting(true);
     try {
+      const parsedEta = Number.parseInt(etaMinutes, 10);
       await respondMechanicOffer(token, {
         response,
-        eta_minutes: response === "accepted" ? 25 : undefined,
+        eta_minutes:
+          response === "accepted" && Number.isFinite(parsedEta) && parsedEta > 0
+            ? parsedEta
+            : undefined,
+        notes: notes.trim() || undefined,
       });
       await load();
     } catch (e: unknown) {
@@ -176,6 +189,12 @@ export default function MechanicOfferPage() {
                   {offer.driver_area}
                 </p>
               ) : null}
+              {offer.suggested_eta_minutes ? (
+                <p>
+                  <span className="text-muted-foreground">Suggested ETA: </span>
+                  about {offer.suggested_eta_minutes} minutes
+                </p>
+              ) : null}
             </CardContent>
           </Card>
 
@@ -190,6 +209,29 @@ export default function MechanicOfferPage() {
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-3">
+            <div className="col-span-2 grid gap-3 rounded-xl border bg-background p-4">
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium">Your ETA in minutes</span>
+                <input
+                  type="number"
+                  min={1}
+                  max={600}
+                  value={etaMinutes}
+                  onChange={(e) => setEtaMinutes(e.target.value)}
+                  className="rounded-lg border px-3 py-2"
+                />
+              </label>
+              <label className="grid gap-1 text-sm">
+                <span className="font-medium">Notes for dispatch</span>
+                <textarea
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Optional note about arrival, truck size, or service limits"
+                  className="rounded-lg border px-3 py-2"
+                />
+              </label>
+            </div>
             <button
               type="button"
               disabled={submitting}

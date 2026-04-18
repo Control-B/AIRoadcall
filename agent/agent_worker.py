@@ -450,6 +450,8 @@ def _driver_intake_tools() -> list[Any]:
         set_driver_location,
         remember_caller_memory,
         get_driver_eta_status,
+        list_rematch_candidates,
+        select_rematch_candidate,
     ]
     if _driver_extended_tools_enabled():
         tools.extend([get_knowledge_base, find_nearby_mechanics])
@@ -1139,6 +1141,103 @@ async def get_driver_eta_status(public_job_id: str):
     except Exception as e:
         logger.error("Failed to get driver ETA status: %s", e)
         return "Couldn't read ETA status for that job right now."
+
+
+_last_rematch_candidates_by_job: dict[str, list[dict[str, Any]]] = {}
+
+
+def _format_rematch_candidate_for_voice(candidate: dict[str, Any], option_number: int) -> str:
+    company = _tts_friendly_text(str(candidate.get("company_name") or "a nearby provider"))
+    bits: list[str] = []
+    eta = candidate.get("estimated_eta_minutes")
+    distance = candidate.get("distance_miles")
+    rating = candidate.get("rating")
+    city = str(candidate.get("city") or "").strip()
+    state = str(candidate.get("state") or "").strip()
+
+    if isinstance(eta, int) and eta > 0:
+        bits.append(f"estimated arrival about {eta} minutes")
+    if isinstance(distance, (int, float)):
+        bits.append(f"about {distance:.1f} miles away")
+    if isinstance(rating, (int, float)):
+        bits.append(f"rated {rating:.1f} out of five")
+    if city or state:
+        bits.append(f"based in {_spoken_place(city, state)}")
+
+    details = ", ".join(bits) if bits else "available for the job"
+    return f"Option {option_number} is {company}, {details}."
+
+
+@llm.function_tool(
+    description=(
+        "List alternate nearby mechanics for an existing job after the driver rejected the ETA. "
+        "Pass the public job id and this returns spoken comparison options with ETA, distance, and rating."
+    )
+)
+async def list_rematch_candidates(public_job_id: str, limit: int = 3):
+    """List alternate mechanics for a specific job after ETA rejection."""
+    code = (public_job_id or "").upper().strip()
+    try:
+        result = await api_call(
+            "GET",
+            f"/jobs/admin/by-public-id/{code}/rematch-candidates",
+            params={"limit": limit},
+        )
+        candidates = result if isinstance(result, list) else []
+        if not candidates:
+            return f"I couldn't find any other nearby providers for job {code} right now."
+        _last_rematch_candidates_by_job[code] = candidates
+        lines = [
+            f"I found {len(candidates[:limit])} alternate providers for job {code}."
+        ]
+        for idx, candidate in enumerate(candidates[:limit], start=1):
+            lines.append(_format_rematch_candidate_for_voice(candidate, idx))
+        lines.append("If you want one of these, tell me which option number you prefer.")
+        return "\n".join(lines)
+    except Exception as exc:
+        logger.error("Failed to list rematch candidates: %s", exc)
+        return "I couldn't load alternate provider options for that job right now."
+
+
+@llm.function_tool(
+    description=(
+        "Send the rematch offer to a specific alternate mechanic after the driver chooses one. "
+        "Pass the public job id and the spoken option number from list_rematch_candidates."
+    )
+)
+async def select_rematch_candidate(public_job_id: str, option_number: int = 1):
+    """Send a new dispatch offer to a caller-selected alternate mechanic."""
+    code = (public_job_id or "").upper().strip()
+    candidates = _last_rematch_candidates_by_job.get(code)
+    if not candidates:
+        try:
+            result = await api_call(
+                "GET",
+                f"/jobs/admin/by-public-id/{code}/rematch-candidates",
+                params={"limit": max(option_number, 3)},
+            )
+            candidates = result if isinstance(result, list) else []
+            _last_rematch_candidates_by_job[code] = candidates
+        except Exception as exc:
+            logger.error("Failed to refresh rematch candidates: %s", exc)
+            return "I couldn't refresh the alternate provider list right now."
+
+    if not candidates or option_number < 1 or option_number > len(candidates):
+        return f"I don't have an option {option_number} available for job {code}."
+
+    candidate = candidates[option_number - 1]
+    try:
+        await api_call(
+            "POST",
+            f"/jobs/admin/by-public-id/{code}/rematch-select",
+            json_body={"mechanic_id": candidate.get("mechanic_id")},
+        )
+        company = _tts_friendly_text(str(candidate.get("company_name") or "that provider"))
+        _last_rematch_candidates_by_job.pop(code, None)
+        return f"Done — I sent the new offer to {company}. I'll keep watching for their response."
+    except Exception as exc:
+        logger.error("Failed to select rematch candidate: %s", exc)
+        return "I couldn't send that alternate offer right now."
 
 
 @llm.function_tool(

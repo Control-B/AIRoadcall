@@ -140,6 +140,56 @@ async def admin_get_job_by_public_id(
     return await JobService.get_job_driver_view(job, db)
 
 
+@router.get(
+    "/admin/by-public-id/{public_job_id}/rematch-candidates",
+    response_model=list[RematchCandidateView],
+    dependencies=[Depends(require_admin_api_key)],
+)
+async def admin_list_rematch_candidates_route(
+    public_job_id: str,
+    db: AsyncSession = Depends(get_session),
+    limit: int = 15,
+):
+    code = public_job_id.upper().strip()
+    result = await db.execute(select(Job).where(Job.public_job_id == code))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    if job.driver_eta_decision != "rejected":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Rematch is only available after rejecting the ETA",
+        )
+    return await DispatchService.list_rematch_candidates(db, job, limit=limit)
+
+
+@router.post(
+    "/admin/by-public-id/{public_job_id}/rematch-select",
+    response_model=JobDriverView,
+    dependencies=[Depends(require_admin_api_key)],
+)
+async def admin_rematch_select_route(
+    public_job_id: str,
+    body: RematchSelectRequest,
+    db: AsyncSession = Depends(get_session),
+):
+    code = public_job_id.upper().strip()
+    result = await db.execute(select(Job).where(Job.public_job_id == code))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    try:
+        mid = uuid.UUID(body.mechanic_id)
+        await DispatchService.rematch_select_mechanic(db, job, mid)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    refreshed = await db.execute(select(Job).where(Job.id == job.id))
+    job = refreshed.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return await JobService.get_job_driver_view(job, db)
+
+
 @router.patch("/{token}/driver-eta", response_model=JobDriverView)
 async def patch_driver_eta_decision(
     token: str,

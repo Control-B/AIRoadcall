@@ -58,6 +58,7 @@ class MechanicOfferView(BaseModel):
     driver_lng: Optional[float] = None
     dispatch_attempt_id: str
     dispatch_status: str
+    suggested_eta_minutes: Optional[int] = Field(default=None, ge=1, le=600)
     offer_state: str = Field(
         ...,
         description="active | superseded | filled | closed",
@@ -88,6 +89,7 @@ class RematchCandidateView(BaseModel):
     state: Optional[str] = None
     rating: Optional[float] = None
     distance_miles: Optional[float] = None
+    estimated_eta_minutes: Optional[int] = None
     rank_score: float
     base_lat: float
     base_lng: float

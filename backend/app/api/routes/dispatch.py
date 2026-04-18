@@ -40,10 +40,11 @@ def _normalize_mechanic_offer_response(raw: str) -> str:
 @router.get("/mechanic-offer/{token}", response_model=MechanicOfferView)
 async def get_mechanic_offer(
     token: str,
+    db: AsyncSession = Depends(get_session),
     ctx: tuple[Job, DispatchAttempt] = Depends(get_mechanic_dispatch_offer_context),
 ):
     job, attempt = ctx
-    return await DispatchService.build_mechanic_offer_view(job, attempt)
+    return await DispatchService.build_mechanic_offer_view(db, job, attempt)
 
 
 @router.get("/mechanic-offer/{token}/status", response_model=MechanicOfferStatusView)
@@ -55,7 +56,7 @@ async def poll_mechanic_offer_status(
     job, attempt = ctx
     await db.refresh(job)
     await db.refresh(attempt)
-    return await DispatchService.mechanic_offer_status(job, attempt)
+    return await DispatchService.mechanic_offer_status(db, job, attempt)
 
 
 @router.post("/mechanic-offer/{token}/respond", response_model=MechanicResponseResponse)

@@ -102,6 +102,7 @@ export interface MechanicOfferView {
   driver_lng?: number | null;
   dispatch_attempt_id: string;
   dispatch_status: string;
+  suggested_eta_minutes?: number | null;
   offer_state: string;
   job_filled: boolean;
 }
@@ -114,6 +115,7 @@ export interface RematchCandidate {
   state?: string | null;
   rating?: number | null;
   distance_miles?: number | null;
+  estimated_eta_minutes?: number | null;
   rank_score: number;
   base_lat: number;
   base_lng: number;

@@ -44,6 +44,22 @@ class DispatchService:
         return lat - lat_delta, lat + lat_delta, lng - lng_delta, lng + lng_delta
 
     @staticmethod
+    def _estimate_eta_minutes_for_mechanic(job: Job, mechanic: Mechanic) -> int | None:
+        if job.driver_lat is None or job.driver_lng is None:
+            return None
+        mechanic_lat = mechanic.last_known_lat or mechanic.base_lat
+        mechanic_lng = mechanic.last_known_lng or mechanic.base_lng
+        if mechanic_lat is None or mechanic_lng is None:
+            return None
+        distance_miles = haversine_distance_meters(
+            job.driver_lat,
+            job.driver_lng,
+            mechanic_lat,
+            mechanic_lng,
+        ) / 1609.344
+        return max(5, round((distance_miles / 35.0) * 60))
+
+    @staticmethod
     async def _get_ranked_mechanics_for_job(
         db: AsyncSession, job: Job
     ) -> list[tuple[Mechanic, float]]:
@@ -393,10 +409,21 @@ class DispatchService:
                 await DispatchService.launch_outbound_call(db, job, item)
 
     @staticmethod
-    async def build_mechanic_offer_view(job: Job, attempt: DispatchAttempt) -> MechanicOfferView:
+    async def build_mechanic_offer_view(
+        db: AsyncSession, job: Job, attempt: DispatchAttempt
+    ) -> MechanicOfferView:
         """Public offer details for mechanic web UI."""
         driver_area = ", ".join(p for p in [job.driver_city, job.driver_state] if p) or None
         job_filled = job.assigned_mechanic_id is not None
+        mechanic_result = await db.execute(
+            select(Mechanic).where(Mechanic.id == attempt.mechanic_id)
+        )
+        mechanic = mechanic_result.scalar_one_or_none()
+        suggested_eta_minutes = (
+            DispatchService._estimate_eta_minutes_for_mechanic(job, mechanic)
+            if mechanic
+            else None
+        )
 
         offer_state = "active"
         if attempt.dispatch_status == DispatchStatus.superseded:
@@ -422,13 +449,16 @@ class DispatchService:
             driver_lng=job.driver_lng,
             dispatch_attempt_id=str(attempt.id),
             dispatch_status=attempt.dispatch_status,
+            suggested_eta_minutes=suggested_eta_minutes,
             offer_state=offer_state,
             job_filled=job_filled,
         )
 
     @staticmethod
-    async def mechanic_offer_status(job: Job, attempt: DispatchAttempt) -> MechanicOfferStatusView:
-        view = await DispatchService.build_mechanic_offer_view(job, attempt)
+    async def mechanic_offer_status(
+        db: AsyncSession, job: Job, attempt: DispatchAttempt
+    ) -> MechanicOfferStatusView:
+        view = await DispatchService.build_mechanic_offer_view(db, job, attempt)
         return MechanicOfferStatusView(
             offer_state=view.offer_state,
             job_filled=view.job_filled,
@@ -452,6 +482,9 @@ class DispatchService:
                     mechanic.base_lng,
                 ) / 1609.344
             rating_val = float(mechanic.rating) if mechanic.rating is not None else None
+            estimated_eta_minutes = DispatchService._estimate_eta_minutes_for_mechanic(
+                job, mechanic
+            )
             out.append(
                 RematchCandidateView(
                     mechanic_id=str(mechanic.id),
@@ -461,6 +494,7 @@ class DispatchService:
                     state=mechanic.state,
                     rating=rating_val,
                     distance_miles=dist_miles,
+                    estimated_eta_minutes=estimated_eta_minutes,
                     rank_score=score,
                     base_lat=mechanic.base_lat,
                     base_lng=mechanic.base_lng,
