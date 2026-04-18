@@ -185,9 +185,6 @@ workers:
       - key: LIVEKIT_INFERENCE_TTS_VOICE
         scope: RUN_TIME
         value: 21m00Tcm4TlvDq8ikWAM
-      - key: ELEVENLABS_API_KEY
-        scope: RUN_TIME
-        type: SECRET
       - key: LIVEKIT_INFERENCE_STT
         scope: RUN_TIME
         value: deepgram/nova-3-general
