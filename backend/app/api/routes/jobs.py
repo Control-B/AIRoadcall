@@ -63,6 +63,42 @@ async def create_job(
     return result
 
 
+@router.get("/by-code/{public_job_id}")
+async def get_job_by_code(
+    public_job_id: str,
+    db: AsyncSession = Depends(get_session),
+):
+    """Look up a job by its public ID (e.g. RC-A1B2C3D4) and return the magic link token.
+
+    Used by the /go/{code} frontend page so the driver can access their case
+    without needing an SMS."""
+    from sqlalchemy import select
+    from app.models.job import Job
+
+    code = public_job_id.upper().strip()
+    result = await db.execute(select(Job).where(Job.public_job_id == code))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"magic_link_token": job.magic_link_token, "public_job_id": job.public_job_id}
+
+
+@router.post("/geocode")
+async def geocode_address(
+    body: dict,
+):
+    """Forward-geocode an address via Mapbox. Used by the agent to resolve verbal addresses."""
+    from app.services.geocoding_service import GeocodingService
+
+    address = body.get("address", "")
+    city = body.get("city", "")
+    state = body.get("state", "")
+    result = await GeocodingService.geocode_address(address, city, state)
+    if not result:
+        raise HTTPException(status_code=404, detail="Could not geocode address")
+    return result
+
+
 @router.get("/mechanic-tracking/{token}", response_model=MechanicTrackingView)
 async def get_mechanic_tracking_by_token(
     token: str,

@@ -62,6 +62,9 @@ class Settings(BaseSettings):
     DEMO_SKIP_PAYMENT_AUTHORIZATION: bool = False
     JOB_DUPLICATE_WINDOW_MINUTES: int = 15
 
+    # Mapbox
+    MAPBOX_ACCESS_TOKEN: str = ""
+
     # CORS
     FRONTEND_URL: str = "http://localhost:3000"
 

@@ -312,14 +312,15 @@ stay general and safety-focused.
 - What happened: flat tire, battery, lockout, tow, engine trouble, etc.
 - Immediate safety status: make sure they are safe; if there is an emergency, tell them to call 9 1 1 first.
 - Brief situation note: e.g. shoulder of the highway, parking lot, off-ramp.
-- Do NOT ask for city and state. The text link will capture their exact GPS location.
+- Location: Ask for their address, cross street, highway and mile marker, or nearest building/landmark, plus city and state. This lets us find them even without GPS.
 
 ## Actions (internal — use tools; never describe tool names to the caller)
 When you have their name, vehicle make and model, issue, and a short situation note:
-- Use save_driver_info immediately so the system sends a secure text link while they are still on the call.
-- Tell the driver: I am texting you a link right now. When you tap it, it will pinpoint your location on a map and match you with the nearest mechanic.
-- Do NOT search for mechanics during this call. The link handles that after the driver shares their GPS.
-- Do not delay sending the link to collect city and state.
+- Use save_driver_info immediately to create the case.
+- Then use set_driver_location with their address, city, and state to pin them on the map.
+- After both tools succeed, give the driver their access code and backup link. Say something like:
+  "Your case number is R C dash (spell it out). If you can, go to roadcall dot com slash go on your phone and enter that code — it will confirm your exact location on a map."
+- Do NOT search for mechanics during this call. The system handles that automatically after the location is set.
 
 ## Closing
 Confirm the essentials in one short casual sentence, tell them you're getting help \
@@ -374,10 +375,12 @@ DRIVER_INTAKE_TOOL_APPENDIX = """\
 ## Roadcall tools (required — do not mention these names to the caller)
 You have function tools for this app. Use them when appropriate; never say "tool", \
 "function", or raw JSON aloud.
-- save_driver_info: persist the case and trigger the secure text link. Call this as soon as you have name, vehicle make and model, issue type, and a short situation note. City and state are optional.
+- save_driver_info: persist the case and create the job. Call this as soon as you have name, vehicle make and model, issue type, and a short situation note. City and state are optional.
+- set_driver_location: geocode the driver's verbal address (street, highway, landmark) plus city and state, and pin their location on the map. Call this right after save_driver_info if the driver gave any address info.
 - remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
 
-Do NOT search for mechanics during this call. The text link will capture the driver's GPS and automatically find the nearest mechanic.
+After save_driver_info, give the driver their case code and tell them to visit roadcall dot com slash go to confirm their location.
+Do NOT search for mechanics during this call. The system handles that automatically.
 Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
 """
 
@@ -570,6 +573,81 @@ def _resolve_mechanic_system_prompt(ctx: JobContext, meta: dict, mechanic_name: 
 
 @llm.function_tool(
     description=(
+        "Geocode the driver's verbal address, highway/mile-marker, or landmark "
+        "and set their location on the map. Call this right after save_driver_info "
+        "with whatever location the driver described."
+    )
+)
+async def set_driver_location(
+    address: str,
+    city: str = "",
+    state: str = "",
+):
+    """Geocode an address via backend Mapbox and update the job's location."""
+    global _current_dispatch_job_id
+
+    # First geocode the address
+    try:
+        geo = await api_call(
+            "POST",
+            "/jobs/geocode",
+            json_body={"address": address, "city": city, "state": state},
+        )
+    except Exception as e:
+        logger.warning("Geocoding failed for '%s, %s, %s': %s", address, city, state, e)
+        return (
+            f"I couldn't find that address on the map. Ask the driver for a more specific "
+            f"location — a street address, intersection, or nearby landmark with the city and state."
+        )
+
+    lat = geo.get("lat")
+    lng = geo.get("lng")
+    display = geo.get("display", f"{address}, {city}, {state}")
+
+    if not lat or not lng:
+        return "Could not pinpoint that location. Ask for a more specific address or cross street."
+
+    # Now find the job and update its location
+    # We need the magic_link_token for the job — get it via the public_job_id
+    # The last job_id returned by save_driver_info is available
+    global _last_saved_job_id
+    if not _last_saved_job_id:
+        return "Please call save_driver_info first to create the case, then call set_driver_location."
+
+    try:
+        # Look up the job's token by public_job_id
+        job_info = await api_call("GET", f"/jobs/by-code/{_last_saved_job_id}")
+        token = job_info.get("magic_link_token")
+        if not token:
+            return "Could not find the job token. The driver can confirm location via the website link."
+
+        # Update the job's location
+        await api_call(
+            "POST",
+            f"/jobs/{token}/location",
+            json_body={"lat": lat, "lng": lng},
+        )
+        logger.info("Driver location set via geocoding: (%.5f, %.5f) %s", lat, lng, display)
+        return (
+            f"Location set to {display} (coordinates {lat:.4f}, {lng:.4f}). "
+            f"The system is now matching them with the nearest mechanic. "
+            f"Let the driver know their case code is {_last_saved_job_id} and they can "
+            f"visit roadcall dot com slash go to see their status and confirm their location."
+        )
+    except Exception as e:
+        logger.error("Failed to update job location: %s", e)
+        return (
+            f"I found the address at {display} but had trouble saving it. "
+            f"The driver can confirm via the website link."
+        )
+
+
+# Track the last saved job ID so set_driver_location can reference it
+_last_saved_job_id: str = ""
+
+
+@llm.function_tool(
+    description=(
         "Save the driver's collected information and create a job in the system. "
         "Call this once you have the driver's name, vehicle, issue type, and a "
         "brief situation note, plus their current city and state."
@@ -614,6 +692,8 @@ async def save_driver_info(
             },
         )
         job_id = result.get("public_job_id", "unknown")
+        global _last_saved_job_id
+        _last_saved_job_id = job_id
         try:
             await save_phone_memory(
                 driver_phone,
@@ -629,12 +709,15 @@ async def save_driver_info(
         logger.info(f"Job created via API: {job_id} for {driver_name} ({driver_phone})")
         return (
             f"Done — job {job_id} is in the system for {driver_name}. "
-            "Tell them the secure link is on the way now and it will match them with the nearest mechanic."
+            f"Their access code is {job_id}. "
+            f"Tell them: your case number is {job_id} (spell it out letter by letter). "
+            f"Go to roadcall dot com slash go on your phone and enter that code to confirm your exact location. "
+            "Now use set_driver_location with any address they gave you to pin them on the map right away."
         )
     except Exception as e:
         logger.error(f"Failed to create job via API: {e}")
         return (
-            f"Information saved. Let {driver_name} know the secure link is being prepared now."
+            f"Information saved. Let {driver_name} know we are getting help lined up."
         )
 
 
@@ -1034,11 +1117,13 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
     # Reset all module-level globals so each call starts clean
     global _current_caller_phone, _current_driver_room
     global _current_dispatch_job_id, _current_dispatch_attempt_id, _current_mechanic_phone
+    global _last_saved_job_id
     _current_caller_phone = ""
     _current_driver_room = None
     _current_dispatch_job_id = ""
     _current_dispatch_attempt_id = ""
     _current_mechanic_phone = ""
+    _last_saved_job_id = ""
 
     _current_driver_room = ctx.room
     _current_caller_phone = _extract_caller_phone_from_room(ctx.room)
@@ -1065,7 +1150,7 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
             _resolve_driver_intake_system_prompt(ctx, meta)
             + (f"\n\n## Caller memory\n{memory_block}" if memory_block else "")
         ),
-        tools=[save_driver_info, remember_caller_memory],
+        tools=[save_driver_info, set_driver_location, remember_caller_memory],
     )
 
     session = _voice_agent_session(
