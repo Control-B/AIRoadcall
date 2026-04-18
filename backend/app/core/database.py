@@ -27,8 +27,8 @@ def _ensure_asyncpg_url(url: str) -> str:
 def _get_connect_args() -> dict:
     """Return SSL connect args for managed databases (DigitalOcean, etc.)."""
     url = settings.DATABASE_URL
-    # If connecting to a remote host (not localhost), use SSL
-    if url and "localhost" not in url and "127.0.0.1" not in url:
+    # If connecting to a remote host (not localhost/docker-compose), use SSL
+    if url and "localhost" not in url and "127.0.0.1" not in url and "@postgres:" not in url:
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE

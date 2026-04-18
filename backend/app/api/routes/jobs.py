@@ -23,15 +23,20 @@ settings = get_settings()
 
 
 def _send_magic_link_background(phone_number: str, magic_link_url: str, driver_name: str) -> None:
+    import logging
+    _logger = logging.getLogger(__name__)
+
     async def _runner() -> None:
         try:
-            await SMSService.send_magic_link(
+            ok = await SMSService.send_magic_link(
                 phone_number=phone_number,
                 magic_link_url=magic_link_url,
                 driver_name=driver_name,
             )
-        except Exception:
-            return
+            if not ok:
+                _logger.warning("Background SMS to %s returned False", phone_number)
+        except Exception as exc:
+            _logger.error("Background SMS to %s failed: %s", phone_number, exc)
 
     asyncio.create_task(_runner())
 
