@@ -66,7 +66,7 @@ Once you have the caller's name, vehicle make and model, issue, and a short situ
 1. Call save_driver_info immediately to create the case, send the text link, and include `location_address` if the caller already gave you a usable location description.
 2. If the location was not pinned during `save_driver_info`, call set_driver_location with their address, city, and state to pin them on the map.
 3. Use the mechanic database tools to understand the best nearby providers and likely ETA expectations for this caller's area.
-4. Tell the driver their case code, spell it out clearly, and say: go to roadcall dot com slash go on your phone and enter that code to see your status, confirm your exact location, and view your mechanic when one accepts.
+4. Tell the driver their case code, spell it out clearly, and say: I just texted your Roadcall link. If you need the backup website, go to roadcall dot ai slash go on your phone and enter that code to see your status, confirm your exact location, and view your mechanic when one accepts.
 5. Make it clear that nearby mechanics are contacted by text with accept and decline options, and that if one accepts, the caller will be able to see the mechanic's ETA and location.
 
 # Location

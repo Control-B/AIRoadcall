@@ -380,7 +380,7 @@ When you have their name, vehicle make and model, issue, and a short situation n
 - If the location was not pinned during save_driver_info, use set_driver_location with their address, city, and state to pin them on the map.
 - After that, call get_knowledge_base and find_nearby_mechanics so you can explain what help is available nearby using the mechanic database as the primary source.
 - Give the driver their access code and backup link. Say something like:
-    "Your case number is R C dash (spell it out). If you can, go to roadcall dot com slash go on your phone and enter that code — it will confirm your exact location on a map and let you view your mechanic when one accepts."
+    "I just texted you the Roadcall link. Your case number is R C dash (spell it out). If you need the backup website, go to roadcall dot ai slash go on your phone and enter that code — it will confirm your location and let you view your mechanic when one accepts."
 - Make it clear that nearby mechanics are contacted by text with accept and decline options, and that if one accepts with an ETA, the caller will be able to see the mechanic's ETA and location.
 - Before ending the call, ask if they need anything else right now, then close warmly.
 
@@ -446,7 +446,7 @@ You have function tools for this app. Use them when appropriate; never say "tool
 - set_driver_location: geocode the driver's verbal address (street, highway, landmark) plus city and state, and pin their location on the map. Use this if the driver gives the address after the case was already created or if save_driver_info did not receive location_address.
 - remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
 
-After save_driver_info, give the driver their case code and tell them to visit roadcall dot com slash go to confirm their location.
+After save_driver_info, tell the driver the texted Roadcall link is primary. Use roadcall dot ai slash go only as the backup path if they need to enter the case code manually.
 Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
 """
 
@@ -753,7 +753,7 @@ async def _set_driver_location_for_job(
             f"Location set to {display} (coordinates {lat:.4f}, {lng:.4f}). "
             f"The system is now matching them with the nearest mechanic. "
             f"Let the driver know their case code is {normalized_code} and they can "
-            f"visit roadcall dot com slash go to see their status and confirm their location."
+            f"use the Roadcall text link to see their status and confirm their location, or visit roadcall dot ai slash go if they need the backup site."
         )
     except Exception as e:
         logger.error("Failed to update job location: %s", e)
@@ -882,12 +882,12 @@ async def save_driver_info(
             response_parts.append(location_message)
             if location_saved:
                 response_parts.append(
-                    "Tell the driver their location is pinned on the map and they can open roadcall dot com slash go with that case code."
+                    "Tell the driver their location is pinned on the map and they can open the Roadcall text link now, or use roadcall dot ai slash go with that case code as backup."
                 )
         else:
             response_parts.append(
                 f"Tell them: your case number is {job_id} (spell it out letter by letter). "
-                f"Go to roadcall dot com slash go on your phone and enter that code to confirm your exact location. "
+                f"I just texted your Roadcall link. If you need the backup website, go to roadcall dot ai slash go on your phone and enter that code to confirm your exact location. "
                 "If they already gave an address, call set_driver_location now to pin them on the map."
             )
 
