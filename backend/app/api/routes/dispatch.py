@@ -105,6 +105,53 @@ async def start_dispatch(
         )
 
 
+@router.post("/{job_id}/start-sms")
+async def start_sms_dispatch(
+    job_id: uuid.UUID,
+    body: dict | None = None,
+    db: AsyncSession = Depends(get_session),
+):
+    """SMS-dispatch top-ranked mechanics for a job without requiring payment.
+
+    Called by the AI agent after the driver's GPS location is confirmed.
+    Skips payment gate — finds nearby mechanics and texts each one an
+    accept/decline link immediately.
+    """
+    from app.enums.job_status import JobStatus
+
+    count = (body or {}).get("count", 3)
+
+    result = await db.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # Update status to matching
+    if job.status not in (
+        JobStatus.matching_mechanics,
+        JobStatus.calling_mechanics,
+    ):
+        job.status = JobStatus.matching_mechanics
+        await db.flush()
+
+    # Dispatch batch (ranks mechanics, creates attempts, sends SMS)
+    batch = await DispatchService.dispatch_mechanics_batch(db, job_id, count)
+
+    mechanics_info = []
+    for item in batch:
+        mechanics_info.append({
+            "company_name": item.mechanic_company,
+            "phone": item.mechanic_phone,
+            "dispatch_attempt_id": item.dispatch_attempt_id,
+        })
+
+    return {
+        "dispatched_count": len(batch),
+        "mechanics": mechanics_info,
+        "job_status": job.status,
+    }
+
+
 @router.post("/{job_id}/next", response_model=DispatchNextResponse)
 async def dispatch_next_mechanic(
     job_id: uuid.UUID,

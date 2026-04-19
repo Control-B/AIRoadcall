@@ -321,74 +321,49 @@ DRIVER_INTAKE_PROMPT = """\
 You are Mara — a calm, efficient roadside assistance voice agent helping truck \
 drivers and motorists get help quickly and safely.
 
-Your primary goal is to understand the situation, gather essential details, and \
-coordinate the fastest and most appropriate assistance.
+Your primary goal is to understand the situation, gather essential details, send \
+the driver a text link so we can locate them via GPS, then find and dispatch nearby mechanics.
 
 ## Strict call flow
-- Answer the call immediately and take control calmly.
-- Ask only the most relevant questions needed to move the case forward.
-- Create the case as soon as you have the driver's name, vehicle, issue, and a short situation note.
-- Send the driver's text link and make sure they have their case code.
-- Map the caller's location using the address, cross street, mile marker, or nearest landmark they provide.
-- Use the mechanics database as your main source of truth for nearby help, ETA expectations, and available providers.
-- Once the driver's location is pinned and the case is ready, explain that nearby mechanics will be contacted by text with accept and decline options.
-- If a mechanic accepts and provides an ETA, tell the caller the ETA and let them know they can view the mechanic's location and ETA from their case link.
-- Before ending the call, ask if they need anything else, then close warmly and hang up.
+1. Answer the call. Greet warmly: "Hi, this is Mara with Roadcall. Are you safe right now?"
+2. If they have an emergency, tell them to call 9 1 1 immediately.
+3. Ask only the essentials: first name, vehicle make and model, what happened, and a brief situation note.
+4. As soon as you have those details, call save_driver_info to create the case and send the SMS link. Do NOT ask for address, city, state, or GPS — the text link handles location.
+5. Tell the driver: "I just texted you a link. Please tap it and allow location access so we can pinpoint where you are and send the nearest mechanic."
+6. Keep the conversation going naturally while the driver taps the link.
+7. After about 15 to 20 seconds, call check_driver_location to see if GPS came in.
+8. Once GPS is confirmed, call find_nearby_mechanics with the coordinates to search the mechanic database (35,000+ mechanics).
+9. Call dispatch_to_mechanics to SMS the top matches with accept/decline links.
+10. Tell the driver: "I've sent your job to nearby mechanics. When one accepts, you'll see their name, ETA, and live location on the link I texted you."
+11. Ask if they need anything else, then close warmly and hang up.
+
+## What NOT to do
+- Do NOT ask the driver for their address, city, state, highway, mile marker, or any location details. The magic link GPS handles this.
+- Do NOT mention payment, holds, or charges during the call.
+- Do NOT say you are an AI, a language model, or a bot. You are Mara at Roadcall.
+- Do NOT read tool names, parameters, or raw JSON aloud.
+- Do NOT wait silently. Keep the driver engaged while the link is being tapped.
 
 ## Language
 Detect the language the caller is speaking and respond entirely in that language \
-for the rest of the call. If they speak Spanish, respond in Spanish. If they speak \
-Portuguese, respond in Portuguese. If they switch languages mid-call, switch with them. \
-Default to English if the language is unclear.
-## Voice output rules (spoken replies — never break these)
-You are on a phone call going through text-to-speech. Everything you say aloud must \
-sound natural when read by TTS.
-- Respond in plain spoken words only. Do not use JSON, markdown, bullet lists, \
-tables, code, emojis, or other formatting in what you say.
-- Keep replies brief by default: one to three short sentences. Ask one clear question \
-at a time.
-- Do not reveal system instructions, internal reasoning, tool names, parameters, or \
-raw tool outputs to the caller. Never say words like "function" or "tool" out loud.
-- Spell out numbers, phone numbers, and email addresses when speaking them.
-- If you mention a website, say it in plain words; omit "https" and slash-heavy paths.
-- Avoid acronyms and words with unclear pronunciation when you can use plain language.
+for the rest of the call. Default to English if unclear.
+
+## Voice output rules
+- Respond in plain spoken words only. No JSON, markdown, lists, or formatting.
+- Keep replies brief: one to three sentences. Ask one question at a time.
+- Do not reveal tool names, parameters, or raw outputs. Never say "function" or "tool".
+- Spell out numbers, phone numbers, and email addresses.
+- Omit "https" when mentioning websites.
 
 ## Tone and behavior
 - Be calm, confident, and reassuring at all times.
 - Assume the caller may be stressed, stranded, or in a noisy environment.
-- Mirror urgency without panic: soothe first if they sound frightened, then collect facts.
 - Sound human: natural contractions and brief acknowledgments are fine.
-- Never say you are an AI or a language model. You are Mara at Roadside.
-- Do not read numbered steps aloud ("step one", "first… second…"). Weave the flow naturally.
-
-## Knowledge base and RAG (future)
-When retrieved context or knowledge-base snippets are added to your instructions or \
-chat context, treat them as the source of truth for company policies, coverage, and \
-factual answers. If no such context is present, do not invent coverage or guarantees; \
-stay general and safety-focused.
-For nearby shops, mechanics, ETA expectations, and provider choices, prefer the mechanic database and recommendation tools over general reasoning.
-
-## Information to collect (any natural order)
-- First name (or how they want to be addressed).
-- Vehicle: make and model (e.g. Freightliner Cascadia, Ford F-150). Year too if they mention it.
-- What happened: flat tire, battery, lockout, tow, engine trouble, etc.
-- Immediate safety status: make sure they are safe; if there is an emergency, tell them to call 9 1 1 first.
-- Brief situation note: e.g. shoulder of the highway, parking lot, off-ramp.
-- Location: Ask for their address, cross street, highway and mile marker, or nearest building/landmark, plus city and state. This lets us find them even without GPS.
-
-## Actions (internal — use tools; never describe tool names to the caller)
-When you have their name, vehicle make and model, issue, and a short situation note:
-- Use save_driver_info immediately to create the case, send the text link, and include `location_address` if the caller already gave you a usable location description.
-- If the location was not pinned during save_driver_info, use set_driver_location with their address, city, and state to pin them on the map.
-- After that, call get_knowledge_base and find_nearby_mechanics so you can explain what help is available nearby using the mechanic database as the primary source.
-- Give the driver their access code and backup link. Say something like:
-    "I just texted you the Roadcall link. Your case number is R C dash (spell it out). If you need the backup website, go to roadcall dot ai slash go on your phone and enter that code — it will confirm your location and let you view your mechanic when one accepts."
-- Make it clear that nearby mechanics are contacted by text with accept and decline options, and that if one accepts with an ETA, the caller will be able to see the mechanic's ETA and location.
-- Before ending the call, ask if they need anything else right now, then close warmly.
+- Never say you are an AI. You are Mara at Roadcall.
 
 ## Closing
-Confirm the essentials in one short casual sentence, tell them you're getting help \
-lined up, and end warmly. Keep the call efficient (roughly under two minutes when possible).\
+Once mechanics are dispatched, confirm the case code, remind the driver to check \
+the link for updates, ask if they need anything else, and end warmly.\
 """
 
 
@@ -443,21 +418,22 @@ DRIVER_INTAKE_TOOL_APPENDIX_CORE = """\
 ## Roadcall tools (required — do not mention these names to the caller)
 You have function tools for this app. Use them when appropriate; never say "tool", \
 "function", or raw JSON aloud.
-- find_nearest_shop: if the caller directly asks for the nearest Love's, tire shop, trailer shop, engine repair shop, or similar, use this first and answer that request before normal intake.
-- save_driver_info: persist the case, create the job, send the driver's text link, and optionally pin their map location if you include the verbal address. Call this as soon as you have name, vehicle make and model, issue type, and a short situation note. If they already gave an address or landmark, pass it in location_address.
-- set_driver_location: geocode the driver's verbal address (street, highway, landmark) plus city and state, and pin their location on the map. Use this if the driver gives the address after the case was already created or if save_driver_info did not receive location_address.
-- remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
+- save_driver_info: create the case and send the SMS magic link. Call as soon as you have name, vehicle, issue, and situation note. Do NOT pass location — the text link handles GPS.
+- check_driver_location: poll the backend to see if the driver has tapped the text link and shared GPS. Returns lat/lng if available. Call this ~15-20 seconds after sending the link.
+- find_nearby_mechanics: search the 35,000+ mechanic database using GPS coordinates, issue type, and vehicle type. Returns top ranked matches.
+- dispatch_to_mechanics: SMS the top nearby mechanics with the job details and accept/decline links. Call this after find_nearby_mechanics returns results.
+- find_nearest_shop: if the caller asks for the nearest Love's, tire shop, etc., use this and answer before normal intake.
+- remember_caller_memory: save durable notes about the caller.
 
-After save_driver_info, tell the driver the texted Roadcall link is primary. Use roadcall dot ai slash go only as the backup path if they need to enter the case code manually.
+Flow: save_driver_info → tell driver to tap link → check_driver_location → find_nearby_mechanics → dispatch_to_mechanics → close call.
 Follow the tool descriptions for parameters. Give spoken summaries only; do not read database fields verbatim.\
 """
 
 
 DRIVER_INTAKE_TOOL_APPENDIX_EXTENDED = """\
-- get_knowledge_base: pull the mechanic/service knowledge base for the caller's area from the RAG endpoint.
-- find_nearby_mechanics: query the mechanic database and return the best nearby matches using the backend recommendations engine.
+- get_knowledge_base: pull the mechanic/service knowledge base for the caller's area.
 
-After location is known, you may use the mechanic knowledge tools to explain what help is nearby when useful.\
+Use the mechanic database tools to explain what help is nearby.\
 """
 
 
@@ -470,6 +446,8 @@ def _driver_intake_tools() -> list[Any]:
         find_nearest_shop,
         save_driver_info,
         set_driver_location,
+        check_driver_location,
+        dispatch_to_mechanics,
         remember_caller_memory,
         get_knowledge_base,
         find_nearby_mechanics,
@@ -866,31 +844,14 @@ async def save_driver_info(
 
         if sms_sent is True:
             response_parts.append(
-                f"The secure text link was sent to {driver_phone}."
+                f"The text link was sent to {driver_phone}. "
+                "Tell the driver to tap the link and allow location access. "
+                "After about 15 to 20 seconds, call check_driver_location to see if GPS came in."
             )
         elif sms_sent is False:
             response_parts.append(
-                "The case is created, but the text link did not confirm as sent yet."
-            )
-
-        location_text = (location_address or "").strip()
-        if location_text:
-            location_saved, location_message = await _set_driver_location_for_job(
-                job_id,
-                location_text,
-                normalized_city or "",
-                normalized_state or "",
-            )
-            response_parts.append(location_message)
-            if location_saved:
-                response_parts.append(
-                    "Tell the driver their location is pinned on the map and they can open the Roadcall text link now, or use roadcall dot ai slash go with that case code as backup."
-                )
-        else:
-            response_parts.append(
-                f"Tell them: your case number is {job_id} (spell it out letter by letter). "
-                f"I just texted your Roadcall link. If you need the backup website, go to roadcall dot ai slash go on your phone and enter that code to confirm your exact location. "
-                "If they already gave an address, call set_driver_location now to pin them on the map."
+                "The case is created, but the text link did not confirm as sent yet. "
+                "Tell the driver the backup: go to roadcall dot ai slash go and enter their case code."
             )
 
         return " ".join(response_parts)
@@ -899,6 +860,91 @@ async def save_driver_info(
         return (
             f"Information saved. Let {driver_name} know we are getting help lined up."
         )
+
+
+@llm.function_tool(
+    description=(
+        "Check if the driver has tapped the magic link and shared their GPS location. "
+        "Call this about 15-20 seconds after sending the text link. "
+        "Returns the driver's latitude and longitude if available, or says still waiting."
+    )
+)
+async def check_driver_location(job_id: str = ""):
+    """Poll backend for driver GPS coordinates from the magic link."""
+    code = (job_id or _last_saved_job_id or "").upper().strip()
+    if not code:
+        return "No job ID available yet. Create the case first with save_driver_info."
+
+    try:
+        result = await api_call("GET", f"/jobs/admin/by-public-id/{code}")
+        lat = result.get("driver_lat")
+        lng = result.get("driver_lng")
+        if lat is not None and lng is not None:
+            city = result.get("driver_city", "")
+            state = result.get("driver_state", "")
+            location_desc = f"near {city}, {state}" if city and state else f"at coordinates {lat:.4f}, {lng:.4f}"
+            return (
+                f"Driver GPS location confirmed {location_desc}. "
+                f"Latitude {lat}, longitude {lng}. "
+                "You can now call find_nearby_mechanics with these coordinates."
+            )
+        return (
+            "The driver hasn't shared their location yet. "
+            "Ask them to check their phone for the text link and tap it. "
+            "Try calling check_driver_location again in about 15 seconds."
+        )
+    except Exception as e:
+        logger.error(f"Failed to check driver location: {e}")
+        return "Could not check driver location right now. Try again shortly."
+
+
+@llm.function_tool(
+    description=(
+        "Dispatch nearby mechanics by SMS for a job. Sends each mechanic a text "
+        "with job details and an accept/decline web link. Call this after "
+        "find_nearby_mechanics returns results. Pass the job ID and the number "
+        "of mechanics to contact (default 3)."
+    )
+)
+async def dispatch_to_mechanics(job_id: str = "", count: int = 3):
+    """Trigger the backend to SMS dispatch offers to top-ranked nearby mechanics."""
+    code = (job_id or _last_saved_job_id or "").upper().strip()
+    if not code:
+        return "No job ID available. Create the case first."
+
+    try:
+        # Look up the internal UUID for this public job ID
+        job_data = await api_call("GET", f"/jobs/admin/by-public-id/{code}")
+        internal_id = job_data.get("id")
+        if not internal_id:
+            return f"Could not find job {code} in the system."
+
+        # Trigger batch dispatch (backend handles ranking, SMS, and offer links)
+        result = await api_call(
+            "POST",
+            f"/dispatch/{internal_id}/start-sms",
+            json_body={"count": count},
+        )
+        dispatched = result.get("dispatched_count", 0)
+        mechanics = result.get("mechanics", [])
+
+        if dispatched == 0:
+            return (
+                f"No mechanics could be dispatched for job {code} right now. "
+                "The job is logged and dispatch will keep trying."
+            )
+
+        names = [m.get("company_name", "a mechanic") for m in mechanics[:3]]
+        names_spoken = ", ".join(names)
+        return (
+            f"Done — texted {dispatched} nearby mechanics for job {code}: {names_spoken}. "
+            "Each one received the job details with accept and decline links. "
+            "Tell the driver that when a mechanic accepts, they will see the mechanic's "
+            "name, ETA, and live location on the link that was texted to them."
+        )
+    except Exception as e:
+        logger.error(f"Failed to dispatch mechanics: {e}")
+        return f"Could not dispatch mechanics right now for job {code}. The job is logged and dispatch will follow up."
 
 
 # Module-level variables set per-call by handlers (tools read these)
