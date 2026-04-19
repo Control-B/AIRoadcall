@@ -19,6 +19,7 @@ class JobCreateResponse(BaseModel):
     public_job_id: str
     magic_link_token: str
     magic_link_url: str
+    magic_link_sms_sent: Optional[bool] = None
     status: str
     created_at: datetime
 

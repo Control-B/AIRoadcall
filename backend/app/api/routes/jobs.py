@@ -1,4 +1,3 @@
-import asyncio
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -35,23 +34,22 @@ router = APIRouter(prefix="/jobs", tags=["jobs"])
 settings = get_settings()
 
 
-def _send_magic_link_background(phone_number: str, magic_link_url: str, driver_name: str) -> None:
+async def _send_magic_link_now(phone_number: str, magic_link_url: str, driver_name: str) -> bool:
     import logging
     _logger = logging.getLogger(__name__)
 
-    async def _runner() -> None:
-        try:
-            ok = await SMSService.send_magic_link(
-                phone_number=phone_number,
-                magic_link_url=magic_link_url,
-                driver_name=driver_name,
-            )
-            if not ok:
-                _logger.warning("Background SMS to %s returned False", phone_number)
-        except Exception as exc:
-            _logger.error("Background SMS to %s failed: %s", phone_number, exc)
-
-    asyncio.create_task(_runner())
+    try:
+        ok = await SMSService.send_magic_link(
+            phone_number=phone_number,
+            magic_link_url=magic_link_url,
+            driver_name=driver_name,
+        )
+        if not ok:
+            _logger.warning("Magic-link SMS to %s returned False", phone_number)
+        return ok
+    except Exception as exc:
+        _logger.error("Magic-link SMS to %s failed: %s", phone_number, exc)
+        return False
 
 
 @router.post("", response_model=JobCreateResponse, status_code=status.HTTP_201_CREATED)
@@ -65,15 +63,13 @@ async def create_job(
     phone call with the driver is complete.
     """
     result = await JobService.create_job(db, request)
-
-    # Send magic link SMS to driver
-    _send_magic_link_background(
+    sms_sent = await _send_magic_link_now(
         phone_number=request.driver_phone,
         magic_link_url=result.magic_link_url,
         driver_name=request.driver_name,
     )
 
-    return result
+    return result.model_copy(update={"magic_link_sms_sent": sms_sent})
 
 
 @router.get("/by-code/{public_job_id}")

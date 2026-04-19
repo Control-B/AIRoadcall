@@ -429,8 +429,8 @@ DRIVER_INTAKE_TOOL_APPENDIX_CORE = """\
 You have function tools for this app. Use them when appropriate; never say "tool", \
 "function", or raw JSON aloud.
 - find_nearest_shop: if the caller directly asks for the nearest Love's, tire shop, trailer shop, engine repair shop, or similar, use this first and answer that request before normal intake.
-- save_driver_info: persist the case and create the job. Call this as soon as you have name, vehicle make and model, issue type, and a short situation note. City and state are optional.
-- set_driver_location: geocode the driver's verbal address (street, highway, landmark) plus city and state, and pin their location on the map. Call this right after save_driver_info if the driver gave any address info.
+- save_driver_info: persist the case, create the job, send the driver's text link, and optionally pin their map location if you include the verbal address. Call this as soon as you have name, vehicle make and model, issue type, and a short situation note. If they already gave an address or landmark, pass it in location_address.
+- set_driver_location: geocode the driver's verbal address (street, highway, landmark) plus city and state, and pin their location on the map. Use this if the driver gives the address after the case was already created or if save_driver_info did not receive location_address.
 - remember_caller_memory: save durable notes such as name pronunciation, preferred pronunciation of towns, repeat-caller context, or important follow-up details.
 
 After save_driver_info, give the driver their case code and tell them to visit roadcall dot com slash go to confirm their location.
@@ -696,6 +696,63 @@ async def find_nearest_shop(
         return "I couldn't look up shops right now, but I can still help open a roadside assistance case."
 
 
+async def _set_driver_location_for_job(
+    public_job_id: str,
+    address: str,
+    city: str = "",
+    state: str = "",
+):
+    """Geocode an address via backend Mapbox and update the job's location."""
+    normalized_code = (public_job_id or "").strip().upper()
+    if not normalized_code:
+        return False, "Please create the case first before pinning the driver's location."
+
+    try:
+        geo = await api_call(
+            "POST",
+            "/jobs/geocode",
+            json_body={"address": address, "city": city, "state": state},
+        )
+    except Exception as e:
+        logger.warning("Geocoding failed for '%s, %s, %s': %s", address, city, state, e)
+        return False, (
+            f"I couldn't find that address on the map. Ask the driver for a more specific "
+            f"location — a street address, intersection, or nearby landmark with the city and state."
+        )
+
+    lat = geo.get("lat")
+    lng = geo.get("lng")
+    display = geo.get("display", f"{address}, {city}, {state}")
+
+    if not lat or not lng:
+        return False, "Could not pinpoint that location. Ask for a more specific address or cross street."
+
+    try:
+        job_info = await api_call("GET", f"/jobs/by-code/{normalized_code}")
+        token = job_info.get("magic_link_token")
+        if not token:
+            return False, "Could not find the job token. The driver can confirm location via the website link."
+
+        await api_call(
+            "POST",
+            f"/jobs/{token}/location",
+            json_body={"lat": lat, "lng": lng},
+        )
+        logger.info("Driver location set via geocoding: (%.5f, %.5f) %s", lat, lng, display)
+        return True, (
+            f"Location set to {display} (coordinates {lat:.4f}, {lng:.4f}). "
+            f"The system is now matching them with the nearest mechanic. "
+            f"Let the driver know their case code is {normalized_code} and they can "
+            f"visit roadcall dot com slash go to see their status and confirm their location."
+        )
+    except Exception as e:
+        logger.error("Failed to update job location: %s", e)
+        return False, (
+            f"I found the address at {display} but had trouble saving it. "
+            f"The driver can confirm via the website link."
+        )
+
+
 @llm.function_tool(
     description=(
         "Geocode the driver's verbal address, highway/mile-marker, or landmark "
@@ -708,63 +765,17 @@ async def set_driver_location(
     city: str = "",
     state: str = "",
 ):
-    """Geocode an address via backend Mapbox and update the job's location."""
-    global _current_dispatch_job_id
-
-    # First geocode the address
-    try:
-        geo = await api_call(
-            "POST",
-            "/jobs/geocode",
-            json_body={"address": address, "city": city, "state": state},
-        )
-    except Exception as e:
-        logger.warning("Geocoding failed for '%s, %s, %s': %s", address, city, state, e)
-        return (
-            f"I couldn't find that address on the map. Ask the driver for a more specific "
-            f"location — a street address, intersection, or nearby landmark with the city and state."
-        )
-
-    lat = geo.get("lat")
-    lng = geo.get("lng")
-    display = geo.get("display", f"{address}, {city}, {state}")
-
-    if not lat or not lng:
-        return "Could not pinpoint that location. Ask for a more specific address or cross street."
-
-    # Now find the job and update its location
-    # We need the magic_link_token for the job — get it via the public_job_id
-    # The last job_id returned by save_driver_info is available
     global _last_saved_job_id
     if not _last_saved_job_id:
         return "Please call save_driver_info first to create the case, then call set_driver_location."
 
-    try:
-        # Look up the job's token by public_job_id
-        job_info = await api_call("GET", f"/jobs/by-code/{_last_saved_job_id}")
-        token = job_info.get("magic_link_token")
-        if not token:
-            return "Could not find the job token. The driver can confirm location via the website link."
-
-        # Update the job's location
-        await api_call(
-            "POST",
-            f"/jobs/{token}/location",
-            json_body={"lat": lat, "lng": lng},
-        )
-        logger.info("Driver location set via geocoding: (%.5f, %.5f) %s", lat, lng, display)
-        return (
-            f"Location set to {display} (coordinates {lat:.4f}, {lng:.4f}). "
-            f"The system is now matching them with the nearest mechanic. "
-            f"Let the driver know their case code is {_last_saved_job_id} and they can "
-            f"visit roadcall dot com slash go to see their status and confirm their location."
-        )
-    except Exception as e:
-        logger.error("Failed to update job location: %s", e)
-        return (
-            f"I found the address at {display} but had trouble saving it. "
-            f"The driver can confirm via the website link."
-        )
+    _, message = await _set_driver_location_for_job(
+        _last_saved_job_id,
+        address,
+        city,
+        state,
+    )
+    return message
 
 
 # Track the last saved job ID so set_driver_location can reference it
@@ -773,9 +784,11 @@ _last_saved_job_id: str = ""
 
 @llm.function_tool(
     description=(
-        "Save the driver's collected information and create a job in the system. "
+        "Save the driver's collected information, create the job, and send the text link. "
         "Call this once you have the driver's name, vehicle, issue type, and a "
-        "brief situation note, plus their current city and state."
+        "brief situation note, plus their current city and state. If the driver already "
+        "gave an address, intersection, highway marker, or landmark, pass it as "
+        "location_address so the system can pin them on the map immediately."
     )
 )
 async def save_driver_info(
@@ -785,6 +798,7 @@ async def save_driver_info(
     situation_note: str,
     driver_city: str = "",
     driver_state: str = "",
+    location_address: str = "",
 ):
     """Persist intake data so dispatch can continue after the call."""
     normalized_issue = _normalize_issue_type(issue_type)
@@ -817,6 +831,7 @@ async def save_driver_info(
             },
         )
         job_id = result.get("public_job_id", "unknown")
+        sms_sent = result.get("magic_link_sms_sent")
         global _last_saved_job_id
         _last_saved_job_id = job_id
         try:
@@ -832,13 +847,41 @@ async def save_driver_info(
         except Exception as memory_exc:
             logger.warning("Failed to save driver memory note: %s", memory_exc)
         logger.info(f"Job created via API: {job_id} for {driver_name} ({driver_phone})")
-        return (
-            f"Done — job {job_id} is in the system for {driver_name}. "
-            f"Their access code is {job_id}. "
-            f"Tell them: your case number is {job_id} (spell it out letter by letter). "
-            f"Go to roadcall dot com slash go on your phone and enter that code to confirm your exact location. "
-            "Now use set_driver_location with any address they gave you to pin them on the map right away."
-        )
+        response_parts = [
+            f"Done — job {job_id} is in the system for {driver_name}.",
+            f"Their access code is {job_id}.",
+        ]
+
+        if sms_sent is True:
+            response_parts.append(
+                f"The secure text link was sent to {driver_phone}."
+            )
+        elif sms_sent is False:
+            response_parts.append(
+                "The case is created, but the text link did not confirm as sent yet."
+            )
+
+        location_text = (location_address or "").strip()
+        if location_text:
+            location_saved, location_message = await _set_driver_location_for_job(
+                job_id,
+                location_text,
+                normalized_city or "",
+                normalized_state or "",
+            )
+            response_parts.append(location_message)
+            if location_saved:
+                response_parts.append(
+                    "Tell the driver their location is pinned on the map and they can open roadcall dot com slash go with that case code."
+                )
+        else:
+            response_parts.append(
+                f"Tell them: your case number is {job_id} (spell it out letter by letter). "
+                f"Go to roadcall dot com slash go on your phone and enter that code to confirm your exact location. "
+                "If they already gave an address, call set_driver_location now to pin them on the map."
+            )
+
+        return " ".join(response_parts)
     except Exception as e:
         logger.error(f"Failed to create job via API: {e}")
         return (
