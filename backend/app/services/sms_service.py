@@ -19,11 +19,13 @@ class SMSService:
             client = Client(
                 settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN
             )
-            message = client.messages.create(
-                body=body,
-                from_=settings.TWILIO_FROM_NUMBER,
-                to=phone_number,
-            )
+            # Prefer Messaging Service SID (A2P 10DLC) over direct from_ number
+            params = dict(body=body, to=phone_number)
+            if settings.TWILIO_MESSAGING_SERVICE_SID:
+                params["messaging_service_sid"] = settings.TWILIO_MESSAGING_SERVICE_SID
+            else:
+                params["from_"] = settings.TWILIO_FROM_NUMBER
+            message = client.messages.create(**params)
             logger.info(f"SMS sent to {phone_number}: SID={message.sid}")
             return True
         except Exception as e:
