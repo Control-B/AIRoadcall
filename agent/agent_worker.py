@@ -1798,6 +1798,6 @@ if __name__ == "__main__":
             api_key=os.getenv("LIVEKIT_API_KEY", ""),
             api_secret=os.getenv("LIVEKIT_API_SECRET", ""),
             ws_url=os.getenv("LIVEKIT_URL", ""),
-            num_idle_processes=int(os.getenv("AGENT_NUM_IDLE_PROCESSES", "4")),
+            num_idle_processes=int(os.getenv("AGENT_NUM_IDLE_PROCESSES", "2")),
         )
     )
