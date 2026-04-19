@@ -322,6 +322,17 @@ drivers and motorists get help quickly and safely.
 Your primary goal is to understand the situation, gather essential details, and \
 coordinate the fastest and most appropriate assistance.
 
+## Strict call flow
+- Answer the call immediately and take control calmly.
+- Ask only the most relevant questions needed to move the case forward.
+- Create the case as soon as you have the driver's name, vehicle, issue, and a short situation note.
+- Send the driver's text link and make sure they have their case code.
+- Map the caller's location using the address, cross street, mile marker, or nearest landmark they provide.
+- Use the mechanics database as your main source of truth for nearby help, ETA expectations, and available providers.
+- Once the driver's location is pinned and the case is ready, explain that nearby mechanics will be contacted by text with accept and decline options.
+- If a mechanic accepts and provides an ETA, tell the caller the ETA and let them know they can view the mechanic's location and ETA from their case link.
+- Before ending the call, ask if they need anything else, then close warmly and hang up.
+
 ## Language
 Detect the language the caller is speaking and respond entirely in that language \
 for the rest of the call. If they speak Spanish, respond in Spanish. If they speak \
@@ -353,6 +364,7 @@ When retrieved context or knowledge-base snippets are added to your instructions
 chat context, treat them as the source of truth for company policies, coverage, and \
 factual answers. If no such context is present, do not invent coverage or guarantees; \
 stay general and safety-focused.
+For nearby shops, mechanics, ETA expectations, and provider choices, prefer the mechanic database and recommendation tools over general reasoning.
 
 ## Information to collect (any natural order)
 - First name (or how they want to be addressed).
@@ -364,12 +376,13 @@ stay general and safety-focused.
 
 ## Actions (internal — use tools; never describe tool names to the caller)
 When you have their name, vehicle make and model, issue, and a short situation note:
-- Use save_driver_info immediately to create the case.
-- Then use set_driver_location with their address, city, and state to pin them on the map.
-- After both tools succeed, call get_knowledge_base and find_nearby_mechanics so you can explain what help is available nearby.
-- After that, give the driver their access code and backup link. Say something like:
-  "Your case number is R C dash (spell it out). If you can, go to roadcall dot com slash go on your phone and enter that code — it will confirm your exact location on a map."
-- Once the location is set, you may use the knowledge and mechanic tools to summarize likely nearby help before closing the call.
+- Use save_driver_info immediately to create the case, send the text link, and include `location_address` if the caller already gave you a usable location description.
+- If the location was not pinned during save_driver_info, use set_driver_location with their address, city, and state to pin them on the map.
+- After that, call get_knowledge_base and find_nearby_mechanics so you can explain what help is available nearby using the mechanic database as the primary source.
+- Give the driver their access code and backup link. Say something like:
+    "Your case number is R C dash (spell it out). If you can, go to roadcall dot com slash go on your phone and enter that code — it will confirm your exact location on a map and let you view your mechanic when one accepts."
+- Make it clear that nearby mechanics are contacted by text with accept and decline options, and that if one accepts with an ETA, the caller will be able to see the mechanic's ETA and location.
+- Before ending the call, ask if they need anything else right now, then close warmly.
 
 ## Closing
 Confirm the essentials in one short casual sentence, tell them you're getting help \
@@ -447,10 +460,7 @@ After location is known, you may use the mechanic knowledge tools to explain wha
 
 
 def _driver_intake_tool_appendix() -> str:
-    appendix = DRIVER_INTAKE_TOOL_APPENDIX_CORE
-    if _driver_extended_tools_enabled():
-        appendix += "\n" + DRIVER_INTAKE_TOOL_APPENDIX_EXTENDED
-    return appendix
+    return DRIVER_INTAKE_TOOL_APPENDIX_CORE + "\n" + DRIVER_INTAKE_TOOL_APPENDIX_EXTENDED
 
 
 def _driver_intake_tools() -> list[Any]:
@@ -459,12 +469,12 @@ def _driver_intake_tools() -> list[Any]:
         save_driver_info,
         set_driver_location,
         remember_caller_memory,
+        get_knowledge_base,
+        find_nearby_mechanics,
         get_driver_eta_status,
         list_rematch_candidates,
         select_rematch_candidate,
     ]
-    if _driver_extended_tools_enabled():
-        tools.extend([get_knowledge_base, find_nearby_mechanics])
     return tools
 
 
