@@ -44,7 +44,7 @@ logger.setLevel(logging.INFO)
 # Seconds to wait for the SIP leg before prompting the agent (outbound / inbound)
 _SIP_PARTICIPANT_TIMEOUT_S = float(os.getenv("SIP_PARTICIPANT_TIMEOUT_S", "10"))
 # Brief guard after SIP join before first TTS playback so telephony audio is attached.
-_FIRST_SPEECH_SETTLE_DELAY_S = float(os.getenv("FIRST_SPEECH_SETTLE_DELAY_S", "0.25"))
+_FIRST_SPEECH_SETTLE_DELAY_S = float(os.getenv("FIRST_SPEECH_SETTLE_DELAY_S", "1.0"))
 
 # LiveKit Inference model IDs (STT → LLM → TTS). Without these, AgentSession has no
 # llm/stt/tts and generate_reply() raises — the agent will never speak.
@@ -186,10 +186,12 @@ async def _wait_for_sip_participant(
         )
         logger.info("SIP participant ready (identity=%s)", identity or "any")
     except asyncio.TimeoutError:
-        logger.warning(
-            "Timeout waiting for SIP participant (identity=%s) — continuing anyway",
+        logger.error(
+            "Timeout waiting for SIP participant (identity=%s) — disconnecting room",
             identity or "any",
         )
+        await ctx.room.disconnect()
+        raise
     except Exception as e:
         logger.warning("wait_for_participant failed: %s", e)
 
@@ -1458,8 +1460,12 @@ async def handle_driver_intake(ctx: JobContext, meta: dict):
     )
 
     opening_text = _resolve_driver_opening_text(ctx, meta)
+    try:
+        await _wait_for_sip_participant(ctx, identity=None)
+    except asyncio.TimeoutError:
+        logger.error("Driver intake aborted — SIP participant never joined")
+        return
     await session.start(agent=agent, room=ctx.room)
-    await _wait_for_sip_participant(ctx, identity=None)
     if not _current_caller_phone:
         _current_caller_phone = _extract_caller_phone_from_room(ctx.room)
         if _current_caller_phone:
@@ -1792,6 +1798,6 @@ if __name__ == "__main__":
             api_key=os.getenv("LIVEKIT_API_KEY", ""),
             api_secret=os.getenv("LIVEKIT_API_SECRET", ""),
             ws_url=os.getenv("LIVEKIT_URL", ""),
-            num_idle_processes=int(os.getenv("AGENT_NUM_IDLE_PROCESSES", "2")),
+            num_idle_processes=int(os.getenv("AGENT_NUM_IDLE_PROCESSES", "4")),
         )
     )
