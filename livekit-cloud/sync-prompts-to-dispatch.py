@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Push committed Mara prompts into the LiveKit SIP dispatch rule.
+"""Push committed Sandy prompts into the LiveKit SIP dispatch rule.
 
 The LiveKit *Console* "Agents" UI (Instructions / Welcome / models) only
 configures LiveKit's hosted agent runtime. Those fields are not exposed via

@@ -32,9 +32,9 @@ const deepFeatures = [
   {
     id: "ai-dispatch",
     eyebrow: "AI Voice Agent",
-    title: "Sam, your 24/7 AI dispatcher",
+    title: "Sandy, your 24/7 AI dispatcher",
     description:
-      "Our AI agent handles inbound calls with human-like conversation. Sam collects driver name, vehicle details, and issue type — all in under 90 seconds. No hold times. No transfers. Just instant, intelligent dispatch.",
+      "Our AI agent handles inbound calls with human-like conversation. Sandy collects driver name, vehicle details, and issue type — all in under 90 seconds. No hold times. No transfers. Just instant, intelligent dispatch.",
     bullets: [
       "Natural voice conversation — callers can't tell it's AI",
       "Extracts name, phone, vehicle year/make/model, and issue",

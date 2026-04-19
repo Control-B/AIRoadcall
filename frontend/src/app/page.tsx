@@ -35,7 +35,7 @@ const features = [
     icon: Phone,
     title: "AI Dispatch Agent",
     description:
-      "Callers speak to Sam, your AI dispatcher. Sam collects vehicle info, issue details, and kicks off the rescue — 24/7, no hold times.",
+      "Callers speak to Sandy, your AI dispatcher. Sandy collects vehicle info, issue details, and kicks off the rescue — 24/7, no hold times.",
   },
   {
     icon: MapPin,
@@ -74,7 +74,7 @@ const howItWorks = [
     step: "01",
     title: "Driver Calls",
     description:
-      "Stranded driver calls the Roadcall.ai toll-free number. Our AI agent, Sam, picks up instantly — no hold music, no transfers.",
+      "Stranded driver calls the Roadcall.ai toll-free number. Our AI agent, Sandy, picks up instantly — no hold music, no transfers.",
     icon: Phone,
     accent: "from-blue-500 to-cyan-500",
   },
@@ -82,7 +82,7 @@ const howItWorks = [
     step: "02",
     title: "AI Collects Info",
     description:
-      "Sam asks for name, vehicle type, and what happened. The whole call takes under 90 seconds.",
+      "Sandy asks for name, vehicle type, and what happened. The whole call takes under 90 seconds.",
     icon: Car,
     accent: "from-cyan-500 to-emerald-500",
   },
@@ -215,7 +215,7 @@ export default function HomePage() {
                   <h2 className="text-2xl font-bold">Try It Now — Free</h2>
                 </div>
                 <p className="text-slate-400 mb-6">
-                  Call and talk to Sam, our AI dispatcher. No signup needed.
+                  Call and talk to Sandy, our AI dispatcher. No signup needed.
                 </p>
                 <a href={telHref(HELP_PHONE)}>
                   <Button

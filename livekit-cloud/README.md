@@ -28,7 +28,7 @@ For Roadcall you want **`roadcall-agent`** — otherwise the RAG / mechanic look
 
 ## Linking the Console to the code (source of truth = repo)
 
-The files in `agent/prompts/` are the canonical Mara prompt:
+The files in `agent/prompts/` are the canonical Sandy prompt:
 
 - `agent/prompts/driver_intake.md`  → system prompt
 - `agent/prompts/driver_welcome.txt` → first spoken line
@@ -39,8 +39,8 @@ The files in `agent/prompts/` are the canonical Mara prompt:
 
    ```json
    {
-     "instructions": "Your name is Mara…",
-     "welcome_message": "Thank you for calling Roadside, this is Mara…",
+     "instructions": "Your name is Sandy…",
+     "welcome_message": "Thank you for calling Roadside, this is Sandy…",
      "opening_instruction": "Optional; overrides first-spoken turn"
    }
    ```
@@ -77,7 +77,7 @@ What this does:
 - Reads `agent/prompts/driver_intake.md` and `driver_welcome.txt`.
 - Builds JSON `{ "instructions": …, "welcome_message": …, "opening_instruction": … }`.
 - Updates the dispatch rule so `roomConfig.agents[0].metadata = <that JSON>` and `agent_name = roadcall-agent`.
-- Next inbound call → LiveKit dispatches `roadcall-agent` → our worker receives the JSON as `ctx.job.metadata` → Mara speaks with the committed prompt.
+- Next inbound call → LiveKit dispatches `roadcall-agent` → our worker receives the JSON as `ctx.job.metadata` → Sandy speaks with the committed prompt.
 
 **Check the dispatch rule afterwards in the Console** — you should see `roadcall-agent` listed under the rule with the prompt in its metadata.
 
