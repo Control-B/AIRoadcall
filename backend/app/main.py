@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncEngine
+from sqlalchemy import text
 
 import app.models  # noqa: F401
 from app.core.config import get_settings
@@ -66,6 +67,18 @@ app.include_router(call_summaries.router, prefix="/api")
 async def ensure_database_schema() -> None:
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(
+            text(
+                "ALTER TABLE jobs "
+                "ADD COLUMN IF NOT EXISTS assigned_mechanic_id UUID"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE jobs "
+                "ADD COLUMN IF NOT EXISTS driver_eta_decision VARCHAR(32)"
+            )
+        )
     logger.info("Database schema verified")
 
 
