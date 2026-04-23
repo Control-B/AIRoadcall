@@ -85,6 +85,7 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
     """
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
+    logger.info("save_driver_info payload keys: %s | from_number=%s", list(body.keys()), body.get("from_number"))
 
     driver_name: str = (args.get("driver_name") or "").strip()
     driver_phone: str = (args.get("driver_phone") or "").strip()
@@ -92,14 +93,17 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
     issue_type: str = _normalize_issue(args.get("issue_type") or "other")
     situation_note: str = (args.get("situation_note") or "").strip()
 
-    # Also accept caller_phone / phone variants
+    # Retell sends from_number at the top level of the webhook body
     if not driver_phone:
         driver_phone = (
             args.get("caller_phone")
             or args.get("phone_number")
-            or body.get("call", {}).get("from_number")
+            or body.get("from_number")          # top-level in Retell function-call payload
+            or body.get("call", {}).get("from_number")  # fallback nested form
             or ""
         ).strip()
+        if driver_phone:
+            logger.info("save_driver_info: resolved phone from call metadata: %s", driver_phone)
 
     if not driver_phone:
         logger.warning("save_driver_info: no phone in payload — body keys: %s", list(body.keys()))
