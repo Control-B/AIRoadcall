@@ -13,6 +13,7 @@ Endpoints:
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -81,32 +82,50 @@ def _body_args(body: dict) -> dict:
 async def save_driver_info(request: Request, db: AsyncSession = Depends(get_session)):
     """Create a job and send the magic-link SMS.
 
-    Expected args: driver_name, driver_phone, vehicle_type, issue_type, situation_note
+    Expected args: driver_name, vehicle_type, issue_type, situation_note
+    Phone is resolved from Retell call metadata (call_id → from_number lookup).
     """
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
-    logger.info("save_driver_info payload keys: %s | from_number=%s", list(body.keys()), body.get("from_number"))
+    call_id: str = body.get("call_id") or body.get("call", {}).get("call_id") or ""
+    logger.info("save_driver_info call_id=%s | body keys: %s", call_id, list(body.keys()))
 
     driver_name: str = (args.get("driver_name") or "").strip()
-    driver_phone: str = (args.get("driver_phone") or "").strip()
-    vehicle_type: str = (args.get("vehicle_type") or "").strip()
+    # vehicle may come as vehicle_type or separate make/model
+    vehicle_type: str = (
+        args.get("vehicle_type")
+        or f"{args.get('vehicle_year','')} {args.get('vehicle_make','')} {args.get('vehicle_model','')}".strip()
+        or ""
+    ).strip()
     issue_type: str = _normalize_issue(args.get("issue_type") or "other")
     situation_note: str = (args.get("situation_note") or "").strip()
 
-    # Retell sends from_number at the top level of the webhook body
-    if not driver_phone:
-        driver_phone = (
-            args.get("caller_phone")
-            or args.get("phone_number")
-            or body.get("from_number")          # top-level in Retell function-call payload
-            or body.get("call", {}).get("from_number")  # fallback nested form
-            or ""
-        ).strip()
-        if driver_phone:
-            logger.info("save_driver_info: resolved phone from call metadata: %s", driver_phone)
+    # 1. Try to get phone from args (Sandy may pass it if she asked)
+    driver_phone: str = (
+        args.get("driver_phone")
+        or args.get("phone_number")
+        or args.get("caller_phone")
+        or body.get("from_number")
+        or ""
+    ).strip()
+
+    # 2. Best source: look up from_number via Retell call API using call_id
+    if not driver_phone and call_id:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5) as client:
+                r = await client.get(
+                    f"https://api.retellai.com/v2/get-call/{call_id}",
+                    headers={"Authorization": f"Bearer {settings.RETELL_API_KEY}"},
+                )
+                if r.status_code == 200:
+                    driver_phone = r.json().get("from_number", "")
+                    logger.info("save_driver_info: resolved phone from Retell API: %s", driver_phone)
+        except Exception as exc:
+            logger.warning("save_driver_info: Retell call lookup failed: %s", exc)
 
     if not driver_phone:
-        logger.warning("save_driver_info: no phone in payload — body keys: %s", list(body.keys()))
+        logger.warning("save_driver_info: no phone resolved — body: %s", json.dumps(body)[:500])
         return _retell_result(
             "I couldn't get your phone number from this call. "
             "Please call back from a mobile number so I can text you the link."

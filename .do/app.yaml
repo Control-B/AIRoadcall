@@ -76,7 +76,10 @@ services:
         type: SECRET
       - key: TWILIO_FROM_NUMBER
         scope: RUN_TIME
-        value: "+18666501939"
+        value: "+18134524889"
+      - key: RETELL_API_KEY
+        scope: RUN_TIME
+        type: SECRET
       - key: APIFY_API_TOKEN
         scope: RUN_TIME
         type: SECRET
@@ -156,65 +159,10 @@ services:
         value: REPLACE_WITH_MAPBOX_ACCESS_TOKEN
       - key: NEXT_PUBLIC_HELP_PHONE
         scope: BUILD_TIME
-        value: "(866) 613-3303"
+        value: "(866) 623-3331"
       - key: NEXT_PUBLIC_COMPANY_PHONE
         scope: BUILD_TIME
         value: "(866) 415-9494"
-
-# ── LiveKit agent worker (voice pipeline; must run for calls to speak) ──
-workers:
-  - name: livekit-agent
-    github:
-      repo: Control-B/AIRoadcall
-      branch: main
-      deploy_on_push: true
-    dockerfile_path: Dockerfile
-    source_dir: agent
-    instance_count: 2
-    instance_size_slug: apps-s-1vcpu-1gb
-    envs:
-      - key: LIVEKIT_API_KEY
-        scope: RUN_TIME
-        value: API4TxLvaSLjdLm
-      - key: LIVEKIT_API_SECRET
-        scope: RUN_TIME
-        type: SECRET
-      - key: LIVEKIT_URL
-        scope: RUN_TIME
-        value: wss://roadcall-vob5sadf.livekit.cloud
-      - key: LIVEKIT_AGENT_NAME
-        scope: RUN_TIME
-        value: roadcall-agent
-      - key: LIVEKIT_DRIVER_PROMPT_SOURCE
-        scope: RUN_TIME
-        value: repo
-      - key: AGENT_ENABLE_EXTENDED_DRIVER_TOOLS
-        scope: RUN_TIME
-        value: "false"
-      - key: AGENT_NUM_IDLE_PROCESSES
-        scope: RUN_TIME
-        value: "2"
-      - key: LIVEKIT_INFERENCE_TTS
-        scope: RUN_TIME
-        value: elevenlabs/eleven_multilingual_v2
-      - key: LIVEKIT_INFERENCE_TTS_VOICE
-        scope: RUN_TIME
-        value: nf4MCGNSdM0hxM95ZBQR
-      - key: LIVEKIT_INFERENCE_STT
-        scope: RUN_TIME
-        value: deepgram/nova-3-general
-      - key: ELEVENLABS_API_KEY
-        scope: RUN_TIME
-        type: SECRET
-      - key: ELEVENLABS_VOICE_ID
-        scope: RUN_TIME
-        value: nf4MCGNSdM0hxM95ZBQR
-      - key: BACKEND_URL
-        scope: RUN_TIME
-        value: ${backend.PRIVATE_URL}
-      - key: ADMIN_API_KEY
-        scope: RUN_TIME
-        type: SECRET
 
 # ── DigitalOcean Managed Database (existing cluster) ────
 databases:

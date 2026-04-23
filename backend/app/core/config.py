@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     # Outreach
     DEMO_PHONE_NUMBER: str = ""  # Toll-free demo number
     ADMIN_API_KEY: str = "change-this-to-a-secure-admin-key"
+    RETELL_API_KEY: str = ""
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "change-this"
 
