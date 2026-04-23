@@ -170,10 +170,11 @@ async def check_driver_location(request: Request, db: AsyncSession = Depends(get
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
 
-    job_id: str = (args.get("job_id") or "").strip().upper()
+    # Sandy's tool sends 'job_code'; also accept legacy 'job_id'
+    job_id: str = (args.get("job_code") or args.get("job_id") or "").strip().upper()
 
     if not job_id:
-        return _retell_result("No job ID provided. Please create the case first.")
+        return _retell_result("No job code provided. Please create the case first.")
 
     try:
         result = await db.execute(select(Job).where(Job.public_job_id == job_id))
@@ -212,7 +213,8 @@ async def find_nearby_mechanics(request: Request, db: AsyncSession = Depends(get
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
 
-    job_id: str = (args.get("job_id") or "").strip().upper()
+    # Sandy's tool sends 'job_code'; also accept legacy 'job_id'
+    job_id: str = (args.get("job_code") or args.get("job_id") or "").strip().upper()
     try:
         lat = float(args.get("latitude") or args.get("lat") or 0)
         lng = float(args.get("longitude") or args.get("lng") or 0)
@@ -286,11 +288,12 @@ async def dispatch_to_mechanics(request: Request, db: AsyncSession = Depends(get
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
 
-    job_id: str = (args.get("job_id") or "").strip().upper()
+    # Sandy's tool sends 'job_code'; also accept legacy 'job_id'
+    job_id: str = (args.get("job_code") or args.get("job_id") or "").strip().upper()
     count: int = int(args.get("count") or 3)
 
     if not job_id:
-        return _retell_result("No job ID provided. Please save driver info first.")
+        return _retell_result("No job code provided. Please save driver info first.")
 
     try:
         result = await db.execute(select(Job).where(Job.public_job_id == job_id))
