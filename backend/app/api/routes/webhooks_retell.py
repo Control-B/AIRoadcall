@@ -142,29 +142,17 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
         resp = await JobService.create_job(db, req)
         await db.commit()
 
-        # Send magic link SMS
-        from app.services.sms_service import SMSService
-        sms_ok = await SMSService.send_magic_link(
-            phone_number=driver_phone,
-            magic_link_url=resp.magic_link_url,
-            driver_name=driver_name or "there",
-        )
-
         job_id = resp.public_job_id
-        logger.info("Retell job created: %s for %s (%s) sms_sent=%s", job_id, driver_name, driver_phone, sms_ok)
+        magic_link_url = resp.magic_link_url
+        logger.info("Retell job created: %s for %s (%s)", job_id, driver_name, driver_phone)
 
-        if sms_ok:
-            return _retell_result(
-                f"Done — job {job_id} is created for {driver_name}. "
-                f"I just texted a link to {driver_phone}. "
-                "Please tap that link and allow location access so I can find the nearest mechanic. "
-                "I'll check back in about 15 seconds."
-            )
-        else:
-            return _retell_result(
-                f"Job {job_id} is created. The text link couldn't be confirmed sent — "
-                f"if you don't receive it, go to roadcall.ai/go and enter code {job_id}."
-            )
+        # Return the magic_link_url clearly so the LLM can use it with the
+        # send_magic_link_sms tool (Retell pool number, no A2P required).
+        return _retell_result(
+            f"Job {job_id} created for {driver_name}. "
+            f"magic_link_url: {magic_link_url} "
+            "Now call send_magic_link_sms immediately to text this link to the driver."
+        )
     except Exception as exc:
         logger.error("save_driver_info error: %s", exc, exc_info=True)
         return _retell_result(
