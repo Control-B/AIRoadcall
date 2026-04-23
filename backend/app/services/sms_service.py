@@ -14,14 +14,16 @@ class SMSService:
     @staticmethod
     def _send_via_telnyx(phone_number: str, body: str) -> bool:
         try:
-            import telnyx
-            telnyx.api_key = settings.TELNYX_API_KEY
-            msg = telnyx.Message.create(
-                from_=settings.TELNYX_FROM_NUMBER,
-                to=phone_number,
-                text=body,
+            import httpx
+            resp = httpx.post(
+                "https://api.telnyx.com/v2/messages",
+                headers={"Authorization": f"Bearer {settings.TELNYX_API_KEY}"},
+                json={"from": settings.TELNYX_FROM_NUMBER, "to": phone_number, "text": body},
+                timeout=10,
             )
-            logger.info(f"Telnyx SMS sent to {phone_number}: id={msg.id}")
+            resp.raise_for_status()
+            msg_id = resp.json().get("data", {}).get("id", "?")
+            logger.info(f"Telnyx SMS sent to {phone_number}: id={msg_id}")
             return True
         except Exception as e:
             logger.error(f"Telnyx SMS failed to {phone_number}: {e}")
