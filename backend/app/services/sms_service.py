@@ -9,75 +9,69 @@ settings = get_settings()
 
 
 class SMSService:
-    """Twilio SMS service for magic-link delivery."""
+    """SMS delivery — Telnyx primary, Twilio fallback."""
+
+    @staticmethod
+    def _send_via_telnyx(phone_number: str, body: str) -> bool:
+        try:
+            import telnyx
+            telnyx.api_key = settings.TELNYX_API_KEY
+            msg = telnyx.Message.create(
+                from_=settings.TELNYX_FROM_NUMBER,
+                to=phone_number,
+                text=body,
+            )
+            logger.info(f"Telnyx SMS sent to {phone_number}: id={msg.id}")
+            return True
+        except Exception as e:
+            logger.error(f"Telnyx SMS failed to {phone_number}: {e}")
+            return False
 
     @staticmethod
     def _send_via_twilio(phone_number: str, body: str) -> bool:
         try:
             from twilio.rest import Client
-
-            client = Client(
-                settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN
-            )
-            # Prefer Messaging Service SID (A2P 10DLC) over direct from_ number
+            client = Client(settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN)
             params = dict(body=body, to=phone_number)
             if settings.TWILIO_MESSAGING_SERVICE_SID:
                 params["messaging_service_sid"] = settings.TWILIO_MESSAGING_SERVICE_SID
             else:
                 params["from_"] = settings.TWILIO_FROM_NUMBER
             message = client.messages.create(**params)
-            logger.info(f"SMS sent to {phone_number}: SID={message.sid}")
+            logger.info(f"Twilio SMS sent to {phone_number}: SID={message.sid}")
             return True
         except Exception as e:
             logger.error(f"Twilio SMS failed to {phone_number}: {e}")
             return False
 
     @staticmethod
-    async def send_magic_link(
-        phone_number: str, magic_link_url: str, driver_name: str
-    ) -> bool:
-        """Send an SMS with the magic link to the driver.
-
-        Uses Twilio when configured, otherwise logs (dev/test fallback).
-        """
-        if not phone_number:
-            logger.warning("Cannot send SMS — no phone number provided")
-            return False
-
-        body = (
-            f"Hi {driver_name}, your Roadside Assist link is ready — "
-            f"tap to share your location and we'll send help your way:\n"
-            f"{magic_link_url}"
-        )
-
-        # ── Twilio (production) ──
+    def _send_sync(phone_number: str, body: str) -> bool:
+        """Try Telnyx first, fall back to Twilio."""
+        if settings.TELNYX_API_KEY:
+            return SMSService._send_via_telnyx(phone_number, body)
         if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN \
                 and not settings.TWILIO_ACCOUNT_SID.startswith("AC_placeholder"):
-            return await asyncio.to_thread(
-                SMSService._send_via_twilio,
-                phone_number,
-                body,
-            )
-
-        # ── Dev fallback ──
-        logger.info(
-            f"[DEV] SMS to {phone_number}: {body}"
-        )
+            return SMSService._send_via_twilio(phone_number, body)
+        logger.info(f"[DEV] SMS to {phone_number}: {body}")
         return True
 
     @staticmethod
+    async def send_magic_link(
+        phone_number: str, magic_link_url: str, driver_name: str
+    ) -> bool:
+        """Send the GPS magic link to the driver via SMS."""
+        if not phone_number:
+            logger.warning("Cannot send SMS — no phone number provided")
+            return False
+        body = (
+            f"Hi {driver_name}, tap this link to share your location and "
+            f"we'll dispatch the nearest mechanic:\n{magic_link_url}"
+        )
+        return await asyncio.to_thread(SMSService._send_sync, phone_number, body)
+
+    @staticmethod
     async def send_sms(phone_number: str, body: str) -> bool:
-        """Send a generic SMS (used by outreach, dispatch notifications, etc.)."""
+        """Send a generic SMS (outreach, dispatch notifications, etc.)."""
         if not phone_number:
             return False
-
-        if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN \
-                and not settings.TWILIO_ACCOUNT_SID.startswith("AC_placeholder"):
-            return await asyncio.to_thread(
-                SMSService._send_via_twilio,
-                phone_number,
-                body,
-            )
-
-        logger.info(f"[DEV] SMS to {phone_number}: {body}")
-        return True
+        return await asyncio.to_thread(SMSService._send_sync, phone_number, body)

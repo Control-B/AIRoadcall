@@ -13,3 +13,4 @@ passlib==1.7.4
 python-multipart==0.0.20
 tenacity==9.0.0
 twilio>=9.0.0
+telnyx>=2.0.0

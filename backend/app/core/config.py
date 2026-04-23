@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     TWILIO_FROM_NUMBER: str = ""
     TWILIO_MESSAGING_SERVICE_SID: str = ""
 
+    # Telnyx
+    TELNYX_API_KEY: str = ""
+    TELNYX_FROM_NUMBER: str = "+17275584572"
+
     # Apify
     APIFY_API_TOKEN: str = ""
 
