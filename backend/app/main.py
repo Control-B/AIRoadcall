@@ -15,6 +15,7 @@ from app.api.routes import (
     mechanics,
     webhooks_stripe,
     webhooks_livekit,
+    webhooks_retell,
     data_pipeline,
     shops,
     outreach,
@@ -56,6 +57,7 @@ app.include_router(mechanics.router, prefix="/api")
 app.include_router(rag.router, prefix="/api")
 app.include_router(webhooks_stripe.router, prefix="/api")
 app.include_router(webhooks_livekit.router, prefix="/api")
+app.include_router(webhooks_retell.router, prefix="/api")
 app.include_router(data_pipeline.router, prefix="/api")
 app.include_router(shops.router, prefix="/api")
 app.include_router(outreach.router, prefix="/api")
