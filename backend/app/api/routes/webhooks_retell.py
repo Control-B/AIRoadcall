@@ -146,12 +146,17 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
         magic_link_url = resp.magic_link_url
         logger.info("Retell job created: %s for %s (%s)", job_id, driver_name, driver_phone)
 
-        # Return the magic_link_url clearly so the LLM can use it with the
-        # send_magic_link_sms tool (Retell pool number, no A2P required).
+        # Send SMS directly via Twilio — Retell toll-free numbers can't send SMS.
+        sms_sent = False
+        if driver_phone:
+            from app.services.sms_service import SMSService
+            sms_sent = await SMSService.send_magic_link(driver_phone, magic_link_url, driver_name or "Driver")
+            logger.info("Magic link SMS %s to %s", "sent" if sms_sent else "FAILED", driver_phone)
+
         return _retell_result(
             f"Job {job_id} created for {driver_name}. "
-            f"magic_link_url: {magic_link_url} "
-            "Now call send_magic_link_sms immediately to text this link to the driver."
+            + ("Magic link texted to the driver. " if sms_sent else "")
+            + "Tell the driver to check their texts for the GPS link and tap it to share their location."
         )
     except Exception as exc:
         logger.error("save_driver_info error: %s", exc, exc_info=True)
