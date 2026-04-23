@@ -225,11 +225,11 @@ UPSERT_SQL = """
         created_at, updated_at
     ) VALUES (
         :id, :company_name, :contact_name, :phone,
-        :service_types::jsonb, :vehicle_types_supported::jsonb,
+        cast(:service_types as jsonb), cast(:vehicle_types_supported as jsonb),
         :base_lat, :base_lng, :active, :accepts_mobile_roadside,
         :rating, :review_count,
         :source, :source_confidence, :source_url,
-        :hours_of_operation::jsonb, :address, :city, :state, :website,
+        cast(:hours_of_operation as jsonb), :address, :city, :state, :website,
         :total_dispatches, :successful_dispatches,
         :now, :now
     )
