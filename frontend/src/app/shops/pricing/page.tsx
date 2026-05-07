@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { CheckCircle2, ArrowRight, HelpCircle } from "lucide-react";
 import { HELP_PHONE } from "@/lib/phone";
 
@@ -85,13 +86,23 @@ export default function ShopsPricingPage() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-orange-600 to-red-600 text-white py-16 px-4 text-center">
-        <div className="max-w-3xl mx-auto">
-          <span className="inline-block bg-white/20 text-sm font-medium px-4 py-1 rounded-full mb-6">
+      <section className="relative min-h-[50vh] flex flex-col justify-end overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1487754180451-c456f719a1fc?w=1920&q=80"
+          alt="Mechanic at work in truck repair shop"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/90 z-10" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(234,88,12,0.18),transparent_70%)] z-10" />
+        <div className="relative z-20 max-w-3xl mx-auto px-4 sm:px-6 w-full pb-14 pt-28 text-center">
+          <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-sm font-medium px-4 py-1.5 rounded-full mb-8 text-slate-200">
             Roadcall Shops — Pricing
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
-          <p className="text-orange-100 text-lg">Pick a plan. Set up in under 30 minutes. No contracts on entry plans.</p>
+          <h1 className="text-5xl md:text-6xl font-black text-white mb-4 leading-tight">Simple, transparent pricing</h1>
+          <p className="text-slate-300 text-lg">Pick a plan. Set up in under 30 minutes. No contracts on entry plans.</p>
         </div>
       </section>
 

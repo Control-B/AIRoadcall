@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Plug, Truck, Map, Wrench, Radio, Network, MessageSquare } from "lucide-react";
 import { HELP_PHONE } from "@/lib/phone";
 
@@ -61,28 +62,40 @@ export default function FleetIntegrationsPage() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-blue-700 via-cyan-700 to-blue-800 text-white py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <span className="inline-block bg-white/20 text-sm font-medium px-4 py-1 rounded-full mb-6">
+      <section className="relative min-h-[65vh] flex flex-col justify-end overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1920&q=80"
+          alt="Fleet technology data analytics dashboard"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-black/90 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/30 z-10" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(6,182,212,0.2),transparent_70%)] z-10" />
+        <div className="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 w-full pb-16 pt-28 text-center">
+          <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-sm font-medium px-4 py-1.5 rounded-full mb-8 text-slate-200">
             Roadcall Fleet — Integrations
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            Connect Roadcall to your fleet systems
+          <h1 className="text-5xl md:text-6xl font-black leading-[0.95] mb-6 text-white">
+            Connect Roadcall to<br />
+            <span className="bg-gradient-to-r from-cyan-400 to-blue-300 bg-clip-text text-transparent">your fleet systems</span>
           </h1>
-          <p className="text-blue-100 text-xl max-w-2xl mx-auto mb-10">
+          <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
             Roadcall Fleet plugs into your existing GPS, ELD, maintenance, and dispatch stack —
-            so you automate roadside support without replacing what's already working.
+            so you automate roadside support without replacing what&apos;s already working.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/fleet/onboarding"
-              className="bg-white text-blue-700 font-semibold px-8 py-3 rounded-lg hover:bg-blue-50 transition-colors inline-flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
             >
               Plan Fleet Integration <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href={`tel:${HELP_PHONE}`}
-              className="border border-white/40 text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition-colors"
+              className="border border-white/30 bg-white/5 backdrop-blur-sm text-white font-semibold px-8 py-3 rounded-xl hover:bg-white/10 transition-colors"
             >
               Call {HELP_PHONE}
             </a>

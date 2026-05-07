@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   Phone,
   MapPin,
@@ -56,43 +57,50 @@ export default function FleetPage() {
   return (
     <PageLayout>
       {/* Hero */}
-      <section className="relative overflow-hidden pt-28 pb-20 md:pt-36 md:pb-28">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(59,130,246,0.15),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_80%_50%,rgba(6,182,212,0.08),transparent_50%)]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
+      <section className="relative min-h-[85vh] flex flex-col justify-end overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1504176104199-e4d58dc69c7d?w=1920&q=80"
+          alt="Fleet of semi trucks on a highway"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#02050c]/60 via-[#02050c]/30 to-[#02050c] z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#02050c]/60 via-transparent to-[#02050c]/40 z-10" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(59,130,246,0.2),transparent_70%)] z-10" />
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 w-full pb-16 pt-32 text-center">
           <FadeIn>
-            <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/20 rounded-full px-5 py-2 mb-8">
-              <Zap className="h-4 w-4 text-blue-400" />
-              <span className="text-sm font-medium text-blue-300">Roadcall Fleet</span>
+            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-8">
+              <Zap className="h-3.5 w-3.5 text-blue-400" />
+              <span className="text-xs font-medium text-slate-300 tracking-wide">Roadcall Fleet</span>
             </div>
           </FadeIn>
           <FadeIn delay={0.1}>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-              AI Roadside Support<br />
-              <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
-                Built for Fleets
-              </span>
+            <h1 className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tight leading-[0.95] mb-6">
+              <span className="block text-white">AI Roadside Support</span>
+              <span className="block bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">Built for Fleets</span>
             </h1>
           </FadeIn>
           <FadeIn delay={0.2}>
-            <p className="text-xl md:text-2xl text-slate-300 max-w-2xl mx-auto mb-12 leading-relaxed">
+            <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-12 leading-relaxed">
               Every driver breakdown automated — from AI intake to mechanic dispatch. Without forcing your fleet&apos;s sensitive data into a third-party CRM.
             </p>
           </FadeIn>
           <FadeIn delay={0.3}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <Link href="/fleet/onboarding">
-                <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-full px-8 shadow-xl shadow-blue-600/20">
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-8 shadow-xl shadow-blue-600/20">
                   Book Fleet Demo <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </Link>
               <a href={telHref(HELP_PHONE)}>
-                <Button size="lg" variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10 rounded-full px-8">
+                <Button size="lg" variant="outline" className="border-white/20 bg-white/5 backdrop-blur-sm text-white hover:bg-white/10 rounded-xl px-8">
                   <Phone className="h-5 w-5 mr-2" /> Hear Sandy Live
                 </Button>
               </a>
             </div>
-            <p className="text-sm text-slate-500">No commitment · Enterprise pricing available · White-glove onboarding</p>
+            <p className="text-sm text-slate-400">No commitment · Enterprise pricing available · White-glove onboarding</p>
           </FadeIn>
         </div>
       </section>

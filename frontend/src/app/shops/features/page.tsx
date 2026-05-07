@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   Phone,
   MessageSquare,
@@ -72,28 +73,40 @@ export default function ShopsFeaturesPage() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-orange-600 via-red-600 to-orange-700 text-white py-20 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <span className="inline-block bg-white/20 text-sm font-medium px-4 py-1 rounded-full mb-6">
+      <section className="relative min-h-[65vh] flex flex-col justify-end overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1530046339160-ce3e530c7d2f?w=1920&q=80"
+          alt="Mechanic working in a truck repair shop"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/90 z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/20 z-10" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(234,88,12,0.2),transparent_70%)] z-10" />
+        <div className="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 w-full pb-16 pt-28 text-center">
+          <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-sm font-medium px-4 py-1.5 rounded-full mb-8 text-slate-200">
             Roadcall Shops — Features
           </span>
-          <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-            Never miss another repair call
+          <h1 className="text-5xl md:text-6xl font-black leading-[0.95] mb-6 text-white">
+            Never miss another<br />
+            <span className="bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">repair call</span>
           </h1>
-          <p className="text-xl text-orange-100 max-w-2xl mx-auto mb-10">
+          <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
             Roadcall Shops gives truck mechanics a full AI phone and CRM stack —
             answering calls, booking jobs, and following up automatically.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/shops/onboarding"
-              className="bg-white text-orange-600 font-semibold px-8 py-3 rounded-lg hover:bg-orange-50 transition-colors inline-flex items-center gap-2"
+              className="bg-orange-500 hover:bg-orange-400 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
             >
               Start AI Phones for Your Shop <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href={`tel:${HELP_PHONE}`}
-              className="border border-white/40 text-white font-semibold px-8 py-3 rounded-lg hover:bg-white/10 transition-colors"
+              className="border border-white/30 bg-white/5 backdrop-blur-sm text-white font-semibold px-8 py-3 rounded-xl hover:bg-white/10 transition-colors"
             >
               Call {HELP_PHONE}
             </a>
