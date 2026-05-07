@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 
 import {
   Phone,
@@ -142,12 +141,6 @@ export default function DemoPage() {
           <Phone className="h-6 w-6 text-blue-400" />
           <span className="text-lg font-bold">AI Receptionist</span>
         </div>
-        <Link
-          href="/admin/login"
-          className="px-4 py-2 text-sm font-medium rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-700 hover:text-white transition-colors"
-        >
-          Sign In
-        </Link>
       </nav>
 
       {/* Hero */}

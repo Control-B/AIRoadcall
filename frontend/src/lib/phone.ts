@@ -4,7 +4,7 @@ export const HELP_PHONE =
   "(866) 818-3060";
 
 export const COMPANY_PHONE =
-  process.env.NEXT_PUBLIC_COMPANY_PHONE || "(866) 415-9494";
+  process.env.NEXT_PUBLIC_COMPANY_PHONE || "(866) 818-3060";
 
 export const telHref = (phone: string) =>
   `tel:${phone.replace(/[^+\d]/g, "")}`;

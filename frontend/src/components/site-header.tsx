@@ -232,12 +232,6 @@ export function SiteHeader() {
 
         {/* ── Desktop CTA ───────────────────────────────── */}
         <div className="hidden lg:flex items-center gap-3 shrink-0">
-          <Link
-            href="/admin/login"
-            className="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white transition-colors"
-          >
-            Sign In
-          </Link>
           <a href={telHref(HELP_PHONE)}>
             <Button
               size="sm"
@@ -305,12 +299,6 @@ export function SiteHeader() {
                 </div>
               ))}
               <div className="pt-3 border-t border-white/10 space-y-2">
-                <Link
-                  href="/admin/login"
-                  className="block px-4 py-3 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 rounded-lg"
-                >
-                  Sign In
-                </Link>
                 <a href={telHref(HELP_PHONE)}>
                   <Button className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 shadow-lg">
                     <Phone className="h-4 w-4 mr-2" />
