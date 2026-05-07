@@ -170,7 +170,7 @@ export default function FleetFeaturesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading
             title="Built for real fleet operations"
-            subtitle="Not a generic help desk. Every feature maps to a real breakdown scenario your drivers face."
+            description="Not a generic help desk. Every feature maps to a real breakdown scenario your drivers face."
           />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
             {features.map((f) => (
@@ -191,7 +191,7 @@ export default function FleetFeaturesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading
             title="How a breakdown gets resolved"
-            subtitle="From first call to mechanic on-site — fully automated, fully audited."
+            description="From first call to mechanic on-site — fully automated, fully audited."
           />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-12">
             {workflow.map((w, i) => (
@@ -217,7 +217,7 @@ export default function FleetFeaturesPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <SectionHeading
             title="Why fleets choose Roadcall over generic tools"
-            subtitle="Built specifically for commercial vehicles and roadside ops — not adapted from a consumer product."
+            description="Built specifically for commercial vehicles and roadside ops — not adapted from a consumer product."
           />
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {differentiators.map((d) => (
