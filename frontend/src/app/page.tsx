@@ -1,125 +1,169 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import {
   Phone,
   Wrench,
   Truck,
   ArrowRight,
   CheckCircle2,
-  Zap,
   Shield,
   MapPin,
   MessageSquare,
   TrendingUp,
   Building2,
   Star,
+  Zap,
+  Lock,
+  GitBranch,
+  Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 
-const stats = [
-  { value: "35,000+", label: "Mechanics in Network" },
-  { value: "50", label: "States Covered" },
-  { value: "< 90s", label: "Avg Intake Call" },
-  { value: "24/7", label: "Always On" },
-];
-
 const shopsFeatures = [
-  { icon: Phone, title: "AI Phone Answering", description: "Every call answered instantly — day or night. Sandy captures the lead and books the job." },
-  { icon: MessageSquare, title: "Missed-Call Text-Back", description: "Missed a call? The AI texts back automatically to recover the lead before they call a competitor." },
-  { icon: TrendingUp, title: "CRM Pipeline", description: "Contacts, appointments, follow-ups, and review requests — all powered by GoHighLevel." },
-  { icon: Building2, title: "Appointment Booking", description: "AI books directly into your calendar. No back-and-forth, no front-desk required." },
+  { icon: Phone,        title: "AI Call Answering",      description: "Sandy answers every call instantly — day or night — and captures lead details." },
+  { icon: MessageSquare,title: "Missed-Call Text-Back",  description: "Texts back missed callers within seconds so they don't dial a competitor." },
+  { icon: Building2,    title: "Appointment Booking",    description: "Books directly into your calendar during the call. Zero back-and-forth." },
+  { icon: TrendingUp,   title: "CRM & Follow-Up",        description: "Full pipeline automation with follow-ups and review requests via GoHighLevel." },
 ];
 
 const fleetFeatures = [
-  { icon: Truck, title: "AI Roadside Intake", description: "Driver calls in stranded. AI collects incident details in under 90 seconds, 24/7." },
-  { icon: MapPin, title: "GPS Location Capture", description: "One-tap secure link sent via SMS. Driver shares exact GPS — no app download needed." },
-  { icon: Wrench, title: "Mechanic Matching", description: "Score 35,000+ vendors by distance, specialty, vehicle type, and availability in real time." },
-  { icon: Shield, title: "Private Data Mode", description: "Fleet data stays in your environment. No forcing enterprise incident data into third-party CRMs." },
+  { icon: Phone,      title: "AI Roadside Intake",       description: "Driver calls in stranded. Incident collected in under 90 seconds, 24/7." },
+  { icon: MapPin,     title: "GPS & Tracker Integration",description: "One-tap secure SMS link. Driver shares exact GPS — no app download needed." },
+  { icon: Wrench,     title: "Mechanic Matching",         description: "Score 35,000+ vendors by distance, class, specialty, and availability." },
+  { icon: Radio,      title: "Dispatch & Tracking",       description: "Real-time ops board — driver pin, mechanic ETA, full incident audit trail." },
 ];
 
 const testimonials = [
-  { name: "Mike's Diesel Repair", location: "Dallas, TX", vertical: "shops", quote: "We were missing 40% of after-hours calls. Now the AI picks up every one and I wake up to a list of qualified leads.", rating: 5 },
-  { name: "Coastal Freight Lines", location: "Atlanta, GA", vertical: "fleet", quote: "Our drivers get a text link mid-call and share their GPS without downloading a thing. Dispatch time dropped by 60%.", rating: 5 },
-  { name: "Big Rig Solutions", location: "Phoenix, AZ", vertical: "shops", quote: "One after-hours job the AI booked covered two months of the service. Paid for itself week one.", rating: 5 },
+  { name: "Mike's Diesel Repair",  location: "Dallas, TX",   vertical: "shops", quote: "We were missing 40% of after-hours calls. Now the AI picks up every one and I wake up to a list of qualified leads.", rating: 5 },
+  { name: "Coastal Freight Lines", location: "Atlanta, GA",  vertical: "fleet", quote: "Our drivers get a text link mid-call and share their GPS without downloading a thing. Dispatch time dropped by 60%.", rating: 5 },
+  { name: "Big Rig Solutions",     location: "Phoenix, AZ",  vertical: "shops", quote: "One after-hours job the AI booked covered two months of the subscription. Paid for itself week one.", rating: 5 },
+];
+
+const integrations = [
+  "Samsara", "Geotab", "Motive", "ELD", "Fleetio", "Zenduit", "Google Maps", "Custom API",
 ];
 
 export default function HomePage() {
   return (
     <PageLayout>
-      {/* Hero */}
-      <section className="relative overflow-hidden pt-28 pb-20 md:pt-36 md:pb-28">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(234,88,12,0.18),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_50%_40%_at_80%_50%,rgba(59,130,246,0.08),transparent_50%)]" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
+
+      {/* ═══════════════════════════════════════════════════════════════
+          HERO — Full-viewport cinematic truck section
+      ═══════════════════════════════════════════════════════════════ */}
+      <section className="relative min-h-screen flex flex-col justify-end overflow-hidden">
+
+        {/* Truck background image */}
+        <Image
+          src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=1920&q=80"
+          alt="Semi truck on night highway"
+          fill
+          priority
+          className="object-cover object-center"
+          sizes="100vw"
+        />
+
+        {/* Layered overlays for cinematic depth */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#02050c]/70 via-[#02050c]/40 to-[#02050c] z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#02050c]/60 via-transparent to-[#02050c]/40 z-10" />
+        {/* Orange headlight bloom */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(234,88,12,0.18),transparent_70%)] z-10" />
+
+        {/* Hero content */}
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 w-full pb-16 pt-32">
+
+          {/* Badge */}
           <FadeIn>
-            <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-5 py-2 mb-8">
-              <Zap className="h-4 w-4 text-orange-400" />
-              <span className="text-sm font-medium text-orange-300">AI Roadside &amp; Telephony for Trucking</span>
+            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-10">
+              <Zap className="h-3.5 w-3.5 text-orange-400" />
+              <span className="text-xs font-medium text-slate-300 tracking-wide">AI-Driven Roadside Support &amp; AI Phones for the Trucking Industry</span>
             </div>
           </FadeIn>
+
+          {/* Headline */}
           <FadeIn delay={0.1}>
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-              The AI Platform for<br />
-              <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">
-                Truck Mechanics &amp; Fleets
-              </span>
+            <h1 className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tight leading-[0.95] mb-6">
+              <span className="block text-white">AI That Answers.</span>
+              <span className="block text-white">Jobs That Get Done.</span>
             </h1>
           </FadeIn>
+
           <FadeIn delay={0.2}>
-            <p className="text-xl md:text-2xl text-slate-300 max-w-2xl mx-auto mb-14 leading-relaxed">
-              Roadcall powers two things: AI phones &amp; CRM for mechanic shops, and AI roadside dispatch for fleets — under one platform.
+            <p className="text-lg md:text-xl text-slate-300 max-w-xl mb-12 leading-relaxed">
+              24/7 AI phone agents for mechanics. Less downtime for fleets.
+              <br className="hidden sm:block" />
+              One platform. Two powerful solutions.
             </p>
           </FadeIn>
 
-          {/* Vertical split CTAs */}
+          {/* Vertical split cards */}
           <FadeIn delay={0.3}>
-            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-12">
+            <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mb-10">
+
+              {/* Shops card */}
               <Link href="/shops">
-                <div className="group rounded-3xl border border-orange-500/20 bg-gradient-to-br from-orange-500/10 to-red-500/10 p-8 text-left hover:border-orange-500/40 hover:from-orange-500/15 hover:to-red-500/15 transition-all cursor-pointer">
-                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center mb-5 shadow-lg shadow-orange-500/20">
-                    <Wrench className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-2">Roadcall Shops</div>
-                  <h2 className="text-xl font-bold text-white mb-3">AI Phones + CRM for Truck Mechanics</h2>
-                  <p className="text-slate-400 text-sm mb-5">Answer every call, recover missed leads, book appointments, and manage your pipeline — powered by AI and GoHighLevel.</p>
-                  <div className="flex items-center gap-2 text-orange-400 text-sm font-medium group-hover:gap-3 transition-all">
-                    Connect your shop <ArrowRight className="h-4 w-4" />
+                <div className="group relative rounded-2xl border border-orange-500/25 bg-black/40 backdrop-blur-md p-6 text-left hover:border-orange-500/50 hover:bg-black/60 transition-all duration-200 cursor-pointer overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500/8 to-transparent" />
+                  <div className="relative">
+                    <div className="text-[10px] font-bold text-orange-400 uppercase tracking-[0.2em] mb-3">Roadcall Shops</div>
+                    <h2 className="text-base font-bold text-white mb-1">AI Phones + CRM</h2>
+                    <p className="text-xs font-medium text-orange-300 mb-4">for Truck Mechanics</p>
+                    <ul className="space-y-1.5 mb-5">
+                      {["AI Call Answering","Missed-Call Text Back","Appointment Booking","CRM & Follow-Up"].map(i => (
+                        <li key={i} className="flex items-center gap-2 text-xs text-slate-300">
+                          <CheckCircle2 className="h-3 w-3 text-orange-400 shrink-0" />{i}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+                      For Mechanics <ArrowRight className="h-3 w-3" />
+                    </div>
                   </div>
                 </div>
               </Link>
+
+              {/* Fleet card */}
               <Link href="/fleet">
-                <div className="group rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 p-8 text-left hover:border-blue-500/40 hover:from-blue-500/15 hover:to-cyan-500/15 transition-all cursor-pointer">
-                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center mb-5 shadow-lg shadow-blue-500/20">
-                    <Truck className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-2">Roadcall Fleet</div>
-                  <h2 className="text-xl font-bold text-white mb-3">AI Roadside Support for Fleets</h2>
-                  <p className="text-slate-400 text-sm mb-5">AI intake, GPS capture, mechanic matching, and dispatch visibility — without forcing your fleet data into a third-party CRM.</p>
-                  <div className="flex items-center gap-2 text-blue-400 text-sm font-medium group-hover:gap-3 transition-all">
-                    Book a fleet demo <ArrowRight className="h-4 w-4" />
+                <div className="group relative rounded-2xl border border-blue-500/25 bg-black/40 backdrop-blur-md p-6 text-left hover:border-blue-500/50 hover:bg-black/60 transition-all duration-200 cursor-pointer overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/8 to-transparent" />
+                  <div className="relative">
+                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-3">Roadcall Fleet</div>
+                    <h2 className="text-base font-bold text-white mb-1">AI Roadside Support</h2>
+                    <p className="text-xs font-medium text-blue-300 mb-4">for Fleets</p>
+                    <ul className="space-y-1.5 mb-5">
+                      {["AI Roadside Intake","GPS & Tracker Integration","Mechanic Matching","Dispatch & Tracking"].map(i => (
+                        <li key={i} className="flex items-center gap-2 text-xs text-slate-300">
+                          <CheckCircle2 className="h-3 w-3 text-blue-400 shrink-0" />{i}
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+                      For Fleets <ArrowRight className="h-3 w-3" />
+                    </div>
                   </div>
                 </div>
               </Link>
             </div>
           </FadeIn>
 
+          {/* Phone CTA */}
           <FadeIn delay={0.4}>
-            <a href={telHref(HELP_PHONE)}>
-              <Button size="lg" className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 rounded-full px-8 shadow-xl shadow-orange-600/20">
-                <Phone className="h-5 w-5 mr-2" /> Call {HELP_PHONE}
-              </Button>
+            <a href={telHref(HELP_PHONE)} className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
+              <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                <Phone className="h-3.5 w-3.5 text-white" />
+              </div>
+              <span>Call <strong className="text-white">{HELP_PHONE}</strong> — talk to Sandy live</span>
             </a>
-            <p className="text-sm text-slate-500 mt-3">Live demo line · Talk to Sandy · No signup needed</p>
           </FadeIn>
         </div>
       </section>
 
-      {/* Stats strip */}
-      <section className="border-y border-white/[0.06] bg-white/[0.02] py-6">
+      {/* ── Trust strip ─────────────────────────────────────────────── */}
+      <section className="border-y border-white/[0.06] bg-white/[0.02] py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm text-slate-400">
           {["35,000+ mechanics nationwide","All 50 states covered","No app download needed","Cancel anytime"].map((text) => (
             <div key={text} className="flex items-center gap-2">
@@ -130,38 +174,45 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Roadcall Shops section */}
+      {/* ── Never Miss Another Repair Call (Shops deep-dive) ────────── */}
       <section className="py-24 md:py-32">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <FadeIn direction="left">
-              <div className="text-xs font-semibold text-orange-400 uppercase tracking-widest mb-4">Roadcall Shops</div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                Your Shop Answers<br />
-                <span className="bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">Every Call</span>
+              <div className="text-xs font-bold text-orange-400 uppercase tracking-[0.2em] mb-4">Roadcall Shops</div>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
+                Never Miss Another
+                <span className="block bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">Repair Call</span>
               </h2>
               <p className="text-slate-400 text-lg mb-8 leading-relaxed">
-                Independent truck mechanics miss up to 40% of calls. Roadcall Shops gives you an AI receptionist that never sleeps, captures every lead, and manages your entire CRM pipeline — without hiring extra staff.
+                Your AI receptionist answers every call, captures the details, and books more jobs — while you focus on what you do best: fixing trucks.
               </p>
               <ul className="space-y-3 mb-10">
-                {["AI phone agent answers 24/7","Missed-call text-back in seconds","Appointment booking to your calendar","CRM pipeline with automated follow-up","Review request automation"].map((item) => (
+                {["AI answers instantly, 24/7","Missed-call text-back in seconds","Appointment booking to your calendar","CRM pipeline with automated follow-up","Review request automation after jobs"].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-5 w-5 text-orange-400 shrink-0" /> {item}
+                    <CheckCircle2 className="h-4 w-4 text-orange-400 shrink-0" /> {item}
                   </li>
                 ))}
               </ul>
-              <Link href="/shops">
-                <Button className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 rounded-full px-8">
-                  Explore Roadcall Shops <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
+              <div className="flex gap-3">
+                <Link href="/shops/onboarding">
+                  <Button className="bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl px-6">
+                    Start All Phones
+                  </Button>
+                </Link>
+                <Link href="/shops/features">
+                  <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 rounded-xl px-6">
+                    See Features
+                  </Button>
+                </Link>
+              </div>
             </FadeIn>
             <FadeIn direction="right">
               <div className="grid grid-cols-2 gap-4">
                 {shopsFeatures.map((f) => (
                   <GlassCard key={f.title} className="p-5">
-                    <f.icon className="h-7 w-7 text-orange-400 mb-3" />
-                    <h3 className="text-sm font-semibold text-white mb-2">{f.title}</h3>
+                    <f.icon className="h-6 w-6 text-orange-400 mb-3" />
+                    <h3 className="text-sm font-semibold text-white mb-1.5">{f.title}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">{f.description}</p>
                   </GlassCard>
                 ))}
@@ -171,7 +222,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Roadcall Fleet section */}
+      {/* ── AI Roadside Support That Delivers (Fleet deep-dive) ──────── */}
       <section className="py-24 md:py-32 border-t border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
@@ -179,40 +230,118 @@ export default function HomePage() {
               <div className="grid grid-cols-2 gap-4">
                 {fleetFeatures.map((f) => (
                   <GlassCard key={f.title} className="p-5">
-                    <f.icon className="h-7 w-7 text-blue-400 mb-3" />
-                    <h3 className="text-sm font-semibold text-white mb-2">{f.title}</h3>
+                    <f.icon className="h-6 w-6 text-blue-400 mb-3" />
+                    <h3 className="text-sm font-semibold text-white mb-1.5">{f.title}</h3>
                     <p className="text-xs text-slate-400 leading-relaxed">{f.description}</p>
                   </GlassCard>
                 ))}
               </div>
             </FadeIn>
             <FadeIn direction="right" className="order-1 lg:order-2">
-              <div className="text-xs font-semibold text-blue-400 uppercase tracking-widest mb-4">Roadcall Fleet</div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
-                Roadside Support,<br />
-                <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Built for Fleets</span>
+              <div className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">Roadcall Fleet</div>
+              <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
+                AI Roadside Support
+                <span className="block bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">That Delivers</span>
               </h2>
               <p className="text-slate-400 text-lg mb-8 leading-relaxed">
-                When your driver breaks down, every minute of downtime costs money. Roadcall Fleet automates the entire roadside intake, GPS capture, and mechanic dispatch — without routing sensitive fleet data through a third-party CRM.
+                Fast intake. Accurate data. The right mechanic dispatched — faster. Your fleet data stays in your control.
               </p>
               <ul className="space-y-3 mb-10">
-                {["AI driver intake in under 90 seconds","One-tap GPS location via SMS link","Matches nearest qualified mechanic instantly","Dispatch status board for your team","Your data stays in your environment"].map((item) => (
+                {["AI driver intake in under 90 seconds","GPS location via one-tap SMS link","Matches nearest qualified mechanic instantly","Real-time dispatch board for your team","Your data never touches a third-party CRM"].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-5 w-5 text-blue-400 shrink-0" /> {item}
+                    <CheckCircle2 className="h-4 w-4 text-blue-400 shrink-0" /> {item}
                   </li>
                 ))}
               </ul>
-              <Link href="/fleet">
-                <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-full px-8">
-                  Explore Roadcall Fleet <ArrowRight className="h-4 w-4 ml-2" />
-                </Button>
-              </Link>
+              <div className="flex gap-3">
+                <Link href="/fleet/onboarding">
+                  <Button className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-6">
+                    Book a Demo
+                  </Button>
+                </Link>
+                <Link href="/fleet/features">
+                  <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 rounded-xl px-6">
+                    See Features
+                  </Button>
+                </Link>
+              </div>
             </FadeIn>
           </div>
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* ── Built for Fleets. Trusted by Operators. (Security) ──────── */}
+      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+          <FadeIn>
+            <div className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">Enterprise Security</div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              Built for Fleets.
+              <span className="block text-slate-300 font-light">Trusted by Operators.</span>
+            </h2>
+            <p className="text-slate-400 text-lg mb-12 max-w-2xl mx-auto">
+              Enterprise-grade security with flexible deployment options. Security that meets your standards. Support that exceeds them.
+            </p>
+          </FadeIn>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { icon: Shield,    label: "Tenant Isolation",       sub: "Your data. Your control." },
+              { icon: Lock,      label: "RBAC & Audit Logs",      sub: "Secure access. Full visibility." },
+              { icon: GitBranch, label: "Private or Hybrid",      sub: "Private Tenant, or In-House." },
+              { icon: Zap,       label: "Data Minimization",      sub: "We only collect what's needed." },
+            ].map((item) => (
+              <FadeIn key={item.label}>
+                <GlassCard className="p-6 flex flex-col items-center text-center">
+                  <item.icon className="h-7 w-7 text-blue-400 mb-3" />
+                  <div className="text-sm font-semibold text-white mb-1">{item.label}</div>
+                  <div className="text-xs text-slate-400">{item.sub}</div>
+                </GlassCard>
+              </FadeIn>
+            ))}
+          </div>
+          <FadeIn delay={0.2}>
+            <div className="mt-8">
+              <Link href="/fleet/security">
+                <Button variant="outline" className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 rounded-xl px-6">
+                  Request Security Review <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ── Seamless Integrations ───────────────────────────────────── */}
+      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+          <FadeIn>
+            <div className="text-xs font-bold text-emerald-400 uppercase tracking-[0.2em] mb-4">Integrations</div>
+            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+              Seamless Integrations.
+              <span className="block bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Stronger Operations.</span>
+            </h2>
+            <p className="text-slate-400 text-lg mb-12">
+              Connect the tools you use. Sync what matters. Automate the rest.
+            </p>
+          </FadeIn>
+          <div className="flex flex-wrap justify-center gap-3 mb-10">
+            {integrations.map((name) => (
+              <div key={name} className="bg-slate-800/60 border border-slate-700/50 text-slate-300 text-sm font-medium px-5 py-2.5 rounded-xl">
+                {name}
+              </div>
+            ))}
+          </div>
+          <FadeIn delay={0.1}>
+            <Link href="/fleet/integrations">
+              <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 rounded-xl">
+                View All Integrations <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* ── Testimonials ────────────────────────────────────────────── */}
       <section className="py-24 md:py-32 border-t border-white/[0.06]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading eyebrow="What customers say" title="Real results from shops and fleets" />
@@ -240,31 +369,48 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Bottom CTA */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
+      {/* ── Final CTA — Roadcall. We Keep You Moving. ───────────────── */}
+      <section className="relative py-32 md:py-40 border-t border-white/[0.06] overflow-hidden">
+        <Image
+          src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=1920&q=80"
+          alt="Truck on highway at sunset"
+          fill
+          className="object-cover object-center opacity-20"
+          sizes="100vw"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#02050c] via-[#02050c]/60 to-[#02050c]" />
+        <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to get started?</h2>
-            <p className="text-xl text-slate-400 mb-10">Choose your vertical and we&apos;ll have you live in minutes.</p>
+            <h2 className="text-5xl md:text-6xl font-black mb-4">
+              Roadcall.
+              <span className="block bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">
+                We Keep You Moving.
+              </span>
+            </h2>
+            <p className="text-xl text-slate-400 mb-10">
+              AI-driven roadside support and AI phones for the trucking industry.<br />
+              Less downtime. Lower costs. <span className="text-orange-400 font-medium">That&apos;s the Roadcall promise.</span>
+            </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/shops">
-                <Button size="lg" className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 rounded-full px-8">
+              <Link href="/shops/onboarding">
+                <Button size="lg" className="bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl px-8">
                   <Wrench className="h-5 w-5 mr-2" /> I&apos;m a Mechanic Shop
                 </Button>
               </Link>
-              <Link href="/fleet">
-                <Button size="lg" variant="outline" className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 hover:text-blue-200 rounded-full px-8">
+              <Link href="/fleet/onboarding">
+                <Button size="lg" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-8">
                   <Truck className="h-5 w-5 mr-2" /> I Manage a Fleet
                 </Button>
               </Link>
             </div>
             <p className="text-slate-500 text-sm mt-6">
-              Or call us directly:{" "}
-              <a href={telHref(HELP_PHONE)} className="text-orange-400 hover:text-orange-300">{HELP_PHONE}</a>
+              Or call us:{" "}
+              <a href={telHref(HELP_PHONE)} className="text-orange-400 hover:text-orange-300 font-medium">{HELP_PHONE}</a>
             </p>
           </FadeIn>
         </div>
       </section>
+
     </PageLayout>
   );
 }
