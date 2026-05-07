@@ -250,12 +250,13 @@ def _job_service_status(job: Job) -> str:
 
 def _payment_auth_status(job: Job) -> str:
     pm_map = {
-        PaymentStatus.not_started: "not_required",
-        PaymentStatus.pending: "requested",
-        PaymentStatus.authorized: "authorized",
-        PaymentStatus.captured: "authorized",
-        PaymentStatus.failed: "failed",
-        PaymentStatus.cancelled: "failed",
+        PaymentStatus.not_started:       "not_required",
+        PaymentStatus.pending:           "requested",
+        PaymentStatus.authorized:        "authorized",
+        PaymentStatus.capture_required:  "authorized",
+        PaymentStatus.captured:          "authorized",
+        PaymentStatus.released:          "authorized",
+        PaymentStatus.failed:            "failed",
     }
     return pm_map.get(job.payment_status, "not_required")
 
@@ -473,7 +474,9 @@ async def request_payment(
         )
 
     try:
-        result = await PaymentService.create_payment_intent(db, job)
+        from app.schemas.payment import PaymentIntentRequest
+        pay_req = PaymentIntentRequest(amount=None)
+        result = await PaymentService.create_payment_intent(db, job, pay_req)
         await db.commit()
 
         payment_url = f"{settings.public_app_base_url}/pay/{result.client_secret}"
