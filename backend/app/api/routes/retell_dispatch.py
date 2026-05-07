@@ -38,8 +38,40 @@ from app.services.job_service import JobService
 from app.services.payment_service import PaymentService
 from app.services.sms_service import SMSService
 
+from app.enums.issue_type import IssueType
+
 logger = logging.getLogger("retell-dispatch")
 settings = get_settings()
+
+# Map Retell problem_type strings → IssueType enum values
+_PROBLEM_TYPE_MAP: dict[str, str] = {
+    "tire":             IssueType.flat_tire,
+    "flat_tire":        IssueType.flat_tire,
+    "dead_battery":     IssueType.dead_battery,
+    "battery":          IssueType.dead_battery,
+    "lockout":          IssueType.lockout,
+    "fuel_issue":       IssueType.fuel_delivery,
+    "fuel_delivery":    IssueType.fuel_delivery,
+    "tow_needed":       IssueType.tow_needed,
+    "no_start":         IssueType.engine_trouble,
+    "no-start":         IssueType.engine_trouble,
+    "engine_trouble":   IssueType.engine_trouble,
+    "coolant_leak":     IssueType.overheating,
+    "overheating":      IssueType.overheating,
+    "derate":           IssueType.engine_trouble,
+    "regen_issue":      IssueType.engine_trouble,
+    "electrical":       IssueType.engine_trouble,
+    "locked_brakes":    IssueType.other,
+    "air_leak":         IssueType.other,
+    "reefer_issue":     IssueType.other,
+    "accident_damage":  IssueType.accident,
+    "accident":         IssueType.accident,
+    "stuck_off_road":   IssueType.stuck_off_road,
+    "other":            IssueType.other,
+}
+
+def _map_problem_type(raw: str) -> str:
+    return _PROBLEM_TYPE_MAP.get(raw.lower(), IssueType.other)
 
 router = APIRouter(tags=["retell-dispatch"])
 
@@ -250,7 +282,7 @@ async def create_service_request(
         driver_name=payload.driver_name,
         driver_phone=payload.callback_number,
         vehicle_type=vehicle,
-        issue_type=payload.problem_type,
+        issue_type=_map_problem_type(payload.problem_type),
         issue_summary=issue_summary,
     )
     resp = await JobService.create_job(db, req)
