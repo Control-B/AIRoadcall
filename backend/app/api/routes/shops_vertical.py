@@ -20,7 +20,7 @@ from app.models.shop_call_log import ShopCallLog
 from app.models.shop_customer import ShopCustomer
 from app.models.integration_connection import IntegrationConnection, IntegrationProvider
 
-router = APIRouter(prefix="/shops/profile", tags=["shops-profile"])
+router = APIRouter(prefix="/shops", tags=["shops-profile"])
 
 
 # ---------------------------------------------------------------------------
@@ -194,3 +194,39 @@ async def list_integrations(org_id: str, db: AsyncSession = Depends(get_session)
         }
         for c in conns
     ]
+
+
+# ---------------------------------------------------------------------------
+# Onboarding
+# ---------------------------------------------------------------------------
+
+class ShopsOnboardingRequest(BaseModel):
+    business_name: str
+    owner_name: str
+    email: str
+    phone: str
+    website: Optional[str] = None
+    service_area: Optional[str] = None
+    services_offered: Optional[str] = None
+    business_hours: Optional[str] = None
+    current_phone_number: Optional[str] = None
+    wants_ai_answering: Optional[bool] = None
+    wants_booking: Optional[bool] = None
+    wants_reviews: Optional[bool] = None
+    notes: Optional[str] = None
+
+
+@router.post("/onboarding", status_code=201, tags=["shops-profile"])
+async def shops_onboarding(body: ShopsOnboardingRequest):
+    """Receive a shop onboarding interest form submission."""
+    import logging
+    logging.getLogger(__name__).info(
+        "Shops onboarding submission: business=%s email=%s",
+        body.business_name,
+        body.email,
+    )
+    # TODO: store to DB / send notification email / create CRM record
+    return {
+        "status": "received",
+        "message": "Thanks! A Roadcall specialist will be in touch within 1 business day.",
+    }

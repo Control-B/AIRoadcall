@@ -414,3 +414,38 @@ async def list_drivers(organization_id: str, db: AsyncSession = Depends(get_sess
         for d in drivers
     ]
 
+
+# ---------------------------------------------------------------------------
+# Onboarding
+# ---------------------------------------------------------------------------
+
+class FleetOnboardingRequest(BaseModel):
+    company_name: str
+    contact_name: str
+    email: str
+    phone: str
+    fleet_size: Optional[str] = None
+    vehicle_count: Optional[int] = None
+    current_roadside_process: Optional[str] = None
+    tracker_provider: Optional[str] = None
+    maintenance_system: Optional[str] = None
+    tms_or_dispatch_system: Optional[str] = None
+    data_mode: Optional[str] = None  # hosted | private_tenant | hybrid_in_house
+    approved_vendor_network: Optional[bool] = None
+    notes: Optional[str] = None
+
+
+@router.post("/onboarding", status_code=201, tags=["fleet"])
+async def fleet_onboarding(body: FleetOnboardingRequest):
+    """Receive a fleet onboarding interest form submission."""
+    import logging
+    logging.getLogger(__name__).info(
+        "Fleet onboarding submission: company=%s email=%s",
+        body.company_name,
+        body.email,
+    )
+    # TODO: store to DB / send notification email / create CRM record
+    return {
+        "status": "received",
+        "message": "Thanks! A Fleet specialist will be in touch within 1 business day.",
+    }

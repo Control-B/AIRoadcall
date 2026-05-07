@@ -38,6 +38,8 @@ from app.services.job_service import JobService
 from app.services.payment_service import PaymentService
 from app.services.sms_service import SMSService
 
+import os
+
 from app.enums.issue_type import IssueType
 
 logger = logging.getLogger("retell-dispatch")
@@ -106,6 +108,7 @@ class CreateServiceRequestIn(BaseModel):
     problem_description: str
     fault_codes: list[str] = Field(default_factory=list)
     caller_phone: str | None = None
+    agent_id: str | None = None  # Retell agent_id — used for vertical routing
 
 
 class CreateServiceRequestOut(BaseModel):
@@ -261,6 +264,53 @@ def _payment_auth_status(job: Job) -> str:
     return pm_map.get(job.payment_status, "not_required")
 
 
+# ─── Fleet vertical helper ────────────────────────────────────────────────────
+
+async def _create_fleet_service_request(
+    payload: "CreateServiceRequestIn",
+    priority: str,
+    db: AsyncSession,
+) -> "CreateServiceRequestOut":
+    """Create a RoadsideIncident for the Fleet vertical."""
+    from app.models.roadside_incident import RoadsideIncident, IncidentStatus
+    import uuid as _uuid
+
+    vehicle_desc = " ".join(filter(None, [payload.truck_type, payload.trailer_type])) or "vehicle"
+    notes = payload.problem_description
+    if payload.fault_codes:
+        notes += f" | Fault codes: {', '.join(payload.fault_codes)}"
+    if payload.company_name:
+        notes = f"[{payload.company_name}] {notes}"
+
+    incident = RoadsideIncident(
+        caller_name=payload.driver_name,
+        caller_phone=payload.callback_number,
+        vehicle_description=vehicle_desc,
+        issue_description=notes,
+        status=IncidentStatus.open,
+        retell_call_id=payload.retell_call_id,
+        # organization_id is required by the model; use a sentinel UUID when unknown
+        organization_id=_uuid.UUID(os.getenv("FLEET_DEFAULT_ORG_ID", "00000000-0000-0000-0000-000000000000")),
+    )
+    db.add(incident)
+    await db.commit()
+    await db.refresh(incident)
+
+    logger.info(
+        "create_fleet_service_request: incident=%s retell_call=%s",
+        str(incident.id),
+        payload.retell_call_id,
+    )
+
+    return CreateServiceRequestOut(
+        ok=True,
+        service_request_id=str(incident.id),
+        service_status="intake_created",
+        priority=priority,
+        next_action="request_location",
+    )
+
+
 # ─── Endpoints ────────────────────────────────────────────────────────────────
 
 @router.post(
@@ -274,6 +324,13 @@ async def create_service_request(
 ) -> CreateServiceRequestOut:
     """Create a dispatch record from Retell AI call intake."""
     priority = "high" if payload.problem_type in _HIGH_PRIORITY else "standard"
+
+    # ── Vertical routing ──────────────────────────────────────────────────────
+    fleet_agent_id = os.getenv("RETELL_FLEET_AGENT_ID", "")
+    if fleet_agent_id and payload.agent_id == fleet_agent_id:
+        return await _create_fleet_service_request(payload, priority, db)
+    # Shops / default path falls through below
+    # ─────────────────────────────────────────────────────────────────────────
 
     vehicle = " ".join(filter(None, [payload.truck_type, payload.trailer_type])) or "vehicle"
     issue_summary = payload.problem_description
