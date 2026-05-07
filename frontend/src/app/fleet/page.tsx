@@ -59,7 +59,7 @@ export default function FleetPage() {
       {/* Hero */}
       <section className="relative min-h-[85vh] flex flex-col justify-end overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1504176104199-e4d58dc69c7d?w=1920&q=80"
+          src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1920&q=80"
           alt="Fleet of semi trucks on a highway"
           fill
           priority

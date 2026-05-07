@@ -107,8 +107,8 @@ export default function ShopsPage() {
       {/* Hero */}
       <section className="relative min-h-[85vh] flex flex-col justify-end overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1920&q=80"
-          alt="Mechanic working on a truck engine in a repair shop"
+          src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=1920&q=80"
+          alt="Semi truck parked on the road at sunset"
           fill
           priority
           className="object-cover object-center"
