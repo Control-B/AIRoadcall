@@ -43,7 +43,7 @@ export function FadeIn({
 
 /* ── Section Heading ─────────────────────────────────────── */
 interface SectionHeadingProps {
-  eyebrow: string;
+  eyebrow?: string;
   title: string;
   description?: string;
   eyebrowColor?: string;
@@ -57,11 +57,13 @@ export function SectionHeading({
 }: SectionHeadingProps) {
   return (
     <FadeIn className="text-center mb-16 md:mb-20">
-      <p
-        className={`text-sm font-semibold uppercase tracking-[0.25em] ${eyebrowColor} mb-4`}
-      >
-        {eyebrow}
-      </p>
+      {eyebrow && (
+        <p
+          className={`text-sm font-semibold uppercase tracking-[0.25em] ${eyebrowColor} mb-4`}
+        >
+          {eyebrow}
+        </p>
+      )}
       <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-5">
         {title}
       </h2>
