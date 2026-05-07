@@ -22,6 +22,8 @@ from app.api.routes import (
     admin_auth,
     rag,
     call_summaries,
+    fleet,
+    shops_vertical,
 )
 
 settings = get_settings()
@@ -63,6 +65,8 @@ app.include_router(shops.router, prefix="/api")
 app.include_router(outreach.router, prefix="/api")
 app.include_router(admin_auth.router, prefix="/api")
 app.include_router(call_summaries.router, prefix="/api")
+app.include_router(fleet.router, prefix="/api")
+app.include_router(shops_vertical.router, prefix="/api")
 
 
 @app.on_event("startup")

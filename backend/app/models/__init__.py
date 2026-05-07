@@ -7,3 +7,11 @@ from app.models.shop_customer import ShopCustomer
 from app.models.shop_call_log import ShopCallLog
 from app.models.call_summary import CallSummary
 from app.models.outreach_campaign import OutreachCampaign, OutreachMessage
+from app.models.organization import Organization, VerticalType
+from app.models.fleet_profile import FleetProfile
+from app.models.vehicle import Vehicle
+from app.models.driver import Driver
+from app.models.vendor import Vendor
+from app.models.roadside_incident import RoadsideIncident, IncidentStatus
+from app.models.location_capture_session import LocationCaptureSession, LocationSessionStatus
+from app.models.integration_connection import IntegrationConnection, IntegrationProvider
