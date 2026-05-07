@@ -231,18 +231,19 @@ async def _get_job_or_404(service_request_id: str, db: AsyncSession) -> Job:
 
 
 def _job_service_status(job: Job) -> str:
+    # Maps real JobStatus enum values → Retell-facing status strings
     status_map = {
-        JobStatus.awaiting_driver_location: "location_requested",
-        JobStatus.driver_location_received: "matching",
-        JobStatus.matching_mechanics: "matching",
-        JobStatus.calling_mechanics: "matching",
-        JobStatus.mechanic_accepted: "mechanic_confirmed",
-        JobStatus.payment_pending: "payment_required",
-        JobStatus.payment_authorized: "payment_authorized",
-        JobStatus.dispatched: "dispatched",
-        JobStatus.completed: "dispatched",
-        JobStatus.cancelled: "failed",
-        JobStatus.failed: "failed",
+        JobStatus.created:                        "intake_created",
+        JobStatus.awaiting_driver_location:       "location_requested",
+        JobStatus.awaiting_payment_authorization: "payment_required",
+        JobStatus.payment_authorized:             "payment_authorized",
+        JobStatus.matching_mechanics:             "matching",
+        JobStatus.calling_mechanics:              "matching",
+        JobStatus.mechanic_assigned:              "mechanic_confirmed",
+        JobStatus.mechanic_en_route:              "dispatched",
+        JobStatus.mechanic_arrived:               "dispatched",
+        JobStatus.completed:                      "dispatched",
+        JobStatus.canceled:                       "failed",
     }
     return status_map.get(job.status, "matching")
 
@@ -331,7 +332,7 @@ async def request_location(
                 + (f" MM {d.mile_marker}" if d.mile_marker else "")
                 + (f", near {d.nearest_exit}" if d.nearest_exit else "")
             )
-        job.status = JobStatus.driver_location_received
+        job.status = JobStatus.matching_mechanics
         await db.commit()
         return RequestLocationOut(
             ok=True,
@@ -365,15 +366,20 @@ async def request_location(
     )
 
 
-@router.get(
-    "/api/dispatch/status/{service_request_id}",
+class DispatchStatusIn(BaseModel):
+    service_request_id: str
+
+
+@router.post(
+    "/api/dispatch/status",
     response_model=DispatchStatusOut,
     dependencies=[Depends(require_retell_auth)],
 )
 async def get_dispatch_status(
-    service_request_id: str,
+    payload: DispatchStatusIn,
     db: AsyncSession = Depends(get_session),
 ) -> DispatchStatusOut:
+    service_request_id = payload.service_request_id
     """Return current dispatch status, mechanic details, and ETA."""
     job = await _get_job_or_404(service_request_id, db)
 
@@ -403,10 +409,14 @@ async def get_dispatch_status(
             mechanic_phone = mech.phone
 
     service_status = _job_service_status(job)
-    payment_required = job.payment_status in (
-        PaymentStatus.not_started, PaymentStatus.pending
-    ) and job.status in (JobStatus.payment_pending, JobStatus.payment_authorized)
-    transfer_approved = job.status in (JobStatus.dispatched, JobStatus.completed)
+    payment_required = (
+        job.payment_status in (PaymentStatus.not_started, PaymentStatus.pending)
+        and job.status in (JobStatus.awaiting_payment_authorization, JobStatus.payment_authorized)
+    )
+    transfer_approved = job.status in (
+        JobStatus.mechanic_assigned, JobStatus.mechanic_en_route,
+        JobStatus.mechanic_arrived, JobStatus.completed
+    )
 
     def _driver_msg() -> str:
         if service_status == "matching":
@@ -510,7 +520,7 @@ async def confirm_dispatch(
     job = await _get_job_or_404(payload.service_request_id, db)
 
     if job.status not in (
-        JobStatus.mechanic_accepted,
+        JobStatus.mechanic_assigned,
         JobStatus.payment_authorized,
         JobStatus.matching_mechanics,
         JobStatus.calling_mechanics,
@@ -520,7 +530,7 @@ async def confirm_dispatch(
             detail=f"Cannot confirm dispatch from status: {job.status}",
         )
 
-    job.status = JobStatus.dispatched
+    job.status = JobStatus.mechanic_en_route
     tracking_url: str | None = None
 
     if payload.send_tracking_sms and job.driver_phone:
@@ -557,7 +567,10 @@ async def initiate_warm_transfer(
     """Approve transfer, select target phone, and return whisper text."""
     job = await _get_job_or_404(payload.service_request_id, db)
 
-    if job.status not in (JobStatus.dispatched, JobStatus.mechanic_accepted):
+    if job.status not in (
+        JobStatus.mechanic_assigned, JobStatus.mechanic_en_route,
+        JobStatus.mechanic_arrived,
+    ):
         return WarmTransferOut(
             ok=True,
             transfer_approved=False,
