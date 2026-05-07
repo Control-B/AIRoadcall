@@ -49,12 +49,21 @@ class SMSService:
     @staticmethod
     def _send_sync(phone_number: str, body: str) -> bool:
         """Try Twilio toll-free first, fall back to Telnyx."""
-        if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN \
-                and not settings.TWILIO_ACCOUNT_SID.startswith("AC_placeholder"):
+        # Re-read settings at call time (avoids stale cached values at module import)
+        cfg = get_settings()
+        twilio_sid = cfg.TWILIO_ACCOUNT_SID or ""
+        twilio_tok = cfg.TWILIO_AUTH_TOKEN or ""
+        telnyx_key = cfg.TELNYX_API_KEY or ""
+        telnyx_from = cfg.TELNYX_FROM_NUMBER or ""
+        logger.info(
+            f"[SMS] provider check — twilio_sid={twilio_sid[:6] if twilio_sid else 'EMPTY'}"
+            f" telnyx_key={'SET' if telnyx_key else 'EMPTY'} telnyx_from={telnyx_from!r}"
+        )
+        if twilio_sid and twilio_tok and not twilio_sid.startswith("AC_placeholder"):
             ok = SMSService._send_via_twilio(phone_number, body)
             if ok:
                 return True
-        if settings.TELNYX_API_KEY and settings.TELNYX_FROM_NUMBER:
+        if telnyx_key and telnyx_from:
             ok = SMSService._send_via_telnyx(phone_number, body)
             if ok:
                 return True
