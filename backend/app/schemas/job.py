@@ -4,7 +4,7 @@ from typing import Optional
 
 
 class JobCreateRequest(BaseModel):
-    """Request from LiveKit/backend after AI call intake completes."""
+    """Request from Retell/backend after AI call intake completes."""
     driver_name: str = Field(..., min_length=1, max_length=255)
     driver_phone: str = Field(..., min_length=5, max_length=30)
     vehicle_type: Optional[str] = None

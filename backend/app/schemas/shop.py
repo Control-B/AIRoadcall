@@ -171,7 +171,7 @@ class ChatResponse(BaseModel):
 
 
 class IncomingCallRequest(BaseModel):
-    """Incoming call webhook from LiveKit SIP trunk."""
+    """Incoming call webhook from SIP trunk."""
 
     called_number: str  # The shop's SIP number that was called
     caller_number: str  # The caller's phone number

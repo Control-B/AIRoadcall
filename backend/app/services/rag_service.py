@@ -1,6 +1,6 @@
 """RAG (Retrieval-Augmented Generation) Service for AI Agent Knowledge Base.
 
-Provides formatted, context-aware mechanic and service information to the LiveKit
+Provides formatted, context-aware mechanic and service information to the AI agent
 agent for in-call reasoning and recommendations.
 """
 

@@ -96,9 +96,8 @@ async def handle_incoming_call(
 ):
     """Route an incoming call to the correct shop's AI agent.
 
-    Called by LiveKit SIP trunk when a call arrives at a shop's number.
-    Looks up the shop config and returns the agent configuration
-    for LiveKit to use.
+    Called by the SIP trunk when a call arrives at a shop's number.
+    Looks up the shop config and returns the agent configuration.
     """
     config = await ShopTelephonyService.get_agent_config(db, data.called_number)
 

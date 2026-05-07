@@ -48,8 +48,8 @@ def _coalesce_dt(payload: dict[str, Any], *keys: str) -> datetime | None:
     return None
 
 
-@router.post("/livekit", response_model=CallSummaryResponse, dependencies=[Depends(require_admin_api_key)])
-async def ingest_livekit_call_summary(
+@router.post("/call-summary", response_model=CallSummaryResponse, dependencies=[Depends(require_admin_api_key)])
+async def ingest_call_summary(
     request: Request,
     body: dict[str, Any] = Body(default_factory=dict),
     db: AsyncSession = Depends(get_session),

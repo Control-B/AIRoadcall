@@ -59,7 +59,7 @@ async def create_job(
 ):
     """Create a new roadside job after AI call intake.
 
-    Called by the LiveKit webhook handler or internal service after the AI
+    Called by the Retell webhook handler or internal service after the AI
     phone call with the driver is complete.
     """
     result = await JobService.create_job(db, request)

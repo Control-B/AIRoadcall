@@ -184,32 +184,11 @@ class DispatchService:
             )
             return
 
-        from app.services.livekit_service import LiveKitService
-
-        job_summary = (
-            f"{job.issue_type}: {job.issue_summary or ''} — {job.vehicle_type or 'vehicle'}"
+        logger.info(
+            "Outbound call for attempt %s would be placed to %s — voice dispatch handled by Retell.",
+            attempt_id,
+            next_attempt.mechanic_phone,
         )
-        call_result = await LiveKitService.initiate_mechanic_call(
-            mechanic_phone=next_attempt.mechanic_phone,
-            mechanic_name=next_attempt.mechanic_company,
-            job_summary=job_summary,
-            job_id=str(job.id),
-            dispatch_attempt_id=next_attempt.dispatch_attempt_id,
-        )
-
-        if call_result.get("status") == "error":
-            logger.error(
-                "LiveKit call launch failed for attempt %s: %s",
-                attempt_id,
-                call_result.get("error", "unknown error"),
-            )
-            await DispatchService.record_mechanic_response(
-                db=db,
-                job_id=job.id,
-                attempt_id=attempt_id,
-                response="timed_out",
-                notes=f"LiveKit call launch failed: {call_result.get('error', 'unknown error')}",
-            )
 
     @staticmethod
     async def start_dispatch(

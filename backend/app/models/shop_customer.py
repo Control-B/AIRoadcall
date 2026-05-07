@@ -3,7 +3,7 @@
 Each shop gets a personalized AI agent that answers their phone calls,
 qualifies leads, handles customer service, and dispatches jobs.
 
-The agent is powered by LiveKit for voice and DO AI Gradient for text chat.
+The agent is powered by Retell AI for voice and DO AI Gradient for text chat.
 """
 import uuid
 from datetime import datetime, timezone
@@ -40,7 +40,7 @@ class ShopCustomer(Base):
         nullable=False,
         default="Thank you for calling. How can I help you today?",
     )
-    # ElevenLabs voice ID or LiveKit voice preset
+    # ElevenLabs voice ID or Retell voice preset
     voice_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     # DO AI Gradient agent/model ID for text chat
     text_agent_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
@@ -57,10 +57,10 @@ class ShopCustomer(Base):
     # Custom FAQ or knowledge base entries
     knowledge_base: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
-    # ── LiveKit / SIP Configuration ────────────────────────
-    # The SIP phone number assigned to this shop (LiveKit trunk)
+    # ── SIP Configuration ────────────────────────────────────
+    # The SIP phone number assigned to this shop
     sip_phone_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
-    # LiveKit SIP trunk ID for this shop's number
+    # SIP trunk ID for this shop's number
     sip_trunk_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     # Forward calls to this number if agent can't handle
     fallback_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)

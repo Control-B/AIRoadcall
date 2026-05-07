@@ -57,7 +57,7 @@ async def recommend_mechanics(
     request: MechanicRecommendationRequest,
     db: AsyncSession = Depends(get_session),
 ):
-    """Rank nearby mechanics for LiveKit/agent actions using fit, reliability, and response speed."""
+    """Rank nearby mechanics for dispatch using fit, reliability, and response speed."""
     if request.lat is None and request.lng is None and not (request.city and request.state):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
