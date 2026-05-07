@@ -19,6 +19,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session
+from app.core.config import get_settings
 from app.models.roadside_incident import RoadsideIncident, IncidentStatus
 from app.models.vehicle import Vehicle
 from app.models.driver import Driver
@@ -437,14 +438,47 @@ class FleetOnboardingRequest(BaseModel):
 
 @router.post("/onboarding", status_code=201, tags=["fleet"])
 async def fleet_onboarding(body: FleetOnboardingRequest):
-    """Receive a fleet onboarding interest form submission."""
+    """Receive a fleet onboarding interest form submission and notify via email."""
     import logging
-    logging.getLogger(__name__).info(
-        "Fleet onboarding submission: company=%s email=%s",
-        body.company_name,
-        body.email,
-    )
-    # TODO: store to DB / send notification email / create CRM record
+    import httpx
+    log = logging.getLogger(__name__)
+    log.info("Fleet onboarding submission: company=%s email=%s", body.company_name, body.email)
+
+    settings = get_settings()
+    if settings.RESEND_API_KEY:
+        html = f"""
+        <h2>New Fleet Onboarding Lead</h2>
+        <table style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Company</td><td><strong>{body.company_name}</strong></td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Contact</td><td>{body.contact_name}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Email</td><td><a href="mailto:{body.email}">{body.email}</a></td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Phone</td><td>{body.phone}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Fleet Size</td><td>{body.fleet_size or '—'}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Vehicle Count</td><td>{body.vehicle_count or '—'}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Data Mode</td><td>{body.data_mode or '—'}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Tracker</td><td>{body.tracker_provider or '—'}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Maintenance System</td><td>{body.maintenance_system or '—'}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">TMS / Dispatch</td><td>{body.tms_or_dispatch_system or '—'}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Approved Vendor Network</td><td>{'Yes' if body.approved_vendor_network else 'No'}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Current Process</td><td>{body.current_roadside_process or '—'}</td></tr>
+          <tr><td style="padding:4px 12px 4px 0;color:#666">Notes</td><td>{body.notes or '—'}</td></tr>
+        </table>
+        """
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(
+                    "https://api.resend.com/emails",
+                    headers={"Authorization": f"Bearer {settings.RESEND_API_KEY}"},
+                    json={
+                        "from": settings.RESEND_FROM_EMAIL,
+                        "to": [settings.RESEND_FROM_EMAIL],
+                        "subject": f"Fleet Lead: {body.company_name} ({body.fleet_size or 'unknown size'})",
+                        "html": html,
+                    },
+                )
+        except Exception as exc:
+            log.warning("Resend email failed for fleet onboarding: %s", exc)
+
     return {
         "status": "received",
         "message": "Thanks! A Fleet specialist will be in touch within 1 business day.",
