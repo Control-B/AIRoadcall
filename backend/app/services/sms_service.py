@@ -48,14 +48,18 @@ class SMSService:
 
     @staticmethod
     def _send_sync(phone_number: str, body: str) -> bool:
-        """Try Telnyx first, fall back to Twilio."""
-        if settings.TELNYX_API_KEY:
-            return SMSService._send_via_telnyx(phone_number, body)
+        """Try Twilio toll-free first, fall back to Telnyx."""
         if settings.TWILIO_ACCOUNT_SID and settings.TWILIO_AUTH_TOKEN \
                 and not settings.TWILIO_ACCOUNT_SID.startswith("AC_placeholder"):
-            return SMSService._send_via_twilio(phone_number, body)
-        logger.info(f"[DEV] SMS to {phone_number}: {body}")
-        return True
+            ok = SMSService._send_via_twilio(phone_number, body)
+            if ok:
+                return True
+        if settings.TELNYX_API_KEY and settings.TELNYX_FROM_NUMBER:
+            ok = SMSService._send_via_telnyx(phone_number, body)
+            if ok:
+                return True
+        logger.warning(f"[SMS] All providers failed for {phone_number} — no fallback available")
+        return False
 
     @staticmethod
     async def send_magic_link(

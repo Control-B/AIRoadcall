@@ -18,7 +18,7 @@ class Settings(BaseSettings):
 
     # Telnyx
     TELNYX_API_KEY: str = ""
-    TELNYX_FROM_NUMBER: str = "+17275584572"
+    TELNYX_FROM_NUMBER: str = ""
 
     # Apify
     APIFY_API_TOKEN: str = ""
