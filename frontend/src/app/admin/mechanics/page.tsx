@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -66,6 +66,17 @@ interface MechanicListResponse {
   limit: number;
   offset: number;
   items: MechanicRecord[];
+}
+
+interface CityMechanicGroup {
+  city: string;
+  items: MechanicRecord[];
+}
+
+interface StateMechanicGroup {
+  state: string;
+  count: number;
+  cities: CityMechanicGroup[];
 }
 
 const PAGE_SIZE = 50;
@@ -153,6 +164,37 @@ export default function AdminMechanicsPage() {
   const total = records?.total || 0;
   const showingStart = total === 0 ? 0 : offset + 1;
   const showingEnd = Math.min(offset + PAGE_SIZE, total);
+  const groupedRecords = useMemo<StateMechanicGroup[]>(() => {
+    const stateGroups = new Map<string, Map<string, MechanicRecord[]>>();
+
+    for (const mechanic of records?.items || []) {
+      const stateKey = mechanic.state || "Unknown State";
+      const cityKey = mechanic.city || "Unknown City";
+
+      if (!stateGroups.has(stateKey)) {
+        stateGroups.set(stateKey, new Map());
+      }
+      const cityGroups = stateGroups.get(stateKey)!;
+      if (!cityGroups.has(cityKey)) {
+        cityGroups.set(cityKey, []);
+      }
+      cityGroups.get(cityKey)!.push(mechanic);
+    }
+
+    return Array.from(stateGroups.entries())
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([stateName, cityGroups]) => {
+        const cities = Array.from(cityGroups.entries())
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([cityName, items]) => ({ city: cityName, items }));
+
+        return {
+          state: stateName,
+          count: cities.reduce((sum, cityGroup) => sum + cityGroup.items.length, 0),
+          cities,
+        };
+      });
+  }, [records]);
 
   function resetFilters() {
     setSearch("");
@@ -302,7 +344,7 @@ export default function AdminMechanicsPage() {
           <div>
             <CardTitle>Mechanics</CardTitle>
             <CardDescription>
-              Showing {showingStart.toLocaleString()}–{showingEnd.toLocaleString()} of {total.toLocaleString()} records.
+              Showing {showingStart.toLocaleString()}–{showingEnd.toLocaleString()} of {total.toLocaleString()} records, grouped by state and city.
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
@@ -351,80 +393,105 @@ export default function AdminMechanicsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {records.items.map((mechanic) => (
-                    <tr key={mechanic.id} className="border-b align-top last:border-0">
-                      <td className="py-4 pr-4">
-                        <div className="font-semibold text-white">{mechanic.company_name}</div>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {mechanic.accepts_mobile_roadside && <Badge variant="secondary">Roadside</Badge>}
-                          {mechanic.emergency_service && <Badge variant="secondary">24/7</Badge>}
-                          {!mechanic.active && <Badge variant="destructive">Inactive</Badge>}
-                          {mechanic.lead_status && <Badge variant="outline">{mechanic.lead_status.replaceAll("_", " ")}</Badge>}
-                        </div>
-                      </td>
-                      <td className="space-y-2 py-4 pr-4">
-                        <a href={`tel:${mechanic.phone}`} className="flex items-center gap-2 text-blue-700 hover:underline">
-                          <Phone className="h-3.5 w-3.5" /> {mechanic.phone}
-                        </a>
-                        {mechanic.email ? (
-                          <a href={`mailto:${mechanic.email}`} className="flex items-center gap-2 text-blue-700 hover:underline">
-                            <Mail className="h-3.5 w-3.5" /> {mechanic.email}
-                          </a>
-                        ) : (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                            <Mail className="h-3.5 w-3.5" /> No email
+                  {groupedRecords.map((stateGroup) => (
+                    <Fragment key={stateGroup.state}>
+                      <tr className="border-b border-slate-700 bg-slate-950/70">
+                        <td colSpan={7} className="py-3 pr-4">
+                          <div className="flex items-center gap-2 text-white">
+                            <MapPin className="h-4 w-4 text-orange-400" />
+                            <span className="font-semibold">{stateGroup.state}</span>
+                            <Badge variant="outline">{stateGroup.count} records</Badge>
                           </div>
-                        )}
-                        {mechanic.website && (
-                          <a
-                            href={cleanUrl(mechanic.website)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex max-w-xs items-center gap-2 truncate text-blue-700 hover:underline"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                            <span className="truncate">{mechanic.website}</span>
-                          </a>
-                        )}
-                      </td>
-                      <td className="py-4 pr-4">
-                        <div className="flex items-start gap-2">
-                          <MapPin className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
-                          <div>
-                            <div>{[mechanic.city, mechanic.state].filter(Boolean).join(", ") || "Unknown"}</div>
-                            {mechanic.address && <div className="mt-1 max-w-xs text-xs text-muted-foreground">{mechanic.address}</div>}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 pr-4">
-                        <div className="flex max-w-xs flex-wrap gap-1">
-                          {[...mechanic.vehicle_types_supported, ...mechanic.service_types].slice(0, 5).map((item) => (
-                            <Badge key={item} variant="outline">{item.replaceAll("_", " ")}</Badge>
+                        </td>
+                      </tr>
+                      {stateGroup.cities.map((cityGroup) => (
+                        <Fragment key={`${stateGroup.state}-${cityGroup.city}`}>
+                          <tr className="border-b border-slate-800 bg-slate-900/40">
+                            <td colSpan={7} className="py-2 pr-4 text-sm text-slate-200">
+                              <span className="font-medium">{cityGroup.city}</span>
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                {cityGroup.items.length} mechanic{cityGroup.items.length === 1 ? "" : "s"}
+                              </span>
+                            </td>
+                          </tr>
+                          {cityGroup.items.map((mechanic) => (
+                            <tr key={mechanic.id} className="border-b align-top last:border-0">
+                              <td className="py-4 pr-4">
+                                <div className="font-semibold text-white">{mechanic.company_name}</div>
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                  {mechanic.accepts_mobile_roadside && <Badge variant="secondary">Roadside</Badge>}
+                                  {mechanic.emergency_service && <Badge variant="secondary">24/7</Badge>}
+                                  {!mechanic.active && <Badge variant="destructive">Inactive</Badge>}
+                                  {mechanic.lead_status && <Badge variant="outline">{mechanic.lead_status.replaceAll("_", " ")}</Badge>}
+                                </div>
+                              </td>
+                              <td className="space-y-2 py-4 pr-4">
+                                <a href={`tel:${mechanic.phone}`} className="flex items-center gap-2 text-blue-700 hover:underline">
+                                  <Phone className="h-3.5 w-3.5" /> {mechanic.phone}
+                                </a>
+                                {mechanic.email ? (
+                                  <a href={`mailto:${mechanic.email}`} className="flex items-center gap-2 text-blue-700 hover:underline">
+                                    <Mail className="h-3.5 w-3.5" /> {mechanic.email}
+                                  </a>
+                                ) : (
+                                  <div className="flex items-center gap-2 text-muted-foreground">
+                                    <Mail className="h-3.5 w-3.5" /> No email
+                                  </div>
+                                )}
+                                {mechanic.website && (
+                                  <a
+                                    href={cleanUrl(mechanic.website)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex max-w-xs items-center gap-2 truncate text-blue-700 hover:underline"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                                    <span className="truncate">{mechanic.website}</span>
+                                  </a>
+                                )}
+                              </td>
+                              <td className="py-4 pr-4">
+                                <div className="flex items-start gap-2">
+                                  <MapPin className="mt-0.5 h-3.5 w-3.5 text-muted-foreground" />
+                                  <div>
+                                    <div>{[mechanic.city, mechanic.state].filter(Boolean).join(", ") || "Unknown"}</div>
+                                    {mechanic.address && <div className="mt-1 max-w-xs text-xs text-muted-foreground">{mechanic.address}</div>}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-4 pr-4">
+                                <div className="flex max-w-xs flex-wrap gap-1">
+                                  {[...mechanic.vehicle_types_supported, ...mechanic.service_types].slice(0, 5).map((item) => (
+                                    <Badge key={item} variant="outline">{item.replaceAll("_", " ")}</Badge>
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="py-4 pr-4">
+                                <div className="font-medium">Radius: {mechanic.service_radius_miles} mi</div>
+                                <div className="text-xs text-muted-foreground">Priority: {mechanic.priority_score}/100</div>
+                              </td>
+                              <td className="py-4 pr-4">
+                                <div className="font-medium">{mechanic.rating ? `${mechanic.rating.toFixed(1)} ★` : "No rating"}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {mechanic.review_count ? `${mechanic.review_count.toLocaleString()} reviews` : "No review count"}
+                                </div>
+                                {mechanic.source_confidence !== null && (
+                                  <div className="mt-1 text-xs text-muted-foreground">
+                                    {Math.round(mechanic.source_confidence * 100)}% confidence
+                                  </div>
+                                )}
+                              </td>
+                              <td className="py-4 pr-4">
+                                <div>{mechanic.source || "unknown"}</div>
+                                <div className="mt-1 text-xs text-muted-foreground">
+                                  Enriched {mechanic.last_enriched_at ? new Date(mechanic.last_enriched_at).toLocaleDateString() : "never"}
+                                </div>
+                              </td>
+                            </tr>
                           ))}
-                        </div>
-                      </td>
-                      <td className="py-4 pr-4">
-                        <div className="font-medium">Radius: {mechanic.service_radius_miles} mi</div>
-                        <div className="text-xs text-muted-foreground">Priority: {mechanic.priority_score}/100</div>
-                      </td>
-                      <td className="py-4 pr-4">
-                        <div className="font-medium">{mechanic.rating ? `${mechanic.rating.toFixed(1)} ★` : "No rating"}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {mechanic.review_count ? `${mechanic.review_count.toLocaleString()} reviews` : "No review count"}
-                        </div>
-                        {mechanic.source_confidence !== null && (
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {Math.round(mechanic.source_confidence * 100)}% confidence
-                          </div>
-                        )}
-                      </td>
-                      <td className="py-4 pr-4">
-                        <div>{mechanic.source || "unknown"}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          Enriched {mechanic.last_enriched_at ? new Date(mechanic.last_enriched_at).toLocaleDateString() : "never"}
-                        </div>
-                      </td>
-                    </tr>
+                        </Fragment>
+                      ))}
+                    </Fragment>
                   ))}
                 </tbody>
               </table>

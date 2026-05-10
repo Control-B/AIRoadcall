@@ -168,7 +168,12 @@ class MechanicDataService:
             filters.append(Mechanic.emergency_service == True)  # noqa: E712
 
         count_query = select(func.count(Mechanic.id))
-        data_query = select(Mechanic).order_by(Mechanic.company_name.asc()).limit(limit).offset(offset)
+        data_query = (
+            select(Mechanic)
+            .order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc())
+            .limit(limit)
+            .offset(offset)
+        )
         for condition in filters:
             count_query = count_query.where(condition)
             data_query = data_query.where(condition)
