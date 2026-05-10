@@ -56,14 +56,22 @@ FLOW = {
     "tool_call_strict_mode": False,
 
     "global_prompt": "\n".join([
-        "You are Sandy, the Roadcall.ai AI dispatcher for heavy-duty trucking roadside assistance.",
-        "Your job: keep the driver calm, collect structured intake, trigger backend tools, speak backend status updates, and warm transfer only when backend approves.",
-        "The backend handles GPS tokens, mechanic matching, ETA, Stripe payment authorization, dispatch records, tracking, and transcripts.",
-        "NEVER claim a mechanic is dispatched, confirmed, or en route unless backend status explicitly says so.",
-        "Use concise dispatcher language. Ask one or two questions at a time. Confirm critical details before moving on.",
+        "You are Roadcall’s AI roadside dispatcher.",
+        "Your job is to quickly find the nearest matching mechanic from the Roadcall mechanic database.",
+        "Main rule: do not ask every question on a list. Ask only what is missing.",
+        "Be brief. Ask one question at a time. Use the caller’s city first. Search the database before asking extra questions.",
+        "Do not repeat questions. Do not ask for name, email, payment, company, insurance, license plate, or exact address before matching.",
+        "Required search information: city, state, and problem type. Optional: road/highway, vehicle type, landmark, GPS, and whether the vehicle is safe/off the road.",
+        "Start short: Roadcall here. What city and state are you in?",
+        "If city and state are known, call match_mechanic immediately. If only city is known, ask: What state is that in? If only road/highway is known, ask: What city or nearest exit?",
+        "After city/state is known, ask one problem question if needed: What problem are you having — tire, engine, battery, fuel, towing, or something else?",
+        "Call match_mechanic as soon as city, state, and problem type are known. Do not continue interviewing before searching the database.",
+        "After search, give only the best one or two options. Mention city, service match, mobile service, and 24/7 availability if present. Ask if the caller wants to be connected.",
+        "If no exact city match is found, say: I don’t see one directly in your city. I’m checking nearby mechanics.",
+        "If no mechanic is found, say: I don’t have a matching mechanic in that area yet. I can escalate this for manual dispatch.",
+        "NEVER claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.",
         "If the driver is unsafe, injured, or needs emergency response, direct them to call 911 immediately.",
         "Detect the driver's language automatically and continue in that language.",
-        "Use trucking terms naturally: reefer, tractor, trailer, bobtail, steer tire, drive tire, coolant leak, no-start, derate, air leak, locked brakes.",
         "When backend work is in progress, reassure the driver briefly — never describe APIs, webhooks, tokens, or database details.",
         "Do not collect raw card details. Send secure payment links only.",
         f"Backend base URL: {BACKEND_URL}",
@@ -74,7 +82,7 @@ FLOW = {
             "type": "custom",
             "tool_id": "tool-roadcall-create-sr",
             "name": "create_service_request",
-            "description": "Create the backend dispatch record after confirming driver safety and collecting driver name, callback number, truck/trailer type, and problem details.",
+            "description": "Create the backend dispatch record only after match_mechanic returns a useful match and the caller wants to proceed. Do not call before database matching.",
             "url": f"{BACKEND_URL}/api/calls/create-service-request",
             "method": "POST",
             "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
@@ -130,6 +138,37 @@ FLOW = {
                     }
                 },
                 "required": ["service_request_id", "callback_number"]
+            }
+        },
+        {
+            "type": "custom",
+            "tool_id": "tool-roadcall-match-mechanic",
+            "name": "match_mechanic",
+            "description": "Search and rank Roadcall mechanics by city, state, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Call immediately once city, state, and problem type are known.",
+            "url": f"{BACKEND_URL}/api/roadside/match-mechanic",
+            "method": "POST",
+            "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "message": {"type": "string", "description": "Latest caller message or concise summary"},
+                    "transcript": {"type": "string", "description": "Conversation transcript so far, if available"},
+                    "location": {
+                        "type": "object",
+                        "properties": {
+                            "city": {"type": "string"},
+                            "state": {"type": "string"},
+                            "road": {"type": "string"},
+                            "landmark": {"type": "string"},
+                            "latitude": {"type": "number"},
+                            "longitude": {"type": "number"},
+                        },
+                    },
+                    "vehicleType": {"type": "string", "description": "Optional vehicle type if volunteered, e.g. semi truck"},
+                    "problemType": {"type": "string", "description": "Problem type, e.g. tire repair, engine, battery, fuel, towing"},
+                    "limit": {"type": "integer", "description": "Return 1 or 2 matches for the caller"},
+                },
+                "required": ["message"]
             }
         },
         {
@@ -216,16 +255,18 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Greet the driver professionally: 'Roadcall.ai, this is Sandy. Are you safe and off the roadway?'\n"
-                    "If they say yes or seem safe, move to intake.\n"
+                    "Start exactly: 'Roadcall here. What city and state are you in?'\n"
+                    "If they give city and state, move to matching intake.\n"
+                    "If they give only city, ask: 'What state is that in?'\n"
+                    "If they give only road/highway, ask: 'What city or nearest exit?'\n"
                     "If they mention injuries, danger, fire, or need emergency services — tell them to call 911 immediately, then move to emergency end.\n"
-                    "Keep it short — one sentence greeting, one safety question."
+                    "Keep it short. Do not ask for name, phone, company, payment, or vehicle before matching."
                 )
             },
             "edges": [
                 {
-                    "id": "edge-safe",
-                    "transition_condition": {"type": "prompt", "prompt": "Driver confirms they are safe or answers the intake questions"},
+                    "id": "edge-location-started",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller provides city/state or enough location context to continue matching"},
                     "destination_node_id": "node-intake"
                 },
                 {
@@ -240,40 +281,101 @@ FLOW = {
         {
             "id": "node-intake",
             "type": "conversation",
-            "name": "Driver and Problem Intake",
+            "name": "Database Match Intake",
             "display_position": {"x": 400, "y": 300},
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Collect the following information, asking 1-2 questions at a time and confirming before moving on:\n"
-                    "1. Driver's first and last name\n"
-                    "2. Best callback phone number (confirm it's a mobile number that can receive texts)\n"
-                    "3. Trucking company name (optional — 'personal' is fine)\n"
-                    "4. Truck type: tractor, box truck, straight truck, RV, pickup/hotshot, or other\n"
-                    "5. Trailer type: dry van, reefer, flatbed, step deck, tanker, lowboy, none (bobtail), or other\n"
-                    "6. Loaded or empty (or bobtail)\n"
-                    "7. Problem type — use dispatch terms: tire, coolant leak, no-start, dead battery, locked brakes, air leak, fuel issue, reefer issue, derate, overheating, regen issue, electrical, accident damage, or other\n"
-                    "8. Brief problem description — what exactly is happening?\n"
-                    "9. Any fault codes or warning lights? (optional)\n\n"
-                    "Once you have name, callback number, truck type, problem type, and description — call create_service_request immediately.\n"
-                    "Pass retell_call_id from the call metadata, driver_safe=true, and all collected fields."
+                    "Only collect missing search fields. Required: city, state, problem type.\n"
+                    "If city is missing, ask: 'What city or nearest exit?'\n"
+                    "If state is missing, ask: 'What state is that in?'\n"
+                    "If problem type is missing after city/state, ask: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
+                    "If the caller volunteers vehicle type, road, highway, exit, landmark, or GPS, include it. Do not ask for it unless matching needs more info.\n"
+                    "As soon as city, state, and problem type are known, say: 'I'm checking mobile mechanics near [city].' Then call match_mechanic.\n"
+                    "Do not ask for name, callback number, email, payment, company, license plate, insurance, or exact address before calling match_mechanic."
                 )
             },
             "edges": [
                 {
-                    "id": "edge-intake-done",
+                    "id": "edge-match-found",
+                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned one or more matches"},
+                    "destination_node_id": "node-match-results"
+                },
+                {
+                    "id": "edge-match-needs-info",
+                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned needsMoreInfo=true"},
+                    "destination_node_id": "node-intake"
+                },
+                {
+                    "id": "edge-match-none",
+                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned no matches or fallbackEscalation=true"},
+                    "destination_node_id": "node-no-mechanic"
+                }
+            ]
+        },
+
+        # ── 3. Match Result Offer ─────────────────────────
+        {
+            "id": "node-match-results",
+            "type": "conversation",
+            "name": "Mechanic Match Results",
+            "display_position": {"x": 700, "y": 300},
+            "instruction": {
+                "type": "prompt",
+                "text": (
+                    "Tell the caller only the best one or two matches from match_mechanic. Keep it short.\n"
+                    "Example: 'I found ABC Mobile Truck Repair near Tampa. They handle tire repair and offer mobile roadside service. Want me to connect you?'\n"
+                    "Mention city, service match, mobile roadside service, and 24/7 availability if present.\n"
+                    "Do not read a long list. Do not say dispatched, confirmed, nearby, en route, or give ETA from this database match alone.\n"
+                    "If the caller wants to connect or proceed, move to post-match dispatch intake."
+                )
+            },
+            "edges": [
+                {
+                    "id": "edge-connect",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller wants to be connected or wants to proceed"},
+                    "destination_node_id": "node-post-match-intake"
+                },
+                {
+                    "id": "edge-not-proceeding",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller does not want to proceed"},
+                    "destination_node_id": "node-end-success"
+                }
+            ]
+        },
+
+        # ── 4. Post-Match Dispatch Intake ─────────────────
+        {
+            "id": "node-post-match-intake",
+            "type": "conversation",
+            "name": "Post-Match Dispatch Intake",
+            "display_position": {"x": 900, "y": 300},
+            "instruction": {
+                "type": "prompt",
+                "text": (
+                    "Now collect only what is required to create the dispatch record, one question at a time:\n"
+                    "1. 'What callback number should I use if we disconnect?'\n"
+                    "2. 'What name should I put on the request?'\n"
+                    "3. If vehicle type is still missing: 'What are you driving — semi, box truck, trailer, RV, or something else?'\n"
+                    "Do not ask for email, payment, company, insurance, license plate, or other unnecessary details.\n"
+                    "Then call create_service_request using the already captured location/problem/match context."
+                )
+            },
+            "edges": [
+                {
+                    "id": "edge-service-created",
                     "transition_condition": {"type": "prompt", "prompt": "create_service_request tool has been called successfully and returned a service_request_id"},
                     "destination_node_id": "node-location"
                 },
                 {
-                    "id": "edge-intake-fail",
+                    "id": "edge-service-create-fail",
                     "transition_condition": {"type": "prompt", "prompt": "create_service_request returned ok=false or an error occurred"},
                     "destination_node_id": "node-end-callback"
                 }
             ]
         },
 
-        # ── 3. Location Request ───────────────────────────
+        # ── 5. Location Request ───────────────────────────
         {
             "id": "node-location",
             "type": "conversation",
