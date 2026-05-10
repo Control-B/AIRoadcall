@@ -69,7 +69,7 @@ services:
     value: airoadcall-magic-secret-2026
   - key: ADMIN_USERNAME
     scope: RUN_AND_BUILD_TIME
-    value: Wale
+    value: admin@omniweb.ai
   - key: ADMIN_PASSWORD
     scope: RUN_TIME
     type: SECRET

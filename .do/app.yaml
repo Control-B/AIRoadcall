@@ -106,7 +106,7 @@ services:
         type: SECRET
       - key: ADMIN_USERNAME
         scope: RUN_TIME
-        value: Wale
+        value: admin@omniweb.ai
       - key: ADMIN_PASSWORD
         scope: RUN_TIME
         type: SECRET
