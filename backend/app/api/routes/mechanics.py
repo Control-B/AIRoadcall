@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session, require_admin_api_key
+from app.api.routes.admin_auth import verify_admin
 from app.schemas.mechanic import (
     MechanicCreateRequest,
     MechanicRecommendationRequest,
@@ -12,10 +13,56 @@ from app.schemas.mechanic import (
     ShopLookupResponse,
     MechanicView,
     MechanicLocationUpdate,
+    MechanicAdminListResponse,
+    MechanicAdminStats,
 )
 from app.services.mechanic_data_service import MechanicDataService
 
 router = APIRouter(prefix="/mechanics", tags=["mechanics"])
+
+
+@router.get(
+    "/admin/stats",
+    response_model=MechanicAdminStats,
+    dependencies=[Depends(verify_admin)],
+)
+async def get_mechanic_admin_stats(
+    db: AsyncSession = Depends(get_session),
+):
+    """Get mechanic database stats for the admin viewer."""
+    return await MechanicDataService.get_admin_stats(db)
+
+
+@router.get(
+    "/admin/list",
+    response_model=MechanicAdminListResponse,
+    dependencies=[Depends(verify_admin)],
+)
+async def list_mechanics_admin(
+    q: str | None = Query(default=None),
+    city: str | None = Query(default=None),
+    state: str | None = Query(default=None, min_length=2, max_length=2),
+    source: str | None = Query(default=None),
+    has_email: bool | None = Query(default=None),
+    has_website: bool | None = Query(default=None),
+    roadside_only: bool = Query(default=False),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_session),
+):
+    """List mechanic records for the admin viewer with pagination and filters."""
+    return await MechanicDataService.list_admin_mechanics(
+        db,
+        q=q,
+        city=city,
+        state=state,
+        source=source,
+        has_email=has_email,
+        has_website=has_website,
+        roadside_only=roadside_only,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.get("", response_model=list[MechanicSearchResult])

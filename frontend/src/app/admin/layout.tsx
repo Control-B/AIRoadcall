@@ -10,6 +10,7 @@ import {
   BarChart3,
   Settings,
   Phone,
+  Wrench,
   ChevronLeft,
   LogOut,
   Loader2,
@@ -19,6 +20,7 @@ import { isAuthenticated, getUsername, logout } from "@/lib/admin-auth";
 
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/admin/mechanics", icon: Wrench, label: "Mechanics" },
   { href: "/admin/shops", icon: Store, label: "Shops" },
   { href: "/admin/outreach", icon: Megaphone, label: "Outreach" },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },

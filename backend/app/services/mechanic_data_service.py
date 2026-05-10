@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import math
 import re
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, or_, desc
 
 from app.models.mechanic import Mechanic
 from app.schemas.mechanic import (
@@ -12,6 +12,9 @@ from app.schemas.mechanic import (
     MechanicRecommendationView,
     MechanicSearchResult,
     MechanicView,
+    MechanicAdminListItem,
+    MechanicAdminListResponse,
+    MechanicAdminStats,
 )
 from app.core.logging import get_logger
 from app.services.mechanic_scoring_service import MechanicScoringService
@@ -60,6 +63,143 @@ class MechanicDataService:
         "mechanic": "engine_trouble",
         "repair": "engine_trouble",
     }
+
+    @staticmethod
+    async def get_admin_stats(db: AsyncSession) -> MechanicAdminStats:
+        total = await db.scalar(select(func.count(Mechanic.id))) or 0
+        active = await db.scalar(
+            select(func.count(Mechanic.id)).where(Mechanic.active == True)  # noqa: E712
+        ) or 0
+        with_phone = await db.scalar(
+            select(func.count(Mechanic.id)).where(Mechanic.phone.isnot(None), Mechanic.phone != "")
+        ) or 0
+        with_email = await db.scalar(
+            select(func.count(Mechanic.id)).where(Mechanic.email.isnot(None), Mechanic.email != "")
+        ) or 0
+        with_website = await db.scalar(
+            select(func.count(Mechanic.id)).where(Mechanic.website.isnot(None), Mechanic.website != "")
+        ) or 0
+        roadside = await db.scalar(
+            select(func.count(Mechanic.id)).where(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
+        ) or 0
+
+        source_rows = await db.execute(
+            select(Mechanic.source, func.count(Mechanic.id))
+            .group_by(Mechanic.source)
+            .order_by(desc(func.count(Mechanic.id)))
+        )
+        sources = {row[0] or "unknown": row[1] for row in source_rows.all()}
+
+        state_rows = await db.execute(
+            select(Mechanic.state, func.count(Mechanic.id))
+            .where(Mechanic.state.isnot(None), Mechanic.state != "")
+            .group_by(Mechanic.state)
+            .order_by(desc(func.count(Mechanic.id)))
+            .limit(10)
+        )
+        top_states = [
+            {"state": row[0], "count": row[1]}
+            for row in state_rows.all()
+            if row[0]
+        ]
+
+        return MechanicAdminStats(
+            total_mechanics=total,
+            active_mechanics=active,
+            total_with_phone=with_phone,
+            total_with_email=with_email,
+            total_with_website=with_website,
+            roadside_mechanics=roadside,
+            sources=sources,
+            top_states=top_states,
+        )
+
+    @staticmethod
+    async def list_admin_mechanics(
+        db: AsyncSession,
+        *,
+        q: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        source: str | None = None,
+        has_email: bool | None = None,
+        has_website: bool | None = None,
+        roadside_only: bool = False,
+        limit: int = 50,
+        offset: int = 0,
+    ) -> MechanicAdminListResponse:
+        filters = []
+        if q:
+            term = f"%{q.strip()}%"
+            filters.append(
+                or_(
+                    Mechanic.company_name.ilike(term),
+                    Mechanic.contact_name.ilike(term),
+                    Mechanic.phone.ilike(term),
+                    Mechanic.email.ilike(term),
+                    Mechanic.website.ilike(term),
+                    Mechanic.address.ilike(term),
+                )
+            )
+        if city:
+            filters.append(Mechanic.city.ilike(f"%{city.strip()}%"))
+        if state:
+            filters.append(Mechanic.state == normalize_state(state))
+        if source:
+            filters.append(Mechanic.source == source)
+        if has_email is True:
+            filters.append(Mechanic.email.isnot(None))
+            filters.append(Mechanic.email != "")
+        elif has_email is False:
+            filters.append(or_(Mechanic.email.is_(None), Mechanic.email == ""))
+        if has_website is True:
+            filters.append(Mechanic.website.isnot(None))
+            filters.append(Mechanic.website != "")
+        elif has_website is False:
+            filters.append(or_(Mechanic.website.is_(None), Mechanic.website == ""))
+        if roadside_only:
+            filters.append(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
+
+        count_query = select(func.count(Mechanic.id))
+        data_query = select(Mechanic).order_by(Mechanic.company_name.asc()).limit(limit).offset(offset)
+        for condition in filters:
+            count_query = count_query.where(condition)
+            data_query = data_query.where(condition)
+
+        total = await db.scalar(count_query) or 0
+        rows = await db.execute(data_query)
+        mechanics = rows.scalars().all()
+
+        return MechanicAdminListResponse(
+            total=total,
+            limit=limit,
+            offset=offset,
+            items=[
+                MechanicAdminListItem(
+                    id=str(mechanic.id),
+                    company_name=mechanic.company_name,
+                    contact_name=mechanic.contact_name,
+                    phone=mechanic.phone,
+                    email=mechanic.email,
+                    website=mechanic.website,
+                    address=mechanic.address,
+                    city=mechanic.city,
+                    state=mechanic.state,
+                    service_types=mechanic.service_types or [],
+                    vehicle_types_supported=mechanic.vehicle_types_supported or [],
+                    active=mechanic.active,
+                    accepts_mobile_roadside=mechanic.accepts_mobile_roadside,
+                    rating=float(mechanic.rating) if mechanic.rating is not None else None,
+                    review_count=mechanic.review_count,
+                    source=mechanic.source,
+                    source_confidence=mechanic.source_confidence,
+                    lead_status=mechanic.lead_status,
+                    last_enriched_at=mechanic.last_enriched_at,
+                    created_at=mechanic.created_at,
+                )
+                for mechanic in mechanics
+            ],
+        )
 
     @staticmethod
     def _bounding_box(lat: float, lng: float, radius_km: float = 160.0) -> tuple[float, float, float, float]:

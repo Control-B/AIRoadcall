@@ -55,6 +55,47 @@ class MechanicView(BaseModel):
     created_at: datetime
 
 
+class MechanicAdminListItem(BaseModel):
+    id: str
+    company_name: str
+    contact_name: str
+    phone: str
+    email: Optional[str] = None
+    website: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    service_types: list[str]
+    vehicle_types_supported: list[str]
+    active: bool
+    accepts_mobile_roadside: bool
+    rating: Optional[float] = None
+    review_count: Optional[int] = None
+    source: Optional[str] = None
+    source_confidence: Optional[float] = None
+    lead_status: Optional[str] = None
+    last_enriched_at: Optional[datetime] = None
+    created_at: datetime
+
+
+class MechanicAdminListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[MechanicAdminListItem]
+
+
+class MechanicAdminStats(BaseModel):
+    total_mechanics: int
+    active_mechanics: int
+    total_with_phone: int
+    total_with_email: int
+    total_with_website: int
+    roadside_mechanics: int
+    sources: dict[str, int]
+    top_states: list[dict[str, int | str]]
+
+
 class MechanicSearchResult(BaseModel):
     id: str
     company_name: str
