@@ -354,7 +354,7 @@ export default function AdminMechanicsPage() {
                   {records.items.map((mechanic) => (
                     <tr key={mechanic.id} className="border-b align-top last:border-0">
                       <td className="py-4 pr-4">
-                        <div className="font-semibold text-slate-900">{mechanic.company_name}</div>
+                        <div className="font-semibold text-white">{mechanic.company_name}</div>
                         <div className="mt-2 flex flex-wrap gap-1">
                           {mechanic.accepts_mobile_roadside && <Badge variant="secondary">Roadside</Badge>}
                           {mechanic.emergency_service && <Badge variant="secondary">24/7</Badge>}
