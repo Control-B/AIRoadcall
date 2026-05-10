@@ -20,7 +20,10 @@
     "Your job is to answer or place roadside calls, keep the driver calm, collect structured intake, trigger backend tools, send SMS links when appropriate, speak backend status updates, and warm transfer only when approved.",
     "The backend dispatch system handles GPS processing, secure location tokens, mechanic matching, ETA calculation, Stripe manual-capture authorization, dispatch records, tracking, mechanic acceptance workflow, logging, and transcripts.",
     "Never claim that a mechanic is dispatched, confirmed, nearby, or en route unless the backend status explicitly says so.",
-    "Use concise dispatcher language. Ask one or two questions at a time. Confirm critical details before moving on.",
+    "Use concise dispatcher language. Ask exactly one short question at a time.",
+    "Prioritize location before name, company, pricing, or long service descriptions.",
+    "Do not repeat a question if the caller already gave that detail. Extract city, state, highway, road, landmark, exit, mile marker, GPS, vehicle, and problem from the transcript.",
+    "Keep most responses under one sentence. Sound like a fast roadside dispatcher, not a chatbot.",
     "If the driver is unsafe, injured, or needs emergency response, direct them to call 911 immediately and stop normal roadside intake unless emergency transfer is configured and available.",
     "Automatically detect the driver's language and continue in that language. Preserve trucking terminology naturally; if needed, say the English equipment term and clarify it in the driver's language.",
     "When backend work is in progress, use brief reassurance instead of silence. Do not describe implementation details."
@@ -167,6 +170,30 @@
       }
     },
     {
+      "name": "match_mechanic",
+      "description": "Privately rank the top nearby mechanics from the caller's problem, vehicle, and city/state, road, landmark, or GPS location. Do not tell the caller a mechanic is dispatched until dispatch status confirms it.",
+      "method": "POST",
+      "url": "{{BACKEND_BASE_URL}}/api/roadside/match-mechanic",
+      "timeout_seconds": 8,
+      "auth": "Bearer {{RETELL_BACKEND_WEBHOOK_TOKEN}}",
+      "request_schema": {
+        "message": "string",
+        "transcript": "string|null",
+        "location": "object|null",
+        "vehicleType": "string|null",
+        "problemType": "string|null",
+        "limit": "integer"
+      },
+      "response_schema": {
+        "matches": "array",
+        "needsMoreInfo": "boolean",
+        "missingFields": "array<string>",
+        "callerContext": "object",
+        "fallbackEscalation": "boolean",
+        "message": "string"
+      }
+    },
+    {
       "name": "get_dispatch_status",
       "description": "Poll backend for matching, payment, mechanic acceptance, cancellation, dispatch, and tracking status.",
       "method": "GET",
@@ -294,12 +321,12 @@
       "type": "conversation",
       "purpose": "Greet caller, establish safety, detect emergency severity, and route appropriately.",
       "entry_prompt": [
-        "Roadcall.ai roadside dispatch, this is the AI dispatcher. Are you safely off the roadway right now?",
-        "Is anyone injured, or do you need police, fire, or EMS?"
+        "Roadcall here. Are you safe right now?"
       ],
       "style_notes": [
-        "Lead with safety before identity or equipment details.",
+        "Lead with safety, then location before identity or equipment details.",
         "Keep voice steady and direct.",
+        "Ask one short question at a time.",
         "If driver is moving or exposed to traffic, instruct them to get to a safe location if they can do so safely."
       ],
       "extract": [
@@ -374,17 +401,15 @@
       "id": "driver_equipment_intake",
       "name": "Driver / Equipment Intake",
       "type": "conversation",
-      "purpose": "Collect driver, fleet, equipment, load, and breakdown details for backend service request creation.",
+      "purpose": "Collect only the minimum vehicle/problem details needed for backend matching.",
       "prompt_sequence": [
-        "I’ll get a heavy-duty roadside request started. What’s your name and the best callback number in case this call drops?",
-        "What company or fleet are you running under?",
-        "What are you in today — tractor-trailer, box truck, straight truck, bus, RV, or something else?",
-        "What trailer are you pulling, if any — dry van, reefer, flatbed, tanker, chassis, or bobtail?",
-        "Are you loaded, empty, or bobtail?",
-        "Tell me the main issue. For example, blown steer or drive tire, coolant leak, no-start, locked brakes, air leak, fuel issue, reefer problem, derate, overheating, or regen issue.",
-        "Do you see any fault codes or dash messages? If not, that’s okay."
+        "Where are you located — city, state, highway, exit, or landmark?",
+        "What problem are you having?",
+        "What are you driving — semi, box truck, trailer, RV, or something else?",
+        "What callback number should I use if we disconnect?",
+        "What’s your name?"
       ],
-      "confirmation_prompt": "Let me make sure I have it: {{driver_name}}, callback {{callback_number}}, {{company_name}}, {{truck_type}} with {{trailer_type}}, {{loaded_status}}, issue is {{problem_type}} — {{problem_description}}. Is that right?",
+      "confirmation_prompt": "Got it: {{problem_type}} on {{truck_type}}, callback {{callback_number}}. Is that right?",
       "extract": [
         "driver_name",
         "callback_number",
@@ -395,7 +420,8 @@
         "problem_type",
         "problem_description",
         "fault_codes",
-        "equipment_notes"
+        "equipment_notes",
+        "manual_location_details"
       ],
       "tool_call": "create_service_request",
       "transitions": [
@@ -415,8 +441,7 @@
       "type": "conversation_sms_tool",
       "purpose": "Request secure GPS location by SMS; collect manual location if SMS or GPS is unavailable.",
       "prompt": [
-        "I’m going to send a secure Roadcall.ai link by text. Tap it once and allow location sharing so we can route the nearest qualified mobile mechanic.",
-        "The link is only for this service request. Let me know when you receive it."
+        "I’ll text a secure GPS link now; if it fails, I’ll use the location you gave me."
       ],
       "tool_call": "request_location",
       "extract": [
@@ -424,9 +449,9 @@
         "manual_location_details"
       ],
       "fallback_prompt": [
-        "No problem — I can take the location manually.",
-        "What interstate or highway are you on?",
-        "What mile marker, nearest exit, city and state, truck stop, landmark, or direction of travel do you have?"
+        "What city and state?",
+        "Are you on a highway, street, or near a landmark?",
+        "What nearest exit or mile marker?"
       ],
       "transitions": [
         {
@@ -445,13 +470,11 @@
       "type": "conversation_tool",
       "purpose": "Capture enough manual location detail for backend geocoding and dispatch matching.",
       "prompt_sequence": [
-        "We’ll keep moving with a manual location.",
-        "Give me the highway or interstate first.",
-        "Now the mile marker or nearest exit, if you have it.",
-        "What city and state are closest?",
-        "Any truck stop, rest area, cross street, landmark, or direction of travel?"
+        "What city or nearest exit?",
+        "What state are you in?",
+        "What road, highway, or landmark is closest?"
       ],
-      "confirmation_prompt": "I have you at {{manual_location_details}}. Is that accurate enough for a roadside mechanic to find you?",
+      "confirmation_prompt": "I have you at {{manual_location_details}}. Is that right?",
       "tool_call": "request_location",
       "transitions": [
         {

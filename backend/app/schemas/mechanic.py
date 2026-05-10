@@ -13,6 +13,9 @@ class MechanicCreateRequest(BaseModel):
     base_lng: float
     active: bool = True
     accepts_mobile_roadside: bool = True
+    emergency_service: bool = False
+    service_radius_miles: int = Field(default=50, ge=1, le=500)
+    priority_score: int = Field(default=50, ge=0, le=100)
     rating: Optional[float] = None
     review_count: Optional[int] = None
     source: Optional[str] = None
@@ -40,6 +43,9 @@ class MechanicView(BaseModel):
     base_lng: float
     active: bool
     accepts_mobile_roadside: bool
+    emergency_service: bool = False
+    service_radius_miles: int = 50
+    priority_score: int = 50
     rating: Optional[float]
     review_count: Optional[int] = None
     source: Optional[str] = None
@@ -69,6 +75,9 @@ class MechanicAdminListItem(BaseModel):
     vehicle_types_supported: list[str]
     active: bool
     accepts_mobile_roadside: bool
+    emergency_service: bool = False
+    service_radius_miles: int = 50
+    priority_score: int = 50
     rating: Optional[float] = None
     review_count: Optional[int] = None
     source: Optional[str] = None

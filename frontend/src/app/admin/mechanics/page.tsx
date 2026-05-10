@@ -49,6 +49,9 @@ interface MechanicRecord {
   vehicle_types_supported: string[];
   active: boolean;
   accepts_mobile_roadside: boolean;
+  emergency_service: boolean;
+  service_radius_miles: number;
+  priority_score: number;
   rating: number | null;
   review_count: number | null;
   source: string | null;
@@ -100,6 +103,8 @@ export default function AdminMechanicsPage() {
   const [state, setState] = useState("");
   const [hasEmail, setHasEmail] = useState("any");
   const [hasWebsite, setHasWebsite] = useState("any");
+  const [serviceType, setServiceType] = useState("");
+  const [emergencyOnly, setEmergencyOnly] = useState(false);
   const [roadsideOnly, setRoadsideOnly] = useState(false);
   const [offset, setOffset] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -113,11 +118,13 @@ export default function AdminMechanicsPage() {
     if (search.trim()) params.set("q", search.trim());
     if (city.trim()) params.set("city", city.trim());
     if (state.trim()) params.set("state", state.trim().toUpperCase());
+    if (serviceType.trim()) params.set("service_type", serviceType.trim());
     if (hasEmail !== "any") params.set("has_email", String(hasEmail === "yes"));
     if (hasWebsite !== "any") params.set("has_website", String(hasWebsite === "yes"));
+    if (emergencyOnly) params.set("emergency_only", "true");
     if (roadsideOnly) params.set("roadside_only", "true");
     return params.toString();
-  }, [city, hasEmail, hasWebsite, offset, roadsideOnly, search, state]);
+  }, [city, emergencyOnly, hasEmail, hasWebsite, offset, roadsideOnly, search, serviceType, state]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -151,8 +158,10 @@ export default function AdminMechanicsPage() {
     setSearch("");
     setCity("");
     setState("");
+    setServiceType("");
     setHasEmail("any");
     setHasWebsite("any");
+    setEmergencyOnly(false);
     setRoadsideOnly(false);
     setOffset(0);
   }
@@ -193,7 +202,7 @@ export default function AdminMechanicsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[2fr_1fr_120px_150px_150px_160px_auto]">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[2fr_1fr_110px_160px_140px_140px_150px_130px_auto]">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -222,6 +231,14 @@ export default function AdminMechanicsPage() {
               }}
               placeholder="State"
               maxLength={2}
+            />
+            <Input
+              value={serviceType}
+              onChange={(event) => {
+                setServiceType(event.target.value);
+                setOffset(0);
+              }}
+              placeholder="Service e.g. flat_tire"
             />
             <select
               value={hasEmail}
@@ -257,6 +274,17 @@ export default function AdminMechanicsPage() {
                 }}
               />
               Roadside only
+            </label>
+            <label className="flex h-10 items-center gap-2 rounded-md border border-input px-3 text-sm">
+              <input
+                type="checkbox"
+                checked={emergencyOnly}
+                onChange={(event) => {
+                  setEmergencyOnly(event.target.checked);
+                  setOffset(0);
+                }}
+              />
+              24/7 only
             </label>
             <Button variant="ghost" onClick={resetFilters}>Reset</Button>
           </div>
@@ -317,6 +345,7 @@ export default function AdminMechanicsPage() {
                     <th className="py-3 pr-4 font-medium">Contact</th>
                     <th className="py-3 pr-4 font-medium">Location</th>
                     <th className="py-3 pr-4 font-medium">Specialties</th>
+                    <th className="py-3 pr-4 font-medium">Dispatch Fit</th>
                     <th className="py-3 pr-4 font-medium">Quality</th>
                     <th className="py-3 pr-4 font-medium">Source</th>
                   </tr>
@@ -328,6 +357,7 @@ export default function AdminMechanicsPage() {
                         <div className="font-semibold text-slate-900">{mechanic.company_name}</div>
                         <div className="mt-2 flex flex-wrap gap-1">
                           {mechanic.accepts_mobile_roadside && <Badge variant="secondary">Roadside</Badge>}
+                          {mechanic.emergency_service && <Badge variant="secondary">24/7</Badge>}
                           {!mechanic.active && <Badge variant="destructive">Inactive</Badge>}
                           {mechanic.lead_status && <Badge variant="outline">{mechanic.lead_status.replaceAll("_", " ")}</Badge>}
                         </div>
@@ -372,6 +402,10 @@ export default function AdminMechanicsPage() {
                             <Badge key={item} variant="outline">{item.replaceAll("_", " ")}</Badge>
                           ))}
                         </div>
+                      </td>
+                      <td className="py-4 pr-4">
+                        <div className="font-medium">Radius: {mechanic.service_radius_miles} mi</div>
+                        <div className="text-xs text-muted-foreground">Priority: {mechanic.priority_score}/100</div>
                       </td>
                       <td className="py-4 pr-4">
                         <div className="font-medium">{mechanic.rating ? `${mechanic.rating.toFixed(1)} ★` : "No rating"}</div>

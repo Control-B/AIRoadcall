@@ -21,6 +21,7 @@ from app.api.routes import (
     outreach,
     admin_auth,
     rag,
+    roadside,
     call_summaries,
     fleet,
     shops_vertical,
@@ -57,6 +58,7 @@ app.include_router(dispatch.router, prefix="/api")
 app.include_router(tracking.router, prefix="/api")
 app.include_router(mechanics.router, prefix="/api")
 app.include_router(rag.router, prefix="/api")
+app.include_router(roadside.router, prefix="/api")
 app.include_router(webhooks_stripe.router, prefix="/api")
 app.include_router(webhooks_retell.router, prefix="/api")
 app.include_router(retell_dispatch.router)
@@ -83,6 +85,24 @@ async def ensure_database_schema() -> None:
             text(
                 "ALTER TABLE jobs "
                 "ADD COLUMN IF NOT EXISTS driver_eta_decision VARCHAR(32)"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE mechanics "
+                "ADD COLUMN IF NOT EXISTS emergency_service BOOLEAN NOT NULL DEFAULT false"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE mechanics "
+                "ADD COLUMN IF NOT EXISTS service_radius_miles INTEGER NOT NULL DEFAULT 50"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE mechanics "
+                "ADD COLUMN IF NOT EXISTS priority_score INTEGER NOT NULL DEFAULT 50"
             )
         )
     logger.info("Database schema verified")

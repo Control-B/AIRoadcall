@@ -122,9 +122,11 @@ class MechanicDataService:
         city: str | None = None,
         state: str | None = None,
         source: str | None = None,
+        service_type: str | None = None,
         has_email: bool | None = None,
         has_website: bool | None = None,
         roadside_only: bool = False,
+        emergency_only: bool = False,
         limit: int = 50,
         offset: int = 0,
     ) -> MechanicAdminListResponse:
@@ -147,6 +149,9 @@ class MechanicDataService:
             filters.append(Mechanic.state == normalize_state(state))
         if source:
             filters.append(Mechanic.source == source)
+        if service_type:
+            service_term = service_type.strip().lower().replace(" ", "_")
+            filters.append(Mechanic.service_types.contains([service_term]))
         if has_email is True:
             filters.append(Mechanic.email.isnot(None))
             filters.append(Mechanic.email != "")
@@ -159,6 +164,8 @@ class MechanicDataService:
             filters.append(or_(Mechanic.website.is_(None), Mechanic.website == ""))
         if roadside_only:
             filters.append(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
+        if emergency_only:
+            filters.append(Mechanic.emergency_service == True)  # noqa: E712
 
         count_query = select(func.count(Mechanic.id))
         data_query = select(Mechanic).order_by(Mechanic.company_name.asc()).limit(limit).offset(offset)
@@ -189,6 +196,9 @@ class MechanicDataService:
                     vehicle_types_supported=mechanic.vehicle_types_supported or [],
                     active=mechanic.active,
                     accepts_mobile_roadside=mechanic.accepts_mobile_roadside,
+                    emergency_service=mechanic.emergency_service,
+                    service_radius_miles=mechanic.service_radius_miles,
+                    priority_score=mechanic.priority_score,
                     rating=float(mechanic.rating) if mechanic.rating is not None else None,
                     review_count=mechanic.review_count,
                     source=mechanic.source,
@@ -490,6 +500,9 @@ class MechanicDataService:
             mechanic.base_lng = request.base_lng
             mechanic.active = request.active
             mechanic.accepts_mobile_roadside = request.accepts_mobile_roadside
+            mechanic.emergency_service = request.emergency_service
+            mechanic.service_radius_miles = request.service_radius_miles
+            mechanic.priority_score = request.priority_score
             if request.rating is not None:
                 mechanic.rating = request.rating
             if request.review_count is not None:
@@ -521,6 +534,9 @@ class MechanicDataService:
                 base_lng=request.base_lng,
                 active=request.active,
                 accepts_mobile_roadside=request.accepts_mobile_roadside,
+                emergency_service=request.emergency_service,
+                service_radius_miles=request.service_radius_miles,
+                priority_score=request.priority_score,
                 rating=request.rating,
                 review_count=request.review_count,
                 source=request.source,
@@ -549,6 +565,9 @@ class MechanicDataService:
             base_lng=mechanic.base_lng,
             active=mechanic.active,
             accepts_mobile_roadside=mechanic.accepts_mobile_roadside,
+            emergency_service=mechanic.emergency_service,
+            service_radius_miles=mechanic.service_radius_miles,
+            priority_score=mechanic.priority_score,
             rating=float(mechanic.rating) if mechanic.rating else None,
             review_count=mechanic.review_count,
             source=mechanic.source,

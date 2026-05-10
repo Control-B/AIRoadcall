@@ -31,6 +31,9 @@ class Mechanic(Base):
     accepts_mobile_roadside: Mapped[bool] = mapped_column(
         Boolean, default=True, nullable=False
     )
+    emergency_service: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    service_radius_miles: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
+    priority_score: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
 
     # Live tracking location
     last_known_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
