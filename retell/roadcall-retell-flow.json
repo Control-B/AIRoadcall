@@ -28,8 +28,10 @@
     "If the caller gives city and state, call match_mechanic immediately. If only city is known, ask: What state is that in? If only road/highway is known, ask: What city or nearest exit?",
     "After city/state is known, ask only one problem question if missing: What problem are you having — tire, engine, battery, fuel, towing, or something else?",
     "Call match_mechanic as soon as city, state, and problem type are known. Do not continue interviewing before searching the database.",
+    "When calling match_mechanic, pass call.caller_phone as callerPhone if Retell provides it, and pass callback_number if already known. Do not ask for a phone number before the first mechanic search unless caller_phone is unavailable and you need to send the GPS SMS.",
     "When search results return, use the exact businessName from the database. Give only the best one or two options. Mention city, service match, mobile service, and 24/7 availability if present.",
     "Frame the result as the closest and best match from the Roadcall mechanic database, then ask if the caller wants that mechanic or shop connected.",
+    "After the caller wants to proceed, use call.caller_phone as the callback/SMS number when available. If no caller phone is available, ask: What number can I text for the secure GPS location link?",
     "If no exact city match is found, say: I don’t see one directly in your city. I’m checking nearby mechanics.",
     "If no mechanic is found, say: I don’t have a matching mechanic in that area yet. I can escalate this for manual dispatch.",
     "Never claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.",
@@ -189,6 +191,8 @@
         "location": "object|null",
         "vehicleType": "string|null",
         "problemType": "string|null",
+        "callerPhone": "string|null",
+        "callbackNumber": "string|null",
         "limit": "integer"
       },
       "response_schema": {
@@ -432,6 +436,11 @@
         "equipment_notes"
       ],
       "tool_call": "match_mechanic",
+      "tool_instructions": [
+        "Pass call.caller_phone as callerPhone when available.",
+        "Pass callback_number as callbackNumber if already collected.",
+        "Do not ask for a phone number before this tool call unless SMS/GPS is already needed and caller_phone is missing."
+      ],
       "transitions": [
         {
           "condition": "match_mechanic.needsMoreInfo == true",
@@ -470,9 +479,13 @@
       "type": "conversation_sms_tool",
       "purpose": "Request secure GPS location by SMS; collect manual location if SMS or GPS is unavailable.",
       "prompt": [
-        "I’ll text a secure GPS link now; if it fails, I’ll use the location you gave me."
+        "I’ll text a secure GPS link now; tap it and hit Allow so I can confirm your exact location."
       ],
       "tool_call": "request_location",
+      "tool_instructions": [
+        "Use callback_number from call.caller_phone when available.",
+        "If no callback_number is available, ask for the SMS number before calling request_location."
+      ],
       "extract": [
         "location_status",
         "manual_location_details"
@@ -586,9 +599,10 @@
       "type": "conversation_tool",
       "purpose": "After the caller accepts a mechanic match, collect only the minimum callback/request details needed to create a dispatch record.",
       "prompt_sequence": [
-        "What callback number should I use if we disconnect?",
-        "What name should I put on the request?",
-        "What are you driving — semi, box truck, trailer, RV, or something else?"
+        "If call.caller_phone is available, use it as callback_number and do not ask for phone again.",
+        "If no caller phone or callback number is available, ask: What number can I text for the secure GPS location link?",
+        "If driver_name is still missing, ask: What name should I put on the request?",
+        "If vehicle type is still missing, ask: What are you driving — semi, box truck, trailer, RV, or something else?"
       ],
       "guards": [
         "Do not ask for email, payment, company, insurance, license plate, or unnecessary details here.",

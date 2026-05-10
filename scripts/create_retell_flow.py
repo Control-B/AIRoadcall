@@ -70,8 +70,10 @@ FLOW = {
         "If city and state are known, call match_mechanic immediately. If only city is known, ask: What state is that in? If only road/highway is known, ask: What city or nearest exit?",
         "After city/state is known, ask one problem question if needed: What problem are you having — tire, engine, battery, fuel, towing, or something else?",
         "Call match_mechanic as soon as city, state, and problem type are known. Do not continue interviewing before searching the database.",
+        "When calling match_mechanic, pass call.caller_phone as callerPhone when Retell provides it, and pass callback_number as callbackNumber if already known.",
         "After search, use the exact businessName from the database. Give only the best one or two options. Mention city, service match, mobile service, and 24/7 availability if present.",
         "Frame the result as the closest and best match from the Roadcall mechanic database, then ask if the caller wants that mechanic or shop connected.",
+        "After the caller wants to proceed, use call.caller_phone as the callback/SMS number when available. If no caller phone is available, ask: What number can I text for the secure GPS location link?",
         "If no exact city match is found, say: I don’t see one directly in your city. I’m checking nearby mechanics.",
         "If no mechanic is found, say: I don’t have a matching mechanic in that area yet. I can escalate this for manual dispatch.",
         "NEVER claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.",
@@ -171,6 +173,8 @@ FLOW = {
                     },
                     "vehicleType": {"type": "string", "description": "Optional vehicle type if volunteered, e.g. semi truck"},
                     "problemType": {"type": "string", "description": "Problem type, e.g. tire repair, engine, battery, fuel, towing"},
+                    "callerPhone": {"type": "string", "description": "Caller's phone from Retell call metadata if available"},
+                    "callbackNumber": {"type": "string", "description": "Callback/SMS number if already collected"},
                     "limit": {"type": "integer", "description": "Return 1 or 2 matches for the caller"},
                 },
                 "required": ["message"]
@@ -298,6 +302,7 @@ FLOW = {
                     "If state is missing, ask: 'What state is that in?'\n"
                     "If problem type is missing after city/state, ask: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
                     "If the caller volunteers vehicle type, road, highway, exit, landmark, or GPS, include it. Do not ask for it unless matching needs more info.\n"
+                    "When calling match_mechanic, pass Retell caller phone metadata as callerPhone if available and callbackNumber if already collected.\n"
                     "As soon as city, state, and problem type are known, say: 'I'm checking the Roadcall database for the closest and best match near [city].' Then call match_mechanic.\n"
                     "Do not ask for callback number, email, payment, company, license plate, insurance, or exact address before calling match_mechanic."
                 )
@@ -385,9 +390,10 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "Now collect only what is required to create the dispatch record, one question at a time:\n"
-                    "1. 'What callback number should I use if we disconnect?'\n"
-                    "2. 'What name should I put on the request?'\n"
-                    "3. If vehicle type is still missing: 'What are you driving — semi, box truck, trailer, RV, or something else?'\n"
+                    "1. If call.caller_phone is available, use it as callback_number and do not ask for phone again.\n"
+                    "2. If no caller phone or callback number is available, ask: 'What number can I text for the secure GPS location link?'\n"
+                    "3. If driver_name is still missing: 'What name should I put on the request?'\n"
+                    "4. If vehicle type is still missing: 'What are you driving — semi, box truck, trailer, RV, or something else?'\n"
                     "Do not ask for email, payment, company, insurance, license plate, or other unnecessary details.\n"
                     "Then call create_service_request using the already captured location/problem/match context."
                 )
@@ -416,6 +422,7 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "Call request_location with the service_request_id and the driver's callback number.\n"
+                    "Use call.caller_phone as callback_number when available. If no callback_number is available, ask for the SMS number before calling request_location.\n"
                     "After calling the tool:\n"
                     "- If location_status is 'sms_sent': Tell the driver: 'I just texted you a location link. Tap it and hit Allow so I can find mechanics near you. Takes about 10 seconds.'\n"
                     "- If location_status is 'sms_failed': Say the text couldn't go through and ask for their highway/interstate, mile marker or nearest exit, city and state, and any nearby truck stop or landmark.\n"

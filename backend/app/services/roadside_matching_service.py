@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Iterable
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.mechanic import Mechanic
@@ -60,6 +60,15 @@ EXIT_RE = re.compile(
     re.IGNORECASE,
 )
 COORD_RE = re.compile(r"(?P<lat>-?\d{1,2}\.\d+)\s*,\s*(?P<lng>-?\d{1,3}\.\d+)")
+
+CITY_PREFIX_ALIASES = {
+    "saint": ["saint", "st", "st."],
+    "st": ["saint", "st", "st."],
+    "st.": ["saint", "st", "st."],
+    "fort": ["fort", "ft", "ft."],
+    "ft": ["fort", "ft", "ft."],
+    "ft.": ["fort", "ft", "ft."],
+}
 
 
 @dataclass
@@ -153,12 +162,12 @@ def is_24_7(mechanic: object) -> bool:
 
 def findMechanicsByStateCity(mechanics: Iterable[object], state: str | None, city: str | None) -> list[object]:
     wanted_state = normalizeState(state)
-    wanted_city = normalizeCity(city)
+    wanted_city_terms = _city_search_terms(city)
     return [
         mechanic
         for mechanic in mechanics
         if normalizeState(getattr(mechanic, "state", None)) == wanted_state
-        and normalizeCity(getattr(mechanic, "city", None)) == wanted_city
+        and _normalized_city_key(getattr(mechanic, "city", None)) in wanted_city_terms
     ]
 
 
@@ -170,7 +179,7 @@ def scoreMechanicMatch(mechanic: object, callerContext: RoadsideCallerContext) -
     mech_state = normalizeState(getattr(mechanic, "state", None))
     mech_city = normalizeCity(getattr(mechanic, "city", None))
     if callerContext.state and mech_state == callerContext.state:
-        if callerContext.city and mech_city == callerContext.city:
+        if callerContext.city and _city_matches(mech_city, callerContext.city):
             score += 30
             reasons.append("Exact city/state match")
         else:
@@ -196,12 +205,11 @@ def scoreMechanicMatch(mechanic: object, callerContext: RoadsideCallerContext) -
 
     service_types = _lower_list(getattr(mechanic, "service_types", []) or [])
     problem = callerContext.problemType
-    service_needed = (callerContext.serviceNeeded or "").lower()
-    if problem and (problem.lower() in service_types or service_needed in " ".join(service_types)):
-        score += 25
+    if problem and _service_matches_problem(service_types, problem, callerContext.serviceNeeded):
+        score += 35
         reasons.append(f"Service match for {SERVICE_LABELS.get(problem, problem)}")
     elif problem:
-        score += 7
+        score += 4
         reasons.append("General roadside capability")
 
     vehicle_types = _lower_list(getattr(mechanic, "vehicle_types_supported", []) or [])
@@ -315,6 +323,8 @@ class RoadsideMatchingService:
         problem = classifyProblem(request.problemType or "") or classifyProblem(text)
         vehicle = normalizeVehicleType(request.vehicleType) or normalizeVehicleType(text)
         return RoadsideCallerContext(
+            callerPhone=_clean_phone(request.callerPhone),
+            callbackNumber=_clean_phone(request.callbackNumber or request.callerPhone),
             city=parsed_location.get("city"),
             state=parsed_location.get("state"),
             road=parsed_location.get("road"),
@@ -353,13 +363,20 @@ class RoadsideMatchingService:
     async def findNearbyMechanics(db: AsyncSession, context: RoadsideCallerContext, limit: int = 10) -> list[Mechanic]:
         query = select(Mechanic).where(Mechanic.active == True)  # noqa: E712
         if context.state:
-            query = query.where(Mechanic.state == context.state)
+            query = query.where(func.upper(Mechanic.state) == context.state.upper())
 
         if context.city:
-            city_query = query.where(Mechanic.city == context.city).limit(200)
+            city_terms = _city_search_terms(context.city)
+            city_query = query.where(
+                or_(*[func.lower(Mechanic.city) == city_term for city_term in city_terms])
+            ).limit(500)
             result = await db.execute(city_query)
             city_matches = list(result.scalars().all())
             if city_matches:
+                if context.state and len(city_matches) < max(limit * 5, 25):
+                    fallback_result = await db.execute(query.limit(500))
+                    state_matches = list(fallback_result.scalars().all())
+                    return _dedupe_mechanics([*city_matches, *state_matches])
                 return city_matches
 
         if context.latitude is not None and context.longitude is not None:
@@ -385,6 +402,78 @@ class RoadsideMatchingService:
 
 # Backward-compatible aliases requested in the prompt.
 findNearbyMechanics = RoadsideMatchingService.findNearbyMechanics
+
+
+def _city_search_terms(city: str | None) -> set[str]:
+    normalized = normalizeCity(city)
+    if not normalized:
+        return set()
+
+    base = _normalized_city_key(normalized)
+    terms = {base}
+    parts = base.split(" ", 1)
+    if len(parts) == 2:
+        aliases = CITY_PREFIX_ALIASES.get(parts[0], [])
+        terms.update(f"{alias.rstrip('.')} {parts[1]}" for alias in aliases)
+        terms.update(f"{alias} {parts[1]}" for alias in aliases if alias.endswith("."))
+    return {term for term in terms if term}
+
+
+def _city_matches(left: str | None, right: str | None) -> bool:
+    left_key = _normalized_city_key(left)
+    return bool(left_key and left_key in _city_search_terms(right))
+
+
+def _normalized_city_key(city: str | None) -> str | None:
+    normalized = normalizeCity(city)
+    if not normalized:
+        return None
+    return re.sub(r"\s+", " ", normalized.replace(".", "").lower()).strip()
+
+
+def _service_matches_problem(service_types: list[str], problem: str, service_needed: str | None) -> bool:
+    normalized_services = {_service_key(service_type) for service_type in service_types}
+    service_text = " ".join(normalized_services)
+    problem_key = _service_key(problem)
+    needed_key = _service_key(service_needed)
+
+    problem_terms = {
+        problem_key,
+        needed_key,
+        *_problem_service_terms(problem),
+    }
+    return any(term and (term in normalized_services or term in service_text) for term in problem_terms)
+
+
+def _problem_service_terms(problem: str) -> set[str]:
+    terms = {_service_key(SERVICE_LABELS.get(problem, problem))}
+    for aliases, mapped_problem in PROBLEM_ALIASES:
+        if mapped_problem == problem:
+            terms.update(_service_key(alias) for alias in aliases)
+    return {term for term in terms if term}
+
+
+def _service_key(value: str | None) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", str(value or "").lower()).strip("_")
+
+
+def _dedupe_mechanics(mechanics: list[Mechanic]) -> list[Mechanic]:
+    seen: set[str] = set()
+    deduped: list[Mechanic] = []
+    for mechanic in mechanics:
+        mechanic_id = str(getattr(mechanic, "id", ""))
+        if mechanic_id in seen:
+            continue
+        seen.add(mechanic_id)
+        deduped.append(mechanic)
+    return deduped
+
+
+def _clean_phone(value: str | None) -> str | None:
+    if not value:
+        return None
+    cleaned = re.sub(r"[^+0-9]", "", value)
+    return cleaned or None
 
 
 def _extract_state(text: str) -> str | None:

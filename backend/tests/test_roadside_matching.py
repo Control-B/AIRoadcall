@@ -162,6 +162,33 @@ def test_find_mechanics_by_state_city_groups_dataset_shape():
     assert [mechanic.id for mechanic in matches] == ["tx"]
 
 
+def test_find_mechanics_by_state_city_matches_common_city_aliases():
+    mechanics = [
+        make_test_mechanic(id="stp", city="St Petersburg", state="FL"),
+        make_test_mechanic(id="tpa", city="Tampa", state="FL"),
+    ]
+
+    matches = findMechanicsByStateCity(mechanics, "FL", "Saint Petersburg")
+
+    assert [mechanic.id for mechanic in matches] == ["stp"]
+
+
+def test_score_matches_human_readable_service_type():
+    context = RoadsideCallerContext(
+        city="Saint Petersburg",
+        state="FL",
+        problemType="flat_tire",
+        serviceNeeded="tire repair",
+        vehicleType="semi truck",
+    )
+    mechanic = make_test_mechanic(city="St. Petersburg", state="FL", service_types=["Tire Repair"])
+
+    scored = scoreMechanicMatch(mechanic, context)
+
+    assert "Exact city/state match" in scored.reasons
+    assert "Service match for tire repair" in scored.reasons
+
+
 def test_structured_location_overrides_transcript():
     context = RoadsideMatchingService.build_context(
         RoadsideMatchRequest(
@@ -173,3 +200,15 @@ def test_structured_location_overrides_transcript():
     assert context.city == "Fort Worth"
     assert context.state == "TX"
     assert context.problemType == "dead_battery"
+
+
+def test_caller_phone_is_preserved_for_sms_location_flow():
+    context = RoadsideMatchingService.build_context(
+        RoadsideMatchRequest(
+            message="I'm in Dallas TX with a flat tire",
+            callerPhone="(214) 555-1212",
+        )
+    )
+
+    assert context.callerPhone == "2145551212"
+    assert context.callbackNumber == "2145551212"

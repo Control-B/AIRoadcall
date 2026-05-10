@@ -17,10 +17,14 @@ class RoadsideMatchRequest(BaseModel):
     location: Optional[RoadsideLocationInput] = None
     vehicleType: Optional[str] = None
     problemType: Optional[str] = None
+    callerPhone: Optional[str] = None
+    callbackNumber: Optional[str] = None
     limit: int = Field(default=3, ge=1, le=10)
 
 
 class RoadsideCallerContext(BaseModel):
+    callerPhone: Optional[str] = None
+    callbackNumber: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
     road: Optional[str] = None
