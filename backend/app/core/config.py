@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     RETELL_CONVERSATION_FLOW_ID: str = ""
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "change-this"
+    ADMIN_DUMMY_LOGIN_ENABLED: bool = False
     RETELL_BACKEND_WEBHOOK_TOKEN: str = "local-dev-retell-token"
 
     # App

@@ -4,7 +4,15 @@
  * fetch wrappers that attach the X-Admin-Key header.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+function getApiBase(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return "/api";
+    }
+  }
+  return process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+}
 const TOKEN_KEY = "admin_token";
 const USERNAME_KEY = "admin_username";
 const EXPIRES_KEY = "admin_expires";
@@ -53,7 +61,7 @@ export async function login(
   password: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const res = await fetch(`${API_BASE}/admin/login`, {
+    const res = await fetch(`${getApiBase()}/admin/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -79,7 +87,7 @@ export async function logout() {
   const token = getToken();
   if (token) {
     try {
-      await fetch(`${API_BASE}/admin/logout`, {
+      await fetch(`${getApiBase()}/admin/logout`, {
         method: "POST",
         headers: { "X-Admin-Key": token },
       });
@@ -107,7 +115,7 @@ export async function adminFetch<T>(
     ...(options?.headers as Record<string, string> | undefined),
   };
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${getApiBase()}${path}`, {
     ...options,
     headers,
   });
