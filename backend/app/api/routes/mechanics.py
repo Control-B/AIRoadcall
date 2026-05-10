@@ -48,7 +48,7 @@ async def list_mechanics_admin(
     has_website: bool | None = Query(default=None),
     roadside_only: bool = Query(default=False),
     emergency_only: bool = Query(default=False),
-    limit: int = Query(default=50, ge=1, le=100),
+    limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_session),
 ):

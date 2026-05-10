@@ -79,7 +79,7 @@ interface StateMechanicGroup {
   cities: CityMechanicGroup[];
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 500;
 
 function StatCard({
   label,

@@ -27,6 +27,17 @@ logger = get_logger(__name__)
 class MechanicDataService:
     """Service for creating, updating, and managing mechanic records."""
 
+    _CITY_PREFIX_ALIASES = (
+        ("Saint ", "St "),
+        ("Saint ", "St. "),
+        ("St ", "Saint "),
+        ("St. ", "Saint "),
+        ("Fort ", "Ft "),
+        ("Fort ", "Ft. "),
+        ("Ft ", "Fort "),
+        ("Ft. ", "Fort "),
+    )
+
     _DAY_KEYS = {
         0: ("mon", "monday"),
         1: ("tue", "tues", "tuesday"),
@@ -144,7 +155,13 @@ class MechanicDataService:
                 )
             )
         if city:
-            filters.append(Mechanic.city.ilike(f"%{city.strip()}%"))
+            city_terms = MechanicDataService._city_search_terms(city)
+            if city_terms:
+                filters.append(
+                    or_(
+                        *(Mechanic.city.ilike(f"%{term}%") for term in city_terms)
+                    )
+                )
         if state:
             filters.append(Mechanic.state == normalize_state(state))
         if source:
@@ -215,6 +232,25 @@ class MechanicDataService:
                 for mechanic in mechanics
             ],
         )
+
+    @staticmethod
+    def _city_search_terms(city: str) -> list[str]:
+        cleaned = re.sub(r"\s+", " ", city.strip()).strip(" .,;")
+        if not cleaned:
+            return []
+
+        terms = {cleaned, cleaned.replace(".", "")}
+        title_cleaned = cleaned.title()
+        terms.add(title_cleaned)
+        terms.add(title_cleaned.replace(".", ""))
+
+        for source, replacement in MechanicDataService._CITY_PREFIX_ALIASES:
+            for value in list(terms):
+                if value.lower().startswith(source.lower()):
+                    terms.add(replacement + value[len(source):])
+                    terms.add((replacement + value[len(source):]).replace(".", ""))
+
+        return sorted(term for term in terms if term)
 
     @staticmethod
     def _bounding_box(lat: float, lng: float, radius_km: float = 160.0) -> tuple[float, float, float, float]:

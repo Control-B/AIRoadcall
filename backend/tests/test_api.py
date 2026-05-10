@@ -1,6 +1,21 @@
 """Placeholder test structure for backend tests."""
 import pytest
 
+from app.services.mechanic_data_service import MechanicDataService
+
+
+class TestMechanicAdminSearch:
+    def test_city_search_terms_include_common_abbreviations(self):
+        saint_terms = MechanicDataService._city_search_terms("Saint Petersburg")
+        fort_terms = MechanicDataService._city_search_terms("Fort Lauderdale")
+
+        assert "Saint Petersburg" in saint_terms
+        assert "St Petersburg" in saint_terms
+        assert "St. Petersburg" in saint_terms
+        assert "Fort Lauderdale" in fort_terms
+        assert "Ft Lauderdale" in fort_terms
+        assert "Ft. Lauderdale" in fort_terms
+
 
 class TestHealthCheck:
     def test_health_returns_ok(self):
