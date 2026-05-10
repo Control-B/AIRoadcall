@@ -47,9 +47,6 @@ export default function AdminLoginPage() {
         {/* Login Card */}
         <div className="bg-white/[0.04] backdrop-blur-sm rounded-2xl border border-white/10 p-6 shadow-xl">
           <h2 className="text-lg font-semibold text-white mb-6">Sign in</h2>
-          <div className="mb-5 rounded-xl border border-orange-500/20 bg-orange-500/10 px-3 py-2 text-xs leading-relaxed text-orange-100">
-            Temporary access is enabled until Clerk is added. Use <span className="font-semibold">admin@omniweb.ai</span> with any non-empty password.
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>

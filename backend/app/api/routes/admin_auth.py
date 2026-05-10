@@ -18,8 +18,6 @@ router = APIRouter(prefix="/admin", tags=["admin-auth"])
 # Tokens are opaque random strings, not JWTs — simpler and no secret key needed.
 _active_tokens: dict[str, dict] = {}
 TOKEN_EXPIRY_HOURS = 24
-DUMMY_ADMIN_USERNAMES = {"admin", "admin@omniweb.ai", "wale"}
-TEMP_ADMIN_TOKEN = "roadcall-temporary-admin-access"
 
 
 class LoginRequest(BaseModel):
@@ -45,14 +43,7 @@ async def admin_login(data: LoginRequest):
     """Authenticate admin and return a session token."""
     username = data.username.strip()
     password = data.password.strip()
-    real_login = username == settings.ADMIN_USERNAME and password == settings.ADMIN_PASSWORD
-    dummy_login = (
-        settings.ADMIN_DUMMY_LOGIN_ENABLED
-        and username.lower() in DUMMY_ADMIN_USERNAMES
-        and bool(password)
-    )
-
-    if not real_login and not dummy_login:
+    if username != settings.ADMIN_USERNAME or password != settings.ADMIN_PASSWORD:
         logger.warning(f"Failed admin login attempt: {data.username}")
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
@@ -83,9 +74,6 @@ async def admin_login(data: LoginRequest):
 @router.get("/auth-status", response_model=AuthStatus)
 async def check_auth(x_admin_key: str = Header(default="")):
     """Check if a token is valid."""
-    if x_admin_key == TEMP_ADMIN_TOKEN:
-        return AuthStatus(authenticated=True, username="admin@omniweb.ai")
-
     session = _active_tokens.get(x_admin_key)
     if not session:
         # Also accept the static ADMIN_API_KEY for backward compat
@@ -112,9 +100,6 @@ async def admin_logout(x_admin_key: str = Header(default="")):
 
 async def verify_admin(x_admin_key: str = Header(...)):
     """Verify admin token or API key. Use as a FastAPI dependency."""
-    if x_admin_key == TEMP_ADMIN_TOKEN:
-        return "admin@omniweb.ai"
-
     # Check session tokens first
     session = _active_tokens.get(x_admin_key)
     if session:

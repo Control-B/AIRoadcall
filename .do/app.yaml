@@ -110,9 +110,6 @@ services:
       - key: ADMIN_PASSWORD
         scope: RUN_TIME
         type: SECRET
-      - key: ADMIN_DUMMY_LOGIN_ENABLED
-        scope: RUN_TIME
-        value: "true"
       - key: ADMIN_API_KEY
         scope: RUN_TIME
         type: SECRET

@@ -65,7 +65,11 @@ async def list_mechanics_admin(
     )
 
 
-@router.get("", response_model=list[MechanicSearchResult])
+@router.get(
+    "",
+    response_model=list[MechanicSearchResult],
+    dependencies=[Depends(require_admin_api_key)],
+)
 async def search_mechanics(
     lat: float | None = Query(default=None),
     lng: float | None = Query(default=None),
@@ -76,7 +80,7 @@ async def search_mechanics(
     limit: int = Query(default=5, ge=1, le=20),
     db: AsyncSession = Depends(get_session),
 ):
-    """Find mechanics by exact GPS or by caller city/state when GPS is unavailable."""
+    """Find mechanics by exact GPS or city/state for internal dispatch/admin tools."""
     if lat is None and lng is None and not (city and state):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -141,7 +145,12 @@ async def lookup_nearest_shops(
     )
 
 
-@router.post("", response_model=MechanicView, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=MechanicView,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_admin_api_key)],
+)
 async def create_or_update_mechanic(
     request: MechanicCreateRequest,
     db: AsyncSession = Depends(get_session),
@@ -150,7 +159,10 @@ async def create_or_update_mechanic(
     return await MechanicDataService.upsert_mechanic(db, request)
 
 
-@router.post("/{mechanic_id}/location")
+@router.post(
+    "/{mechanic_id}/location",
+    dependencies=[Depends(require_admin_api_key)],
+)
 async def update_mechanic_location(
     mechanic_id: uuid.UUID,
     request: MechanicLocationUpdate,

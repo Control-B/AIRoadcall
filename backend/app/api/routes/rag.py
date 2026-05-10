@@ -3,13 +3,17 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_session
+from app.api.deps import get_session, require_admin_api_key
 from app.services.rag_service import RAGService
 
 router = APIRouter(prefix="/rag", tags=["RAG"])
 
 
-@router.get("/mechanics", response_model=str)
+@router.get(
+    "/mechanics",
+    response_model=str,
+    dependencies=[Depends(require_admin_api_key)],
+)
 async def get_mechanic_knowledge_base(
     city: str = Query(default=""),
     state: str = Query(default=""),
@@ -39,7 +43,11 @@ async def get_mechanic_knowledge_base(
     return kb_text
 
 
-@router.get("/services", response_model=str)
+@router.get(
+    "/services",
+    response_model=str,
+    dependencies=[Depends(require_admin_api_key)],
+)
 async def get_service_capabilities(
     state: str = Query(default=""),
     issue_type: str = Query(default=""),
@@ -60,7 +68,11 @@ async def get_service_capabilities(
     return kb_text
 
 
-@router.get("/nearby", response_model=str)
+@router.get(
+    "/nearby",
+    response_model=str,
+    dependencies=[Depends(require_admin_api_key)],
+)
 async def get_nearby_mechanics_context(
     latitude: float = Query(default=...),
     longitude: float = Query(default=...),
@@ -81,7 +93,11 @@ async def get_nearby_mechanics_context(
     return kb_text
 
 
-@router.get("/context", response_model=str)
+@router.get(
+    "/context",
+    response_model=str,
+    dependencies=[Depends(require_admin_api_key)],
+)
 async def build_system_context(
     driver_city: str = Query(default=""),
     driver_state: str = Query(default=""),

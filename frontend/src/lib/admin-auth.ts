@@ -16,8 +16,6 @@ function getApiBase(): string {
 const TOKEN_KEY = "admin_token";
 const USERNAME_KEY = "admin_username";
 const EXPIRES_KEY = "admin_expires";
-const TEMP_ADMIN_TOKEN = "roadcall-temporary-admin-access";
-const DUMMY_ADMIN_USERS = new Set(["admin", "admin@omniweb.ai", "wale"]);
 
 // ── Token management ────────────────────────────────────
 
@@ -62,13 +60,6 @@ export async function login(
   username: string,
   password: string
 ): Promise<{ success: boolean; error?: string }> {
-  const normalizedUsername = username.trim().toLowerCase();
-  if (DUMMY_ADMIN_USERS.has(normalizedUsername) && password.trim().length > 0) {
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
-    setToken(TEMP_ADMIN_TOKEN, expiresAt, username.trim() || "admin@omniweb.ai");
-    return { success: true };
-  }
-
   try {
     const res = await fetch(`${getApiBase()}/admin/login`, {
       method: "POST",
