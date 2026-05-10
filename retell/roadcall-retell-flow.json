@@ -428,7 +428,7 @@
       "transitions": [
         {
           "condition": "match_mechanic.needsMoreInfo == true",
-          "next_node": "driver_equipment_intake"
+          "next_node": "match_more_info"
         },
         {
           "condition": "match_mechanic.matches has one or more matches",
@@ -437,6 +437,23 @@
         {
           "condition": "match_mechanic.fallbackEscalation == true OR match_mechanic.matches is empty",
           "next_node": "no_mechanic_found"
+        }
+      ]
+    },
+    {
+      "id": "match_more_info",
+      "name": "Ask Missing Match Info",
+      "type": "conversation",
+      "purpose": "Ask only the single missing field returned by match_mechanic, then retry database matching.",
+      "prompt_sequence": [
+        "If location is missing: What city or nearest exit?",
+        "If state is missing: What state is that in?",
+        "If problemType is missing: What problem are you having — tire, engine, battery, fuel, towing, or something else?"
+      ],
+      "transitions": [
+        {
+          "condition": "caller answered the missing field",
+          "next_node": "driver_equipment_intake"
         }
       ]
     },

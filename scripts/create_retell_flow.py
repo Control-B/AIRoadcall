@@ -17,6 +17,8 @@ for line in env_path.read_text().splitlines():
 
 RETELL_KEY    = os.environ["RETELL_API_KEY"]
 WEBHOOK_TOKEN = os.environ.get("RETELL_BACKEND_WEBHOOK_TOKEN", "local-dev-retell-token")
+EXISTING_AGENT_ID = os.environ.get("RETELL_AGENT_ID", "").strip()
+EXISTING_FLOW_ID = os.environ.get("RETELL_CONVERSATION_FLOW_ID", "").strip()
 # RETELL_BACKEND_URL overrides everything (must be public HTTPS for Retell)
 BACKEND_URL   = (
     os.environ.get("RETELL_BACKEND_URL")
@@ -304,12 +306,36 @@ FLOW = {
                 {
                     "id": "edge-match-needs-info",
                     "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned needsMoreInfo=true"},
-                    "destination_node_id": "node-intake"
+                    "destination_node_id": "node-match-more-info"
                 },
                 {
                     "id": "edge-match-none",
                     "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned no matches or fallbackEscalation=true"},
                     "destination_node_id": "node-no-mechanic"
+                }
+            ]
+        },
+
+        {
+            "id": "node-match-more-info",
+            "type": "conversation",
+            "name": "Ask Missing Match Info",
+            "display_position": {"x": 600, "y": 120},
+            "instruction": {
+                "type": "prompt",
+                "text": (
+                    "Ask only the missing field from match_mechanic.message.\n"
+                    "If location is missing, ask: 'What city or nearest exit?'\n"
+                    "If state is missing, ask: 'What state is that in?'\n"
+                    "If problemType is missing, ask: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
+                    "After the caller answers, return to database match intake and call match_mechanic again."
+                )
+            },
+            "edges": [
+                {
+                    "id": "edge-more-info-collected",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller answered the missing city, state, road, exit, landmark, or problem question"},
+                    "destination_node_id": "node-intake"
                 }
             ]
         },
@@ -641,13 +667,18 @@ FLOW = {
     "start_node_id": "start-node"
 }
 
-print("Creating Roadcall.ai conversational flow...")
-flow_resp = retell("POST", "/create-conversation-flow", FLOW)
-flow_id = flow_resp["conversation_flow_id"]
-print(f"✅ Conversation flow created: {flow_id}")
+if EXISTING_FLOW_ID:
+    print(f"Updating existing Roadcall.ai conversational flow: {EXISTING_FLOW_ID}")
+    flow_resp = retell("PATCH", f"/update-conversation-flow/{EXISTING_FLOW_ID}", FLOW)
+    flow_id = flow_resp.get("conversation_flow_id", EXISTING_FLOW_ID)
+    print(f"✅ Conversation flow updated: {flow_id}")
+else:
+    print("Creating Roadcall.ai conversational flow...")
+    flow_resp = retell("POST", "/create-conversation-flow", FLOW)
+    flow_id = flow_resp["conversation_flow_id"]
+    print(f"✅ Conversation flow created: {flow_id}")
 
 # ── Create or update the Sandy agent ──────────────────────
-print("\nCreating Sandy agent with conversational flow...")
 agent_body = {
     "agent_name": "Sandy — Roadcall.ai Dispatcher",
     "response_engine": {
@@ -666,9 +697,16 @@ agent_body = {
     ],
     "normalize_for_speech": True,
 }
-agent_resp = retell("POST", "/create-agent", agent_body)
-agent_id = agent_resp["agent_id"]
-print(f"✅ Agent created: {agent_id}")
+if EXISTING_AGENT_ID:
+    print(f"\nUpdating existing Sandy agent: {EXISTING_AGENT_ID}")
+    agent_resp = retell("PATCH", f"/update-agent/{EXISTING_AGENT_ID}", agent_body)
+    agent_id = agent_resp.get("agent_id", EXISTING_AGENT_ID)
+    print(f"✅ Agent updated: {agent_id}")
+else:
+    print("\nCreating Sandy agent with conversational flow...")
+    agent_resp = retell("POST", "/create-agent", agent_body)
+    agent_id = agent_resp["agent_id"]
+    print(f"✅ Agent created: {agent_id}")
 print(f"\n{'='*60}")
 print(f"  Conversation Flow ID : {flow_id}")
 print(f"  Agent ID             : {agent_id}")
@@ -676,7 +714,11 @@ print(f"  Agent Name           : Sandy — Roadcall.ai Dispatcher")
 print(f"  Backend URL          : {BACKEND_URL}")
 print(f"{'='*60}")
 print("\nNext steps:")
-print("  1. Go to Retell dashboard and assign this agent to your phone number")
-print(f"  2. Set BACKEND_URL in Retell to your production URL (current: {BACKEND_URL})")
-print("  3. Set RETELL_BACKEND_WEBHOOK_TOKEN in your DO app env vars")
-print(f"  4. Update RETELL_AGENT_ID={agent_id} in your .env if needed")
+if EXISTING_AGENT_ID:
+    print("  1. Call the Roadcall number and verify the opening line asks for city/state")
+    print("  2. If it still sounds old, confirm the phone number is assigned to this agent ID in Retell")
+else:
+    print("  1. Go to Retell dashboard and assign this new agent to your phone number")
+    print(f"  2. Update RETELL_AGENT_ID={agent_id} in your .env / DO env if needed")
+print(f"  3. Backend URL used by tools: {BACKEND_URL}")
+print("  4. Ensure RETELL_BACKEND_WEBHOOK_TOKEN in Retell tools matches the backend env var")
