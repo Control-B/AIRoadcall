@@ -73,6 +73,7 @@ FLOW = {
         "Call match_mechanic as soon as city, state, and problem type are known. Do not continue interviewing before searching the database.",
         "When calling match_mechanic, pass call.caller_phone as callerPhone when Retell provides it, and pass callback_number as callbackNumber if already known.",
         "After search, use the exact businessName from the database. Give only the best one or two options. Mention city, service match, mobile service, and 24/7 availability if present.",
+        "Critical: if match_mechanic returns any matches, you DID find help in the mechanics database. Immediately say the top businessName, city, and phone from matches[0]. Do not say you could not find a mechanic, and do not move to dispatch polling before speaking the database match.",
         "Frame the result as the closest and best match from the Roadcall mechanic database, then ask if the caller wants that mechanic or shop connected.",
         "After the caller wants to proceed, use call.caller_phone as the callback/SMS number when available. If no caller phone is available, ask: What number can I text for the secure GPS location link?",
         "If no exact city match is found, say: I don’t see one directly in your city. I’m checking nearby mechanics.",
@@ -368,21 +369,56 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "Tell the caller only the best one or two matches from match_mechanic. Keep it short and use the returned businessName exactly.\n"
-                    "Example: 'I found ABC Mobile Truck Repair near Tampa. They look like the closest and best match for tire repair and offer mobile roadside service. Want me to connect you with ABC Mobile Truck Repair?'\n"
-                    "Mention the mechanic/shop name, city, service match, mobile roadside service, and 24/7 availability if present.\n"
-                    "Do not read a long list. Do not say dispatched, confirmed, nearby, en route, or give ETA from this database match alone.\n"
-                    "If the caller wants to connect or proceed, move to post-match dispatch intake."
+                    "You must speak the returned phone number from matches[0].phone if it is present.\n"
+                    "Example: 'I found Quality Tire Services Commercial Truck Tire in Lakeland. They handle tire repair and offer mobile roadside service. Their phone is [phone]. Want me to create the dispatch request and text you the GPS link?'\n"
+                    "Mention the mechanic/shop name, city, phone, service match, mobile roadside service, and 24/7 availability if present.\n"
+                    "Do not read a long list. Do not say dispatched, confirmed, en route, or give ETA from this database match alone.\n"
+                    "If match_mechanic returned matches, never say no mechanic was found.\n"
+                    "If the caller wants only the number, read it once more and ask if they also want a dispatch request.\n"
+                    "If the caller wants dispatch/GPS/help continuing, move to post-match dispatch intake."
                 )
             },
             "edges": [
                 {
+                    "id": "edge-read-number-again",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller asks for the mechanic phone number again or wants to call the mechanic themselves"},
+                    "destination_node_id": "node-read-mechanic-phone"
+                },
+                {
                     "id": "edge-connect",
-                    "transition_condition": {"type": "prompt", "prompt": "Caller wants to be connected or wants to proceed"},
+                    "transition_condition": {"type": "prompt", "prompt": "Caller wants Roadcall to create the dispatch request, send GPS link, or continue helping"},
                     "destination_node_id": "node-post-match-intake"
                 },
                 {
                     "id": "edge-not-proceeding",
                     "transition_condition": {"type": "prompt", "prompt": "Caller does not want to proceed"},
+                    "destination_node_id": "node-end-success"
+                }
+            ]
+        },
+
+        {
+            "id": "node-read-mechanic-phone",
+            "type": "conversation",
+            "name": "Read Mechanic Phone",
+            "display_position": {"x": 850, "y": 120},
+            "instruction": {
+                "type": "prompt",
+                "text": (
+                    "Read matches[0].businessName and matches[0].phone clearly.\n"
+                    "Then ask: 'Do you want me to also create a Roadcall dispatch request and text you the GPS location link?'\n"
+                    "Do not end unless the caller explicitly says they are all set or no longer need help."
+                )
+            },
+            "edges": [
+                {
+                    "id": "edge-phone-dispatch-request",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller wants Roadcall dispatch request or GPS text after hearing mechanic phone"},
+                    "destination_node_id": "node-post-match-intake"
+                },
+                {
+                    "id": "edge-phone-done",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller explicitly says they are all set, will call the mechanic themselves, or no longer need help"},
                     "destination_node_id": "node-end-success"
                 }
             ]

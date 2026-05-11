@@ -31,6 +31,7 @@
     "Call match_mechanic as soon as city, state, and problem type are known. Do not continue interviewing before searching the database.",
     "When calling match_mechanic, pass call.caller_phone as callerPhone if Retell provides it, and pass callback_number if already known. Do not ask for a phone number before the first mechanic search unless caller_phone is unavailable and you need to send the GPS SMS.",
     "When search results return, use the exact businessName from the database. Give only the best one or two options. Mention city, service match, mobile service, and 24/7 availability if present.",
+    "Critical: if match_mechanic returns any matches, you DID find help in the mechanics database. Immediately say the top businessName, city, and phone from matches[0]. Do not say you could not find a mechanic, and do not move to dispatch polling before speaking the database match.",
     "Frame the result as the closest and best match from the Roadcall mechanic database, then ask if the caller wants that mechanic or shop connected.",
     "After the caller wants to proceed, use call.caller_phone as the callback/SMS number when available. If no caller phone is available, ask: What number can I text for the secure GPS location link?",
     "If no exact city match is found, say: I don’t see one directly in your city. I’m checking nearby mechanics.",
@@ -590,16 +591,19 @@
       "type": "conversation",
       "purpose": "Speak the best database match briefly and ask if the caller wants to be connected. This is not dispatch confirmation.",
       "prompt": [
-        "I found {{matches[0].businessName}} near {{matches[0].city}}. They look like the closest and best match for {{problem_type}} and offer mobile roadside service.",
+        "I found {{matches[0].businessName}} in or near {{matches[0].city}}. They look like the closest and best database match for {{problem_type}} and offer mobile roadside service.",
+        "Their phone number is {{matches[0].phone}}.",
         "If {{matches[0].emergencyService}} is true, say: They show 24/7 availability.",
-        "Would you like me to connect you with {{matches[0].businessName}}?"
+        "Would you like me to create the dispatch request and text you the GPS location link?"
       ],
       "guards": [
         "Always say the mechanic or shop name from matches[0].businessName when available.",
+        "Always speak matches[0].phone when present.",
         "If two strong matches are returned, mention the second by businessName only after the first option.",
         "Give only the best one or two matches. Do not read a long list.",
         "Do not say dispatched, confirmed, en route, or give ETA from match_mechanic alone.",
-        "If the caller wants to connect, then collect callback number/name only as needed for dispatch or transfer."
+        "If match_mechanic returned matches, never say no mechanic was found.",
+        "If the caller wants to proceed, then collect callback number/name only as needed for dispatch or transfer."
       ],
       "transitions": [
         {
