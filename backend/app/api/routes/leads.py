@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status, Header, Query
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, field_validator
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -28,11 +28,19 @@ def _require_admin(x_admin_key: str = Header(...)):
 
 
 class LeadIn(BaseModel):
-    email: EmailStr
+    email: str
     name: Optional[str] = None
     company: Optional[str] = None
-    vertical: Optional[str] = None  # "shops" | "fleet" | "general"
+    vertical: Optional[str] = None
     source: Optional[str] = None
+
+    @field_validator("email")
+    @classmethod
+    def check_email(cls, v):
+        v = v.strip().lower()
+        if "@" not in v or "." not in v.split("@")[-1]:
+            raise ValueError("Invalid email address")
+        return v
 
     @field_validator("vertical")
     @classmethod
