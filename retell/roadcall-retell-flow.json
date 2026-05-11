@@ -43,7 +43,7 @@
     "barge_in_enabled": true,
     "interruption_behavior": "pause_and_listen",
     "response_latency_target_ms": 900,
-    "silence_timeout_seconds": 5,
+    "silence_timeout_seconds": 120,
     "max_unclear_retries_per_field": 2,
     "call_recording": "enabled_if_legally_configured",
     "transcript_forwarding": "backend_webhook_on_call_end",
@@ -552,6 +552,11 @@
         "I’m looking for a heavy-duty provider that can handle {{problem_type}}, not just a light-duty tow contact.",
         "Thanks for hanging tight. I’m waiting on confirmed availability before I give you an ETA."
       ],
+      "guards": [
+        "Do not let silence or backend polling end the call while the caller is waiting for help.",
+        "If polling errors, times out, or returns failed, escalate to manual dispatch intake instead of ending the call.",
+        "Speak a short reassurance every 8-10 seconds while waiting."
+      ],
       "transitions": [
         {
           "condition": "service_status == matched",
@@ -571,7 +576,7 @@
         },
         {
           "condition": "service_status == failed",
-          "next_node": "backend_status_failure"
+          "next_node": "no_mechanic_found"
         }
       ]
     },
@@ -797,7 +802,13 @@
       "prompt": "I’m having trouble opening the service request on my end. I’m going to route this for dispatcher review so we don’t lose your information.",
       "actions": [
         "Offer human dispatcher transfer if configured.",
-        "If transfer unavailable, confirm callback number and end with callback expectation."
+        "If transfer unavailable, go to post_match_dispatch_intake and create a manual dispatch record."
+      ],
+      "transitions": [
+        {
+          "condition": "caller still needs help",
+          "next_node": "post_match_dispatch_intake"
+        }
       ]
     },
     {
@@ -808,7 +819,13 @@
       "prompt": "I’m not getting a clean status update right now. I have your request details, and I’ll either reconnect you with dispatch or call you back with the next confirmed update.",
       "actions": [
         "Attempt human dispatcher transfer if configured.",
-        "Otherwise close with callback."
+        "Otherwise go to post_match_dispatch_intake and create a manual dispatch record."
+      ],
+      "transitions": [
+        {
+          "condition": "status unavailable or polling failed but caller still needs help",
+          "next_node": "post_match_dispatch_intake"
+        }
       ]
     },
     {
@@ -816,7 +833,13 @@
       "name": "Location Failure Callback",
       "type": "conversation",
       "purpose": "End safely when location is too unclear for dispatch.",
-      "prompt": "I don’t have enough location detail to send a mechanic confidently. If you can find a mile marker, exit, truck stop, city and state, or share GPS from the text link, call us back and we’ll continue immediately."
+      "prompt": "I don’t have enough GPS detail yet, but I’m not going to drop the call. Tell me the nearest city, state, highway, exit, mile marker, truck stop, or landmark and I’ll create a manual dispatch request.",
+      "transitions": [
+        {
+          "condition": "caller provides any usable manual location or still needs help",
+          "next_node": "post_match_dispatch_intake"
+        }
+      ]
     },
     {
       "id": "call_close_success",

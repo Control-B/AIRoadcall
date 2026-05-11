@@ -416,7 +416,7 @@ FLOW = {
                 {
                     "id": "edge-service-create-fail",
                     "transition_condition": {"type": "prompt", "prompt": "create_service_request returned ok=false or an error occurred"},
-                    "destination_node_id": "node-end-callback"
+                    "destination_node_id": "node-no-mechanic"
                 }
             ]
         },
@@ -459,7 +459,7 @@ FLOW = {
                 "text": (
                     "Tell the driver: 'I'm searching for a qualified heavy-duty mechanic near your location now. Hang tight.'\n"
                     "Call get_dispatch_status with the service_request_id.\n"
-                    "While polling, use brief reassurance every 8-10 seconds — vary the phrasing:\n"
+                    "While polling, do not go silent long enough for the call to end. Use brief reassurance every 8-10 seconds — vary the phrasing:\n"
                     "  - 'Still searching. I'm looking for someone who handles your specific issue.'\n"
                     "  - 'I'm checking technician availability in your area.'\n"
                     "  - 'Thanks for your patience. I haven't found a confirmed match yet.'\n\n"
@@ -469,7 +469,7 @@ FLOW = {
                     "- status 'dispatched': Move to confirmed node.\n"
                     "- status 'no_mechanic_found' or 'search_continues' after multiple polls: Move to no-mechanic node.\n"
                     "- status 'mechanic_cancelled': Apologize briefly, restart search.\n"
-                    "- status 'failed': Move to backend failure end.\n\n"
+                    "- status 'failed', tool timeout, or repeated polling error: Say you are escalating for manual dispatch, then move to no-mechanic/manual dispatch. Do not end the call.\n\n"
                     "Do NOT mention ETAs, mechanic names, or dispatch confirmation unless backend returned them explicitly."
                 )
             },
@@ -492,12 +492,11 @@ FLOW = {
                 {
                     "id": "edge-search-fail",
                     "transition_condition": {"type": "prompt", "prompt": "get_dispatch_status returned failed or repeated errors"},
-                    "destination_node_id": "node-end-callback"
+                    "destination_node_id": "node-no-mechanic"
                 }
             ]
         },
 
-        # ── 5. Payment Check / Authorization ──────────────
         {
             "id": "node-payment-check",
             "type": "conversation",
@@ -711,7 +710,7 @@ agent_body = {
     "interruption_sensitivity": 0.9,
     "enable_backchannel": True,
     "max_call_duration_ms": 1800000,
-    "end_call_after_silence_ms": 30000,
+    "end_call_after_silence_ms": 120000,
     "boosted_keywords": [
         "roadside", "mechanic", "towing", "tractor", "trailer",
         "tire", "coolant", "no-start", "derate", "air leak"
