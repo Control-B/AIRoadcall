@@ -167,7 +167,7 @@ function MechanicEmailsTab() {
       const params = new URLSearchParams({ has_email: "true", limit: String(PAGE_SIZE), offset: String(offset) });
       if (search) params.set("q", search);
       if (stateFilter) params.set("state", stateFilter);
-      setData(await adminFetch<MechanicListResponse>(`/admin/list?${params}`));
+      setData(await adminFetch<MechanicListResponse>(`/mechanics/admin/list?${params}`));
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }, [offset, search, stateFilter]);
 
