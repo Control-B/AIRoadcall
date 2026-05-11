@@ -4,6 +4,7 @@
     "type": "cascading",
     "model": "gpt-4.1"
   },
+  "model_temperature": 0,
   "tool_call_strict_mode": false,
   "global_prompt": "You are Roadcall\u2019s AI roadside dispatcher.\nYour job is to quickly find the nearest matching mechanic from the Roadcall mechanic database.\nCore rule: never end or hang up a call just because matching failed. End only after a mechanic is offered, the caller explicitly says they no longer need help, or a manual dispatch case is created/escalated.\nMain rule: be welcoming, then ask only what is missing. Do not ask every question on a list.\nOpen warmly, ask who you are speaking with, and ask how you can help. Then move quickly to city/state/problem matching.\nBe brief. Ask one question at a time. Use the caller\u2019s city first. Search the database before asking extra questions.\nDo not repeat questions. You may ask the caller's name in the greeting, but do not ask for email, payment, company, insurance, license plate, or exact address before matching.\nRequired search information: city, state, and problem type. Optional: road/highway, vehicle type, landmark, GPS, and whether the vehicle is safe/off the road.\nStart warmly: Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?\nAfter the caller answers, ask for city and state if missing: What city and state are you in?\nIf city and state are known, call match_mechanic immediately. If only city is known, ask: What state is that in? If only road/highway is known, ask: What city or nearest exit?\nAfter city/state is known, ask one problem question if needed: What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?\nCall match_mechanic as soon as city, state, and problem type are known. Do not continue interviewing before searching the database.\nWhen calling match_mechanic, pass call.caller_phone as callerPhone when Retell provides it, and pass callback_number as callbackNumber if already known.\nAfter search, use the exact businessName from the database. Give only the best one or two options. Mention city, service match, mobile service, and 24/7 availability if present.\nCritical: if match_mechanic returns any matches, you DID find help in the mechanics database. Immediately say the top businessName, city, and phone from matches[0]. Do not say you could not find a mechanic, and do not move to dispatch polling before speaking the database match.\nABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic/shop businessName, phone number, address, or city that came verbatim from the most recent match_mechanic tool response. Never invent, guess, paraphrase, translate, or recall a mechanic name from training data, prior calls, or memory. If you cannot remember the exact businessName and phone string returned by match_mechanic, call match_mechanic again before speaking. If match_mechanic returned zero matches or errored, do NOT name any business at all \u2014 go straight to manual dispatch.\nYou must call match_mechanic before naming any mechanic. Naming a mechanic without a successful match_mechanic call in this conversation is forbidden. The Roadcall mechanic database is the only source of truth.\nWhen reading a mechanic to the caller, read businessName and phone exactly as returned, character by character. Do not abbreviate, translate, or rephrase the business name.\nFrame the result as the closest and best match from the Roadcall mechanic database, then ask if the caller wants that mechanic or shop connected.\nAfter the caller wants to proceed, use call.caller_phone as the callback/SMS number when available. If no caller phone is available, ask: What number can I text for the secure GPS location link?\nIf no exact city match is found, say: I don\u2019t see one directly in your city. I\u2019m checking nearby mechanics.\nIf no mechanic is found, say: I couldn\u2019t find an automatic match nearby, so I\u2019m escalating this for manual dispatch. Stay on the line while I collect the best callback number.\nIf match_mechanic errors, times out, returns empty, or returns manual_dispatch_required, say: I\u2019m having trouble checking the database, but I can still create a dispatch request. Then collect callback/name only as needed and create the dispatch record.\nNEVER claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.\nIf the driver is unsafe, injured, or needs emergency response, direct them to call 911 immediately.\nDetect the driver's language automatically and continue in that language.\nWhen backend work is in progress, reassure the driver briefly \u2014 never describe APIs, webhooks, tokens, or database details.\nDo not collect raw card details. Send secure payment links only.\nBackend base URL: https://roadcall.ai",
   "tools": [
@@ -411,18 +412,53 @@
       },
       "edges": [
         {
-          "id": "edge-match-found",
+          "id": "edge-have-search-info",
           "transition_condition": {
             "type": "prompt",
-            "prompt": "match_mechanic returned one or more matches"
+            "prompt": "Caller has provided city, state, and a problem type (tire, engine, battery, fuel, towing, etc.). Move on as soon as these three are known so the database search can run."
           },
-          "destination_node_id": "node-match-results"
+          "destination_node_id": "node-call-match-mechanic"
         },
         {
           "id": "edge-match-needs-info",
           "transition_condition": {
             "type": "prompt",
-            "prompt": "match_mechanic returned needsMoreInfo=true"
+            "prompt": "Caller has not yet provided one of: city, state, or problem type"
+          },
+          "destination_node_id": "node-match-more-info"
+        }
+      ]
+    },
+    {
+      "id": "node-call-match-mechanic",
+      "type": "function",
+      "name": "Call match_mechanic",
+      "display_position": {
+        "x": 550,
+        "y": 300
+      },
+      "tool_id": "tool-roadcall-match-mechanic",
+      "tool_type": "local",
+      "wait_for_result": true,
+      "speak_during_execution": true,
+      "instruction": {
+        "type": "prompt",
+        "text": "Briefly say: 'I'm checking the Roadcall database for the closest and best match near [city].' Keep it to one short sentence. Do not name any mechanic yet."
+      },
+      "edges": [
+        {
+          "id": "edge-match-found",
+          "transition_condition": {
+            "type": "prompt",
+            "prompt": "match_mechanic tool result contains at least one entry in matches (matches.length >= 1)"
+          },
+          "destination_node_id": "node-match-results"
+        },
+        {
+          "id": "edge-match-needs-more",
+          "transition_condition": {
+            "type": "prompt",
+            "prompt": "match_mechanic tool result has needsMoreInfo true or status needs_more_info"
           },
           "destination_node_id": "node-match-more-info"
         },
@@ -430,7 +466,7 @@
           "id": "edge-match-none",
           "transition_condition": {
             "type": "prompt",
-            "prompt": "match_mechanic returned status=manual_dispatch_required, no matches, fallbackEscalation=true, or the tool errored/timed out"
+            "prompt": "match_mechanic tool result has no matches, status manual_dispatch_required, fallbackEscalation true, or the tool errored or timed out"
           },
           "destination_node_id": "node-no-mechanic"
         }

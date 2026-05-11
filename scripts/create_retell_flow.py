@@ -55,6 +55,7 @@ FLOW = {
         "type": "cascading",
         "model": "gpt-4.1"
     },
+    "model_temperature": 0,
     "tool_call_strict_mode": False,
 
     "global_prompt": "\n".join([
@@ -323,18 +324,46 @@ FLOW = {
             },
             "edges": [
                 {
-                    "id": "edge-match-found",
-                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned one or more matches"},
-                    "destination_node_id": "node-match-results"
+                    "id": "edge-have-search-info",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller has provided city, state, and a problem type (tire, engine, battery, fuel, towing, etc.). Move on as soon as these three are known so the database search can run."},
+                    "destination_node_id": "node-call-match-mechanic"
                 },
                 {
                     "id": "edge-match-needs-info",
-                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned needsMoreInfo=true"},
+                    "transition_condition": {"type": "prompt", "prompt": "Caller has not yet provided one of: city, state, or problem type"},
+                    "destination_node_id": "node-match-more-info"
+                }
+            ]
+        },
+
+        # ── 2b. Function Node: actually invoke match_mechanic ──
+        {
+            "id": "node-call-match-mechanic",
+            "type": "function",
+            "name": "Call match_mechanic",
+            "display_position": {"x": 550, "y": 300},
+            "tool_id": "tool-roadcall-match-mechanic",
+            "tool_type": "local",
+            "wait_for_result": True,
+            "speak_during_execution": True,
+            "instruction": {
+                "type": "prompt",
+                "text": "Briefly say: 'I'm checking the Roadcall database for the closest and best match near [city].' Keep it to one short sentence. Do not name any mechanic yet."
+            },
+            "edges": [
+                {
+                    "id": "edge-match-found",
+                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic tool result contains at least one entry in matches (matches.length >= 1)"},
+                    "destination_node_id": "node-match-results"
+                },
+                {
+                    "id": "edge-match-needs-more",
+                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic tool result has needsMoreInfo true or status needs_more_info"},
                     "destination_node_id": "node-match-more-info"
                 },
                 {
                     "id": "edge-match-none",
-                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned status=manual_dispatch_required, no matches, fallbackEscalation=true, or the tool errored/timed out"},
+                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic tool result has no matches, status manual_dispatch_required, fallbackEscalation true, or the tool errored or timed out"},
                     "destination_node_id": "node-no-mechanic"
                 }
             ]
