@@ -30,6 +30,7 @@ PROBLEM_ALIASES: list[tuple[list[str], str]] = [
     (["fuel", "gas", "out of gas", "def", "diesel fuel"], "fuel_delivery"),
     (["tow", "towing", "wrecker", "winch", "stuck"], "tow_needed"),
     (["lock", "lockout", "locked out", "keys"], "lockout"),
+    (["trailer", "reefer", "brake", "air leak", "lights", "mudflap"], "trailer_repair"),
     (["accident", "crash", "collision"], "accident"),
 ]
 
@@ -40,6 +41,7 @@ SERVICE_LABELS = {
     "fuel_delivery": "fuel",
     "tow_needed": "towing",
     "lockout": "lockout",
+    "trailer_repair": "trailer repair",
     "accident": "accident support",
     "other": "roadside assistance",
 }
@@ -489,6 +491,16 @@ class RoadsideMatchingService:
                     radius_count=len(radius_matches),
                 )
 
+        if context.state and (context.latitude is None or context.longitude is None):
+            state_matches = await RoadsideMatchingService.findSameStateFallbackMatches(db, context)
+            if state_matches:
+                return MechanicSearchResult(
+                    mechanics=state_matches,
+                    search_level="same_state_database_fallback",
+                    exact_count=0,
+                    radius_count=len(state_matches),
+                )
+
         return RoadsideMatchingService.createManualDispatchFallback(context, search_level="radius_100_miles")
 
     @staticmethod
@@ -535,6 +547,19 @@ class RoadsideMatchingService:
         result = await db.execute(query)
         mechanics = list(result.scalars().all())
         return _filter_problem_capable(mechanics, context)
+
+    @staticmethod
+    async def findSameStateFallbackMatches(db: AsyncSession, context: RoadsideCallerContext) -> list[Mechanic]:
+        if not context.state:
+            return []
+        query = select(Mechanic).where(
+            Mechanic.active == True,  # noqa: E712
+            func.upper(Mechanic.state) == context.state.upper(),
+            Mechanic.phone.is_not(None),
+            Mechanic.phone != "",
+        ).limit(1000)
+        result = await db.execute(query)
+        return _filter_problem_capable(list(result.scalars().all()), context)
 
     @staticmethod
     async def findRadiusMatches(db: AsyncSession, context: RoadsideCallerContext, radiusMiles: int) -> list[Mechanic]:
@@ -647,17 +672,18 @@ def _service_matches_problem(service_types: list[str], problem: str, service_nee
 
 
 def _filter_problem_capable(mechanics: Iterable[object], context: RoadsideCallerContext) -> list:
-    filtered = []
+    phone_ready = [mechanic for mechanic in mechanics if _has_usable_phone(mechanic)]
+    if not context.problemType:
+        return phone_ready
+
+    strong_matches = []
     for mechanic in mechanics:
         if not _has_usable_phone(mechanic):
             continue
-        if not context.problemType:
-            filtered.append(mechanic)
-            continue
         service_types = _lower_list(getattr(mechanic, "service_types", []) or [])
         if _service_matches_problem(service_types, context.problemType, context.serviceNeeded):
-            filtered.append(mechanic)
-    return filtered
+            strong_matches.append(mechanic)
+    return _dedupe_mechanics([*strong_matches, *phone_ready])
 
 
 def _has_usable_phone(mechanic: object) -> bool:

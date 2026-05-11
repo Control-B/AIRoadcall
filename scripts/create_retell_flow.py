@@ -464,6 +464,7 @@ FLOW = {
                     "  - 'I'm checking technician availability in your area.'\n"
                     "  - 'Thanks for your patience. I haven't found a confirmed match yet.'\n\n"
                     "When get_dispatch_status returns:\n"
+                    "- status 'intake_created', 'location_requested', or 'matching': Keep the caller on the line and continue polling with brief reassurance.\n"
                     "- status 'matched' or 'mechanic_confirmed': Announce the mechanic and ETA (only speak confirmed backend data), then move to payment or confirm.\n"
                     "- status 'payment_required': Move to payment node.\n"
                     "- status 'dispatched': Move to confirmed node.\n"
@@ -474,6 +475,11 @@ FLOW = {
                 )
             },
             "edges": [
+                {
+                    "id": "edge-keep-polling",
+                    "transition_condition": {"type": "prompt", "prompt": "get_dispatch_status returned service_status intake_created, location_requested, matching, or search still in progress"},
+                    "destination_node_id": "node-search-reassure"
+                },
                 {
                     "id": "edge-matched",
                     "transition_condition": {"type": "prompt", "prompt": "get_dispatch_status returned service_status matched, mechanic_confirmed, or payment_authorized"},
@@ -493,6 +499,27 @@ FLOW = {
                     "id": "edge-search-fail",
                     "transition_condition": {"type": "prompt", "prompt": "get_dispatch_status returned failed or repeated errors"},
                     "destination_node_id": "node-no-mechanic"
+                }
+            ]
+        },
+
+        {
+            "id": "node-search-reassure",
+            "type": "conversation",
+            "name": "Search Reassurance",
+            "display_position": {"x": 1180, "y": 180},
+            "instruction": {
+                "type": "prompt",
+                "text": (
+                    "Keep the caller on the line. Say one short reassurance such as: 'Still checking — I’m looking for someone who can handle your issue.'\n"
+                    "Do not end the call. Return to dispatch search and poll again."
+                )
+            },
+            "edges": [
+                {
+                    "id": "edge-reassure-continue-search",
+                    "transition_condition": {"type": "prompt", "prompt": "Short reassurance spoken and ready to poll dispatch status again"},
+                    "destination_node_id": "node-dispatch-search"
                 }
             ]
         },

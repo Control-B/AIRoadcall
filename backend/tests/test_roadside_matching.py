@@ -4,6 +4,7 @@ from app.services.roadside_matching_service import (
     RoadsideMatchingService,
     classifyProblem,
     createManualDispatchFallback,
+    findExactCityMatches,
     findMechanicsByStateCity,
     findRadiusMatches,
     formatDispatchRecommendation,
@@ -192,6 +193,26 @@ def test_score_matches_human_readable_service_type():
     assert "Service match for tire repair" in scored.reasons
 
 
+def test_generic_phone_ready_mechanic_not_filtered_out_when_service_labels_are_imperfect():
+    context = RoadsideCallerContext(
+        city="Lakeland",
+        state="FL",
+        problemType="flat_tire",
+        serviceNeeded="tire repair",
+    )
+    generic_shop = make_test_mechanic(
+        id="generic",
+        city="Lakeland",
+        state="FL",
+        service_types=["roadside assistance"],
+        phone="+18635551212",
+    )
+
+    matches = findExactCityMatches([generic_shop], "Lakeland", "FL", context.problemType)
+
+    assert [mechanic.id for mechanic in matches] == ["generic"]
+
+
 def test_structured_location_overrides_transcript():
     context = RoadsideMatchingService.build_context(
         RoadsideMatchRequest(
@@ -220,6 +241,16 @@ def test_caller_phone_is_preserved_for_sms_location_flow():
 def test_nearby_city_match_within_25_miles():
     mechanics = [
         make_test_mechanic(id="plant_city", city="Plant City", state="FL", base_lat=28.0186, base_lng=-82.1129, service_types=["tire repair"]),
+    ]
+
+    matches = findRadiusMatches(mechanics, 28.0395, -81.9498, "FL", "flat_tire", 25)
+
+    assert [mechanic.id for mechanic in matches] == ["plant_city"]
+
+
+def test_radius_returns_generic_mechanic_when_no_exact_service_label():
+    mechanics = [
+        make_test_mechanic(id="plant_city", city="Plant City", state="FL", base_lat=28.0186, base_lng=-82.1129, service_types=["mobile mechanic"]),
     ]
 
     matches = findRadiusMatches(mechanics, 28.0395, -81.9498, "FL", "flat_tire", 25)

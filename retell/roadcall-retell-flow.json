@@ -559,6 +559,10 @@
       ],
       "transitions": [
         {
+          "condition": "service_status == intake_created OR service_status == location_requested OR service_status == matching",
+          "next_node": "processing_hold"
+        },
+        {
           "condition": "service_status == matched",
           "next_node": "mechanic_match_announce"
         },
