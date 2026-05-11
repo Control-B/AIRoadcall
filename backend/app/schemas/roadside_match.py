@@ -14,6 +14,10 @@ class RoadsideLocationInput(BaseModel):
 class RoadsideMatchRequest(BaseModel):
     message: str = ""
     transcript: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    latitude: Optional[float] = Field(default=None, ge=-90, le=90)
+    longitude: Optional[float] = Field(default=None, ge=-180, le=180)
     location: Optional[RoadsideLocationInput] = None
     vehicleType: Optional[str] = None
     problemType: Optional[str] = None
@@ -57,9 +61,13 @@ class RoadsideMechanicMatch(BaseModel):
 
 
 class RoadsideMatchResponse(BaseModel):
+    status: str = "needs_more_info"
+    searchLevel: Optional[str] = None
     matches: list[RoadsideMechanicMatch]
     needsMoreInfo: bool
     missingFields: list[str]
     callerContext: RoadsideCallerContext
+    callerLocation: Optional[RoadsideCallerContext] = None
     fallbackEscalation: bool = False
+    fallbackCreated: bool = False
     message: str

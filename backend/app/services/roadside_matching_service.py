@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from types import SimpleNamespace
 from typing import Iterable
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.mechanic import Mechanic
@@ -14,8 +14,13 @@ from app.schemas.roadside_match import (
     RoadsideMatchResponse,
     RoadsideMechanicMatch,
 )
+from app.services.geocoding_service import GeocodingService
 from app.utils.geo import haversine_distance_km
 from app.utils.location import STATE_NAME_TO_CODE, normalize_city, normalize_state
+from app.core.logging import get_logger
+
+
+logger = get_logger(__name__)
 
 
 PROBLEM_ALIASES: list[tuple[list[str], str]] = [
@@ -70,12 +75,23 @@ CITY_PREFIX_ALIASES = {
     "ft.": ["fort", "ft", "ft."],
 }
 
+RADIUS_SEARCH_MILES = (25, 50, 100)
+
 
 @dataclass
 class ScoreResult:
     score: float
     distance_miles: float | None
     reasons: list[str]
+
+
+@dataclass
+class MechanicSearchResult:
+    mechanics: list[Mechanic]
+    search_level: str
+    exact_count: int = 0
+    radius_count: int = 0
+    fallback_created: bool = False
 
 
 def parseCallerLocation(text: str, location: RoadsideLocationInput | None = None) -> dict:
@@ -150,6 +166,54 @@ def normalizeVehicleType(text: str | None) -> str | None:
     return lowered.strip() or None
 
 
+def parseCallerContext(message: str) -> RoadsideCallerContext:
+    request = RoadsideMatchRequest(message=message)
+    return RoadsideMatchingService.build_context(request)
+
+
+def calculateDistanceMiles(lat1: float | None, lon1: float | None, lat2: float | None, lon2: float | None) -> float | None:
+    if lat1 is None or lon1 is None or lat2 is None or lon2 is None:
+        return None
+    return haversine_distance_km(float(lat1), float(lon1), float(lat2), float(lon2)) * 0.621371
+
+
+def findExactCityMatches(mechanics: Iterable[object], city: str | None, state: str | None, problemType: str | None = None) -> list[object]:
+    context = RoadsideCallerContext(
+        city=normalizeCity(city),
+        state=normalizeState(state),
+        problemType=classifyProblem(problemType) or problemType,
+        serviceNeeded=SERVICE_LABELS.get(classifyProblem(problemType) or problemType or "other"),
+    )
+    return _filter_problem_capable(findMechanicsByStateCity(mechanics, state, city), context)
+
+
+def findRadiusMatches(
+    mechanics: Iterable[object],
+    latitude: float,
+    longitude: float,
+    state: str | None,
+    problemType: str | None,
+    radiusMiles: int,
+) -> list[object]:
+    context = RoadsideCallerContext(
+        latitude=latitude,
+        longitude=longitude,
+        state=normalizeState(state),
+        problemType=classifyProblem(problemType) or problemType,
+        serviceNeeded=SERVICE_LABELS.get(classifyProblem(problemType) or problemType or "other"),
+    )
+    qualified = []
+    for mechanic in mechanics:
+        if normalizeState(getattr(mechanic, "state", None)) != context.state:
+            continue
+        distance_miles = calculateDistanceMiles(latitude, longitude, getattr(mechanic, "base_lat", None), getattr(mechanic, "base_lng", None))
+        if distance_miles is None:
+            continue
+        if distance_miles <= _service_radius(mechanic) or distance_miles <= radiusMiles:
+            qualified.append(mechanic)
+    return _filter_problem_capable(qualified, context)
+
+
 def is_24_7(mechanic: object) -> bool:
     if bool(getattr(mechanic, "emergency_service", False)):
         return True
@@ -183,7 +247,7 @@ def scoreMechanicMatch(mechanic: object, callerContext: RoadsideCallerContext) -
             score += 30
             reasons.append("Exact city/state match")
         else:
-            score += 15
+            score += 10
             reasons.append("Same state fallback match")
 
     if callerContext.latitude is not None and callerContext.longitude is not None:
@@ -198,7 +262,7 @@ def scoreMechanicMatch(mechanic: object, callerContext: RoadsideCallerContext) -
             ) * 0.621371
             radius = _service_radius(mechanic)
             if distance_miles <= radius:
-                score += 20
+                score += 25
                 reasons.append(f"Within {radius} mile service radius")
             score += max(0, 20 - min(distance_miles, 100) * 0.2)
             reasons.append(f"{distance_miles:.1f} miles away")
@@ -223,11 +287,11 @@ def scoreMechanicMatch(mechanic: object, callerContext: RoadsideCallerContext) -
         reasons.append("Commercial vehicle capable")
 
     if is_24_7(mechanic):
-        score += 10
+        score += 15
         reasons.append("24/7 emergency availability")
 
     if bool(getattr(mechanic, "accepts_mobile_roadside", False)):
-        score += 15
+        score += 20
         reasons.append("Mobile roadside service")
 
     priority = _priority_score(mechanic)
@@ -239,6 +303,9 @@ def scoreMechanicMatch(mechanic: object, callerContext: RoadsideCallerContext) -
     if getattr(mechanic, "phone", None):
         score += 5
         reasons.append("Phone available")
+    else:
+        score -= 1000
+        reasons.append("Disqualified: missing phone")
 
     rating = getattr(mechanic, "rating", None)
     if rating is not None:
@@ -287,32 +354,60 @@ class RoadsideMatchingService:
         context = RoadsideMatchingService.build_context(request)
         missing_fields = RoadsideMatchingService.missing_fields(context)
         if missing_fields:
+            logger.info(
+                "roadside_match_needs_more_info city=%s state=%s problem=%s missing=%s",
+                context.city,
+                context.state,
+                context.problemType,
+                missing_fields,
+            )
             return RoadsideMatchResponse(
+                status="needs_more_info",
+                searchLevel="not_started",
                 matches=[],
                 needsMoreInfo=True,
                 missingFields=missing_fields,
                 callerContext=context,
+                callerLocation=context,
                 fallbackEscalation=False,
                 message=RoadsideMatchingService.next_question(missing_fields),
             )
 
-        mechanics = await RoadsideMatchingService.findNearbyMechanics(db, context, limit=max(request.limit, 3))
+        search_result = await RoadsideMatchingService.searchMechanics(db, context, limit=max(request.limit, 3))
         scored = rankMechanics([
             (mechanic, scoreMechanicMatch(mechanic, context))
-            for mechanic in mechanics
+            for mechanic in search_result.mechanics
+            if _has_usable_phone(mechanic)
         ])
         top = scored[: request.limit]
         formatted = formatDispatchRecommendation(top)
+        fallback_created = search_result.fallback_created or not bool(formatted)
+        selected = formatted[0].businessName if formatted else None
+        logger.info(
+            "roadside_match_result city=%s state=%s problem=%s exact=%s radius=%s selected=%s search_level=%s fallback_created=%s",
+            context.city,
+            context.state,
+            context.problemType,
+            search_result.exact_count,
+            search_result.radius_count,
+            selected,
+            search_result.search_level,
+            fallback_created,
+        )
         return RoadsideMatchResponse(
+            status="matched" if formatted else "manual_dispatch_required",
+            searchLevel=search_result.search_level,
             matches=formatted,
             needsMoreInfo=False,
             missingFields=[],
             callerContext=context,
-            fallbackEscalation=not bool(formatted),
+            callerLocation=context,
+            fallbackEscalation=fallback_created,
+            fallbackCreated=fallback_created,
             message=(
                 "Got it. I found nearby mechanics."
                 if formatted
-                else "I could not find a confident match. Escalate to manual dispatch."
+                else "No mechanic match found within search radius. Manual dispatch case created."
             ),
         )
 
@@ -320,6 +415,14 @@ class RoadsideMatchingService:
     def build_context(request: RoadsideMatchRequest) -> RoadsideCallerContext:
         text = " ".join(part for part in [request.message, request.transcript] if part)
         parsed_location = parseCallerLocation(text, request.location)
+        if request.city:
+            parsed_location["city"] = normalizeCity(request.city)
+        if request.state:
+            parsed_location["state"] = normalizeState(request.state)
+        if request.latitude is not None:
+            parsed_location["latitude"] = request.latitude
+        if request.longitude is not None:
+            parsed_location["longitude"] = request.longitude
         problem = classifyProblem(request.problemType or "") or classifyProblem(text)
         vehicle = normalizeVehicleType(request.vehicleType) or normalizeVehicleType(text)
         return RoadsideCallerContext(
@@ -361,47 +464,145 @@ class RoadsideMatchingService:
 
     @staticmethod
     async def findNearbyMechanics(db: AsyncSession, context: RoadsideCallerContext, limit: int = 10) -> list[Mechanic]:
-        query = select(Mechanic).where(Mechanic.active == True)  # noqa: E712
-        if context.state:
-            query = query.where(func.upper(Mechanic.state) == context.state.upper())
+        result = await RoadsideMatchingService.searchMechanics(db, context, limit=limit)
+        return result.mechanics
 
-        if context.city:
-            city_terms = _city_search_terms(context.city)
-            city_query = query.where(
-                or_(*[func.lower(Mechanic.city) == city_term for city_term in city_terms])
-            ).limit(500)
-            result = await db.execute(city_query)
-            city_matches = list(result.scalars().all())
-            if city_matches:
-                if context.state and len(city_matches) < max(limit * 5, 25):
-                    fallback_result = await db.execute(query.limit(500))
-                    state_matches = list(fallback_result.scalars().all())
-                    return _dedupe_mechanics([*city_matches, *state_matches])
-                return city_matches
-
-        if context.latitude is not None and context.longitude is not None:
-            lat_delta = 2.0
-            lng_delta = 2.0
-            query = query.where(
-                Mechanic.base_lat >= context.latitude - lat_delta,
-                Mechanic.base_lat <= context.latitude + lat_delta,
-                Mechanic.base_lng >= context.longitude - lng_delta,
-                Mechanic.base_lng <= context.longitude + lng_delta,
+    @staticmethod
+    async def searchMechanics(db: AsyncSession, context: RoadsideCallerContext, limit: int = 10) -> MechanicSearchResult:
+        exact_matches = await RoadsideMatchingService.findExactCityMatches(db, context)
+        if exact_matches:
+            return MechanicSearchResult(
+                mechanics=exact_matches,
+                search_level="exact_city",
+                exact_count=len(exact_matches),
+                radius_count=0,
             )
 
-        result = await db.execute(query.limit(500))
-        mechanics = list(result.scalars().all())
-        if mechanics:
-            return mechanics
+        await RoadsideMatchingService.getCoordinatesForCityState(db, context)
+        for radius_miles in RADIUS_SEARCH_MILES:
+            radius_matches = await RoadsideMatchingService.findRadiusMatches(db, context, radius_miles)
+            if radius_matches:
+                return MechanicSearchResult(
+                    mechanics=radius_matches,
+                    search_level=f"radius_{radius_miles}_miles",
+                    exact_count=0,
+                    radius_count=len(radius_matches),
+                )
 
-        if context.state:
-            fallback = await db.execute(select(Mechanic).where(Mechanic.active == True).limit(500))  # noqa: E712
-            return list(fallback.scalars().all())
-        return []
+        return RoadsideMatchingService.createManualDispatchFallback(context, search_level="radius_100_miles")
+
+    @staticmethod
+    async def getCoordinatesForCityState(db: AsyncSession, context: RoadsideCallerContext) -> tuple[float | None, float | None]:
+        if context.latitude is not None and context.longitude is not None:
+            return context.latitude, context.longitude
+        if not context.city or not context.state:
+            return None, None
+
+        geocoded = await GeocodingService.geocode_address("", city=context.city, state=context.state)
+        if geocoded:
+            context.latitude = geocoded["lat"]
+            context.longitude = geocoded["lng"]
+            return context.latitude, context.longitude
+
+        city_terms = _city_search_terms(context.city)
+        centroid_query = select(Mechanic).where(
+            Mechanic.active == True,  # noqa: E712
+            func.upper(Mechanic.state) == context.state.upper(),
+            Mechanic.base_lat.is_not(None),
+            Mechanic.base_lng.is_not(None),
+            or_(*[func.lower(Mechanic.city) == city_term for city_term in city_terms]),
+        ).limit(50)
+        result = await db.execute(centroid_query)
+        city_mechanics = list(result.scalars().all())
+        if city_mechanics:
+            context.latitude = sum(float(mechanic.base_lat) for mechanic in city_mechanics) / len(city_mechanics)
+            context.longitude = sum(float(mechanic.base_lng) for mechanic in city_mechanics) / len(city_mechanics)
+            return context.latitude, context.longitude
+        return None, None
+
+    @staticmethod
+    async def findExactCityMatches(db: AsyncSession, context: RoadsideCallerContext) -> list[Mechanic]:
+        if not context.city or not context.state:
+            return []
+        query = select(Mechanic).where(Mechanic.active == True)  # noqa: E712
+        city_terms = _city_search_terms(context.city)
+        query = query.where(
+            func.upper(Mechanic.state) == context.state.upper(),
+            or_(*[func.lower(Mechanic.city) == city_term for city_term in city_terms]),
+            Mechanic.phone.is_not(None),
+            Mechanic.phone != "",
+        ).limit(500)
+        result = await db.execute(query)
+        mechanics = list(result.scalars().all())
+        return _filter_problem_capable(mechanics, context)
+
+    @staticmethod
+    async def findRadiusMatches(db: AsyncSession, context: RoadsideCallerContext, radiusMiles: int) -> list[Mechanic]:
+        if context.latitude is None or context.longitude is None or not context.state:
+            return []
+        lat_delta = max(radiusMiles / 69.0, 0.5)
+        lng_delta = max(radiusMiles / 55.0, 0.5)
+        query = select(Mechanic).where(
+            Mechanic.active == True,  # noqa: E712
+            func.upper(Mechanic.state) == context.state.upper(),
+            Mechanic.phone.is_not(None),
+            Mechanic.phone != "",
+            Mechanic.base_lat >= context.latitude - lat_delta,
+            Mechanic.base_lat <= context.latitude + lat_delta,
+            Mechanic.base_lng >= context.longitude - lng_delta,
+            Mechanic.base_lng <= context.longitude + lng_delta,
+        ).limit(1000)
+        result = await db.execute(query)
+        mechanics = []
+        for mechanic in result.scalars().all():
+            distance_miles = calculateDistanceMiles(
+                context.latitude,
+                context.longitude,
+                getattr(mechanic, "base_lat", None),
+                getattr(mechanic, "base_lng", None),
+            )
+            if distance_miles is None:
+                continue
+            qualifies_by_radius = distance_miles <= _service_radius(mechanic) or distance_miles <= radiusMiles
+            if qualifies_by_radius:
+                mechanics.append(mechanic)
+        return _filter_problem_capable(mechanics, context)
+
+    @staticmethod
+    def createManualDispatchFallback(context: RoadsideCallerContext, search_level: str = "radius_100_miles") -> MechanicSearchResult:
+        logger.warning(
+            "roadside_manual_dispatch_fallback city=%s state=%s problem=%s callback=%s search_level=%s",
+            context.city,
+            context.state,
+            context.problemType,
+            context.callbackNumber,
+            search_level,
+        )
+        return MechanicSearchResult(
+            mechanics=[],
+            search_level=search_level,
+            fallback_created=True,
+        )
 
 
 # Backward-compatible aliases requested in the prompt.
 findNearbyMechanics = RoadsideMatchingService.findNearbyMechanics
+
+
+async def getCoordinatesForCityState(
+    city: str | None,
+    state: str | None,
+    db: AsyncSession | None = None,
+) -> tuple[float | None, float | None]:
+    context = RoadsideCallerContext(city=normalizeCity(city), state=normalizeState(state))
+    if db is None:
+        geocoded = await GeocodingService.geocode_address("", city=context.city or "", state=context.state or "")
+        return (geocoded["lat"], geocoded["lng"]) if geocoded else (None, None)
+    return await RoadsideMatchingService.getCoordinatesForCityState(db, context)
+
+
+def createManualDispatchFallback(callerContext: RoadsideCallerContext) -> MechanicSearchResult:
+    return RoadsideMatchingService.createManualDispatchFallback(callerContext)
 
 
 def _city_search_terms(city: str | None) -> set[str]:
@@ -443,6 +644,24 @@ def _service_matches_problem(service_types: list[str], problem: str, service_nee
         *_problem_service_terms(problem),
     }
     return any(term and (term in normalized_services or term in service_text) for term in problem_terms)
+
+
+def _filter_problem_capable(mechanics: Iterable[object], context: RoadsideCallerContext) -> list:
+    filtered = []
+    for mechanic in mechanics:
+        if not _has_usable_phone(mechanic):
+            continue
+        if not context.problemType:
+            filtered.append(mechanic)
+            continue
+        service_types = _lower_list(getattr(mechanic, "service_types", []) or [])
+        if _service_matches_problem(service_types, context.problemType, context.serviceNeeded):
+            filtered.append(mechanic)
+    return filtered
+
+
+def _has_usable_phone(mechanic: object) -> bool:
+    return bool(str(getattr(mechanic, "phone", "") or "").strip())
 
 
 def _problem_service_terms(problem: str) -> set[str]:

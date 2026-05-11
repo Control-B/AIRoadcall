@@ -1,8 +1,11 @@
 from app.schemas.roadside_match import RoadsideCallerContext, RoadsideLocationInput, RoadsideMatchRequest
+from app.api.routes import roadside
 from app.services.roadside_matching_service import (
     RoadsideMatchingService,
     classifyProblem,
+    createManualDispatchFallback,
     findMechanicsByStateCity,
+    findRadiusMatches,
     formatDispatchRecommendation,
     make_test_mechanic,
     parseCallerLocation,
@@ -212,3 +215,80 @@ def test_caller_phone_is_preserved_for_sms_location_flow():
 
     assert context.callerPhone == "2145551212"
     assert context.callbackNumber == "2145551212"
+
+
+def test_nearby_city_match_within_25_miles():
+    mechanics = [
+        make_test_mechanic(id="plant_city", city="Plant City", state="FL", base_lat=28.0186, base_lng=-82.1129, service_types=["tire repair"]),
+    ]
+
+    matches = findRadiusMatches(mechanics, 28.0395, -81.9498, "FL", "flat_tire", 25)
+
+    assert [mechanic.id for mechanic in matches] == ["plant_city"]
+
+
+def test_nearby_city_match_within_50_miles():
+    mechanics = [
+        make_test_mechanic(id="tampa", city="Tampa", state="FL", base_lat=27.9506, base_lng=-82.4572, service_types=["tire repair"]),
+    ]
+
+    matches = findRadiusMatches(mechanics, 28.0395, -81.9498, "FL", "flat_tire", 50)
+
+    assert [mechanic.id for mechanic in matches] == ["tampa"]
+
+
+def test_nearby_city_match_within_100_miles():
+    mechanics = [
+        make_test_mechanic(id="orlando", city="Orlando", state="FL", base_lat=28.5383, base_lng=-81.3792, service_types=["tire repair"], service_radius_miles=50),
+    ]
+
+    matches = findRadiusMatches(mechanics, 28.0395, -81.9498, "FL", "flat_tire", 100)
+
+    assert [mechanic.id for mechanic in matches] == ["orlando"]
+
+
+def test_no_mechanic_found_creates_manual_fallback_result():
+    context = RoadsideCallerContext(city="Lakeland", state="FL", problemType="flat_tire")
+
+    fallback = createManualDispatchFallback(context)
+
+    assert fallback.fallback_created is True
+    assert fallback.search_level == "radius_100_miles"
+    assert fallback.mechanics == []
+
+
+def test_mechanic_without_phone_excluded_from_radius_matches():
+    mechanics = [
+        make_test_mechanic(id="no_phone", city="Plant City", state="FL", base_lat=28.0186, base_lng=-82.1129, phone="", service_types=["tire repair"]),
+    ]
+
+    matches = findRadiusMatches(mechanics, 28.0395, -81.9498, "FL", "flat_tire", 25)
+
+    assert matches == []
+
+
+def test_mechanic_outside_current_radius_and_service_radius_excluded():
+    mechanics = [
+        make_test_mechanic(id="too_far", city="Miami", state="FL", base_lat=25.7617, base_lng=-80.1918, service_radius_miles=25, service_types=["tire repair"]),
+    ]
+
+    matches = findRadiusMatches(mechanics, 28.0395, -81.9498, "FL", "flat_tire", 100)
+
+    assert matches == []
+
+
+async def test_api_error_returns_manual_dispatch_not_hangup(monkeypatch):
+    async def broken_match(db, request):
+        raise RuntimeError("database timeout")
+
+    monkeypatch.setattr(roadside.RoadsideMatchingService, "match_mechanic", broken_match)
+
+    response = await roadside.match_mechanic(
+        RoadsideMatchRequest(message="I'm in Lakeland Florida with a blown tire"),
+        db=None,
+    )
+
+    assert response.status == "manual_dispatch_required"
+    assert response.fallbackCreated is True
+    assert response.fallbackEscalation is True
+    assert "still create a dispatch request" in response.message

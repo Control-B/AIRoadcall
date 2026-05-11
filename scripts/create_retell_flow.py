@@ -60,6 +60,7 @@ FLOW = {
     "global_prompt": "\n".join([
         "You are Roadcall’s AI roadside dispatcher.",
         "Your job is to quickly find the nearest matching mechanic from the Roadcall mechanic database.",
+        "Core rule: never end or hang up a call just because matching failed. End only after a mechanic is offered, the caller explicitly says they no longer need help, or a manual dispatch case is created/escalated.",
         "Main rule: be welcoming, then ask only what is missing. Do not ask every question on a list.",
         "Open warmly, ask who you are speaking with, and ask how you can help. Then move quickly to city/state/problem matching.",
         "Be brief. Ask one question at a time. Use the caller’s city first. Search the database before asking extra questions.",
@@ -75,7 +76,8 @@ FLOW = {
         "Frame the result as the closest and best match from the Roadcall mechanic database, then ask if the caller wants that mechanic or shop connected.",
         "After the caller wants to proceed, use call.caller_phone as the callback/SMS number when available. If no caller phone is available, ask: What number can I text for the secure GPS location link?",
         "If no exact city match is found, say: I don’t see one directly in your city. I’m checking nearby mechanics.",
-        "If no mechanic is found, say: I don’t have a matching mechanic in that area yet. I can escalate this for manual dispatch.",
+        "If no mechanic is found, say: I couldn’t find an automatic match nearby, so I’m escalating this for manual dispatch. Stay on the line while I collect the best callback number.",
+        "If match_mechanic errors, times out, returns empty, or returns manual_dispatch_required, say: I’m having trouble checking the database, but I can still create a dispatch request. Then collect callback/name only as needed and create the dispatch record.",
         "NEVER claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.",
         "If the driver is unsafe, injured, or needs emergency response, direct them to call 911 immediately.",
         "Detect the driver's language automatically and continue in that language.",
@@ -89,7 +91,7 @@ FLOW = {
             "type": "custom",
             "tool_id": "tool-roadcall-create-sr",
             "name": "create_service_request",
-            "description": "Create the backend dispatch record only after match_mechanic returns a useful match and the caller wants to proceed. Do not call before database matching.",
+            "description": "Create the backend dispatch/manual-dispatch record after match_mechanic returns a useful match and the caller wants to proceed, or after automatic matching escalates to manual dispatch. Do not call before database matching.",
             "url": f"{BACKEND_URL}/api/calls/create-service-request",
             "method": "POST",
             "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
@@ -160,6 +162,10 @@ FLOW = {
                 "properties": {
                     "message": {"type": "string", "description": "Latest caller message or concise summary"},
                     "transcript": {"type": "string", "description": "Conversation transcript so far, if available"},
+                    "city": {"type": "string", "description": "Caller city if known"},
+                    "state": {"type": "string", "description": "Caller state if known"},
+                    "latitude": {"type": "number", "description": "Caller latitude if known"},
+                    "longitude": {"type": "number", "description": "Caller longitude if known"},
                     "location": {
                         "type": "object",
                         "properties": {
@@ -304,6 +310,8 @@ FLOW = {
                     "If the caller volunteers vehicle type, road, highway, exit, landmark, or GPS, include it. Do not ask for it unless matching needs more info.\n"
                     "When calling match_mechanic, pass Retell caller phone metadata as callerPhone if available and callbackNumber if already collected.\n"
                     "As soon as city, state, and problem type are known, say: 'I'm checking the Roadcall database for the closest and best match near [city].' Then call match_mechanic.\n"
+                    "If no exact city match comes back, say: 'I don't see one directly in [city]. I'm checking nearby cities.' The backend will expand to 25, 50, then 100 miles.\n"
+                    "If the tool errors, times out, returns no matches, or returns manual_dispatch_required, do not end the call. Move to no mechanic/manual dispatch.\n"
                     "Do not ask for callback number, email, payment, company, license plate, insurance, or exact address before calling match_mechanic."
                 )
             },
@@ -320,7 +328,7 @@ FLOW = {
                 },
                 {
                     "id": "edge-match-none",
-                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned no matches or fallbackEscalation=true"},
+                    "transition_condition": {"type": "prompt", "prompt": "match_mechanic returned status=manual_dispatch_required, no matches, fallbackEscalation=true, or the tool errored/timed out"},
                     "destination_node_id": "node-no-mechanic"
                 }
             ]
@@ -390,6 +398,7 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "Now collect only what is required to create the dispatch record, one question at a time:\n"
+                    "This node is used after a mechanic match OR after automatic matching escalates to manual dispatch.\n"
                     "1. If call.caller_phone is available, use it as callback_number and do not ask for phone again.\n"
                     "2. If no caller phone or callback number is available, ask: 'What number can I text for the secure GPS location link?'\n"
                     "3. If driver_name is still missing: 'What name should I put on the request?'\n"
@@ -612,23 +621,23 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "Say: 'I don't have a confirmed heavy-duty mechanic available yet for your location and issue. "
-                    "I'm keeping the search active and will call you back as soon as a qualified provider confirms.'\n"
-                    "Ask if they want to stay on the line or prefer a callback.\n"
-                    "If they want to wait, poll get_dispatch_status again.\n"
-                    "If they prefer callback, end with callback close.\n"
+                    "I'm escalating this for manual dispatch and creating the request now.'\n"
+                    "If match_mechanic had an API error or timeout, say: 'I'm having trouble checking the database, but I can still create a dispatch request.'\n"
+                    "Do not end the call here unless the caller explicitly says they no longer need help.\n"
+                    "Collect callback/name only as needed and create the manual dispatch request.\n"
                     "If the situation becomes unsafe: direct them to 911."
                 )
             },
             "edges": [
                 {
-                    "id": "edge-no-mech-wait",
-                    "transition_condition": {"type": "prompt", "prompt": "Driver wants to wait on the line — resume polling"},
-                    "destination_node_id": "node-dispatch-search"
+                    "id": "edge-no-mech-manual-dispatch",
+                    "transition_condition": {"type": "prompt", "prompt": "Driver still needs help or accepts manual dispatch"},
+                    "destination_node_id": "node-post-match-intake"
                 },
                 {
-                    "id": "edge-no-mech-callback",
-                    "transition_condition": {"type": "prompt", "prompt": "Driver accepts callback or wants to hang up"},
-                    "destination_node_id": "node-end-callback"
+                    "id": "edge-no-mech-no-help-needed",
+                    "transition_condition": {"type": "prompt", "prompt": "Driver explicitly says they no longer need help"},
+                    "destination_node_id": "node-end-success"
                 }
             ]
         },

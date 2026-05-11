@@ -3,10 +3,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session
 from app.core.config import get_settings
+from app.core.logging import get_logger
 from app.schemas.roadside_match import RoadsideMatchRequest, RoadsideMatchResponse
 from app.services.roadside_matching_service import RoadsideMatchingService
 
 router = APIRouter(prefix="/roadside", tags=["roadside"])
+logger = get_logger(__name__)
 
 
 async def require_roadside_match_access(
@@ -39,4 +41,20 @@ async def match_mechanic(
     db: AsyncSession = Depends(get_session),
 ):
     """Match a caller/driver to the best nearby mechanics using location + problem context."""
-    return await RoadsideMatchingService.match_mechanic(db, request)
+    try:
+        return await RoadsideMatchingService.match_mechanic(db, request)
+    except Exception as exc:
+        logger.exception("roadside_match_api_error fallback_to_manual_dispatch error=%s", exc)
+        context = RoadsideMatchingService.build_context(request)
+        return RoadsideMatchResponse(
+            status="manual_dispatch_required",
+            searchLevel="api_error_fallback",
+            matches=[],
+            needsMoreInfo=False,
+            missingFields=[],
+            callerContext=context,
+            callerLocation=context,
+            fallbackEscalation=True,
+            fallbackCreated=True,
+            message="I’m having trouble checking the database, but I can still create a dispatch request.",
+        )

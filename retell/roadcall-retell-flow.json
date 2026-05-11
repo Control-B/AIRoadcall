@@ -18,6 +18,7 @@
   "global_system_prompt": [
     "You are Roadcall’s AI roadside dispatcher.",
     "Your job is to quickly find the nearest matching mechanic from the Roadcall mechanic database.",
+    "Core rule: never end or hang up a call just because matching failed. The call may only end after a mechanic is offered, the caller explicitly says they no longer need help, or a manual dispatch case is created/escalated.",
     "Main rule: be welcoming, then ask only what is missing. Do not ask every question on a list.",
     "Open warmly, ask who you are speaking with, and ask how you can help. Then move quickly to city/state/problem matching.",
     "Be brief, ask one question at a time, use the caller’s city first, do not repeat questions, and sound like a dispatcher, not a chatbot.",
@@ -33,7 +34,8 @@
     "Frame the result as the closest and best match from the Roadcall mechanic database, then ask if the caller wants that mechanic or shop connected.",
     "After the caller wants to proceed, use call.caller_phone as the callback/SMS number when available. If no caller phone is available, ask: What number can I text for the secure GPS location link?",
     "If no exact city match is found, say: I don’t see one directly in your city. I’m checking nearby mechanics.",
-    "If no mechanic is found, say: I don’t have a matching mechanic in that area yet. I can escalate this for manual dispatch.",
+    "If no mechanic is found, say: I couldn’t find an automatic match nearby, so I’m escalating this for manual dispatch. Stay on the line while I collect the best callback number.",
+    "If match_mechanic errors, times out, returns empty, or returns manual_dispatch_required, say: I’m having trouble checking the database, but I can still create a dispatch request. Then collect callback/name only as needed and create the dispatch record.",
     "Never claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.",
     "If the driver is unsafe, injured, or needs emergency response, direct them to call 911 immediately."
   ],
@@ -125,7 +127,7 @@
   "tools": [
     {
       "name": "create_service_request",
-      "description": "Create the backend dispatch record after safety and driver/equipment/problem intake.",
+      "description": "Create the backend dispatch/manual-dispatch record after a mechanic match is accepted or automatic matching escalates to manual dispatch.",
       "method": "POST",
       "url": "{{BACKEND_BASE_URL}}/api/calls/create-service-request",
       "timeout_seconds": 8,
@@ -188,6 +190,10 @@
       "request_schema": {
         "message": "string",
         "transcript": "string|null",
+        "city": "string|null",
+        "state": "string|null",
+        "latitude": "number|null",
+        "longitude": "number|null",
         "location": "object|null",
         "vehicleType": "string|null",
         "problemType": "string|null",
@@ -196,11 +202,15 @@
         "limit": "integer"
       },
       "response_schema": {
+        "status": "matched|needs_more_info|manual_dispatch_required",
+        "searchLevel": "exact_city|radius_25_miles|radius_50_miles|radius_100_miles|api_error_fallback|not_started|null",
         "matches": "array",
         "needsMoreInfo": "boolean",
         "missingFields": "array<string>",
         "callerContext": "object",
+        "callerLocation": "object|null",
         "fallbackEscalation": "boolean",
+        "fallbackCreated": "boolean",
         "message": "string"
       }
     },
@@ -451,7 +461,7 @@
           "next_node": "mechanic_match_announce"
         },
         {
-          "condition": "match_mechanic.fallbackEscalation == true OR match_mechanic.matches is empty",
+          "condition": "match_mechanic.status == manual_dispatch_required OR match_mechanic.fallbackEscalation == true OR match_mechanic.matches is empty OR match_mechanic tool errored or timed out",
           "next_node": "no_mechanic_found"
         }
       ]
@@ -597,7 +607,7 @@
       "id": "post_match_dispatch_intake",
       "name": "Post-Match Dispatch Intake",
       "type": "conversation_tool",
-      "purpose": "After the caller accepts a mechanic match, collect only the minimum callback/request details needed to create a dispatch record.",
+      "purpose": "After the caller accepts a mechanic match or automatic matching escalates, collect only the minimum callback/request details needed to create a dispatch/manual-dispatch record.",
       "prompt_sequence": [
         "If call.caller_phone is available, use it as callback_number and do not ask for phone again.",
         "If no caller phone or callback number is available, ask: What number can I text for the secure GPS location link?",
@@ -703,18 +713,18 @@
       "type": "conversation",
       "purpose": "Professionally explain shortage without abandoning the driver; offer callback while backend continues search.",
       "prompt": [
-        "I don’t have a confirmed heavy-duty mechanic available yet for your location and issue.",
-        "I’m going to keep the search active and can call you back as soon as a qualified provider confirms.",
+        "I couldn’t find an automatic match nearby, so I’m escalating this for manual dispatch.",
+        "Stay on the line while I collect the best callback number and create the request.",
         "If your situation becomes unsafe or anyone is injured, call 911 immediately."
       ],
       "transitions": [
         {
-          "condition": "driver wants to wait on line",
-          "next_node": "processing_hold"
+          "condition": "caller still needs help or accepts manual dispatch",
+          "next_node": "post_match_dispatch_intake"
         },
         {
-          "condition": "driver accepts callback",
-          "next_node": "call_close_callback"
+          "condition": "caller explicitly says they no longer need help",
+          "next_node": "call_close_success"
         }
       ]
     },
