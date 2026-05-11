@@ -16,15 +16,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.core.config import get_settings
+from app.api.routes.admin_auth import verify_admin
 from app.models.lead_capture import LeadCapture
 
 router = APIRouter(prefix="/leads", tags=["leads"])
 settings = get_settings()
-
-
-def _require_admin(x_admin_key: str = Header(...)):
-    if x_admin_key != settings.ADMIN_API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 class LeadIn(BaseModel):
@@ -183,7 +179,7 @@ class LeadListResponse(BaseModel):
     leads: list[LeadListItem]
 
 
-@router.get("", response_model=LeadListResponse, dependencies=[Depends(_require_admin)])
+@router.get("", response_model=LeadListResponse, dependencies=[Depends(verify_admin)])
 async def list_leads(
     db: AsyncSession = Depends(get_db),
     page: int = Query(1, ge=1),
@@ -227,7 +223,7 @@ async def list_leads(
     )
 
 
-@router.delete("/{lead_id}", dependencies=[Depends(_require_admin)], status_code=204)
+@router.delete("/{lead_id}", dependencies=[Depends(verify_admin)], status_code=204)
 async def delete_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(LeadCapture).where(LeadCapture.id == lead_id))
     lead = result.scalar_one_or_none()
