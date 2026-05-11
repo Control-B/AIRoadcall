@@ -26,6 +26,7 @@ from app.api.routes import (
     call_summaries,
     fleet,
     shops_vertical,
+    leads,
 )
 
 settings = get_settings()
@@ -39,7 +40,7 @@ app = FastAPI(
 )
 
 # CORS
-allowed_origins = [settings.FRONTEND_URL]
+allowed_origins = [settings.FRONTEND_URL, "https://roadcall.ai", "https://www.roadcall.ai"]
 # Also allow common dev origins
 if "localhost" in settings.FRONTEND_URL:
     allowed_origins.extend(["http://localhost:3000", "http://127.0.0.1:3000"])
@@ -123,6 +124,7 @@ app.include_router(admin_auth.router, prefix="/api")
 app.include_router(call_summaries.router, prefix="/api")
 app.include_router(fleet.router, prefix="/api")
 app.include_router(shops_vertical.router, prefix="/api")
+app.include_router(leads.router, prefix="/api")
 
 
 @app.on_event("startup")

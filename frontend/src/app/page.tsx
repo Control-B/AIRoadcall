@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import {
   Phone,
   Wrench,
@@ -18,6 +19,7 @@ import {
   Lock,
   GitBranch,
   Radio,
+  Mail,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
@@ -47,6 +49,83 @@ const testimonials = [
 const integrations = [
   "Samsara", "Geotab", "Motive", "ELD", "Fleetio", "Zenduit", "Google Maps", "Custom API",
 ];
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://airoadcall-i76ba.ondigitalocean.app/api";
+
+function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general" }) {
+  const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "error">("idle");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email) return;
+    setStatus("loading");
+    try {
+      const res = await fetch(`${API_URL}/leads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, name: name || undefined, vertical: vertical || "general", source: "homepage" }),
+      });
+      if (res.ok || res.status === 201) {
+        setStatus("done");
+      } else {
+        setStatus("error");
+      }
+    } catch {
+      setStatus("error");
+    }
+  }
+
+  if (status === "done") {
+    return (
+      <div className="flex flex-col items-center gap-3 py-4">
+        <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
+          <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+        </div>
+        <p className="text-white font-semibold text-lg">You&apos;re on the list.</p>
+        <p className="text-slate-400 text-sm">Check your inbox — we sent you a welcome note.</p>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="w-full max-w-md mx-auto">
+      <div className="flex flex-col sm:flex-row gap-3 mb-3">
+        <input
+          type="text"
+          placeholder="First name (optional)"
+          value={name}
+          onChange={e => setName(e.target.value)}
+          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500/50 focus:bg-white/8 transition-all"
+        />
+        <input
+          type="email"
+          required
+          placeholder="your@email.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          className="flex-[2] bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500/50 focus:bg-white/8 transition-all"
+        />
+      </div>
+      <button
+        type="submit"
+        disabled={status === "loading"}
+        className="w-full bg-orange-500 hover:bg-orange-400 disabled:opacity-60 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors flex items-center justify-center gap-2"
+      >
+        {status === "loading" ? (
+          <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+        ) : (
+          <><Mail className="h-4 w-4" /> Get the weekly dispatch</>
+        )}
+      </button>
+      {status === "error" && (
+        <p className="text-red-400 text-xs mt-2 text-center">Something went wrong — try again in a moment.</p>
+      )}
+      <p className="text-slate-500 text-xs mt-3 text-center">No spam. Unsubscribe anytime.</p>
+    </form>
+  );
+}
 
 export default function HomePage() {
   return (
@@ -366,6 +445,28 @@ export default function HomePage() {
               </FadeIn>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── Lead Magnet — Weekly Dispatch newsletter ──────────────── */}
+      <section className="py-24 md:py-28 border-t border-white/[0.06]">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
+          <FadeIn>
+            <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-4 py-1.5 mb-6">
+              <Mail className="h-3.5 w-3.5 text-orange-400" />
+              <span className="text-xs font-semibold text-orange-300 uppercase tracking-wide">Free Weekly Dispatch</span>
+            </div>
+            <h2 className="text-4xl md:text-5xl font-black mb-4 leading-tight">
+              AI tips for the
+              <span className="block bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">
+                trucking industry.
+              </span>
+            </h2>
+            <p className="text-slate-400 text-lg mb-10 leading-relaxed">
+              Join 500+ fleet managers and shop owners getting weekly insights on AI phones, driver downtime, dispatch ops, and more.
+            </p>
+            <LeadMagnetForm vertical="general" />
+          </FadeIn>
         </div>
       </section>
 
