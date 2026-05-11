@@ -8,6 +8,7 @@ import app.models  # noqa: F401
 from app.core.config import get_settings
 from app.core.database import Base, engine
 from app.core.logging import get_logger, setup_logging
+from app.core.session_middleware import SessionCorrelationMiddleware
 from app.api.routes import (
     jobs,
     payments,
@@ -52,6 +53,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Session correlation: set anonymous client_session_id, attach all roadcall_*
+# IDs to request.state, echo X-Roadcall-* headers, log structured traces.
+app.add_middleware(SessionCorrelationMiddleware)
 
 
 # ── Retell payload unwrapper ──────────────────────────────────────────────────

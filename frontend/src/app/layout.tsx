@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import CookieConsent from "@/components/CookieConsent";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -76,6 +77,7 @@ export default function RootLayout({
         <main className="min-h-screen">
           {children}
         </main>
+        <CookieConsent />
       </body>
     </html>
   );

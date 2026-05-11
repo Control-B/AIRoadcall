@@ -115,22 +115,24 @@ def run_crawler_batch(urls: list[str]) -> dict[str, str]:
     """
     print(f"  → Starting Apify crawler for {len(urls)} URLs …")
 
-    # Build start URLs: root + /contact for each mechanic
-    start_urls = []
-    for u in urls:
-        root = u.rstrip("/")
-        start_urls.append({"url": root})
-        start_urls.append({"url": f"{root}/contact"})
-        start_urls.append({"url": f"{root}/contact-us"})
-        start_urls.append({"url": f"{root}/about"})
+    # Start only at the root and let the crawler follow internal links to
+    # contact / about / locations pages. Hard-coding /contact often yields
+    # 404s on sites that use different paths (e.g. /get-in-touch).
+    start_urls = [{"url": u.rstrip("/")} for u in urls]
 
     run_input = {
         "startUrls": start_urls,
-        "maxCrawlPages": len(start_urls) + 10,  # enough for all start URLs + a few extra
-        "maxCrawlDepth": 1,
+        # Allow up to ~6 pages per site (home + a few internal)
+        "maxCrawlPages": len(urls) * 6,
+        "maxCrawlPagesPerStartUrl": 6,
+        "maxCrawlDepth": 2,
         "pageLoadTimeoutSecs": 30,
         "maxConcurrency": 20,
         "crawlerType": "cheerio",
+        "saveHtml": True,
+        "saveMarkdown": True,
+        # Prefer links that look like contact / about / footer / team pages
+        "linkSelector": "a[href*='contact' i], a[href*='about' i], a[href*='touch' i], a[href*='team' i], a[href*='locations' i], a[href*='reach' i], footer a",
         "proxyConfiguration": {"useApifyProxy": True},
     }
 
@@ -180,10 +182,11 @@ def run_crawler_batch(urls: list[str]) -> dict[str, str]:
     results: dict[str, str] = {}
     for item in items:
         page_url = item.get("url", "")
-        # Combine all text fields
+        # Combine all text fields including raw HTML (catches mailto:) and markdown.
         text_blob = " ".join(filter(None, [
             item.get("text", ""),
-            item.get("html", ""),
+            item.get("markdown", ""),
+            item.get("html", "") or "",
             json.dumps(item.get("metadata", {})),
         ]))
         emails = extract_emails_from_text(text_blob)
@@ -204,7 +207,7 @@ def _sync_db_url(url: str) -> str:
     return url
 
 
-def get_mechanics_needing_email(limit: int) -> list[dict]:
+def get_mechanics_needing_email(limit: int, state: str | None = None) -> list[dict]:
     import psycopg2
     db_url = _sync_db_url(DATABASE_URL)
     is_local = "localhost" in db_url or "127.0.0.1" in db_url
@@ -212,16 +215,24 @@ def get_mechanics_needing_email(limit: int) -> list[dict]:
     conn = psycopg2.connect(db_url, **extra)
     try:
         with conn.cursor() as cur:
+            state_clause = ""
+            params: list = []
+            if state:
+                state_clause = "AND upper(state) = %s"
+                params.append(state.upper())
+            params.append(limit)
             cur.execute(
-                """
+                f"""
                 SELECT id, company_name, website
                 FROM mechanics
                 WHERE website IS NOT NULL AND website != ''
                   AND (email IS NULL OR email = '')
-                ORDER BY id
+                  AND (last_enriched_at IS NULL OR last_enriched_at < NOW() - INTERVAL '30 days')
+                  {state_clause}
+                ORDER BY last_enriched_at NULLS FIRST, id
                 LIMIT %s
                 """,
-                (limit,),
+                tuple(params),
             )
             rows = cur.fetchall()
         return [{"id": r[0], "name": r[1], "website": r[2]} for r in rows]
@@ -243,7 +254,7 @@ def write_emails(email_map: dict[str, str]) -> int:
         with conn.cursor() as cur:
             for mech_id, email in email_map.items():
                 cur.execute(
-                    "UPDATE mechanics SET email = %s WHERE id = %s AND (email IS NULL OR email = '')",
+                    "UPDATE mechanics SET email = %s, last_enriched_at = NOW() WHERE id = %s AND (email IS NULL OR email = '')",
                     (email, mech_id),
                 )
                 updated += cur.rowcount
@@ -253,23 +264,45 @@ def write_emails(email_map: dict[str, str]) -> int:
     return updated
 
 
+def stamp_attempted(mech_ids: list[str]) -> None:
+    """Mark a batch of mechanic IDs as attempted so we don't re-crawl them soon."""
+    if not mech_ids:
+        return
+    import psycopg2
+    db_url = _sync_db_url(DATABASE_URL)
+    is_local = "localhost" in db_url or "127.0.0.1" in db_url
+    extra = {} if is_local else {"sslmode": "require"}
+    conn = psycopg2.connect(db_url, **extra)
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE mechanics SET last_enriched_at = NOW() WHERE id = ANY(%s::uuid[])",
+                ([str(i) for i in mech_ids],),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     parser = argparse.ArgumentParser(description="Enrich mechanics DB with email addresses via Apify")
     parser.add_argument("--limit", type=int, default=200, help="Max mechanics to process (default 200)")
     parser.add_argument("--batch", type=int, default=20, help="Websites per Apify run (default 20)")
+    parser.add_argument("--state", type=str, default=None, help="Two-letter state code to target (e.g. FL)")
     parser.add_argument("--dry-run", action="store_true", help="Print what would be done, no DB writes")
     args = parser.parse_args()
 
     print(f"=== Roadcall Email Enrichment via Apify ===")
     print(f"  Limit : {args.limit}")
     print(f"  Batch : {args.batch}")
+    print(f"  State : {args.state or 'ALL'}")
     print(f"  Mode  : {'DRY RUN' if args.dry_run else 'LIVE'}")
     print()
 
     print("Fetching mechanics with websites but no email …")
     try:
-        mechanics = get_mechanics_needing_email(args.limit)
+        mechanics = get_mechanics_needing_email(args.limit, state=args.state)
     except Exception as e:
         print(f"ERROR connecting to DB: {e}")
         print("Tip: ensure psycopg2 is installed: uv pip install psycopg2-binary")
@@ -323,6 +356,12 @@ def main():
         written = write_emails(id_email_map)
         total_written += written
         print(f"  Wrote {written} emails to DB")
+
+        # Mark every attempted mechanic so we don't recrawl misses for 30 days.
+        try:
+            stamp_attempted([m["id"] for m in batch])
+        except Exception as e:
+            print(f"  ⚠ Failed to stamp last_enriched_at: {e}")
 
     print(f"\n=== Done ===")
     print(f"  Emails found : {total_found}")

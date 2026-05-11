@@ -2,10 +2,16 @@
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Header, Request
+from fastapi import APIRouter, Depends, HTTPException, Header, Request, Response
 from pydantic import BaseModel
 
 from app.core.config import get_settings
+from app.core.cookies import (
+    COOKIE_AUTH_SESSION,
+    clear_cookie,
+    read_cookie,
+    set_cookie,
+)
 from app.core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -39,8 +45,13 @@ class AuthStatus(BaseModel):
 # ── Login ────────────────────────────────────────────────
 
 @router.post("/login", response_model=LoginResponse)
-async def admin_login(data: LoginRequest):
-    """Authenticate admin and return a session token."""
+async def admin_login(data: LoginRequest, response: Response):
+    """Authenticate admin and return a session token.
+
+    The same opaque token is *also* set as an HttpOnly+Secure cookie
+    (``roadcall_auth_session``) so that we can move away from localStorage
+    without breaking existing dashboards.
+    """
     username = data.username.strip()
     password = data.password.strip()
     if username != settings.ADMIN_USERNAME or password != settings.ADMIN_PASSWORD:
@@ -62,6 +73,9 @@ async def admin_login(data: LoginRequest):
     for t in expired:
         del _active_tokens[t]
 
+    # Set HttpOnly cookie alongside the JSON token (defense-in-depth migration).
+    set_cookie(response, COOKIE_AUTH_SESSION, token)
+
     logger.info(f"Admin login successful: {username}")
 
     return LoginResponse(
@@ -72,44 +86,56 @@ async def admin_login(data: LoginRequest):
 
 
 @router.get("/auth-status", response_model=AuthStatus)
-async def check_auth(x_admin_key: str = Header(default="")):
-    """Check if a token is valid."""
-    session = _active_tokens.get(x_admin_key)
+async def check_auth(request: Request, x_admin_key: str = Header(default="")):
+    """Check if a token is valid (header *or* cookie)."""
+    token = x_admin_key or read_cookie(request, COOKIE_AUTH_SESSION) or ""
+    session = _active_tokens.get(token)
     if not session:
         # Also accept the static ADMIN_API_KEY for backward compat
-        if x_admin_key == settings.ADMIN_API_KEY:
+        if token and token == settings.ADMIN_API_KEY:
             return AuthStatus(authenticated=True, username=settings.ADMIN_USERNAME)
         return AuthStatus(authenticated=False, username="")
 
     if session["expires_at"] < datetime.now(timezone.utc):
-        del _active_tokens[x_admin_key]
+        del _active_tokens[token]
         return AuthStatus(authenticated=False, username="")
 
     return AuthStatus(authenticated=True, username=session["username"])
 
 
 @router.post("/logout")
-async def admin_logout(x_admin_key: str = Header(default="")):
-    """Invalidate a session token."""
-    if x_admin_key in _active_tokens:
-        del _active_tokens[x_admin_key]
+async def admin_logout(
+    request: Request,
+    response: Response,
+    x_admin_key: str = Header(default=""),
+):
+    """Invalidate a session token (header or cookie) and clear the cookie."""
+    token = x_admin_key or read_cookie(request, COOKIE_AUTH_SESSION) or ""
+    if token in _active_tokens:
+        del _active_tokens[token]
+    clear_cookie(response, COOKIE_AUTH_SESSION)
     return {"success": True}
 
 
 # ── Dependency for protected routes ──────────────────────
 
-async def verify_admin(x_admin_key: str = Header(...)):
-    """Verify admin token or API key. Use as a FastAPI dependency."""
+async def verify_admin(
+    request: Request,
+    x_admin_key: str = Header(default=""),
+):
+    """Verify admin token (header *or* HttpOnly cookie) or static API key."""
+    token = x_admin_key or read_cookie(request, COOKIE_AUTH_SESSION) or ""
+
     # Check session tokens first
-    session = _active_tokens.get(x_admin_key)
+    session = _active_tokens.get(token)
     if session:
         if session["expires_at"] >= datetime.now(timezone.utc):
             return session["username"]
         else:
-            del _active_tokens[x_admin_key]
+            del _active_tokens[token]
 
-    # Fall back to static API key
-    if x_admin_key == settings.ADMIN_API_KEY:
+    # Fall back to static API key (used by ops scripts).
+    if token and token == settings.ADMIN_API_KEY:
         return settings.ADMIN_USERNAME
 
     raise HTTPException(status_code=401, detail="Not authenticated")
