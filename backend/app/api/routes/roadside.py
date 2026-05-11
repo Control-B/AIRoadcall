@@ -40,7 +40,11 @@ async def match_mechanic(
     request: RoadsideMatchRequest,
     db: AsyncSession = Depends(get_session),
 ):
-    """Match a caller/driver to the best nearby mechanics using location + problem context."""
+    """Match a caller/driver to the best nearby mechanics using location + problem context.
+
+    Retell wraps the body as {"name", "args", "call"} — the global middleware in
+    app.main unwraps that envelope so this handler always sees the flat args.
+    """
     try:
         return await RoadsideMatchingService.match_mechanic(db, request)
     except Exception as exc:

@@ -1,7 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy import text
+import json as _json
 
 import app.models  # noqa: F401
 from app.core.config import get_settings
@@ -50,6 +51,59 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# ── Retell payload unwrapper ──────────────────────────────────────────────────
+# Retell custom-function tools POST {"name": ..., "args": {...}, "call": {...}}.
+# Our endpoints expect the args at the top level. This middleware detects that
+# envelope on /api/* POSTs and rewrites the body to be just the args (with
+# call.from_number folded in as caller_phone / callerPhone if not already set).
+_RETELL_UNWRAP_PREFIXES = ("/api/",)
+
+@app.middleware("http")
+async def unwrap_retell_envelope(request: Request, call_next):
+    if (
+        request.method == "POST"
+        and any(request.url.path.startswith(p) for p in _RETELL_UNWRAP_PREFIXES)
+        and "application/json" in (request.headers.get("content-type") or "").lower()
+    ):
+        body = await request.body()
+        if body:
+            try:
+                data = _json.loads(body)
+            except Exception:
+                data = None
+            if isinstance(data, dict) and isinstance(data.get("args"), dict) and "name" in data:
+                args = dict(data["args"])
+                call = data.get("call") or {}
+                if isinstance(call, dict):
+                    from_num = call.get("from_number") or call.get("caller_phone")
+                    if from_num:
+                        args.setdefault("caller_phone", from_num)
+                        args.setdefault("callerPhone", from_num)
+                    call_id = call.get("call_id")
+                    if call_id:
+                        args.setdefault("retell_call_id", call_id)
+                    agent_id = call.get("agent_id")
+                    if agent_id:
+                        args.setdefault("agent_id", agent_id)
+                new_body = _json.dumps(args).encode()
+                # Rewrite the request body so downstream handlers see the unwrapped args.
+                # Starlette caches body on `_body`, and Pydantic/FastAPI re-reads via the
+                # receive callable — patch both.
+                request._body = new_body  # type: ignore[attr-defined]
+                async def _receive():
+                    return {"type": "http.request", "body": new_body, "more_body": False}
+                request._receive = _receive  # type: ignore[attr-defined]
+                # Update content-length header to match
+                hdrs = [
+                    (k, v) if k.lower() != b"content-length" else (k, str(len(new_body)).encode())
+                    for k, v in request.scope.get("headers", [])
+                ]
+                if not any(k.lower() == b"content-length" for k, _ in hdrs):
+                    hdrs.append((b"content-length", str(len(new_body)).encode()))
+                request.scope["headers"] = hdrs
+    return await call_next(request)
 
 # Routes
 app.include_router(jobs.router, prefix="/api")
