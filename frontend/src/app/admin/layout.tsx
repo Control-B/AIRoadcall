@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   LogOut,
   Loader2,
+  Mail,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, getUsername, logout } from "@/lib/admin-auth";
@@ -21,6 +22,7 @@ import { isAuthenticated, getUsername, logout } from "@/lib/admin-auth";
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/mechanics", icon: Wrench, label: "Mechanics" },
+  { href: "/admin/leads", icon: Mail, label: "Email List" },
   { href: "/admin/shops", icon: Store, label: "Shops" },
   { href: "/admin/outreach", icon: Megaphone, label: "Outreach" },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },

@@ -8,16 +8,23 @@ import json
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status, Header, Query
 from pydantic import BaseModel, EmailStr, field_validator
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.core.config import get_settings
 from app.models.lead_capture import LeadCapture
 
 router = APIRouter(prefix="/leads", tags=["leads"])
+settings = get_settings()
+
+
+def _require_admin(x_admin_key: str = Header(...)):
+    if x_admin_key != settings.ADMIN_API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
 
 
 class LeadIn(BaseModel):
@@ -142,3 +149,81 @@ def _send_welcome_email(lead: LeadCapture) -> None:
         urllib.request.urlopen(req, timeout=8)
     except Exception:
         pass  # Non-fatal
+
+
+# ── Admin endpoints ────────────────────────────────────────────────────────────
+
+class LeadListItem(BaseModel):
+    id: str
+    email: str
+    name: Optional[str]
+    company: Optional[str]
+    vertical: Optional[str]
+    source: Optional[str]
+    unsubscribed: bool
+    welcome_sent: bool
+    created_at: str
+
+    class Config:
+        from_attributes = True
+
+
+class LeadListResponse(BaseModel):
+    total: int
+    page: int
+    page_size: int
+    leads: list[LeadListItem]
+
+
+@router.get("", response_model=LeadListResponse, dependencies=[Depends(_require_admin)])
+async def list_leads(
+    db: AsyncSession = Depends(get_db),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=500),
+    vertical: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+):
+    """Admin: list all captured leads."""
+    q = select(LeadCapture)
+    if vertical:
+        q = q.where(LeadCapture.vertical == vertical)
+    if search:
+        q = q.where(LeadCapture.email.ilike(f"%{search}%"))
+
+    count_q = select(func.count()).select_from(q.subquery())
+    total_result = await db.execute(count_q)
+    total = total_result.scalar_one()
+
+    q = q.order_by(LeadCapture.created_at.desc()).offset((page - 1) * page_size).limit(page_size)
+    result = await db.execute(q)
+    rows = result.scalars().all()
+
+    return LeadListResponse(
+        total=total,
+        page=page,
+        page_size=page_size,
+        leads=[
+            LeadListItem(
+                id=str(r.id),
+                email=r.email,
+                name=r.name,
+                company=r.company,
+                vertical=r.vertical,
+                source=r.source,
+                unsubscribed=r.unsubscribed,
+                welcome_sent=r.welcome_sent,
+                created_at=r.created_at.isoformat(),
+            )
+            for r in rows
+        ],
+    )
+
+
+@router.delete("/{lead_id}", dependencies=[Depends(_require_admin)], status_code=204)
+async def delete_lead(lead_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(LeadCapture).where(LeadCapture.id == lead_id))
+    lead = result.scalar_one_or_none()
+    if not lead:
+        raise HTTPException(status_code=404, detail="Not found")
+    await db.delete(lead)
+    await db.commit()
