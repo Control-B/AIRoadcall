@@ -157,6 +157,46 @@ class MechanicRecommendationResponse(BaseModel):
     recommendations: list[MechanicRecommendationView]
 
 
+class MarketplaceProviderView(BaseModel):
+    id: str
+    company_name: str
+    city: Optional[str] = None
+    state: Optional[str] = None
+    website: Optional[str] = None
+    rating: Optional[float] = None
+    review_count: Optional[int] = None
+    distance_miles: Optional[float] = None
+    service_types: list[str] = []
+    vehicle_types_supported: list[str] = []
+    accepts_mobile_roadside: bool
+    emergency_service: bool
+    service_radius_miles: int
+    estimated_response_minutes: Optional[int] = None
+    availability_status: str
+    marketplace_score: float
+    dispatch_fit_score: float
+    trust_score: float
+    roadside_relevance_score: float
+    response_confidence_score: float
+    quality_score: float
+    trust_level: str
+    badges: list[str] = []
+    reasons: list[str] = []
+    score_breakdown: dict[str, float] = {}
+
+
+class MarketplaceSearchResponse(BaseModel):
+    summary: str
+    search_mode: str
+    total_candidates: int
+    returned: int
+    location_label: str
+    issue_type: str
+    vehicle_type: Optional[str] = None
+    radius_miles: Optional[int] = None
+    providers: list[MarketplaceProviderView]
+
+
 class ShopLookupRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=255)
     lat: Optional[float] = Field(default=None, ge=-90, le=90)

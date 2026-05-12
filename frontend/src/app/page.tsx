@@ -231,12 +231,20 @@ export default function HomePage() {
 
           {/* Phone CTA */}
           <FadeIn delay={0.4}>
-            <a href={telHref(HELP_PHONE)} className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
-              <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
-                <Phone className="h-3.5 w-3.5 text-white" />
-              </div>
-              <span>Call <strong className="text-white">{HELP_PHONE}</strong> — talk to Sandy live</span>
-            </a>
+            <div className="flex flex-wrap items-center gap-3">
+              <a href={telHref(HELP_PHONE)} className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
+                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                  <Phone className="h-3.5 w-3.5 text-white" />
+                </div>
+                <span>Call <strong className="text-white">{HELP_PHONE}</strong> — talk to Sandy live</span>
+              </a>
+              <Link href="/marketplace" className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/15">
+                Explore marketplace <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+              <Link href="/shops/operations" className="inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-orange-400/10 px-4 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-400/15">
+                Provider operations <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
           </FadeIn>
         </div>
       </section>

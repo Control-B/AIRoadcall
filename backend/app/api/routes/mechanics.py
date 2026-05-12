@@ -15,6 +15,7 @@ from app.schemas.mechanic import (
     MechanicLocationUpdate,
     MechanicAdminListResponse,
     MechanicAdminStats,
+    MarketplaceSearchResponse,
 )
 from app.services.mechanic_data_service import MechanicDataService
 
@@ -66,6 +67,50 @@ async def list_mechanics_admin(
         emergency_only=emergency_only,
         limit=limit,
         offset=offset,
+    )
+
+
+@router.get(
+    "/marketplace",
+    response_model=MarketplaceSearchResponse,
+)
+async def search_marketplace_providers(
+    q: str | None = Query(default=None, description="Business/service keyword search"),
+    lat: float | None = Query(default=None, ge=-90, le=90),
+    lng: float | None = Query(default=None, ge=-180, le=180),
+    city: str | None = Query(default=None),
+    state: str | None = Query(default=None, min_length=2, max_length=2),
+    issue_type: str = Query(default="", description="flat_tire, tow_needed, dead_battery, engine_trouble, etc."),
+    vehicle_type: str | None = Query(default=None, description="car, truck, heavy_duty, rv, trailer, fleet"),
+    radius_miles: int | None = Query(default=75, ge=5, le=250),
+    roadside_only: bool = Query(default=True),
+    emergency_only: bool = Query(default=False),
+    limit: int = Query(default=12, ge=1, le=25),
+    db: AsyncSession = Depends(get_session),
+):
+    """Public operational marketplace search.
+
+    Returns ranked, non-sensitive provider cards with deterministic dispatch fit,
+    trust, roadside relevance, response confidence, and score breakdowns.
+    """
+    if lat is None and lng is None and not (city and state):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Provide either lat/lng or city/state",
+        )
+    return await MechanicDataService.marketplace_search(
+        db,
+        q=q,
+        lat=lat,
+        lng=lng,
+        city=city,
+        state=state,
+        issue_type=issue_type,
+        vehicle_type=vehicle_type,
+        radius_miles=radius_miles,
+        roadside_only=roadside_only,
+        emergency_only=emergency_only,
+        limit=limit,
     )
 
 

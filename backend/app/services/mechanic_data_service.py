@@ -10,6 +10,8 @@ from app.schemas.mechanic import (
     MechanicRecommendationRequest,
     MechanicRecommendationResponse,
     MechanicRecommendationView,
+    MarketplaceProviderView,
+    MarketplaceSearchResponse,
     MechanicSearchResult,
     MechanicView,
     MechanicAdminListItem,
@@ -520,6 +522,166 @@ class MechanicDataService:
             reasons.append("best nearby match")
 
         return score, reasons[0]
+
+    @staticmethod
+    async def marketplace_search(
+        db: AsyncSession,
+        *,
+        q: str | None = None,
+        lat: float | None = None,
+        lng: float | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        issue_type: str = "",
+        vehicle_type: str | None = None,
+        radius_miles: int | None = None,
+        roadside_only: bool = True,
+        emergency_only: bool = False,
+        limit: int = 12,
+    ) -> MarketplaceSearchResponse:
+        """Public ranked provider discovery for the Roadcall marketplace.
+
+        Deterministic only: SQL filters + weighted operational scoring. The
+        response intentionally excludes phone/email to avoid turning the public
+        marketplace into a scrapeable contact database; dispatch/intake flows can
+        still connect a customer to the provider through server-side workflow.
+        """
+        from app.services.provider_intelligence_service import ProviderIntelligenceService
+
+        normalized_state = normalize_state(state)
+        normalized_city = normalize_city(city)
+        service_hint, vehicle_hint = MechanicDataService._query_hints(q or issue_type or "")
+        effective_issue = issue_type or service_hint
+        effective_vehicle = vehicle_type or vehicle_hint
+
+        query = select(Mechanic).where(Mechanic.active == True)  # noqa: E712
+        if normalized_state:
+            query = query.where(Mechanic.state == normalized_state)
+        if normalized_city and not (lat is not None and lng is not None):
+            city_term = f"%{normalized_city}%"
+            query = query.where(
+                or_(
+                    Mechanic.city.ilike(city_term),
+                    Mechanic.address.ilike(city_term),
+                )
+            )
+        if roadside_only:
+            query = query.where(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
+        if emergency_only:
+            query = query.where(Mechanic.emergency_service == True)  # noqa: E712
+        if q:
+            term = f"%{q.strip()}%"
+            query = query.where(
+                or_(
+                    Mechanic.company_name.ilike(term),
+                    Mechanic.address.ilike(term),
+                    Mechanic.website.ilike(term),
+                )
+            )
+        if lat is not None and lng is not None:
+            bbox_radius_km = float(radius_miles or 75) * 1.60934
+            min_lat, max_lat, min_lng, max_lng = MechanicDataService._bounding_box(lat, lng, bbox_radius_km)
+            query = query.where(
+                Mechanic.base_lat >= min_lat,
+                Mechanic.base_lat <= max_lat,
+                Mechanic.base_lng >= min_lng,
+                Mechanic.base_lng <= max_lng,
+            )
+
+        query = query.order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc()).limit(750)
+        result = await db.execute(query)
+        mechanics = list(result.scalars().all())
+
+        if not mechanics and normalized_city and normalized_state:
+            fallback = await db.execute(
+                select(Mechanic)
+                .where(Mechanic.active == True, Mechanic.state == normalized_state)  # noqa: E712
+                .order_by(Mechanic.company_name.asc())
+                .limit(750)
+            )
+            mechanics = list(fallback.scalars().all())
+
+        scored: list[tuple[Mechanic, object, float | None]] = []
+        city_matches_only: list[Mechanic] = []
+        if normalized_city:
+            city_matches_only = [m for m in mechanics if city_matches(m.city, normalized_city)]
+
+        centroid_lat = None
+        centroid_lng = None
+        if city_matches_only:
+            centroid_lat = sum(m.base_lat for m in city_matches_only) / len(city_matches_only)
+            centroid_lng = sum(m.base_lng for m in city_matches_only) / len(city_matches_only)
+
+        for mechanic in mechanics:
+            distance_miles = None
+            if lat is not None and lng is not None:
+                distance_miles = round(haversine_distance_km(lat, lng, mechanic.base_lat, mechanic.base_lng) * 0.621371, 1)
+            elif centroid_lat is not None and centroid_lng is not None:
+                distance_miles = round(haversine_distance_km(centroid_lat, centroid_lng, mechanic.base_lat, mechanic.base_lng) * 0.621371, 1)
+
+            if radius_miles is not None and distance_miles is not None and distance_miles > radius_miles:
+                continue
+
+            score = ProviderIntelligenceService.score_provider(
+                mechanic,
+                issue_type=effective_issue,
+                vehicle_type=effective_vehicle,
+                distance_miles=distance_miles,
+                require_mobile_roadside=roadside_only,
+            )
+            scored.append((mechanic, score, distance_miles))
+
+        scored.sort(key=lambda item: item[1].score, reverse=True)
+        providers: list[MarketplaceProviderView] = []
+        for mechanic, score, distance_miles in scored[:limit]:
+            providers.append(
+                MarketplaceProviderView(
+                    id=str(mechanic.id),
+                    company_name=mechanic.company_name,
+                    city=mechanic.city,
+                    state=mechanic.state,
+                    website=mechanic.website,
+                    rating=float(mechanic.rating) if mechanic.rating else None,
+                    review_count=mechanic.review_count,
+                    distance_miles=distance_miles,
+                    service_types=mechanic.service_types or [],
+                    vehicle_types_supported=mechanic.vehicle_types_supported or [],
+                    accepts_mobile_roadside=mechanic.accepts_mobile_roadside,
+                    emergency_service=mechanic.emergency_service,
+                    service_radius_miles=mechanic.service_radius_miles,
+                    estimated_response_minutes=score.estimated_response_minutes,
+                    availability_status=score.availability_status,
+                    marketplace_score=score.score,
+                    dispatch_fit_score=score.dispatch_fit_score,
+                    trust_score=score.trust_score,
+                    roadside_relevance_score=score.roadside_relevance_score,
+                    response_confidence_score=score.response_confidence_score,
+                    quality_score=score.quality_score,
+                    trust_level=score.trust_level,
+                    badges=score.badges,
+                    reasons=score.reasons,
+                    score_breakdown=score.breakdown,
+                )
+            )
+
+        location_label = ", ".join(part for part in [city, normalized_state] if part) or "your area"
+        search_mode = "gps_radius" if lat is not None and lng is not None else "city_state"
+        summary = (
+            f"Ranked {len(providers)} providers near {location_label} using deterministic dispatch intelligence."
+            if providers
+            else f"No marketplace providers found near {location_label}; try a wider radius or nearby city."
+        )
+        return MarketplaceSearchResponse(
+            summary=summary,
+            search_mode=search_mode,
+            total_candidates=len(scored),
+            returned=len(providers),
+            location_label=location_label,
+            issue_type=effective_issue or "roadside_assistance",
+            vehicle_type=effective_vehicle,
+            radius_miles=radius_miles,
+            providers=providers,
+        )
 
     @staticmethod
     async def upsert_mechanic(

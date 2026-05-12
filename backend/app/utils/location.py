@@ -84,18 +84,27 @@ def parse_city_state_from_address(address: str | None) -> tuple[str | None, str 
     if len(parts) < 2:
         return None, None
 
-    city = normalize_city(parts[-3] if len(parts) >= 3 else parts[0])
-    state_part = parts[-2] if len(parts) >= 2 else ""
+    # Common US formats:
+    #   "123 Main St, Orlando, FL 32803"
+    #   "123 Main St, Orlando, FL, USA"
+    #   "123 Main St, Orlando, Florida"
+    # Find the state part from the right, then use the comma part immediately
+    # before it as city. The previous implementation picked parts[-3], which
+    # incorrectly saved street addresses as city for "street, city, ST zip".
+    city = None
+    state = None
+    for index in range(len(parts) - 1, -1, -1):
+        part = parts[index]
+        state_match = re.search(r"\b([A-Z]{2})\b", part)
+        maybe_state = normalize_state(state_match.group(1) if state_match else part)
+        if maybe_state:
+            state = maybe_state
+            if index > 0:
+                city = normalize_city(parts[index - 1])
+            break
 
-    state_match = re.search(r"\b([A-Z]{2})\b", state_part)
-    state = normalize_state(state_match.group(1) if state_match else state_part)
-
-    if not state and parts:
-        for part in reversed(parts):
-            maybe_state = normalize_state(part)
-            if maybe_state:
-                state = maybe_state
-                break
+    if not city and len(parts) >= 2:
+        city = normalize_city(parts[-2])
 
     return city, state
 
