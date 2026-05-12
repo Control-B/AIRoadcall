@@ -1,12 +1,28 @@
-# AI Roadside Support — Docker Compose
-# ─────────────────────────────────────
-# 3 services: postgres, backend (FastAPI), frontend (Next.js)
+# AI Roadside Support — Docker Compose (microservice layout)
+# ─────────────────────────────────────────────────────────────────────────
+# Each service runs in its own container with health checks and restart
+# policies so a UI crash never takes the API down (and vice versa).
 #
-# Usage:
-#   cp .env.example .env   # fill in your keys
-#   docker compose up -d   # start all services
-#   docker compose logs -f backend   # tail backend logs
-#   docker compose up -d --build backend   # rebuild just the backend
+#   docker compose up -d                         # full stack
+#   docker compose up -d backend                 # API + DB only
+#   docker compose up -d frontend                # UI only (needs API)
+#   docker compose --profile worker up -d        # add background workers
+#   docker compose restart backend               # safe, isolated restart
+#   docker compose logs -f backend               # tail one service
+#   docker compose ps                            # health overview
+#
+# Networks are split so workers can talk to the DB without going through
+# the public API gateway, and the frontend can be redeployed independently.
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-airoadcall}:${POSTGRES_PASSWORD:-airoadcall}@postgres:5432/${POSTGRES_DB:-airoadcall}
+  FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+  ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+  ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+  ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+  APIFY_API_TOKEN: ${APIFY_API_TOKEN:-}
+  RETELL_API_KEY: ${RETELL_API_KEY:-}
+  RETELL_BACKEND_WEBHOOK_TOKEN: ${RETELL_BACKEND_WEBHOOK_TOKEN:-}
 
 services:
   # ── PostgreSQL ──────────────────────────────────────────
@@ -21,6 +37,8 @@ services:
       - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-airoadcall}"]
       interval: 5s
@@ -38,25 +56,29 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-airoadcall}:${POSTGRES_PASSWORD:-airoadcall}@postgres:5432/${POSTGRES_DB:-airoadcall}
-      FRONTEND_URL: http://localhost:3000
+      <<: *backend-env
     depends_on:
       postgres:
         condition: service_healthy
+    networks:
+      - data
+      - edge
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 15s
       timeout: 5s
-      start_period: 10s
-      retries: 3
+      start_period: 20s
+      retries: 5
 
   # ── Next.js Frontend ────────────────────────────────────
+  # Frontend talks to the backend over the `edge` network so it can be
+  # restarted/redeployed without ever touching the data tier.
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:8001/api}
         - NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-}
         - NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=${NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN:-}
     restart: unless-stopped
@@ -65,11 +87,44 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-airoadcall}:${POSTGRES_PASSWORD:-airoadcall}@postgres:5432/${POSTGRES_DB:-airoadcall}
-      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8001/api}
     depends_on:
       backend:
         condition: service_healthy
+    networks:
+      - edge
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      start_period: 30s
+      retries: 3
+
+  # ── Apify enrichment worker (optional profile) ──────────
+  # Long-running enrichment jobs run in their own container so they don't
+  # consume API request workers. Enable with: docker compose --profile worker up
+  enrichment-worker:
+    profiles: ["worker"]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      <<: *backend-env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - data
+    command: ["python", "scripts/enrich_emails.py", "--limit", "500", "--batch", "20"]
 
 volumes:
   pgdata:
+
+networks:
+  data:
+    driver: bridge
+  edge:
+    driver: bridge

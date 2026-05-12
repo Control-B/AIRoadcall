@@ -129,15 +129,25 @@ export async function adminFetch<T>(
   }
 
   if (!res.ok) {
-    let errorMessage = "Request failed";
+    let errorMessage = `Request failed (HTTP ${res.status})`;
     try {
       const body = await res.json();
-      if (typeof body.detail === "string") errorMessage = body.detail;
-      else if (body.message) errorMessage = body.message;
+      if (typeof body.detail === "string") errorMessage = `${body.detail} (HTTP ${res.status})`;
+      else if (body.message) errorMessage = `${body.message} (HTTP ${res.status})`;
+      else if (Array.isArray(body.detail)) {
+        errorMessage = `${body.detail.map((d: any) => d.msg || JSON.stringify(d)).join("; ")} (HTTP ${res.status})`;
+      }
     } catch {
-      // keep default
+      try {
+        const text = await res.text();
+        if (text) errorMessage = `${text.slice(0, 200)} (HTTP ${res.status})`;
+      } catch {
+        // keep default
+      }
     }
-    throw new Error(errorMessage);
+    const err = new Error(errorMessage) as Error & { status?: number };
+    err.status = res.status;
+    throw err;
   }
 
   return (await res.json()) as T;

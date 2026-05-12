@@ -30,6 +30,7 @@ from app.api.routes import (
     leads,
     major_vendors,
     marketplace,
+    admin_enrichment,
 )
 
 settings = get_settings()
@@ -134,6 +135,7 @@ app.include_router(shops_vertical.router, prefix="/api")
 app.include_router(leads.router, prefix="/api")
 app.include_router(major_vendors.router, prefix="/api")
 app.include_router(marketplace.router, prefix="/api")
+app.include_router(admin_enrichment.router, prefix="/api")
 
 
 @app.on_event("startup")
