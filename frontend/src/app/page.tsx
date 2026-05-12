@@ -179,18 +179,20 @@ export default function HomePage() {
     <PageLayout>
 
       {/* ═══════════════════════════════════════════════════════════════
-          HERO — Full-viewport cinematic truck section
+          HERO — Full-viewport cinematic truck section.
+          Video uses object-contain so the entire frame fits — never cut,
+          never stretched. Cards overlap the bottom of the hero.
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="relative h-[52vh] md:h-[58vh] lg:h-[62vh] flex flex-col justify-center overflow-hidden">
+      <section className="relative min-h-[100vh] flex flex-col overflow-hidden bg-roadcall-void">
 
-        {/* Video background */}
+        {/* Video background — object-contain keeps the whole frame visible */}
         <video
           ref={videoRef}
           autoPlay
           muted
           loop
           playsInline
-          className="absolute inset-0 w-full h-full object-cover object-top"
+          className="absolute inset-0 w-full h-full object-contain"
           src="/videos/RoadcallPremium.mp4"
         />
 
@@ -212,23 +214,22 @@ export default function HomePage() {
           )}
         </button>
 
-        {/* Layered overlays: protect the copy while preserving the video text */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#02050c]/55 via-[#02050c]/20 to-[#02050c]/80 z-10" />
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,5,12,0.88)_0%,rgba(2,5,12,0.58)_30%,rgba(2,5,12,0.18)_58%,rgba(2,5,12,0.28)_100%)] z-10" />
-        {/* Orange headlight bloom */}
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(234,88,12,0.18),transparent_70%)] z-10" />
+        {/* Light overlays — just enough so the cards remain readable without dimming the video */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-[#02050c] via-[#02050c]/65 to-transparent z-10" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-gradient-to-b from-[#02050c]/70 via-[#02050c]/20 to-transparent z-10" />
+        {/* Orange headlight bloom behind the cards */}
+        <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(234,88,12,0.18),transparent_70%)] z-10" />
 
-        {/* Hero content — rotating marketing badge in upper-left */}
+        {/* Rotating marketing badge — upper-left */}
         <div className="absolute top-28 left-4 sm:left-8 md:left-12 z-20">
           <RotatingMarketingBadge />
         </div>
-      </section>
 
-      {/* ── Choose your Roadcall path ──────────────────────── */}
-      <section className="relative mt-8 md:mt-12 pb-12 z-20">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <FadeIn delay={0.1}>
-            <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+        {/* ── Choose your Roadcall path — overlaid at the bottom of the hero */}
+        <div className="absolute inset-x-0 bottom-6 md:bottom-10 z-20">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+            <FadeIn delay={0.1}>
+              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
               <Link href="/shops" className="group relative h-full rounded-2xl border border-orange-500/25 bg-[#080b12]/60 backdrop-blur-xl p-4 text-left shadow-xl shadow-black/30 hover:border-orange-500/55 transition-all duration-200 overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-br from-roadcall-orange/12 via-transparent to-transparent opacity-55" />
                 <div className="relative flex h-full flex-col justify-between gap-4">
@@ -293,6 +294,7 @@ export default function HomePage() {
               </Link>
             </div>
           </FadeIn>
+          </div>
         </div>
       </section>
 
