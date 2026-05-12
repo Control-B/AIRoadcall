@@ -10,11 +10,13 @@ from app.models.mechanic import Mechanic
 from app.schemas.roadside_match import (
     RoadsideCallerContext,
     RoadsideLocationInput,
+    RoadsideMajorVendorMatch,
     RoadsideMatchRequest,
     RoadsideMatchResponse,
     RoadsideMechanicMatch,
 )
 from app.services.geocoding_service import GeocodingService
+from app.services.major_vendor_service import MajorVendorService
 from app.utils.geo import haversine_distance_km
 from app.utils.location import STATE_NAME_TO_CODE, normalize_city, normalize_state
 from app.core.logging import get_logger
@@ -394,6 +396,8 @@ class RoadsideMatchingService:
                 status="needs_more_info",
                 searchLevel="not_started",
                 matches=[],
+                majorVendor=None,
+                dispatchConfidence=None,
                 needsMoreInfo=True,
                 missingFields=missing_fields,
                 callerContext=context,
@@ -402,7 +406,7 @@ class RoadsideMatchingService:
                 message=RoadsideMatchingService.next_question(missing_fields),
             )
 
-        option_limit = 5 if city_level_request else request.limit
+        option_limit = min(request.limit, 3)
         search_result = await RoadsideMatchingService.searchMechanics(db, context, limit=max(option_limit, 3))
         scored = rankMechanics([
             (mechanic, scoreMechanicMatch(mechanic, context))
@@ -413,8 +417,15 @@ class RoadsideMatchingService:
         formatted = formatDispatchRecommendation(top)
         fallback_created = search_result.fallback_created or not bool(formatted)
         selected = formatted[0].businessName if formatted else None
+
+        # Major vendor layer — always try to surface one big-chain option.
+        major_vendor = await RoadsideMatchingService.findMajorVendor(db, context)
+
+        # Dispatch confidence — normalized top score + presence of options.
+        dispatch_confidence = RoadsideMatchingService._dispatch_confidence(top, major_vendor)
+
         logger.info(
-            "roadside_match_result city=%s state=%s problem=%s exact=%s radius=%s selected=%s search_level=%s fallback_created=%s",
+            "roadside_match_result city=%s state=%s problem=%s exact=%s radius=%s selected=%s search_level=%s fallback_created=%s major_vendor=%s confidence=%.2f",
             context.city,
             context.state,
             context.problemType,
@@ -423,20 +434,25 @@ class RoadsideMatchingService:
             selected,
             search_result.search_level,
             fallback_created,
+            major_vendor.brandName if major_vendor else None,
+            dispatch_confidence or 0.0,
         )
         return RoadsideMatchResponse(
-            status="matched" if formatted else "manual_dispatch_required",
+            status="matched" if (formatted or major_vendor) else "manual_dispatch_required",
             searchLevel=search_result.search_level,
             matches=formatted,
+            majorVendor=major_vendor,
+            dispatchConfidence=dispatch_confidence,
             needsMoreInfo=False,
             missingFields=[],
             callerContext=context,
             callerLocation=context,
-            fallbackEscalation=fallback_created,
-            fallbackCreated=fallback_created,
+            fallbackEscalation=fallback_created and not major_vendor,
+            fallbackCreated=fallback_created and not major_vendor,
             message=RoadsideMatchingService.match_message(
                 context=context,
                 matches=formatted,
+                majorVendor=major_vendor,
                 search_level=search_result.search_level,
                 city_level_request=city_level_request,
             ),
@@ -526,23 +542,46 @@ class RoadsideMatchingService:
         *,
         context: RoadsideCallerContext,
         matches: list[RoadsideMechanicMatch],
+        majorVendor: RoadsideMajorVendorMatch | None = None,
         search_level: str | None,
         city_level_request: bool,
     ) -> str:
+        # Build the major-vendor sentence used in every variant.
+        major_phrase = ""
+        if majorVendor:
+            corridor = ""
+            if majorVendor.interstate and majorVendor.exitNumber:
+                corridor = f" off {majorVendor.interstate} exit {majorVendor.exitNumber}"
+            elif majorVendor.interstate:
+                corridor = f" off {majorVendor.interstate}"
+            elif majorVendor.city:
+                corridor = f" in {majorVendor.city}"
+            major_phrase = f" There is also a major option, {majorVendor.brandName}{corridor}."
+
+        if not matches and majorVendor:
+            return (
+                f"I don't see a local mobile mechanic open right now, but"
+                f"{major_phrase} Would you like me to dispatch them?"
+            ).replace("but There", "but there")
+
         if not matches:
             return "No mechanic match found within search radius. Manual dispatch case created."
+
+        local_count = len(matches[:3])
 
         if city_level_request:
             names = "; ".join(
                 f"{idx + 1}) {match.businessName}"
                 + (f" in {match.city}" if match.city else "")
-                for idx, match in enumerate(matches[:5])
+                for idx, match in enumerate(matches[:3])
             )
-            return (
-                f"I found a few matching mechanics near {context.city}, {context.state}: {names}. "
-                "I can text you a secure GPS link to find the closest one, you can tell me your exact road, exit, or landmark, "
-                "or I can start with one of these matches. Which would you like?"
+            base = (
+                f"I found {local_count} local mechanic{'s' if local_count != 1 else ''} near "
+                f"{context.city}, {context.state}: {names}.{major_phrase} "
+                "Would you prefer the closest mobile mechanic, the larger truck service center, "
+                "or should I text you a secure GPS link to confirm your exact location?"
             )
+            return base
 
         if search_level and search_level.startswith("radius_"):
             names = "; ".join(
@@ -551,11 +590,90 @@ class RoadsideMatchingService:
                 for idx, match in enumerate(matches[:3])
             )
             return (
-                f"I found nearby roadside matches: {names}. "
-                "I can text the GPS link and continue the dispatch request, or you can choose one of these."
+                f"I found {local_count} nearby roadside match{'es' if local_count != 1 else ''}: "
+                f"{names}.{major_phrase} "
+                "Which would you like — the closest mobile mechanic or the larger truck service center?"
             )
 
-        return "Got it. I found nearby mechanics."
+        return f"Got it. I found nearby mechanics.{major_phrase}"
+
+    @staticmethod
+    def _dispatch_confidence(
+        scored: list[tuple[object, ScoreResult]],
+        major_vendor: RoadsideMajorVendorMatch | None,
+    ) -> float | None:
+        """Normalize top score to 0–1 with a small bonus when a major vendor exists."""
+        if not scored and not major_vendor:
+            return None
+        top_score = scored[0][1].score if scored else 0.0
+        # Empirically the matching pipeline tops out around ~120 for a perfect
+        # local mechanic; treat 100 as the practical ceiling so we don't
+        # under-report confidence on great matches.
+        normalized = max(0.0, min(top_score, 100.0)) / 100.0
+        if major_vendor:
+            normalized = min(1.0, normalized + 0.10)
+        return round(normalized, 2)
+
+    @staticmethod
+    async def findMajorVendor(
+        db: AsyncSession,
+        context: RoadsideCallerContext,
+    ) -> RoadsideMajorVendorMatch | None:
+        """Look up one major chain vendor near the caller, if any."""
+        if not context.state:
+            return None
+        # Try to enrich coords if we only have city/state — geocoding-first.
+        if context.latitude is None or context.longitude is None:
+            try:
+                await RoadsideMatchingService.getCoordinatesForCityState(db, context)
+            except Exception:  # noqa: BLE001 — geocoding is best-effort
+                pass
+        try:
+            found = await MajorVendorService.find_nearest(
+                db,
+                state=context.state,
+                latitude=context.latitude,
+                longitude=context.longitude,
+                vehicle=context.vehicleType,
+                problem=context.problemType,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("major_vendor_lookup_failed err=%s", exc)
+            return None
+        if not found:
+            return None
+        row, distance_miles = found
+        corridor = ""
+        if row.interstate and row.exit_number:
+            corridor = f"{row.interstate} exit {row.exit_number}"
+        elif row.interstate:
+            corridor = row.interstate
+        if distance_miles is not None:
+            reason = f"{row.brand_name} {corridor} — about {distance_miles:.1f} miles away"
+        elif corridor:
+            reason = f"{row.brand_name} {corridor}"
+        else:
+            reason = f"{row.brand_name} in {row.city or row.state}"
+        return RoadsideMajorVendorMatch(
+            vendorId=str(row.id),
+            brandName=row.brand_name,
+            locationName=row.location_name,
+            phone=row.phone,
+            address=row.address,
+            city=row.city,
+            state=row.state,
+            interstate=row.interstate,
+            exitNumber=row.exit_number,
+            services=list(row.services or []),
+            heavyDuty=bool(row.heavy_duty),
+            rvService=bool(row.rv_service),
+            towing=bool(row.towing),
+            tireService=bool(row.tire_service),
+            is247=bool(row.is_24_7),
+            distanceMiles=round(distance_miles, 1) if distance_miles is not None else None,
+            priorityScore=row.priority_score,
+            reason=reason.strip(),
+        )
 
     @staticmethod
     async def findNearbyMechanics(db: AsyncSession, context: RoadsideCallerContext, limit: int = 10) -> list[Mechanic]:

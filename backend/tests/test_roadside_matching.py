@@ -176,15 +176,15 @@ def test_city_level_match_message_lists_options_and_asks_choice():
     message = RoadsideMatchingService.match_message(
         context=context,
         matches=formatted,
+        majorVendor=None,
         search_level="exact_city",
         city_level_request=True,
     )
 
-    assert "I found a few matching mechanics near Lakeland, FL" in message
+    assert "local mechanic" in message
+    assert "Lakeland, FL" in message
     assert "1)" in message and "2)" in message and "3)" in message
     assert "text you a secure GPS link" in message
-    assert "exact road, exit, or landmark" in message
-    assert "start with one of these matches" in message
 
 
 def test_precise_location_match_message_keeps_distance_options():
@@ -208,13 +208,14 @@ def test_precise_location_match_message_keeps_distance_options():
     message = RoadsideMatchingService.match_message(
         context=context,
         matches=formatted,
+        majorVendor=None,
         search_level="radius_25_miles",
         city_level_request=False,
     )
 
-    assert "I found nearby roadside matches" in message
+    assert "nearby roadside match" in message
     assert "miles away" in message
-    assert "text the GPS link" in message
+    assert "closest mobile mechanic" in message
 
 
 def test_emergency_mobile_mechanic_ranks_higher():
@@ -470,4 +471,122 @@ async def test_api_error_returns_manual_dispatch_not_hangup(monkeypatch):
     assert response.status == "manual_dispatch_required"
     assert response.fallbackCreated is True
     assert response.fallbackEscalation is True
-    assert "still create a dispatch request" in response.message
+
+
+# ── Major vendor layer ──────────────────────────────────────────────
+
+
+def _make_major_vendor(**overrides):
+    from app.schemas.roadside_match import RoadsideMajorVendorMatch
+
+    defaults = dict(
+        vendorId="v1",
+        brandName="Love's Truck Care",
+        locationName="Love's #346 — Wildwood, FL",
+        phone="+13527484099",
+        address="699 E SR 44",
+        city="Wildwood",
+        state="FL",
+        interstate="I-75",
+        exitNumber="329",
+        services=["tire", "diesel"],
+        heavyDuty=True,
+        rvService=True,
+        towing=False,
+        tireService=True,
+        is247=True,
+        distanceMiles=8.4,
+        priorityScore=85,
+        reason="Love's Truck Care I-75 exit 329 — about 8.4 miles away",
+    )
+    defaults.update(overrides)
+    return RoadsideMajorVendorMatch(**defaults)
+
+
+def test_match_message_mentions_major_vendor_when_present():
+    context = RoadsideCallerContext(
+        city="Lakeland",
+        state="FL",
+        problemType="flat_tire",
+        serviceNeeded="tire repair",
+    )
+    mechanics = [
+        make_test_mechanic(id="a", company_name="Alpha Tire", city="Lakeland", state="FL"),
+        make_test_mechanic(id="b", company_name="Bravo Roadside", city="Lakeland", state="FL"),
+    ]
+    formatted = formatDispatchRecommendation(
+        rankMechanics([(m, scoreMechanicMatch(m, context)) for m in mechanics])
+    )
+    message = RoadsideMatchingService.match_message(
+        context=context,
+        matches=formatted,
+        majorVendor=_make_major_vendor(),
+        search_level="exact_city",
+        city_level_request=True,
+    )
+
+    assert "Love's Truck Care" in message
+    assert "I-75" in message and "exit 329" in message
+    assert "larger truck service center" in message
+
+
+def test_match_message_caps_local_options_at_three():
+    context = RoadsideCallerContext(
+        city="Lakeland",
+        state="FL",
+        problemType="flat_tire",
+        serviceNeeded="tire repair",
+    )
+    mechanics = [
+        make_test_mechanic(id=f"m{i}", company_name=f"Shop {i}", city="Lakeland", state="FL")
+        for i in range(5)
+    ]
+    formatted = formatDispatchRecommendation(
+        rankMechanics([(m, scoreMechanicMatch(m, context)) for m in mechanics])
+    )
+    message = RoadsideMatchingService.match_message(
+        context=context,
+        matches=formatted,
+        majorVendor=None,
+        search_level="exact_city",
+        city_level_request=True,
+    )
+
+    # numbered options "1)" "2)" "3)" should appear, never "4)".
+    assert "1)" in message and "2)" in message and "3)" in message
+    assert "4)" not in message
+
+
+def test_dispatch_confidence_in_unit_range():
+    from app.services.roadside_matching_service import ScoreResult
+
+    confidence = RoadsideMatchingService._dispatch_confidence(
+        scored=[(object(), ScoreResult(score=85.0, distance_miles=2.0, reasons=[]))],
+        major_vendor=_make_major_vendor(),
+    )
+    assert confidence is not None
+    assert 0.0 <= confidence <= 1.0
+    # Major vendor present should bump confidence above the raw 0.85 normalized.
+    assert confidence > 0.85
+
+    none_confidence = RoadsideMatchingService._dispatch_confidence(
+        scored=[], major_vendor=None
+    )
+    assert none_confidence is None
+
+
+def test_capability_filter_requires_rv_for_rv_caller():
+    from app.services.major_vendor_service import _capability_filter
+
+    needs = _capability_filter(vehicle="rv", problem="tow_needed")
+    assert needs.get("rv_service") is True
+    assert needs.get("towing") is True
+
+
+def test_capability_filter_requires_heavy_duty_for_semi():
+    from app.services.major_vendor_service import _capability_filter
+
+    needs = _capability_filter(vehicle="semi truck", problem="flat_tire")
+    assert needs.get("heavy_duty") is True
+    assert needs.get("tire_service") is True
+

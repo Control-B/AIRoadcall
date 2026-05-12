@@ -60,10 +60,33 @@ class RoadsideMechanicMatch(BaseModel):
     internalReasons: list[str] = Field(default_factory=list)
 
 
+class RoadsideMajorVendorMatch(BaseModel):
+    vendorId: str
+    brandName: str
+    locationName: Optional[str] = None
+    phone: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    interstate: Optional[str] = None
+    exitNumber: Optional[str] = None
+    services: list[str] = Field(default_factory=list)
+    heavyDuty: bool = False
+    rvService: bool = False
+    towing: bool = False
+    tireService: bool = False
+    is247: bool = False
+    distanceMiles: Optional[float] = None
+    priorityScore: int = 0
+    reason: str = ""
+
+
 class RoadsideMatchResponse(BaseModel):
     status: str = "needs_more_info"
     searchLevel: Optional[str] = None
     matches: list[RoadsideMechanicMatch]
+    majorVendor: Optional[RoadsideMajorVendorMatch] = None
+    dispatchConfidence: Optional[float] = None
     needsMoreInfo: bool
     missingFields: list[str]
     callerContext: RoadsideCallerContext

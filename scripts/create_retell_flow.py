@@ -69,8 +69,9 @@ FLOW = {
         "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.",
         "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
-        "When reading matches, never default to only matches[0] for a city-level search. If match_mechanic.message lists options, speak that options message. When match_mechanic returns multiple matches for a city-level search, do NOT force matches[0]. Read match_mechanic.message or summarize up to three returned businessName values exactly. Then ask: 'Do you want me to text you a secure GPS link to find the closest one, can you tell me your exact road or exit, or do you want me to start with one of these?' Do not read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.",
-        "If match_mechanic returns zero matches or errors, do NOT name any business — go to manual dispatch.",
+        "When reading results, ALWAYS prefer to speak match_mechanic.message exactly as returned — it is already worded for voice and includes both up to three local mobile mechanics and one major vendor (Love's, TA, Petro, Pilot, Speedco, Rush, FleetPride, Boss Truck Shops, or Southern Tire Mart) when one is nearby. Never list more than three local options. After reading the message, ask: 'Would you prefer the closest mobile mechanic or the larger truck service center?' Do not read phone numbers unless the caller asks or picks one.",
+        "The major vendor is provided in match_mechanic.majorVendor with brandName, interstate, and exitNumber. You may speak its brandName, interstate, exit, and city verbatim — but only if majorVendor is present in the latest tool response. Never invent a major vendor.",
+        "If match_mechanic returns zero matches AND no majorVendor, do NOT name any business — go to manual dispatch.",
         "Never claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.",
         "If the driver mentions injury, fire, or danger, tell them to call 911 immediately.",
         "Never describe APIs, webhooks, tokens, or database internals to the caller.",
@@ -172,7 +173,7 @@ FLOW = {
                     "problemType": {"type": "string", "description": "Problem type, e.g. tire repair, engine, battery, fuel, towing"},
                     "callerPhone": {"type": "string", "description": "Caller's phone from Retell call metadata if available"},
                     "callbackNumber": {"type": "string", "description": "Callback/SMS number if already collected"},
-                    "limit": {"type": "integer", "description": "Return up to 5 matches for city-level options, or fewer for precise GPS/radius matching"},
+                    "limit": {"type": "integer", "description": "Always return up to 3 local mechanics; the response also includes one majorVendor when available."},
                 },
                 "required": ["message"]
             }

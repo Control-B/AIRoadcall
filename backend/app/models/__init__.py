@@ -12,6 +12,7 @@ from app.models.fleet_profile import FleetProfile
 from app.models.vehicle import Vehicle
 from app.models.driver import Driver
 from app.models.vendor import Vendor
+from app.models.major_vendor_location import MajorVendorLocation
 from app.models.roadside_incident import RoadsideIncident, IncidentStatus
 from app.models.location_capture_session import LocationCaptureSession, LocationSessionStatus
 from app.models.integration_connection import IntegrationConnection, IntegrationProvider
