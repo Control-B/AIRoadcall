@@ -65,7 +65,7 @@ FLOW = {
         "HARD RULE — MINIMUM QUESTIONS: Ask ONLY four things. (1) Name + how can I help. (2) City and state if missing. (3) Problem type if missing. (4) Vehicle type if missing. That is it. Do not ask about road, highway, exit, landmark, mile marker, GPS, cross street, company, callback, email, payment, insurance, license plate, or address before the database search.",
         "As soon as you have city + state + problem type + vehicle type, STOP asking questions and let the flow run the database search. The function node will fire match_mechanic automatically.",
         "'Mechanic in Lakeland' means search Lakeland — do not ask which part of Lakeland. The database returns nearby results automatically.",
-        "Start exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?'",
+        "At the start of the call only, say exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?' Never repeat the welcome after the caller answers.",
         "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.",
         "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
@@ -251,24 +251,18 @@ FLOW = {
     ],
 
     "nodes": [
-        # ── 1. Start: Greeting + Safety ───────────────────
+        # ── 1. Start: one-time greeting ───────────────────
         {
             "id": "start-node",
             "type": "conversation",
-            "name": "Greeting and Safety Check",
+            "name": "One-Time Greeting",
             "start_speaker": "agent",
             "display_position": {"x": 100, "y": 300},
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Say exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?'\n"
-                    "Then collect ONLY what is missing. Ask ONE question at a time, ONLY if truly missing:\n"
-                    "- If city/state missing: 'What city and state are you in?'\n"
-                    "- If state missing: 'What state is that in?'\n"
-                    "- If problem type missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
-                    "- If vehicle type missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
-                    "Do NOT ask about road, highway, exit, mile marker, landmark, GPS, cross street, company, callback, email, payment, insurance, license plate, or address.\n"
-                    "As soon as you have city + state + problem + vehicle type, stop asking and move on so the database search can run."
+                    "Say exactly once: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?'\n"
+                    "After the caller answers, do not repeat this welcome. Route to Search Intake unless the caller mentioned injury, fire, danger, or 911."
                 )
             },
             "edges": [
@@ -280,7 +274,7 @@ FLOW = {
                 {
                     "id": "edge-need-more-info",
                     "transition_condition": {"type": "prompt", "prompt": "Caller has not yet provided one of city, state, problem type, or vehicle type"},
-                    "destination_node_id": "node-match-more-info"
+                    "destination_node_id": "node-intake"
                 },
                 {
                     "id": "edge-emergency",
@@ -290,20 +284,28 @@ FLOW = {
             ]
         },
 
-        # ── 2. (legacy intake removed; start-node routes directly to function) ──
+        # ── 2. Search intake without repeating greeting ──
         {
             "id": "node-intake",
             "type": "conversation",
-            "name": "Legacy Intake (deprecated)",
+            "name": "Search Intake",
             "display_position": {"x": 400, "y": 300},
             "instruction": {
                 "type": "prompt",
-                "text": "Do not ask any extra questions. If city, state, problem type, and vehicle type are all known, move immediately to the database search. If vehicle type is missing, ask only: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'"
+                "text": (
+                    "Do not repeat the welcome message. Collect ONLY the missing search fact, one question at a time:\n"
+                    "- If city/state missing: 'What city and state are you in?'\n"
+                    "- If state missing: 'What state is that in?'\n"
+                    "- If problem type missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
+                    "- If vehicle type missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
+                    "Do not ask road, exit, GPS, callback, company, payment, insurance, license plate, or address before matching.\n"
+                    "As soon as city + state + problem type + vehicle type are known, move to the database search."
+                )
             },
             "edges": [
                 {
-                    "id": "edge-intake-to-fn",
-                    "transition_condition": {"type": "prompt", "prompt": "always proceed to database search"},
+                    "id": "edge-intake-have-search-info",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller has stated a city, a state (or US state implied by city), a problem type, and a vehicle type."},
                     "destination_node_id": "node-call-match-mechanic"
                 }
             ]
