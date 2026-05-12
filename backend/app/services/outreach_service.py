@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy import select, func, or_, and_, text, update
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -477,68 +478,67 @@ class OutreachService:
     @staticmethod
     async def get_dashboard_stats(db: AsyncSession) -> dict:
         """Get overall outreach dashboard stats."""
-        # Mechanic counts
-        total_mechs = await db.execute(select(func.count()).select_from(Mechanic))
-        total = total_mechs.scalar() or 0
+        async def scalar_or_zero(query, label: str) -> int:
+            try:
+                result = await db.execute(query)
+                return int(result.scalar() or 0)
+            except SQLAlchemyError as exc:
+                logger.warning("Dashboard stat '%s' unavailable: %s", label, exc)
+                await db.rollback()
+                return 0
 
-        phone_count = await db.execute(
-            select(func.count()).where(
-                Mechanic.phone.isnot(None), Mechanic.phone != ""
-            )
+        total = await scalar_or_zero(select(func.count()).select_from(Mechanic), "total_mechanics")
+        with_phone = await scalar_or_zero(
+            select(func.count()).where(Mechanic.phone.isnot(None), Mechanic.phone != ""),
+            "total_with_phone",
         )
-        with_phone = phone_count.scalar() or 0
-
-        email_count = await db.execute(
-            select(func.count()).where(
-                Mechanic.email.isnot(None), Mechanic.email != ""
-            )
+        with_email = await scalar_or_zero(
+            select(func.count()).where(Mechanic.email.isnot(None), Mechanic.email != ""),
+            "total_with_email",
         )
-        with_email = email_count.scalar() or 0
-
-        website_count = await db.execute(
-            select(func.count()).where(
-                Mechanic.website.isnot(None), Mechanic.website != ""
-            )
+        with_website = await scalar_or_zero(
+            select(func.count()).where(Mechanic.website.isnot(None), Mechanic.website != ""),
+            "total_with_website",
         )
-        with_website = website_count.scalar() or 0
-
-        # Campaign counts
-        camp_count = await db.execute(select(func.count()).select_from(OutreachCampaign))
-        total_campaigns = camp_count.scalar() or 0
-
-        # Message counts
-        msg_sent = await db.execute(
-            select(func.count()).where(OutreachMessage.status != "pending")
+        total_campaigns = await scalar_or_zero(
+            select(func.count()).select_from(OutreachCampaign),
+            "total_campaigns",
         )
-        total_sent = msg_sent.scalar() or 0
-
-        # Lead status breakdown
-        lead_query = await db.execute(
-            select(Mechanic.lead_status, func.count())
-            .group_by(Mechanic.lead_status)
+        total_sent = await scalar_or_zero(
+            select(func.count()).where(OutreachMessage.status != "pending"),
+            "total_messages_sent",
         )
+
         lead_breakdown = {}
-        for status, count in lead_query.all():
-            lead_breakdown[status or "new"] = count
+        try:
+            lead_query = await db.execute(
+                select(Mechanic.lead_status, func.count()).group_by(Mechanic.lead_status)
+            )
+            for status, count in lead_query.all():
+                lead_breakdown[status or "new"] = count
+        except SQLAlchemyError as exc:
+            logger.warning("Dashboard lead status breakdown unavailable: %s", exc)
+            await db.rollback()
 
-        # Top states
-        state_query = await db.execute(
-            text("""
-                SELECT
-                    TRIM(SPLIT_PART(SPLIT_PART(address, ',', -1), ' ', 2)) as state,
-                    COUNT(*) as count
-                FROM mechanics
-                WHERE address IS NOT NULL
-                GROUP BY state
-                ORDER BY count DESC
-                LIMIT 15
-            """)
-        )
-        top_states = [
-            {"state": row[0], "count": row[1]}
-            for row in state_query.all()
-            if row[0]
-        ]
+        try:
+            state_query = await db.execute(
+                text("""
+                    SELECT COALESCE(NULLIF(state, ''), 'Unknown') as state, COUNT(*) as count
+                    FROM mechanics
+                    GROUP BY state
+                    ORDER BY count DESC
+                    LIMIT 15
+                """)
+            )
+            top_states = [
+                {"state": row[0], "count": row[1]}
+                for row in state_query.all()
+                if row[0] and row[0] != "Unknown"
+            ]
+        except SQLAlchemyError as exc:
+            logger.warning("Dashboard top states unavailable: %s", exc)
+            await db.rollback()
+            top_states = []
 
         return {
             "total_mechanics": total,

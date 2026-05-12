@@ -1,5 +1,6 @@
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session, require_admin_api_key
@@ -22,6 +23,28 @@ from app.services.mechanic_data_service import MechanicDataService
 router = APIRouter(prefix="/mechanics", tags=["mechanics"])
 
 
+async def ensure_mechanic_admin_columns(db: AsyncSession) -> None:
+    """Self-heal admin columns that older production DBs may not have yet."""
+    await db.execute(
+        text(
+            "ALTER TABLE mechanics "
+            "ADD COLUMN IF NOT EXISTS emergency_service BOOLEAN NOT NULL DEFAULT false"
+        )
+    )
+    await db.execute(
+        text(
+            "ALTER TABLE mechanics "
+            "ADD COLUMN IF NOT EXISTS service_radius_miles INTEGER NOT NULL DEFAULT 50"
+        )
+    )
+    await db.execute(
+        text(
+            "ALTER TABLE mechanics "
+            "ADD COLUMN IF NOT EXISTS priority_score INTEGER NOT NULL DEFAULT 50"
+        )
+    )
+
+
 @router.get(
     "/admin/stats",
     response_model=MechanicAdminStats,
@@ -31,6 +54,7 @@ async def get_mechanic_admin_stats(
     db: AsyncSession = Depends(get_session),
 ):
     """Get mechanic database stats for the admin viewer."""
+    await ensure_mechanic_admin_columns(db)
     return await MechanicDataService.get_admin_stats(db)
 
 
@@ -54,6 +78,7 @@ async def list_mechanics_admin(
     db: AsyncSession = Depends(get_session),
 ):
     """List mechanic records for the admin viewer with pagination and filters."""
+    await ensure_mechanic_admin_columns(db)
     return await MechanicDataService.list_admin_mechanics(
         db,
         q=q,
