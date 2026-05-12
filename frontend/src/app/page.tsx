@@ -179,7 +179,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════
           HERO — Full-viewport cinematic truck section
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="relative h-[48vh] md:h-[56vh] lg:h-[60vh] flex flex-col justify-center overflow-hidden">
+      <section className="relative h-[62vh] md:h-[68vh] lg:h-[72vh] flex flex-col justify-center overflow-hidden">
 
         {/* Video background */}
         <video
@@ -188,7 +188,7 @@ export default function HomePage() {
           muted
           loop
           playsInline
-          className="absolute inset-0 w-full h-full object-cover object-center"
+          className="absolute inset-0 w-full h-full object-cover object-top"
           src="/videos/RoadcallPremium.mp4"
         />
 
