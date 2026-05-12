@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Phone,
   Wrench,
@@ -127,6 +128,40 @@ function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general"
   );
 }
 
+const marketingMessages: { text: string; accent: string; iconColor: string; border: string }[] = [
+  { text: "AI-Driven Roadside Support & AI Phones for the Trucking Industry", accent: "from-roadcall-orange/20", iconColor: "text-roadcall-orange", border: "border-roadcall-orange/30" },
+  { text: "24/7 AI Phone Agents That Never Miss a Call", accent: "from-cyan-400/20", iconColor: "text-cyan-300", border: "border-cyan-400/30" },
+  { text: "Less Downtime. More Jobs Booked.", accent: "from-emerald-400/20", iconColor: "text-emerald-300", border: "border-emerald-400/30" },
+  { text: "Smart Dispatch for Fleets Nationwide", accent: "from-blue-400/20", iconColor: "text-blue-300", border: "border-blue-400/30" },
+  { text: "Verified Mechanic Network in All 50 States", accent: "from-purple-400/20", iconColor: "text-purple-300", border: "border-purple-400/30" },
+  { text: "One Platform. Two Powerful Solutions.", accent: "from-amber-400/20", iconColor: "text-amber-300", border: "border-amber-400/30" },
+];
+
+function RotatingMarketingBadge() {
+  const [index, setIndex] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIndex(i => (i + 1) % marketingMessages.length), 3500);
+    return () => clearInterval(t);
+  }, []);
+  const msg = marketingMessages[index];
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={index}
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 6 }}
+        transition={{ duration: 0.35 }}
+        className={`relative inline-flex items-center gap-2 overflow-hidden bg-roadcall-panel/55 border ${msg.border} backdrop-blur-md rounded-full px-4 py-1.5 shadow-lg shadow-black/30`}
+      >
+        <span className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${msg.accent} via-transparent to-transparent opacity-70`} />
+        <Zap className={`relative h-3.5 w-3.5 ${msg.iconColor}`} />
+        <span className="relative text-xs font-medium text-roadcall-silver/90 tracking-wide whitespace-nowrap">{msg.text}</span>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 export default function HomePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [muted, setMuted] = useState(true);
@@ -144,7 +179,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════
           HERO — Full-viewport cinematic truck section
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[88vh] flex flex-col justify-center overflow-hidden">
+      <section className="relative min-h-[68vh] md:min-h-[74vh] flex flex-col justify-center overflow-hidden">
 
         {/* Video background */}
         <video
@@ -181,17 +216,9 @@ export default function HomePage() {
         {/* Orange headlight bloom */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(234,88,12,0.18),transparent_70%)] z-10" />
 
-        {/* Hero content */}
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 w-full py-32">
-
-          {/* Badge */}
-          <FadeIn>
-            <div className="inline-flex items-center gap-2 bg-roadcall-panel/45 border border-roadcall-cyan/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-8">
-              <Zap className="h-3.5 w-3.5 text-roadcall-orange" />
-              <span className="text-xs font-medium text-roadcall-silver/85 tracking-wide">AI-Driven Roadside Support &amp; AI Phones for the Trucking Industry</span>
-            </div>
-          </FadeIn>
-
+        {/* Hero content — rotating marketing badge in upper-left */}
+        <div className="absolute top-28 left-4 sm:left-8 md:left-12 z-20">
+          <RotatingMarketingBadge />
         </div>
       </section>
 
