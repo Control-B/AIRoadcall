@@ -16,7 +16,7 @@ import secrets
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -99,7 +99,7 @@ class SubmitListingRequest(BaseModel):
     company_name: str = Field(..., min_length=2, max_length=255)
     contact_name: str = Field(..., min_length=2, max_length=255)
     phone: str = Field(..., min_length=7, max_length=30)
-    email: EmailStr | None = None
+    email: str | None = Field(default=None, max_length=255)
     website: str | None = None
     address: str | None = None
     city: str | None = None
@@ -140,7 +140,7 @@ class ReviewResponse(BaseModel):
 class ClaimRequest(BaseModel):
     claimant_name: str = Field(..., min_length=2, max_length=255)
     claimant_phone: str = Field(..., min_length=7, max_length=30)
-    claimant_email: EmailStr | None = None
+    claimant_email: str | None = Field(default=None, max_length=255)
     subscription_product: str | None = Field(
         default=None,
         description="ai_telephony | ai_voice_text | social_media | website_management",
@@ -163,7 +163,7 @@ class EditListingRequest(BaseModel):
 
     company_name: str | None = Field(default=None, min_length=2, max_length=255)
     contact_name: str | None = None
-    email: EmailStr | None = None
+    email: str | None = Field(default=None, max_length=255)
     website: str | None = None
     address: str | None = None
     city: str | None = None
