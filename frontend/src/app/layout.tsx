@@ -12,13 +12,12 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/favicon.ico?v=3", type: "image/x-icon" },
-      { url: "/favicon-32x32.png?v=3", sizes: "32x32", type: "image/png" },
-      { url: "/favicon-16x16.png?v=3", sizes: "16x16", type: "image/png" },
-      { url: "/favicon.svg?v=3", type: "image/svg+xml" },
+      { url: "/favicon.ico?v=4", type: "image/x-icon" },
+      { url: "/favicon-32x32.png?v=4", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16x16.png?v=4", sizes: "16x16", type: "image/png" },
     ],
-    shortcut: "/favicon.ico?v=3",
-    apple: "/apple-touch-icon.png?v=3",
+    shortcut: "/favicon.ico?v=4",
+    apple: "/apple-touch-icon.png?v=4",
   },
   description:
     "AI dispatcher that picks up every call, finds the closest mechanic, and gets help on the way in under 90 seconds. 35,000+ mechanics across all 50 states.",
@@ -62,12 +61,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico?v=3" sizes="any" />
-        <link rel="icon" href="/favicon-32x32.png?v=3" type="image/png" sizes="32x32" />
-        <link rel="icon" href="/favicon-16x16.png?v=3" type="image/png" sizes="16x16" />
-        <link rel="icon" href="/favicon.svg?v=3" type="image/svg+xml" />
-        <link rel="shortcut icon" href="/favicon.ico?v=3" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=3" />
+        <link rel="icon" href="/favicon.ico?v=4" sizes="any" />
+        <link rel="icon" href="/favicon-32x32.png?v=4" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/favicon-16x16.png?v=4" type="image/png" sizes="16x16" />
+        <link rel="shortcut icon" href="/favicon.ico?v=4" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4" />
         <link
           href="https://api.mapbox.com/mapbox-gl-js/v3.9.3/mapbox-gl.css"
           rel="stylesheet"
