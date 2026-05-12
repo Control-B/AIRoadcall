@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import {
   Phone,
   MessageSquare,
@@ -20,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import roadcallSupportVideo from "@/assets/videos/RoadcallSupport.mp4";
 
 const features = [
   {
@@ -106,13 +106,15 @@ export default function ShopsPage() {
     <PageLayout>
       {/* Hero */}
       <section className="relative min-h-[85vh] flex flex-col justify-end overflow-hidden">
-        <Image
-          src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=1920&q=80"
-          alt="Semi truck parked on the road at sunset"
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
+        <video
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          src={roadcallSupportVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-[#02050c]/60 via-[#02050c]/30 to-[#02050c] z-10" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#02050c]/60 via-transparent to-[#02050c]/40 z-10" />
