@@ -29,6 +29,7 @@ from app.api.routes import (
     shops_vertical,
     leads,
     major_vendors,
+    marketplace,
 )
 
 settings = get_settings()
@@ -132,6 +133,7 @@ app.include_router(fleet.router, prefix="/api")
 app.include_router(shops_vertical.router, prefix="/api")
 app.include_router(leads.router, prefix="/api")
 app.include_router(major_vendors.router, prefix="/api")
+app.include_router(marketplace.router, prefix="/api")
 
 
 @app.on_event("startup")

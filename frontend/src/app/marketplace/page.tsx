@@ -10,16 +10,23 @@ import {
   Filter,
   Languages,
   MapPin,
+  Plus,
   Radar,
+  Send,
   ShieldCheck,
   Sparkles,
   Star,
   Truck,
   Wrench,
+  X,
   Zap,
 } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? `${window.location.origin.replace(/\/$/, "")}/api`
+    : "https://airoadcall-i76ba.ondigitalocean.app/api");
 
 type Provider = {
   id: string;
@@ -89,6 +96,9 @@ export default function MarketplacePage() {
   const [data, setData] = useState<MarketplaceResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [rateTarget, setRateTarget] = useState<Provider | null>(null);
+  const [claimTarget, setClaimTarget] = useState<Provider | null>(null);
+  const [submitOpen, setSubmitOpen] = useState(false);
 
   async function search() {
     setLoading(true);
@@ -217,7 +227,13 @@ export default function MarketplacePage() {
         ) : data?.providers.length ? (
           <div className="grid gap-4 lg:grid-cols-3">
             {data.providers.map((provider, index) => (
-              <ProviderCard key={provider.id} provider={provider} rank={index + 1} />
+              <ProviderCard
+                key={provider.id}
+                provider={provider}
+                rank={index + 1}
+                onRate={() => setRateTarget(provider)}
+                onClaim={() => setClaimTarget(provider)}
+              />
             ))}
           </div>
         ) : (
@@ -225,7 +241,30 @@ export default function MarketplacePage() {
             No providers found. Try a nearby city, wider radius, or disable 24/7-only.
           </div>
         )}
+
+        <div className="mt-10 flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 p-8 text-center">
+          <h3 className="text-xl font-bold">Own a roadside or repair business?</h3>
+          <p className="max-w-2xl text-sm text-slate-300">
+            Add your business to the Roadcall marketplace for free. To edit a listing later you must claim it as the owner — verified by phone or by an active Roadcall subscription (AI Telephony, AI Voice + Text, Social Media, or Website Management).
+          </p>
+          <button
+            onClick={() => setSubmitOpen(true)}
+            className="mt-2 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400"
+          >
+            <Plus className="h-4 w-4" /> Add your business
+          </button>
+        </div>
       </section>
+
+      {rateTarget && (
+        <RateModal provider={rateTarget} onClose={() => setRateTarget(null)} onSaved={() => { setRateTarget(null); search(); }} />
+      )}
+      {claimTarget && (
+        <ClaimModal provider={claimTarget} onClose={() => setClaimTarget(null)} onSaved={() => { setClaimTarget(null); search(); }} />
+      )}
+      {submitOpen && (
+        <SubmitModal onClose={() => setSubmitOpen(false)} onSaved={() => { setSubmitOpen(false); search(); }} />
+      )}
     </main>
   );
 }
@@ -252,7 +291,7 @@ function IntelCard({ icon: Icon, label, value }: { icon: React.ElementType; labe
   );
 }
 
-function ProviderCard({ provider, rank }: { provider: Provider; rank: number }) {
+function ProviderCard({ provider, rank, onRate, onClaim }: { provider: Provider; rank: number; onRate: () => void; onClaim: () => void }) {
   const scorePercent = Math.round(provider.marketplace_score * 100);
   return (
     <article className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 shadow-xl transition hover:border-blue-300/40 hover:bg-white/[0.09]">
@@ -300,7 +339,217 @@ function ProviderCard({ provider, rank }: { provider: Provider; rank: number }) 
         <div className="flex items-center gap-2"><Wrench className="h-4 w-4 text-blue-300" /> {provider.service_radius_miles} mi radius</div>
         <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-300" /> {provider.trust_level.replace("_", " ")}</div>
       </div>
+
+      <div className="mt-4 flex gap-2">
+        <button onClick={onRate} className="flex-1 rounded-xl border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-xs font-semibold text-amber-100 transition hover:bg-amber-300/20">
+          ⭐ Rate provider
+        </button>
+        <button onClick={onClaim} className="flex-1 rounded-xl border border-blue-300/40 bg-blue-300/10 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-blue-300/20">
+          🔒 Claim listing
+        </button>
+      </div>
     </article>
+  );
+}
+
+// ── Modals ─────────────────────────────────────────────────────────────
+
+function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="text-lg font-bold text-white">{title}</h3>
+          <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const INPUT_CLS = "w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-white outline-none placeholder:text-slate-500 focus:border-blue-300";
+
+function RateModal({ provider, onClose, onSaved }: { provider: Provider; onClose: () => void; onSaved: () => void }) {
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  async function submit() {
+    setBusy(true); setErr(""); setOk("");
+    try {
+      const res = await fetch(`${API_URL}/marketplace/${provider.id}/review`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rating, comment: comment || undefined, reviewer_name: name || undefined, reviewer_phone: phone || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Could not submit review");
+      setOk(`Thanks! New average: ${data.new_average.toFixed(1)} (${data.new_review_count})`);
+      setTimeout(onSaved, 1200);
+    } catch (e) { setErr(e instanceof Error ? e.message : "Error"); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <Modal title={`Rate ${provider.company_name}`} onClose={onClose}>
+      <div className="space-y-4">
+        <Field label="Rating">
+          <div className="flex gap-2">
+            {[1,2,3,4,5].map((n) => (
+              <button key={n} onClick={() => setRating(n)} className={`text-3xl ${n <= rating ? "text-amber-300" : "text-slate-600"}`}>★</button>
+            ))}
+          </div>
+        </Field>
+        <Field label="Comment (optional)">
+          <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} className={INPUT_CLS} maxLength={2000} />
+        </Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Your name"><input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} /></Field>
+          <Field label="Your phone (helps prevent spam)"><input value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT_CLS} /></Field>
+        </div>
+        {err && <p className="text-sm text-red-300">{err}</p>}
+        {ok && <p className="text-sm text-emerald-300">{ok}</p>}
+        <button disabled={busy} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-3 font-semibold text-slate-900 hover:bg-amber-300 disabled:opacity-60">
+          <Send className="h-4 w-4" /> Submit rating
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function ClaimModal({ provider, onClose, onSaved }: { provider: Provider; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [product, setProduct] = useState("");
+  const [notes, setNotes] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  async function submit() {
+    setBusy(true); setErr(""); setOk("");
+    try {
+      const res = await fetch(`${API_URL}/marketplace/${provider.id}/claim`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ claimant_name: name, claimant_phone: phone, claimant_email: email || undefined, subscription_product: product || undefined, notes: notes || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Could not submit claim");
+      setOk(data.message);
+      setTimeout(onSaved, 1800);
+    } catch (e) { setErr(e instanceof Error ? e.message : "Error"); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <Modal title={`Claim ${provider.company_name}`} onClose={onClose}>
+      <p className="mb-4 text-sm text-slate-300">
+        To prevent competitive or malicious edits, only the verified business owner can edit this listing.
+        We'll auto-approve if your phone matches the listing or your active Roadcall subscription.
+      </p>
+      <div className="space-y-3">
+        <Field label="Your full name"><input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} /></Field>
+        <Field label="Your business phone"><input value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT_CLS} placeholder="(555) 555-1234" /></Field>
+        <Field label="Email (optional)"><input value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLS} /></Field>
+        <Field label="Roadcall subscription product">
+          <select value={product} onChange={(e) => setProduct(e.target.value)} className="w-full rounded-xl border border-white/10 bg-slate-800 px-3 py-2 text-white outline-none focus:border-blue-300">
+            <option value="">Not yet a subscriber</option>
+            <option value="ai_telephony">AI Telephony</option>
+            <option value="ai_voice_text">AI Voice + Text</option>
+            <option value="social_media">Social Media Management</option>
+            <option value="website_management">Website Management</option>
+          </select>
+        </Field>
+        <Field label="Notes (optional)"><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={INPUT_CLS} /></Field>
+        {err && <p className="text-sm text-red-300">{err}</p>}
+        {ok && <p className="text-sm text-emerald-300">{ok}</p>}
+        <button disabled={busy || !name || !phone} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3 font-semibold text-white hover:bg-blue-400 disabled:opacity-60">
+          <ShieldCheck className="h-4 w-4" /> Submit claim
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
+function SubmitModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    company_name: "", contact_name: "", phone: "", email: "", website: "",
+    address: "", city: "", state: "",
+    emergency_service: false, accepts_mobile_roadside: true, service_radius_miles: 50,
+  });
+  const [services, setServices] = useState("");
+  const [vehicles, setVehicles] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  const [ok, setOk] = useState("");
+
+  function update<K extends keyof typeof form>(k: K, v: (typeof form)[K]) { setForm((f) => ({ ...f, [k]: v })); }
+
+  async function submit() {
+    setBusy(true); setErr(""); setOk("");
+    try {
+      const res = await fetch(`${API_URL}/marketplace/submit`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...form,
+          email: form.email || undefined,
+          website: form.website || undefined,
+          service_types: services.split(",").map((s) => s.trim()).filter(Boolean),
+          vehicle_types_supported: vehicles.split(",").map((s) => s.trim()).filter(Boolean),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail?.[0]?.msg || data.detail || "Could not submit");
+      setOk(data.message);
+      setTimeout(onSaved, 1800);
+    } catch (e) { setErr(e instanceof Error ? e.message : "Error"); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <Modal title="Add your business" onClose={onClose}>
+      <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
+        <Field label="Business name *"><input value={form.company_name} onChange={(e) => update("company_name", e.target.value)} className={INPUT_CLS} /></Field>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Contact name *"><input value={form.contact_name} onChange={(e) => update("contact_name", e.target.value)} className={INPUT_CLS} /></Field>
+          <Field label="Phone *"><input value={form.phone} onChange={(e) => update("phone", e.target.value)} className={INPUT_CLS} /></Field>
+          <Field label="Email"><input value={form.email} onChange={(e) => update("email", e.target.value)} className={INPUT_CLS} /></Field>
+          <Field label="Website"><input value={form.website} onChange={(e) => update("website", e.target.value)} className={INPUT_CLS} /></Field>
+          <Field label="City"><input value={form.city} onChange={(e) => update("city", e.target.value)} className={INPUT_CLS} /></Field>
+          <Field label="State (2 letters)"><input value={form.state} onChange={(e) => update("state", e.target.value.toUpperCase().slice(0,2))} className={INPUT_CLS} /></Field>
+        </div>
+        <Field label="Address"><input value={form.address} onChange={(e) => update("address", e.target.value)} className={INPUT_CLS} /></Field>
+        <Field label="Services (comma-separated, e.g. tow_needed, flat_tire, lockout)"><input value={services} onChange={(e) => setServices(e.target.value)} className={INPUT_CLS} /></Field>
+        <Field label="Vehicle types (comma-separated, e.g. car, truck, heavy_duty)"><input value={vehicles} onChange={(e) => setVehicles(e.target.value)} className={INPUT_CLS} /></Field>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="flex items-center gap-2 text-sm text-slate-200"><input type="checkbox" checked={form.accepts_mobile_roadside} onChange={(e) => update("accepts_mobile_roadside", e.target.checked)} /> Mobile roadside</label>
+          <label className="flex items-center gap-2 text-sm text-slate-200"><input type="checkbox" checked={form.emergency_service} onChange={(e) => update("emergency_service", e.target.checked)} /> 24/7 emergency</label>
+          <Field label="Service radius (mi)"><input type="number" value={form.service_radius_miles} onChange={(e) => update("service_radius_miles", Number(e.target.value) || 50)} className={INPUT_CLS} /></Field>
+        </div>
+        {err && <p className="text-sm text-red-300">{err}</p>}
+        {ok && <p className="text-sm text-emerald-300">{ok}</p>}
+        <button disabled={busy || !form.company_name || !form.contact_name || !form.phone} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 font-semibold text-white hover:bg-emerald-400 disabled:opacity-60">
+          <Plus className="h-4 w-4" /> Submit listing
+        </button>
+        <p className="text-xs text-slate-400">Your listing will be reviewed by our team before going live. To edit it later, use the &ldquo;Claim listing&rdquo; option.</p>
+      </div>
+    </Modal>
   );
 }
 

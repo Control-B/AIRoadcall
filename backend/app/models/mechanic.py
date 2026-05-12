@@ -74,6 +74,22 @@ class Mechanic(Base):
     lead_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     lead_contacted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+    # Ownership / claim — populated when the mechanic claims their listing.
+    # Only claimed=True listings can be self-edited via the public marketplace API.
+    claimed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    claimed_by_organization_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    claimed_by_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    subscription_product: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    # ai_telephony | ai_voice_text | social_media | website_management
+    verified_listing: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    submitted_by_public: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    requires_admin_review: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, index=True
+    )
+
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

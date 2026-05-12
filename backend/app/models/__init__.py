@@ -13,6 +13,12 @@ from app.models.vehicle import Vehicle
 from app.models.driver import Driver
 from app.models.vendor import Vendor
 from app.models.major_vendor_location import MajorVendorLocation
+from app.models.mechanic_marketplace import (
+    MechanicReview,
+    MechanicClaim,
+    ClaimMethod,
+    ClaimStatus,
+)
 from app.models.roadside_incident import RoadsideIncident, IncidentStatus
 from app.models.location_capture_session import LocationCaptureSession, LocationSessionStatus
 from app.models.integration_connection import IntegrationConnection, IntegrationProvider
