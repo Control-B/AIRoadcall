@@ -116,9 +116,9 @@ export default function CompanyPage() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-5 py-2 mb-8">
-              <Zap className="h-4 w-4 text-orange-400" />
-              <span className="text-sm font-medium text-orange-300">
+            <div className="inline-flex items-center gap-2 bg-roadcall-orange/10 border border-roadcall-orange/25 rounded-full px-5 py-2 mb-8">
+              <Zap className="h-4 w-4 text-roadcall-orange" />
+              <span className="text-sm font-medium text-roadcall-orange">
                 About Roadcall.ai
               </span>
             </div>
@@ -128,14 +128,14 @@ export default function CompanyPage() {
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
               Roadside rescue,
               <br />
-              <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-roadcall-orange via-amber-400 to-yellow-400 bg-clip-text text-transparent">
                 reimagined with AI
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={0.2}>
-            <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-roadcall-silver/85 max-w-3xl mx-auto leading-relaxed">
               We&apos;re building the AI infrastructure that makes roadside
               help instant, affordable, and reliable — for drivers and
               mechanics alike.
@@ -147,19 +147,19 @@ export default function CompanyPage() {
       {/* ── About + Company facts ─────────────────────── */}
       <section
         id="about"
-        className="py-24 md:py-32 border-t border-white/[0.06]"
+        className="py-24 md:py-32 border-t border-roadcall-cyan/10"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid md:grid-cols-2 gap-16 items-start">
             <FadeIn direction="right">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-orange-400 mb-4">
+                <p className="text-sm font-semibold uppercase tracking-[0.25em] text-roadcall-orange mb-4">
                   Our Story
                 </p>
                 <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-6">
                   Why we built Roadcall.ai
                 </h2>
-                <div className="space-y-5 text-slate-400 leading-relaxed">
+                <div className="space-y-5 text-roadcall-muted leading-relaxed">
                   <p>
                     Roadcall.ai is built by{" "}
                     <span className="text-white font-medium">
@@ -198,11 +198,11 @@ export default function CompanyPage() {
                 <div className="space-y-5">
                   {companyFacts.map((item) => (
                     <div key={item.label} className="flex items-start gap-4">
-                      <div className="h-9 w-9 rounded-lg bg-white/[0.05] flex items-center justify-center shrink-0">
-                        <item.icon className="h-4 w-4 text-slate-400" />
+                      <div className="h-9 w-9 rounded-lg bg-roadcall-panel/45 flex items-center justify-center shrink-0">
+                        <item.icon className="h-4 w-4 text-roadcall-muted" />
                       </div>
                       <div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-roadcall-muted/70">
                           {item.label}
                         </div>
                         <div className="text-sm font-medium text-white">
@@ -219,7 +219,7 @@ export default function CompanyPage() {
       </section>
 
       {/* ── Timeline ──────────────────────────────────── */}
-      <section className="py-24 md:py-32 bg-gradient-to-b from-white/[0.02] to-transparent border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 bg-gradient-to-b from-white/[0.02] to-transparent border-t border-roadcall-cyan/10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <SectionHeading
             eyebrow="Our Journey"
@@ -228,7 +228,7 @@ export default function CompanyPage() {
 
           <div className="relative">
             {/* Vertical line */}
-            <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-orange-500/40 via-orange-500/20 to-transparent" />
+            <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-px bg-gradient-to-b from-roadcall-orange/40 via-roadcall-orange/20 to-transparent" />
 
             <div className="space-y-12">
               {timeline.map((item, idx) => (
@@ -244,7 +244,7 @@ export default function CompanyPage() {
                   >
                     {/* Dot */}
                     <div className="absolute left-8 md:left-1/2 top-0 -translate-x-1/2">
-                      <div className="h-4 w-4 rounded-full bg-orange-500 ring-4 ring-[#050a14]" />
+                      <div className="h-4 w-4 rounded-full bg-roadcall-orange ring-4 ring-[#050a14]" />
                     </div>
 
                     <div
@@ -252,13 +252,13 @@ export default function CompanyPage() {
                         idx % 2 === 1 ? "md:order-2 md:pl-16" : "md:pr-16"
                       }`}
                     >
-                      <span className="text-sm font-bold text-orange-400">
+                      <span className="text-sm font-bold text-roadcall-orange">
                         {item.year}
                       </span>
                       <h3 className="text-xl font-bold text-white mt-1 mb-2">
                         {item.title}
                       </h3>
-                      <p className="text-slate-400 leading-relaxed">
+                      <p className="text-roadcall-muted leading-relaxed">
                         {item.description}
                       </p>
                     </div>
@@ -278,7 +278,7 @@ export default function CompanyPage() {
       </section>
 
       {/* ── Values ────────────────────────────────────── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading
             eyebrow="Our Values"
@@ -289,13 +289,13 @@ export default function CompanyPage() {
             {values.map((val, idx) => (
               <FadeIn key={val.title} delay={idx * 0.1}>
                 <GlassCard className="p-7 h-full text-center">
-                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-orange-500/20 to-red-500/20 border border-orange-500/10 flex items-center justify-center mb-5 mx-auto">
-                    <val.icon className="h-7 w-7 text-orange-400" />
+                  <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-roadcall-orange/20 to-roadcall-blue/20 border border-roadcall-orange/20 flex items-center justify-center mb-5 mx-auto">
+                    <val.icon className="h-7 w-7 text-roadcall-orange" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2 text-white">
                     {val.title}
                   </h3>
-                  <p className="text-slate-400 leading-relaxed text-[15px]">
+                  <p className="text-roadcall-muted leading-relaxed text-[15px]">
                     {val.description}
                   </p>
                 </GlassCard>
@@ -308,7 +308,7 @@ export default function CompanyPage() {
       {/* ── Contact form ──────────────────────────────── */}
       <section
         id="contact"
-        className="py-24 md:py-32 bg-gradient-to-b from-white/[0.02] to-transparent border-t border-white/[0.06]"
+        className="py-24 md:py-32 bg-gradient-to-b from-white/[0.02] to-transparent border-t border-roadcall-cyan/10"
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <SectionHeading
@@ -327,14 +327,14 @@ export default function CompanyPage() {
                     <h3 className="text-xl font-bold text-white mb-2">
                       Message sent!
                     </h3>
-                    <p className="text-slate-400 text-center">
+                    <p className="text-roadcall-muted text-center">
                       We&apos;ll get back to you within 24 hours.
                     </p>
                   </div>
                 ) : (
                   <form onSubmit={handleSubmit} className="space-y-5">
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      <label className="block text-sm font-medium text-roadcall-silver/85 mb-1.5">
                         Name
                       </label>
                       <input
@@ -344,12 +344,12 @@ export default function CompanyPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, name: e.target.value })
                         }
-                        className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors"
+                        className="w-full px-4 py-3 rounded-xl bg-roadcall-panel/45 border border-roadcall-cyan/15 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors"
                         placeholder="Your name"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      <label className="block text-sm font-medium text-roadcall-silver/85 mb-1.5">
                         Email
                       </label>
                       <input
@@ -359,14 +359,14 @@ export default function CompanyPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, email: e.target.value })
                         }
-                        className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors"
+                        className="w-full px-4 py-3 rounded-xl bg-roadcall-panel/45 border border-roadcall-cyan/15 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors"
                         placeholder="you@company.com"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      <label className="block text-sm font-medium text-roadcall-silver/85 mb-1.5">
                         Company{" "}
-                        <span className="text-slate-500">(optional)</span>
+                        <span className="text-roadcall-muted/70">(optional)</span>
                       </label>
                       <input
                         type="text"
@@ -377,12 +377,12 @@ export default function CompanyPage() {
                             company: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors"
+                        className="w-full px-4 py-3 rounded-xl bg-roadcall-panel/45 border border-roadcall-cyan/15 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors"
                         placeholder="Your shop or company"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1.5">
+                      <label className="block text-sm font-medium text-roadcall-silver/85 mb-1.5">
                         Message
                       </label>
                       <textarea
@@ -395,13 +395,13 @@ export default function CompanyPage() {
                             message: e.target.value,
                           })
                         }
-                        className="w-full px-4 py-3 rounded-xl bg-white/[0.05] border border-white/[0.1] text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors resize-none"
+                        className="w-full px-4 py-3 rounded-xl bg-roadcall-panel/45 border border-roadcall-cyan/15 text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 transition-colors resize-none"
                         placeholder="How can we help?"
                       />
                     </div>
                     <Button
                       type="submit"
-                      className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 rounded-xl shadow-lg shadow-orange-600/20"
+                      className="w-full bg-gradient-to-r from-roadcall-orange to-roadcall-blue hover:from-roadcall-orange hover:to-roadcall-blue rounded-xl shadow-lg shadow-roadcall-orange/20"
                       size="lg"
                     >
                       Send Message
@@ -420,9 +420,9 @@ export default function CompanyPage() {
                   <div className="space-y-4">
                     <a
                       href="mailto:support@roadcall.ai"
-                      className="flex items-center gap-3 text-slate-400 hover:text-orange-400 transition-colors group"
+                      className="flex items-center gap-3 text-roadcall-muted hover:text-roadcall-orange transition-colors group"
                     >
-                      <div className="h-10 w-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center group-hover:border-orange-500/30 transition-colors">
+                      <div className="h-10 w-10 rounded-xl bg-roadcall-panel/45 border border-roadcall-cyan/10 flex items-center justify-center group-hover:border-roadcall-orange/30 transition-colors">
                         <Mail className="h-5 w-5" />
                       </div>
                       <div>
@@ -435,9 +435,9 @@ export default function CompanyPage() {
 
                     <a
                       href={telHref(COMPANY_PHONE)}
-                      className="flex items-center gap-3 text-slate-400 hover:text-orange-400 transition-colors group"
+                      className="flex items-center gap-3 text-roadcall-muted hover:text-roadcall-orange transition-colors group"
                     >
-                      <div className="h-10 w-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center group-hover:border-orange-500/30 transition-colors">
+                      <div className="h-10 w-10 rounded-xl bg-roadcall-panel/45 border border-roadcall-cyan/10 flex items-center justify-center group-hover:border-roadcall-orange/30 transition-colors">
                         <Phone className="h-5 w-5" />
                       </div>
                       <div>
@@ -450,9 +450,9 @@ export default function CompanyPage() {
 
                     <a
                       href={telHref(HELP_PHONE)}
-                      className="flex items-center gap-3 text-slate-400 hover:text-orange-400 transition-colors group"
+                      className="flex items-center gap-3 text-roadcall-muted hover:text-roadcall-orange transition-colors group"
                     >
-                      <div className="h-10 w-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center group-hover:border-orange-500/30 transition-colors">
+                      <div className="h-10 w-10 rounded-xl bg-roadcall-panel/45 border border-roadcall-cyan/10 flex items-center justify-center group-hover:border-roadcall-orange/30 transition-colors">
                         <Phone className="h-5 w-5" />
                       </div>
                       <div>
@@ -463,8 +463,8 @@ export default function CompanyPage() {
                       </div>
                     </a>
 
-                    <div className="flex items-center gap-3 text-slate-400">
-                      <div className="h-10 w-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center">
+                    <div className="flex items-center gap-3 text-roadcall-muted">
+                      <div className="h-10 w-10 rounded-xl bg-roadcall-panel/45 border border-roadcall-cyan/10 flex items-center justify-center">
                         <MapPin className="h-5 w-5" />
                       </div>
                       <div>
@@ -483,7 +483,7 @@ export default function CompanyPage() {
                   <h4 className="text-sm font-semibold text-white mb-3">
                     For mechanic shops
                   </h4>
-                  <p className="text-sm text-slate-400 mb-4 leading-relaxed">
+                  <p className="text-sm text-roadcall-muted mb-4 leading-relaxed">
                     Want Roadcall.ai answering your shop&apos;s calls? Start
                     a free 14-day trial — no credit card needed.
                   </p>
@@ -491,7 +491,7 @@ export default function CompanyPage() {
                     <Button
                       size="sm"
                       variant="outline"
-                      className="rounded-full border-white/20 text-white hover:bg-white/5"
+                      className="rounded-full border-roadcall-cyan/20 text-white hover:bg-roadcall-panel/45"
                     >
                       View Plans
                       <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
@@ -503,7 +503,7 @@ export default function CompanyPage() {
                   <h4 className="text-sm font-semibold text-white mb-3">
                     Partnership inquiries
                   </h4>
-                  <p className="text-sm text-slate-400 leading-relaxed">
+                  <p className="text-sm text-roadcall-muted leading-relaxed">
                     Fleet operator, franchise, or towing network? Let&apos;s
                     talk about custom integrations and volume pricing.
                   </p>
@@ -515,17 +515,17 @@ export default function CompanyPage() {
       </section>
 
       {/* ── CTA ───────────────────────────────────────── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-orange-600/10 via-red-600/5 to-transparent p-12 md:p-16 relative overflow-hidden">
-              <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-orange-600/10 blur-[80px]" />
+            <div className="rounded-3xl border border-roadcall-cyan/10 bg-gradient-to-br from-roadcall-orange/10 via-roadcall-blue/5 to-transparent p-12 md:p-16 relative overflow-hidden">
+              <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-roadcall-orange/10 blur-[80px]" />
               <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-red-600/10 blur-[80px]" />
               <div className="relative z-10">
                 <h2 className="text-3xl md:text-5xl font-bold mb-6">
                   Ready to get started?
                 </h2>
-                <p className="text-xl text-slate-300 mb-10 max-w-xl mx-auto">
+                <p className="text-xl text-roadcall-silver/85 mb-10 max-w-xl mx-auto">
                   Experience the AI dispatcher firsthand. One call. 60
                   seconds. Zero obligation.
                 </p>
@@ -533,7 +533,7 @@ export default function CompanyPage() {
                   <a href={telHref(HELP_PHONE)}>
                     <Button
                       size="xl"
-                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-xl gap-3 rounded-2xl shadow-xl shadow-orange-600/20"
+                      className="bg-gradient-to-r from-roadcall-orange to-roadcall-blue hover:from-roadcall-orange hover:to-roadcall-blue text-xl gap-3 rounded-2xl shadow-xl shadow-roadcall-orange/20"
                     >
                       <Phone className="h-6 w-6" />
                       Call {HELP_PHONE}
@@ -543,7 +543,7 @@ export default function CompanyPage() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="rounded-full border-white/20 text-white hover:bg-white/5 px-8"
+                      className="rounded-full border-roadcall-cyan/20 text-white hover:bg-roadcall-panel/45 px-8"
                     >
                       View Pricing
                       <ArrowRight className="h-4 w-4 ml-2" />

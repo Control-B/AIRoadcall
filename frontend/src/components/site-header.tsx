@@ -150,7 +150,7 @@ export function SiteHeader() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled
-          ? "bg-[#050a14]/90 backdrop-blur-xl border-b border-white/10 shadow-lg shadow-black/20"
+          ? "bg-roadcall-void/90 backdrop-blur-xl border-b border-roadcall-cyan/15 shadow-lg shadow-blue-950/30"
           : "bg-transparent"
       }`}
     >
@@ -178,8 +178,8 @@ export function SiteHeader() {
                 href={item.href}
                 className={`flex items-center gap-1 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                   pathname === item.href
-                    ? "text-white bg-white/10"
-                    : "text-slate-300 hover:text-white hover:bg-white/5"
+                    ? "text-white bg-roadcall-blue/15 border border-roadcall-cyan/20"
+                    : "text-roadcall-muted hover:text-white hover:bg-roadcall-cyan/10"
                 }`}
               >
                 {item.label}
@@ -200,7 +200,7 @@ export function SiteHeader() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 8 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute top-full left-0 mt-2 w-80 rounded-2xl border border-white/10 bg-[#0a1020]/95 backdrop-blur-xl shadow-2xl shadow-black/40 p-2 overflow-hidden"
+                    className="absolute top-full left-0 mt-2 w-80 rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/95 backdrop-blur-xl shadow-2xl shadow-black/40 p-2 overflow-hidden"
                     onMouseEnter={() => handleMouseEnter(item.label)}
                     onMouseLeave={handleMouseLeave}
                   >
@@ -208,12 +208,12 @@ export function SiteHeader() {
                       <Link
                         key={child.label}
                         href={child.href}
-                        className="flex flex-col gap-0.5 px-4 py-3 rounded-xl hover:bg-white/[0.06] transition-colors group/item"
+                        className="flex flex-col gap-0.5 px-4 py-3 rounded-xl hover:bg-roadcall-cyan/[0.08] transition-colors group/item"
                       >
-                        <span className="text-sm font-medium text-white group-hover/item:text-orange-300 transition-colors">
+                        <span className="text-sm font-medium text-white group-hover/item:text-roadcall-cyan transition-colors">
                           {child.label}
                         </span>
-                        <span className="text-xs text-slate-500">
+                        <span className="text-xs text-roadcall-muted">
                           {child.description}
                         </span>
                       </Link>
@@ -230,7 +230,7 @@ export function SiteHeader() {
           <a href={telHref(HELP_PHONE)}>
             <Button
               size="sm"
-              className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-white rounded-full px-5 shadow-lg shadow-orange-600/20"
+              className="roadcall-primary-button rounded-full px-5"
             >
               <Phone className="h-3.5 w-3.5 mr-1.5" />
               Call for Help
@@ -240,7 +240,7 @@ export function SiteHeader() {
 
         {/* ── Mobile hamburger ──────────────────────────── */}
         <button
-          className="lg:hidden p-2 text-slate-300 hover:text-white transition-colors"
+          className="lg:hidden p-2 text-roadcall-muted hover:text-white transition-colors"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >
@@ -260,7 +260,7 @@ export function SiteHeader() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden overflow-hidden bg-[#0a1020] border-t border-white/10"
+            className="lg:hidden overflow-hidden bg-roadcall-panel/98 border-t border-roadcall-cyan/15"
           >
             <div className="px-4 py-4 space-y-1 max-h-[80vh] overflow-y-auto">
               {navItems.map((item) => (
@@ -269,13 +269,13 @@ export function SiteHeader() {
                     href={item.href}
                     className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg ${
                       pathname === item.href
-                        ? "text-white bg-white/10"
-                        : "text-slate-300 hover:text-white hover:bg-white/5"
+                        ? "text-white bg-roadcall-blue/15"
+                        : "text-roadcall-muted hover:text-white hover:bg-roadcall-cyan/10"
                     }`}
                   >
                     {item.label}
                     {item.children && (
-                      <ArrowRight className="h-4 w-4 text-slate-500" />
+                      <ArrowRight className="h-4 w-4 text-roadcall-muted" />
                     )}
                   </Link>
                   {item.children && (
@@ -284,7 +284,7 @@ export function SiteHeader() {
                         <Link
                           key={child.label}
                           href={child.href}
-                          className="block px-4 py-2 text-sm text-slate-400 hover:text-white hover:bg-white/5 rounded-lg"
+                          className="block px-4 py-2 text-sm text-roadcall-muted hover:text-white hover:bg-roadcall-cyan/10 rounded-lg"
                         >
                           {child.label}
                         </Link>
@@ -293,9 +293,9 @@ export function SiteHeader() {
                   )}
                 </div>
               ))}
-              <div className="pt-3 border-t border-white/10 space-y-2">
+              <div className="pt-3 border-t border-roadcall-cyan/15 space-y-2">
                 <a href={telHref(HELP_PHONE)}>
-                  <Button className="w-full bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 shadow-lg">
+                  <Button className="roadcall-primary-button w-full">
                     <Phone className="h-4 w-4 mr-2" />
                     Call for Help: {HELP_PHONE}
                   </Button>

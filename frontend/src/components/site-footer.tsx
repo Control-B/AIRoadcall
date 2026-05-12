@@ -27,7 +27,7 @@ const footerLinks = {
 
 export function SiteFooter() {
   return (
-    <footer className="border-t border-white/[0.06] bg-[#030710]">
+    <footer className="border-t border-roadcall-cyan/10 bg-[linear-gradient(180deg,rgba(3,12,30,0.96),rgba(2,7,21,0.98))]">
       {/* ── Main footer ─────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
@@ -36,7 +36,7 @@ export function SiteFooter() {
             <Link href="/" className="mb-5 inline-block">
               <BrandMark width={210} height={86} />
             </Link>
-            <p className="text-sm text-slate-500 max-w-sm leading-relaxed mb-6">
+            <p className="text-sm text-roadcall-muted max-w-sm leading-relaxed mb-6">
               AI-powered roadside dispatch and mechanic shop phone system.
               Built by Omniweb, LLC — AI voice agents, chat assistants, and
               workflow automation for service businesses.
@@ -44,26 +44,26 @@ export function SiteFooter() {
             <div className="space-y-3">
               <a
                 href={telHref(COMPANY_PHONE)}
-                className="flex items-center gap-2 text-sm text-slate-400 hover:text-orange-400 transition-colors"
+                className="flex items-center gap-2 text-sm text-roadcall-muted hover:text-roadcall-cyan transition-colors"
               >
                 <Phone className="h-4 w-4" />
                 Company: {COMPANY_PHONE}
               </a>
               <a
                 href={telHref(HELP_PHONE)}
-                className="flex items-center gap-2 text-sm text-slate-400 hover:text-orange-400 transition-colors"
+                className="flex items-center gap-2 text-sm text-roadcall-muted hover:text-roadcall-cyan transition-colors"
               >
                 <Phone className="h-4 w-4" />
                 Help: {HELP_PHONE}
               </a>
               <a
                 href="mailto:support@roadcall.ai"
-                className="flex items-center gap-2 text-sm text-slate-400 hover:text-orange-400 transition-colors"
+                className="flex items-center gap-2 text-sm text-roadcall-muted hover:text-roadcall-cyan transition-colors"
               >
                 <Mail className="h-4 w-4" />
                 support@roadcall.ai
               </a>
-              <div className="flex items-center gap-2 text-sm text-slate-400">
+              <div className="flex items-center gap-2 text-sm text-roadcall-muted">
                 <MapPin className="h-4 w-4" />
                 All 50 US States
               </div>
@@ -73,7 +73,7 @@ export function SiteFooter() {
           {/* Link columns */}
           {Object.entries(footerLinks).map(([title, links]) => (
             <div key={title}>
-              <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-4">
+              <h4 className="text-xs font-semibold uppercase tracking-widest text-roadcall-cyan/70 mb-4">
                 {title}
               </h4>
               <ul className="space-y-2.5">
@@ -81,7 +81,7 @@ export function SiteFooter() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="text-sm text-slate-400 hover:text-white transition-colors"
+                      className="text-sm text-roadcall-muted hover:text-white transition-colors"
                     >
                       {link.label}
                     </Link>
@@ -94,12 +94,12 @@ export function SiteFooter() {
       </div>
 
       {/* ── Bottom bar ──────────────────────────────── */}
-      <div className="border-t border-white/[0.06]">
+      <div className="border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-sm text-slate-500">
+          <p className="text-sm text-roadcall-muted/80">
             © {new Date().getFullYear()} Omniweb, LLC. All rights reserved.
           </p>
-          <p className="text-sm text-slate-600">
+          <p className="text-sm text-roadcall-muted/70">
             Roadcall.ai is a product of Omniweb, LLC
           </p>
         </div>

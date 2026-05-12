@@ -71,9 +71,9 @@ export default function FleetPage() {
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(59,130,246,0.2),transparent_70%)] z-10" />
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 w-full pb-16 pt-32 text-center">
           <FadeIn>
-            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-8">
+            <div className="inline-flex items-center gap-2 bg-roadcall-panel/45 border border-roadcall-cyan/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-8">
               <Zap className="h-3.5 w-3.5 text-blue-400" />
-              <span className="text-xs font-medium text-slate-300 tracking-wide">Roadcall Fleet</span>
+              <span className="text-xs font-medium text-roadcall-silver/85 tracking-wide">Roadcall Fleet</span>
             </div>
           </FadeIn>
           <FadeIn delay={0.1}>
@@ -83,7 +83,7 @@ export default function FleetPage() {
             </h1>
           </FadeIn>
           <FadeIn delay={0.2}>
-            <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-12 leading-relaxed">
+            <p className="text-lg md:text-xl text-roadcall-silver/85 max-w-2xl mx-auto mb-12 leading-relaxed">
               Every driver breakdown automated — from AI intake to mechanic dispatch. Without forcing your fleet&apos;s sensitive data into a third-party CRM.
             </p>
           </FadeIn>
@@ -95,19 +95,19 @@ export default function FleetPage() {
                 </Button>
               </Link>
               <a href={telHref(HELP_PHONE)}>
-                <Button size="lg" variant="outline" className="border-white/20 bg-white/5 backdrop-blur-sm text-white hover:bg-white/10 rounded-xl px-8">
+                <Button size="lg" variant="outline" className="border-roadcall-cyan/20 bg-roadcall-panel/45 backdrop-blur-sm text-white hover:bg-roadcall-panel/60 rounded-xl px-8">
                   <Phone className="h-5 w-5 mr-2" /> Hear Sandy Live
                 </Button>
               </a>
             </div>
-            <p className="text-sm text-slate-400">No commitment · Enterprise pricing available · White-glove onboarding</p>
+            <p className="text-sm text-roadcall-muted">No commitment · Enterprise pricing available · White-glove onboarding</p>
           </FadeIn>
         </div>
       </section>
 
       {/* Social proof strip */}
-      <section className="border-y border-white/[0.06] bg-white/[0.02] py-5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm text-slate-400">
+      <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/20 py-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm text-roadcall-muted">
           {["Your data — not in GHL", "Private tenant isolation", "35,000+ mechanics nationwide", "Samsara & Motive integrations"].map((t) => (
             <div key={t} className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-blue-400" /><span>{t}</span>
@@ -132,7 +132,7 @@ export default function FleetPage() {
                     <f.icon className="h-5 w-5 text-blue-400" />
                   </div>
                   <h3 className="font-semibold text-white mb-2">{f.title}</h3>
-                  <p className="text-sm text-slate-400 leading-relaxed">{f.description}</p>
+                  <p className="text-sm text-roadcall-muted leading-relaxed">{f.description}</p>
                 </GlassCard>
               </FadeIn>
             ))}
@@ -141,7 +141,7 @@ export default function FleetPage() {
       </section>
 
       {/* How it works */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading eyebrow="The Flow" title="From breakdown to mechanic in 4 steps" />
           <div className="grid md:grid-cols-4 gap-6">
@@ -152,7 +152,7 @@ export default function FleetPage() {
                     <span className="text-lg font-bold text-white">{step.step}</span>
                   </div>
                   <h3 className="font-semibold text-white mb-2">{step.title}</h3>
-                  <p className="text-sm text-slate-400">{step.description}</p>
+                  <p className="text-sm text-roadcall-muted">{step.description}</p>
                 </div>
               </FadeIn>
             ))}
@@ -161,7 +161,7 @@ export default function FleetPage() {
       </section>
 
       {/* Security section */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <FadeIn direction="left">
@@ -170,12 +170,12 @@ export default function FleetPage() {
                 Your fleet data is<br />
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">yours. Full stop.</span>
               </h2>
-              <p className="text-slate-400 text-lg mb-8 leading-relaxed">
+              <p className="text-roadcall-muted text-lg mb-8 leading-relaxed">
                 Unlike solutions that route incident data through third-party CRMs, Roadcall Fleet keeps every driver call, location record, dispatch event, and audit trail in your own isolated environment.
               </p>
               <ul className="space-y-3 mb-8">
                 {securityPoints.map((point) => (
-                  <li key={point} className="flex items-start gap-3 text-slate-300 text-sm">
+                  <li key={point} className="flex items-start gap-3 text-roadcall-silver/85 text-sm">
                     <Shield className="h-5 w-5 text-blue-400 shrink-0 mt-0.5" /> {point}
                   </li>
                 ))}
@@ -188,7 +188,7 @@ export default function FleetPage() {
             </FadeIn>
             <FadeIn direction="right">
               <div className="rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-cyan-500/5 p-8">
-                <div className="text-sm font-semibold text-slate-300 mb-6">Data Architecture</div>
+                <div className="text-sm font-semibold text-roadcall-silver/85 mb-6">Data Architecture</div>
                 {[
                   { label: "Incident Records", owner: "Your DB", color: "bg-blue-500" },
                   { label: "Driver Profiles", owner: "Your DB", color: "bg-blue-500" },
@@ -199,10 +199,10 @@ export default function FleetPage() {
                   { label: "GHL CRM Data", owner: "NOT used in Fleet", color: "bg-red-500/50" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                    <span className="text-sm text-slate-300">{item.label}</span>
+                    <span className="text-sm text-roadcall-silver/85">{item.label}</span>
                     <div className="flex items-center gap-2">
                       <div className={`h-2 w-2 rounded-full ${item.color}`} />
-                      <span className="text-xs text-slate-400">{item.owner}</span>
+                      <span className="text-xs text-roadcall-muted">{item.owner}</span>
                     </div>
                   </div>
                 ))}
@@ -213,7 +213,7 @@ export default function FleetPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 border-t border-white/[0.06]">
+      <section className="py-24 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading eyebrow="Fleet operators trust us" title="Results from the road" />
           <div className="grid md:grid-cols-3 gap-6">
@@ -225,10 +225,10 @@ export default function FleetPage() {
               <FadeIn key={t.name}>
                 <GlassCard className="p-6 flex flex-col h-full">
                   <div className="flex gap-1 mb-4">{Array.from({ length: t.rating }).map((_, i) => <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />)}</div>
-                  <p className="text-slate-300 text-sm leading-relaxed flex-1 mb-4">&ldquo;{t.quote}&rdquo;</p>
+                  <p className="text-roadcall-silver/85 text-sm leading-relaxed flex-1 mb-4">&ldquo;{t.quote}&rdquo;</p>
                   <div>
                     <div className="text-sm font-semibold text-white">{t.name}</div>
-                    <div className="text-xs text-slate-500">{t.location}</div>
+                    <div className="text-xs text-roadcall-muted/70">{t.location}</div>
                     <div className="text-xs mt-1 font-medium text-blue-400">Roadcall Fleet</div>
                   </div>
                 </GlassCard>
@@ -239,11 +239,11 @@ export default function FleetPage() {
       </section>
 
       {/* Bottom CTA */}
-      <section className="py-24 border-t border-white/[0.06]">
+      <section className="py-24 border-t border-roadcall-cyan/10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
             <h2 className="text-4xl font-bold mb-4">Ready to automate your roadside support?</h2>
-            <p className="text-slate-400 text-lg mb-8">Let&apos;s walk through a live demo built around your fleet.</p>
+            <p className="text-roadcall-muted text-lg mb-8">Let&apos;s walk through a live demo built around your fleet.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/fleet/onboarding">
                 <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-full px-8">
@@ -251,7 +251,7 @@ export default function FleetPage() {
                 </Button>
               </Link>
               <Link href="/fleet/features">
-                <Button size="lg" variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10 rounded-full px-8">
+                <Button size="lg" variant="outline" className="border-white/15 bg-roadcall-panel/45 text-white hover:bg-roadcall-panel/60 rounded-full px-8">
                   See All Features
                 </Button>
               </Link>

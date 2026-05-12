@@ -73,7 +73,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${inter.className} bg-[#050a14] text-white`}>
+      <body className={`${inter.className} bg-roadcall-void text-roadcall-silver`}>
         <SiteHeader />
         <main className="min-h-screen">
           {children}

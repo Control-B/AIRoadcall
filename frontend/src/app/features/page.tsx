@@ -79,9 +79,9 @@ const deepFeatures = [
       "Automatic fallback to second and third best matches",
     ],
     icon: Wrench,
-    accent: "from-orange-500 to-amber-500",
-    iconBg: "from-orange-500/20 to-amber-500/20",
-    iconBorder: "border-orange-500/10",
+    accent: "from-roadcall-orange to-amber-500",
+    iconBg: "from-roadcall-orange/20 to-roadcall-cyan/20",
+    iconBorder: "border-roadcall-orange/20",
   },
   {
     id: "tracking",
@@ -182,7 +182,7 @@ export default function FeaturesPage() {
           </FadeIn>
 
           <FadeIn delay={0.2}>
-            <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-roadcall-silver/85 max-w-3xl mx-auto leading-relaxed">
               From the AI voice call to the live tracking map — every piece
               of the roadside rescue workflow, automated and intelligent.
             </p>
@@ -191,20 +191,20 @@ export default function FeaturesPage() {
       </section>
 
       {/* ── Quick features grid ───────────────────────── */}
-      <section className="border-y border-white/[0.06] bg-white/[0.02] py-12">
+      <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/20 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {quickFeatures.map((f, idx) => (
               <FadeIn key={f.label} delay={idx * 0.05}>
                 <div className="flex items-start gap-3">
-                  <div className="h-10 w-10 rounded-xl bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
-                    <f.icon className="h-5 w-5 text-slate-400" />
+                  <div className="h-10 w-10 rounded-xl bg-roadcall-panel/45 border border-roadcall-cyan/10 flex items-center justify-center shrink-0">
+                    <f.icon className="h-5 w-5 text-roadcall-muted" />
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-white">
                       {f.label}
                     </p>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-roadcall-muted/70 mt-0.5">
                       {f.description}
                     </p>
                   </div>
@@ -224,7 +224,7 @@ export default function FeaturesPage() {
             idx % 2 === 0
               ? ""
               : "bg-gradient-to-b from-white/[0.02] to-transparent"
-          } border-t border-white/[0.06]`}
+          } border-t border-roadcall-cyan/10`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div
@@ -243,14 +243,14 @@ export default function FeaturesPage() {
                   <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-5">
                     {feature.title}
                   </h2>
-                  <p className="text-lg text-slate-400 leading-relaxed mb-8">
+                  <p className="text-lg text-roadcall-muted leading-relaxed mb-8">
                     {feature.description}
                   </p>
                   <ul className="space-y-3">
                     {feature.bullets.map((bullet) => (
                       <li key={bullet} className="flex items-start gap-3">
                         <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-300 text-[15px]">
+                        <span className="text-roadcall-silver/85 text-[15px]">
                           {bullet}
                         </span>
                       </li>
@@ -279,7 +279,7 @@ export default function FeaturesPage() {
                       <p className="text-lg font-semibold text-white text-center">
                         {feature.eyebrow}
                       </p>
-                      <p className="text-sm text-slate-500 text-center mt-1">
+                      <p className="text-sm text-roadcall-muted/70 text-center mt-1">
                         Powered by Roadcall.ai
                       </p>
                     </GlassCard>
@@ -292,17 +292,17 @@ export default function FeaturesPage() {
       ))}
 
       {/* ── Final CTA ─────────────────────────────────── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-blue-600/10 via-cyan-600/5 to-transparent p-12 md:p-16 relative overflow-hidden">
+            <div className="rounded-3xl border border-roadcall-cyan/10 bg-gradient-to-br from-blue-600/10 via-cyan-600/5 to-transparent p-12 md:p-16 relative overflow-hidden">
               <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-blue-600/10 blur-[80px]" />
               <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-cyan-600/10 blur-[80px]" />
               <div className="relative z-10">
                 <h2 className="text-3xl md:text-5xl font-bold mb-6">
                   See it in action
                 </h2>
-                <p className="text-xl text-slate-300 mb-10 max-w-xl mx-auto">
+                <p className="text-xl text-roadcall-silver/85 mb-10 max-w-xl mx-auto">
                   Call our demo line and experience every feature firsthand
                   — from the AI voice agent to the magic link.
                 </p>
@@ -310,7 +310,7 @@ export default function FeaturesPage() {
                   <a href={telHref(HELP_PHONE)}>
                     <Button
                       size="xl"
-                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-xl gap-3 rounded-2xl shadow-xl shadow-orange-600/20"
+                      className="bg-gradient-to-r from-roadcall-orange to-roadcall-blue hover:from-roadcall-orange hover:to-roadcall-blue text-xl gap-3 rounded-2xl shadow-xl shadow-roadcall-orange/20"
                     >
                       <Phone className="h-6 w-6" />
                       Call {HELP_PHONE}
@@ -320,7 +320,7 @@ export default function FeaturesPage() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="rounded-full border-white/20 text-white hover:bg-white/5 px-8"
+                      className="rounded-full border-roadcall-cyan/20 text-white hover:bg-roadcall-panel/45 px-8"
                     >
                       View Pricing
                       <ArrowRight className="h-4 w-4 ml-2" />

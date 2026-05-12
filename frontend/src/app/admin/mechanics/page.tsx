@@ -395,10 +395,10 @@ export default function AdminMechanicsPage() {
                 <tbody>
                   {groupedRecords.map((stateGroup) => (
                     <Fragment key={stateGroup.state}>
-                      <tr className="border-b border-slate-700 bg-slate-950/70">
+                      <tr className="border-b border-slate-700 bg-roadcall-void/70">
                         <td colSpan={7} className="py-3 pr-4">
                           <div className="flex items-center gap-2 text-white">
-                            <MapPin className="h-4 w-4 text-orange-400" />
+                            <MapPin className="h-4 w-4 text-roadcall-orange" />
                             <span className="font-semibold">{stateGroup.state}</span>
                             <Badge variant="outline">{stateGroup.count} records</Badge>
                           </div>
@@ -406,8 +406,8 @@ export default function AdminMechanicsPage() {
                       </tr>
                       {stateGroup.cities.map((cityGroup) => (
                         <Fragment key={`${stateGroup.state}-${cityGroup.city}`}>
-                          <tr className="border-b border-slate-800 bg-slate-900/40">
-                            <td colSpan={7} className="py-2 pr-4 text-sm text-slate-200">
+                          <tr className="border-b border-slate-800 bg-roadcall-ink/40">
+                            <td colSpan={7} className="py-2 pr-4 text-sm text-roadcall-silver">
                               <span className="font-medium">{cityGroup.city}</span>
                               <span className="ml-2 text-xs text-muted-foreground">
                                 {cityGroup.items.length} mechanic{cityGroup.items.length === 1 ? "" : "s"}

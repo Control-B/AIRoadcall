@@ -136,19 +136,19 @@ export default function MarketplacePage() {
   }, [data]);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <section className="relative overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(37,99,235,0.35),transparent_32%),radial-gradient(circle_at_top_right,rgba(16,185,129,0.24),transparent_30%)]" />
+    <main className="roadcall-page min-h-screen text-roadcall-silver">
+      <section className="relative overflow-hidden border-b border-roadcall-cyan/10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,216,255,0.26),transparent_32%),radial-gradient(circle_at_top_right,rgba(10,132,255,0.26),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(255,138,0,0.13),transparent_26%)]" />
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/30 bg-cyan-300/10 px-3 py-1 text-sm text-cyan-100">
+              <div className="roadcall-chip inline-flex items-center gap-2 rounded-full px-3 py-1 text-sm">
                 <Radar className="h-4 w-4" /> AI roadside dispatch marketplace
               </div>
               <h1 className="mt-6 max-w-4xl text-4xl font-black tracking-tight sm:text-6xl">
                 Find roadside help with deterministic dispatch intelligence.
               </h1>
-              <p className="mt-5 max-w-2xl text-lg text-slate-300">
+              <p className="mt-5 max-w-2xl text-lg text-roadcall-muted">
                 Roadcall ranks providers by fit, radius, roadside capability, trust, response confidence,
                 and operational readiness — before an AI ever spends tokens.
               </p>
@@ -159,14 +159,14 @@ export default function MarketplacePage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-4 shadow-2xl backdrop-blur">
-              <div className="rounded-2xl bg-slate-900/90 p-5">
+            <div className="roadcall-surface rounded-3xl p-4 shadow-2xl">
+              <div className="rounded-2xl bg-roadcall-ink/90 p-5">
                 <div className="mb-5 flex items-center gap-3">
-                  <div className="rounded-2xl bg-blue-500 p-3">
+                  <div className="rounded-2xl bg-gradient-to-br from-roadcall-blue to-roadcall-cyan p-3 shadow-lg shadow-roadcall-blue/25">
                     <Bot className="h-6 w-6" />
                   </div>
                   <div>
-                    <p className="text-sm uppercase tracking-[0.3em] text-blue-200">Need help now?</p>
+                    <p className="text-sm uppercase tracking-[0.3em] text-roadcall-cyan">Need help now?</p>
                     <h2 className="text-xl font-bold">AI intake → ranked providers</h2>
                   </div>
                 </div>
@@ -176,19 +176,19 @@ export default function MarketplacePage() {
                   <Select label="Issue" value={issueType} onChange={setIssueType} options={ISSUE_OPTIONS} />
                   <Select label="Vehicle" value={vehicleType} onChange={setVehicleType} options={VEHICLE_OPTIONS} />
                 </div>
-                <label className="mt-4 flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm text-slate-200">
+                <label className="mt-4 flex items-center gap-2 rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/60 px-3 py-3 text-sm text-roadcall-silver">
                   <input
                     type="checkbox"
                     checked={emergencyOnly}
                     onChange={(event) => setEmergencyOnly(event.target.checked)}
-                    className="h-4 w-4 rounded border-white/20"
+                    className="h-4 w-4 rounded border-roadcall-cyan/20"
                   />
                   Only show 24/7 emergency-capable providers
                 </label>
                 <button
                   onClick={search}
                   disabled={loading}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3 font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:bg-blue-400 disabled:opacity-60"
+                  className="roadcall-primary-button mt-4 flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold transition disabled:opacity-60"
                 >
                   {loading ? <Activity className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                   Rank providers
@@ -211,18 +211,18 @@ export default function MarketplacePage() {
         <div className="mb-5 flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
             <h2 className="text-2xl font-bold">Ranked provider intelligence</h2>
-            <p className="mt-1 text-sm text-slate-400">
+            <p className="mt-1 text-sm text-roadcall-muted">
               {data?.summary || "Search a city/state to see operational marketplace rankings."}
             </p>
           </div>
-          <div className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300">
+          <div className="rounded-full border border-roadcall-cyan/10 px-3 py-1 text-xs text-roadcall-silver/85">
             Scores combine distance, roadside fit, service match, reliability, availability, reviews, response speed, and fleet fit.
           </div>
         </div>
 
         {loading ? (
           <div className="grid gap-4 lg:grid-cols-3">
-            {[...Array(6)].map((_, index) => <div key={index} className="h-72 animate-pulse rounded-3xl bg-white/10" />)}
+            {[...Array(6)].map((_, index) => <div key={index} className="h-72 animate-pulse rounded-3xl bg-roadcall-panel/60" />)}
           </div>
         ) : data?.providers.length ? (
           <div className="grid gap-4 lg:grid-cols-3">
@@ -237,14 +237,14 @@ export default function MarketplacePage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-slate-300">
+          <div className="rounded-3xl border border-roadcall-cyan/10 bg-roadcall-panel/45 p-10 text-center text-roadcall-silver/85">
             No providers found. Try a nearby city, wider radius, or disable 24/7-only.
           </div>
         )}
 
-        <div className="mt-10 flex flex-col items-center gap-3 rounded-3xl border border-white/10 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 p-8 text-center">
+        <div className="mt-10 flex flex-col items-center gap-3 rounded-3xl border border-roadcall-cyan/10 bg-gradient-to-r from-blue-500/10 to-emerald-500/10 p-8 text-center">
           <h3 className="text-xl font-bold">Own a roadside or repair business?</h3>
-          <p className="max-w-2xl text-sm text-slate-300">
+          <p className="max-w-2xl text-sm text-roadcall-silver/85">
             Add your business to the Roadcall marketplace for free. To edit a listing later you must claim it as the owner — verified by phone or by an active Roadcall subscription (AI Telephony, AI Voice + Text, Social Media, or Website Management).
           </p>
           <button
@@ -271,18 +271,18 @@ export default function MarketplacePage() {
 
 function Metric({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur">
+    <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/60 p-4 backdrop-blur">
       <Icon className="mb-3 h-5 w-5 text-cyan-200" />
       <p className="text-2xl font-black">{value}</p>
-      <p className="text-sm text-slate-300">{label}</p>
+      <p className="text-sm text-roadcall-silver/85">{label}</p>
     </div>
   );
 }
 
 function IntelCard({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.06] p-4">
-      <div className="mb-3 flex items-center gap-2 text-slate-400">
+    <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-4">
+      <div className="mb-3 flex items-center gap-2 text-roadcall-muted">
         <Icon className="h-4 w-4" />
         <span className="text-xs uppercase tracking-[0.2em]">{label}</span>
       </div>
@@ -294,14 +294,14 @@ function IntelCard({ icon: Icon, label, value }: { icon: React.ElementType; labe
 function ProviderCard({ provider, rank, onRate, onClaim }: { provider: Provider; rank: number; onRate: () => void; onClaim: () => void }) {
   const scorePercent = Math.round(provider.marketplace_score * 100);
   return (
-    <article className="rounded-3xl border border-white/10 bg-white/[0.06] p-5 shadow-xl transition hover:border-blue-300/40 hover:bg-white/[0.09]">
+    <article className="rounded-3xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-5 shadow-xl transition hover:border-blue-300/40 hover:bg-roadcall-panel/70">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="mb-2 inline-flex rounded-full bg-blue-500/15 px-2.5 py-1 text-xs font-semibold text-blue-200">
             #{rank} dispatch fit
           </div>
           <h3 className="line-clamp-2 text-lg font-bold">{provider.company_name}</h3>
-          <p className="mt-1 flex items-center gap-1 text-sm text-slate-400">
+          <p className="mt-1 flex items-center gap-1 text-sm text-roadcall-muted">
             <MapPin className="h-3.5 w-3.5" /> {[provider.city, provider.state].filter(Boolean).join(", ") || "Service area"}
           </p>
         </div>
@@ -319,13 +319,13 @@ function ProviderCard({ provider, rank, onRate, onClaim }: { provider: Provider;
 
       <div className="mt-4 flex flex-wrap gap-2">
         {provider.badges.slice(0, 4).map((badge) => (
-          <span key={badge} className="rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-xs text-slate-200">
+          <span key={badge} className="rounded-full border border-roadcall-cyan/10 bg-roadcall-panel/60 px-2.5 py-1 text-xs text-roadcall-silver">
             {badge}
           </span>
         ))}
       </div>
 
-      <div className="mt-4 space-y-2 text-sm text-slate-300">
+      <div className="mt-4 space-y-2 text-sm text-roadcall-silver/85">
         {provider.reasons.slice(0, 4).map((reason) => (
           <p key={reason} className="flex gap-2">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" /> {reason}
@@ -333,8 +333,8 @@ function ProviderCard({ provider, rank, onRate, onClaim }: { provider: Provider;
         ))}
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/10 pt-4 text-sm text-slate-300">
-        <div className="flex items-center gap-2"><Star className="h-4 w-4 text-amber-300" /> {provider.rating ? `${provider.rating.toFixed(1)} (${provider.review_count || 0})` : "Rating pending"}</div>
+      <div className="mt-5 grid grid-cols-2 gap-3 border-t border-roadcall-cyan/10 pt-4 text-sm text-roadcall-silver/85">
+        <div className="flex items-center gap-2"><Star className="h-4 w-4 text-roadcall-orange" /> {provider.rating ? `${provider.rating.toFixed(1)} (${provider.review_count || 0})` : "Rating pending"}</div>
         <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-cyan-300" /> {provider.estimated_response_minutes ? `${provider.estimated_response_minutes} min` : "ETA unknown"}</div>
         <div className="flex items-center gap-2"><Wrench className="h-4 w-4 text-blue-300" /> {provider.service_radius_miles} mi radius</div>
         <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-300" /> {provider.trust_level.replace("_", " ")}</div>
@@ -357,10 +357,10 @@ function ProviderCard({ provider, rank, onRate, onClaim }: { provider: Provider;
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-      <div className="w-full max-w-lg rounded-3xl border border-white/10 bg-slate-900 p-6 shadow-2xl">
+      <div className="w-full max-w-lg rounded-3xl border border-roadcall-cyan/10 bg-roadcall-ink p-6 shadow-2xl">
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-white">{title}</h3>
-          <button onClick={onClose} className="rounded-full p-1 text-slate-400 hover:bg-white/10 hover:text-white">
+          <button onClick={onClose} className="rounded-full p-1 text-roadcall-muted hover:bg-roadcall-panel/60 hover:text-white">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -373,13 +373,13 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">{label}</span>
+      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-roadcall-muted">{label}</span>
       {children}
     </label>
   );
 }
 
-const INPUT_CLS = "w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-white outline-none placeholder:text-slate-500 focus:border-blue-300";
+const INPUT_CLS = "w-full rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/60 px-3 py-2 text-white outline-none placeholder:text-roadcall-muted/70 focus:border-blue-300";
 
 function RateModal({ provider, onClose, onSaved }: { provider: Provider; onClose: () => void; onSaved: () => void }) {
   const [rating, setRating] = useState(5);
@@ -411,7 +411,7 @@ function RateModal({ provider, onClose, onSaved }: { provider: Provider; onClose
         <Field label="Rating">
           <div className="flex gap-2">
             {[1,2,3,4,5].map((n) => (
-              <button key={n} onClick={() => setRating(n)} className={`text-3xl ${n <= rating ? "text-amber-300" : "text-slate-600"}`}>★</button>
+              <button key={n} onClick={() => setRating(n)} className={`text-3xl ${n <= rating ? "text-roadcall-orange" : "text-roadcall-muted/55"}`}>★</button>
             ))}
           </div>
         </Field>
@@ -459,7 +459,7 @@ function ClaimModal({ provider, onClose, onSaved }: { provider: Provider; onClos
 
   return (
     <Modal title={`Claim ${provider.company_name}`} onClose={onClose}>
-      <p className="mb-4 text-sm text-slate-300">
+      <p className="mb-4 text-sm text-roadcall-silver/85">
         To prevent competitive or malicious edits, only the verified business owner can edit this listing.
         We'll auto-approve if your phone matches the listing or your active Roadcall subscription.
       </p>
@@ -468,7 +468,7 @@ function ClaimModal({ provider, onClose, onSaved }: { provider: Provider; onClos
         <Field label="Your business phone"><input value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT_CLS} placeholder="(555) 555-1234" /></Field>
         <Field label="Email (optional)"><input value={email} onChange={(e) => setEmail(e.target.value)} className={INPUT_CLS} /></Field>
         <Field label="Roadcall subscription product">
-          <select value={product} onChange={(e) => setProduct(e.target.value)} className="w-full rounded-xl border border-white/10 bg-slate-800 px-3 py-2 text-white outline-none focus:border-blue-300">
+          <select value={product} onChange={(e) => setProduct(e.target.value)} className="w-full rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel px-3 py-2 text-white outline-none focus:border-blue-300">
             <option value="">Not yet a subscriber</option>
             <option value="ai_telephony">AI Telephony</option>
             <option value="ai_voice_text">AI Voice + Text</option>
@@ -538,8 +538,8 @@ function SubmitModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         <Field label="Services (comma-separated, e.g. tow_needed, flat_tire, lockout)"><input value={services} onChange={(e) => setServices(e.target.value)} className={INPUT_CLS} /></Field>
         <Field label="Vehicle types (comma-separated, e.g. car, truck, heavy_duty)"><input value={vehicles} onChange={(e) => setVehicles(e.target.value)} className={INPUT_CLS} /></Field>
         <div className="grid gap-3 sm:grid-cols-3">
-          <label className="flex items-center gap-2 text-sm text-slate-200"><input type="checkbox" checked={form.accepts_mobile_roadside} onChange={(e) => update("accepts_mobile_roadside", e.target.checked)} /> Mobile roadside</label>
-          <label className="flex items-center gap-2 text-sm text-slate-200"><input type="checkbox" checked={form.emergency_service} onChange={(e) => update("emergency_service", e.target.checked)} /> 24/7 emergency</label>
+          <label className="flex items-center gap-2 text-sm text-roadcall-silver"><input type="checkbox" checked={form.accepts_mobile_roadside} onChange={(e) => update("accepts_mobile_roadside", e.target.checked)} /> Mobile roadside</label>
+          <label className="flex items-center gap-2 text-sm text-roadcall-silver"><input type="checkbox" checked={form.emergency_service} onChange={(e) => update("emergency_service", e.target.checked)} /> 24/7 emergency</label>
           <Field label="Service radius (mi)"><input type="number" value={form.service_radius_miles} onChange={(e) => update("service_radius_miles", Number(e.target.value) || 50)} className={INPUT_CLS} /></Field>
         </div>
         {err && <p className="text-sm text-red-300">{err}</p>}
@@ -547,7 +547,7 @@ function SubmitModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         <button disabled={busy || !form.company_name || !form.contact_name || !form.phone} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 font-semibold text-white hover:bg-emerald-400 disabled:opacity-60">
           <Plus className="h-4 w-4" /> Submit listing
         </button>
-        <p className="text-xs text-slate-400">Your listing will be reviewed by our team before going live. To edit it later, use the &ldquo;Claim listing&rdquo; option.</p>
+        <p className="text-xs text-roadcall-muted">Your listing will be reviewed by our team before going live. To edit it later, use the &ldquo;Claim listing&rdquo; option.</p>
       </div>
     </Modal>
   );
@@ -555,9 +555,9 @@ function SubmitModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
 
 function ScorePill({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl bg-slate-900/70 px-2 py-2">
+    <div className="rounded-xl bg-roadcall-ink/70 px-2 py-2">
       <p className="font-bold text-white">{Math.round(value * 100)}%</p>
-      <p className="text-slate-500">{label}</p>
+      <p className="text-roadcall-muted/70">{label}</p>
     </div>
   );
 }
@@ -565,11 +565,11 @@ function ScorePill({ label, value }: { label: string; value: number }) {
 function Input({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">{label}</span>
+      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-roadcall-muted">{label}</span>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-white outline-none placeholder:text-slate-500 focus:border-blue-300"
+        className="w-full rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/60 px-3 py-2 text-white outline-none placeholder:text-roadcall-muted/70 focus:border-blue-300"
       />
     </label>
   );
@@ -578,11 +578,11 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: string[][] }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-slate-400">{label}</span>
+      <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-roadcall-muted">{label}</span>
       <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-xl border border-white/10 bg-slate-800 px-3 py-2 text-white outline-none focus:border-blue-300"
+        className="w-full rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel px-3 py-2 text-white outline-none focus:border-blue-300"
       >
         {options.map(([id, labelText]) => <option key={id} value={id}>{labelText}</option>)}
       </select>

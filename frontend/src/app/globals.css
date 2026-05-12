@@ -4,23 +4,34 @@
 
 @layer base {
   :root {
-    --background: 222 47% 4%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 6%;
+    --roadcall-void: #020715;
+    --roadcall-ink: #050b18;
+    --roadcall-navy: #071a33;
+    --roadcall-panel: #0b1830;
+    --roadcall-line: #153c75;
+    --roadcall-blue: #0a84ff;
+    --roadcall-cyan: #14d8ff;
+    --roadcall-orange: #ff8a00;
+    --roadcall-silver: #dbeafe;
+    --roadcall-muted: #8fb4d9;
+
+    --background: 223 83% 5%;
+    --foreground: 213 100% 93%;
+    --card: 220 59% 11%;
     --card-foreground: 210 40% 98%;
-    --primary: 24 95% 53%;
+    --primary: 209 100% 52%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 217 33% 17%;
+    --secondary: 217 64% 18%;
     --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 217 33% 17%;
+    --muted: 215 58% 15%;
+    --muted-foreground: 209 48% 71%;
+    --accent: 31 100% 50%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 24 95% 53%;
+    --border: 215 69% 27%;
+    --input: 217 64% 18%;
+    --ring: 191 100% 54%;
     --radius: 0.75rem;
   }
 }
@@ -34,8 +45,65 @@
   }
   body {
     @apply bg-background text-foreground;
+    background:
+      radial-gradient(circle at 18% 8%, rgba(20, 216, 255, 0.16), transparent 26rem),
+      radial-gradient(circle at 88% 4%, rgba(10, 132, 255, 0.16), transparent 28rem),
+      radial-gradient(circle at 78% 88%, rgba(255, 138, 0, 0.10), transparent 24rem),
+      linear-gradient(135deg, var(--roadcall-void) 0%, var(--roadcall-ink) 46%, #031326 100%);
+    background-attachment: fixed;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background: rgba(20, 216, 255, 0.32);
+    color: white;
+  }
+}
+
+@layer components {
+  .roadcall-page {
+    background:
+      radial-gradient(circle at 15% 0%, rgba(20, 216, 255, 0.16), transparent 30rem),
+      radial-gradient(circle at 90% 8%, rgba(10, 132, 255, 0.18), transparent 34rem),
+      radial-gradient(circle at 80% 92%, rgba(255, 138, 0, 0.12), transparent 26rem),
+      linear-gradient(135deg, var(--roadcall-void), var(--roadcall-ink) 50%, #031528);
+  }
+
+  .roadcall-surface {
+    border: 1px solid rgba(20, 216, 255, 0.16);
+    background: linear-gradient(135deg, rgba(11, 24, 48, 0.88), rgba(3, 12, 30, 0.74));
+    box-shadow: 0 24px 80px rgba(2, 7, 21, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(18px);
+  }
+
+  .roadcall-chip {
+    border: 1px solid rgba(20, 216, 255, 0.28);
+    background: rgba(20, 216, 255, 0.08);
+    color: var(--roadcall-silver);
+  }
+
+  .roadcall-gradient-text {
+    background: linear-gradient(90deg, #ffffff 0%, var(--roadcall-cyan) 42%, var(--roadcall-blue) 72%, var(--roadcall-orange) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .roadcall-primary-button {
+    background: linear-gradient(90deg, var(--roadcall-blue), var(--roadcall-cyan));
+    color: white;
+    box-shadow: 0 18px 42px rgba(10, 132, 255, 0.26);
+  }
+
+  .roadcall-primary-button:hover {
+    filter: brightness(1.08);
+  }
+
+  .roadcall-orange-button {
+    background: linear-gradient(90deg, var(--roadcall-orange), #ffb02e);
+    color: #061226;
+    box-shadow: 0 18px 42px rgba(255, 138, 0, 0.24);
   }
 }
 

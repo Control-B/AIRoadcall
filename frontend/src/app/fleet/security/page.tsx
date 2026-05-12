@@ -33,7 +33,7 @@ const DATA_MODES = [
     name: "Private Tenant",
     tag: "Enterprise",
     color: "border-slate-300 bg-white",
-    tagColor: "bg-slate-800 text-white",
+    tagColor: "bg-roadcall-panel text-white",
     items: [
       "Dedicated infrastructure, your namespace",
       "No shared resources with other fleets",
@@ -72,14 +72,14 @@ export default function FleetSecurityPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/30 z-10" />
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(59,130,246,0.22),transparent_70%)] z-10" />
         <div className="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 w-full pb-16 pt-28 text-center">
-          <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-sm font-medium px-4 py-1.5 rounded-full mb-8 text-slate-200">
+          <span className="inline-flex items-center gap-2 bg-roadcall-panel/60 border border-roadcall-cyan/20 backdrop-blur-sm text-sm font-medium px-4 py-1.5 rounded-full mb-8 text-roadcall-silver">
             Roadcall Fleet — Security
           </span>
           <h1 className="text-5xl md:text-6xl font-black leading-[0.95] mb-6 text-white">
             Fleet roadside automation<br />
             <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">with controlled data access</span>
           </h1>
-          <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg text-roadcall-silver/85 max-w-2xl mx-auto mb-10 leading-relaxed">
             Enterprise roadside support without forcing fleet data into a third-party CRM.
             Your data architecture. Your rules.
           </p>
@@ -92,7 +92,7 @@ export default function FleetSecurityPage() {
             </Link>
             <a
               href={`tel:${HELP_PHONE}`}
-              className="border border-white/30 bg-white/5 backdrop-blur-sm text-white font-semibold px-8 py-3 rounded-xl hover:bg-white/10 transition-colors"
+              className="border border-roadcall-cyan/30 bg-roadcall-panel/45 backdrop-blur-sm text-white font-semibold px-8 py-3 rounded-xl hover:bg-roadcall-panel/60 transition-colors"
             >
               Call {HELP_PHONE}
             </a>

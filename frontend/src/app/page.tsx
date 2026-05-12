@@ -84,7 +84,7 @@ function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general"
           <CheckCircle2 className="h-6 w-6 text-emerald-400" />
         </div>
         <p className="text-white font-semibold text-lg">You&apos;re on the list.</p>
-        <p className="text-slate-400 text-sm">Check your inbox — we sent you a welcome note.</p>
+        <p className="text-roadcall-muted text-sm">Check your inbox — we sent you a welcome note.</p>
       </div>
     );
   }
@@ -97,7 +97,7 @@ function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general"
           placeholder="First name (optional)"
           value={name}
           onChange={e => setName(e.target.value)}
-          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500/50 focus:bg-white/8 transition-all"
+          className="flex-1 bg-roadcall-panel/45 border border-roadcall-cyan/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-roadcall-muted/70 focus:outline-none focus:border-orange-500/50 focus:bg-white/8 transition-all"
         />
         <input
           type="email"
@@ -105,13 +105,13 @@ function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general"
           placeholder="your@email.com"
           value={email}
           onChange={e => setEmail(e.target.value)}
-          className="flex-[2] bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-orange-500/50 focus:bg-white/8 transition-all"
+          className="flex-[2] bg-roadcall-panel/45 border border-roadcall-cyan/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-roadcall-muted/70 focus:outline-none focus:border-orange-500/50 focus:bg-white/8 transition-all"
         />
       </div>
       <button
         type="submit"
         disabled={status === "loading"}
-        className="w-full bg-orange-500 hover:bg-orange-400 disabled:opacity-60 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-roadcall-orange hover:brightness-110 disabled:opacity-60 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors flex items-center justify-center gap-2"
       >
         {status === "loading" ? (
           <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -122,7 +122,7 @@ function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general"
       {status === "error" && (
         <p className="text-red-400 text-xs mt-2 text-center">Something went wrong — try again in a moment.</p>
       )}
-      <p className="text-slate-500 text-xs mt-3 text-center">No spam. Unsubscribe anytime.</p>
+      <p className="text-roadcall-muted/70 text-xs mt-3 text-center">No spam. Unsubscribe anytime.</p>
     </form>
   );
 }
@@ -157,9 +157,9 @@ export default function HomePage() {
 
           {/* Badge */}
           <FadeIn>
-            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-10">
-              <Zap className="h-3.5 w-3.5 text-orange-400" />
-              <span className="text-xs font-medium text-slate-300 tracking-wide">AI-Driven Roadside Support &amp; AI Phones for the Trucking Industry</span>
+            <div className="inline-flex items-center gap-2 bg-roadcall-panel/45 border border-roadcall-cyan/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-10">
+              <Zap className="h-3.5 w-3.5 text-roadcall-orange" />
+              <span className="text-xs font-medium text-roadcall-silver/85 tracking-wide">AI-Driven Roadside Support &amp; AI Phones for the Trucking Industry</span>
             </div>
           </FadeIn>
 
@@ -172,7 +172,7 @@ export default function HomePage() {
           </FadeIn>
 
           <FadeIn delay={0.2}>
-            <p className="text-lg md:text-xl text-slate-300 max-w-xl mb-12 leading-relaxed">
+            <p className="text-lg md:text-xl text-roadcall-silver/85 max-w-xl mb-12 leading-relaxed">
               24/7 AI phone agents for mechanics. Less downtime for fleets.
               <br className="hidden sm:block" />
               One platform. Two powerful solutions.
@@ -186,19 +186,19 @@ export default function HomePage() {
               {/* Shops card */}
               <Link href="/shops">
                 <div className="group relative rounded-2xl border border-orange-500/25 bg-black/40 backdrop-blur-md p-6 text-left hover:border-orange-500/50 hover:bg-black/60 transition-all duration-200 cursor-pointer overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500/8 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-roadcall-orange/10 to-transparent" />
                   <div className="relative">
-                    <div className="text-[10px] font-bold text-orange-400 uppercase tracking-[0.2em] mb-3">Roadcall Shops</div>
+                    <div className="text-[10px] font-bold text-roadcall-orange uppercase tracking-[0.2em] mb-3">Roadcall Shops</div>
                     <h2 className="text-base font-bold text-white mb-1">AI Phones + CRM</h2>
-                    <p className="text-xs font-medium text-orange-300 mb-4">for Truck Mechanics</p>
+                    <p className="text-xs font-medium text-roadcall-orange mb-4">for Truck Mechanics</p>
                     <ul className="space-y-1.5 mb-5">
                       {["AI Call Answering","Missed-Call Text Back","Appointment Booking","CRM & Follow-Up"].map(i => (
-                        <li key={i} className="flex items-center gap-2 text-xs text-slate-300">
-                          <CheckCircle2 className="h-3 w-3 text-orange-400 shrink-0" />{i}
+                        <li key={i} className="flex items-center gap-2 text-xs text-roadcall-silver/85">
+                          <CheckCircle2 className="h-3 w-3 text-roadcall-orange shrink-0" />{i}
                         </li>
                       ))}
                     </ul>
-                    <div className="inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-400 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
+                    <div className="inline-flex items-center gap-1.5 bg-roadcall-orange hover:brightness-110 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
                       For Mechanics <ArrowRight className="h-3 w-3" />
                     </div>
                   </div>
@@ -215,7 +215,7 @@ export default function HomePage() {
                     <p className="text-xs font-medium text-blue-300 mb-4">for Fleets</p>
                     <ul className="space-y-1.5 mb-5">
                       {["AI Roadside Intake","GPS & Tracker Integration","Mechanic Matching","Dispatch & Tracking"].map(i => (
-                        <li key={i} className="flex items-center gap-2 text-xs text-slate-300">
+                        <li key={i} className="flex items-center gap-2 text-xs text-roadcall-silver/85">
                           <CheckCircle2 className="h-3 w-3 text-blue-400 shrink-0" />{i}
                         </li>
                       ))}
@@ -232,8 +232,8 @@ export default function HomePage() {
           {/* Phone CTA */}
           <FadeIn delay={0.4}>
             <div className="flex flex-wrap items-center gap-3">
-              <a href={telHref(HELP_PHONE)} className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm">
-                <div className="w-8 h-8 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+              <a href={telHref(HELP_PHONE)} className="inline-flex items-center gap-2 text-roadcall-muted hover:text-white transition-colors text-sm">
+                <div className="w-8 h-8 rounded-full bg-roadcall-panel/60 border border-roadcall-cyan/20 flex items-center justify-center">
                   <Phone className="h-3.5 w-3.5 text-white" />
                 </div>
                 <span>Call <strong className="text-white">{HELP_PHONE}</strong> — talk to Sandy live</span>
@@ -241,7 +241,7 @@ export default function HomePage() {
               <Link href="/marketplace" className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/15">
                 Explore marketplace <ArrowRight className="h-3.5 w-3.5" />
               </Link>
-              <Link href="/shops/operations" className="inline-flex items-center gap-2 rounded-full border border-orange-400/30 bg-orange-400/10 px-4 py-2 text-sm font-semibold text-orange-100 hover:bg-orange-400/15">
+              <Link href="/shops/operations" className="inline-flex items-center gap-2 rounded-full border border-roadcall-orange/30 bg-roadcall-orange/10 px-4 py-2 text-sm font-semibold text-roadcall-orange hover:bg-roadcall-cyan/10">
                 Provider operations <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
@@ -250,8 +250,8 @@ export default function HomePage() {
       </section>
 
       {/* ── Trust strip ─────────────────────────────────────────────── */}
-      <section className="border-y border-white/[0.06] bg-white/[0.02] py-5">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm text-slate-400">
+      <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/20 py-5">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm text-roadcall-muted">
           {["35,000+ mechanics nationwide","All 50 states covered","No app download needed","Cancel anytime"].map((text) => (
             <div key={text} className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -266,29 +266,29 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <FadeIn direction="left">
-              <div className="text-xs font-bold text-orange-400 uppercase tracking-[0.2em] mb-4">Roadcall Shops</div>
+              <div className="text-xs font-bold text-roadcall-orange uppercase tracking-[0.2em] mb-4">Roadcall Shops</div>
               <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
                 Never Miss Another
-                <span className="block bg-gradient-to-r from-orange-400 to-red-400 bg-clip-text text-transparent">Repair Call</span>
+                <span className="block bg-gradient-to-r from-roadcall-orange to-roadcall-cyan bg-clip-text text-transparent">Repair Call</span>
               </h2>
-              <p className="text-slate-400 text-lg mb-8 leading-relaxed">
+              <p className="text-roadcall-muted text-lg mb-8 leading-relaxed">
                 Your AI receptionist answers every call, captures the details, and books more jobs — while you focus on what you do best: fixing trucks.
               </p>
               <ul className="space-y-3 mb-10">
                 {["AI answers instantly, 24/7","Missed-call text-back in seconds","Appointment booking to your calendar","CRM pipeline with automated follow-up","Review request automation after jobs"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-slate-300">
-                    <CheckCircle2 className="h-4 w-4 text-orange-400 shrink-0" /> {item}
+                  <li key={item} className="flex items-center gap-3 text-roadcall-silver/85">
+                    <CheckCircle2 className="h-4 w-4 text-roadcall-orange shrink-0" /> {item}
                   </li>
                 ))}
               </ul>
               <div className="flex gap-3">
                 <Link href="/shops/onboarding">
-                  <Button className="bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl px-6">
+                  <Button className="bg-roadcall-orange hover:brightness-110 text-white font-semibold rounded-xl px-6">
                     Start All Phones
                   </Button>
                 </Link>
                 <Link href="/shops/features">
-                  <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 rounded-xl px-6">
+                  <Button variant="outline" className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl px-6">
                     See Features
                   </Button>
                 </Link>
@@ -298,9 +298,9 @@ export default function HomePage() {
               <div className="grid grid-cols-2 gap-4">
                 {shopsFeatures.map((f) => (
                   <GlassCard key={f.title} className="p-5">
-                    <f.icon className="h-6 w-6 text-orange-400 mb-3" />
+                    <f.icon className="h-6 w-6 text-roadcall-orange mb-3" />
                     <h3 className="text-sm font-semibold text-white mb-1.5">{f.title}</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">{f.description}</p>
+                    <p className="text-xs text-roadcall-muted leading-relaxed">{f.description}</p>
                   </GlassCard>
                 ))}
               </div>
@@ -310,7 +310,7 @@ export default function HomePage() {
       </section>
 
       {/* ── AI Roadside Support That Delivers (Fleet deep-dive) ──────── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <FadeIn direction="left" className="order-2 lg:order-1">
@@ -319,7 +319,7 @@ export default function HomePage() {
                   <GlassCard key={f.title} className="p-5">
                     <f.icon className="h-6 w-6 text-blue-400 mb-3" />
                     <h3 className="text-sm font-semibold text-white mb-1.5">{f.title}</h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">{f.description}</p>
+                    <p className="text-xs text-roadcall-muted leading-relaxed">{f.description}</p>
                   </GlassCard>
                 ))}
               </div>
@@ -330,12 +330,12 @@ export default function HomePage() {
                 AI Roadside Support
                 <span className="block bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">That Delivers</span>
               </h2>
-              <p className="text-slate-400 text-lg mb-8 leading-relaxed">
+              <p className="text-roadcall-muted text-lg mb-8 leading-relaxed">
                 Fast intake. Accurate data. The right mechanic dispatched — faster. Your fleet data stays in your control.
               </p>
               <ul className="space-y-3 mb-10">
                 {["AI driver intake in under 90 seconds","GPS location via one-tap SMS link","Matches nearest qualified mechanic instantly","Real-time dispatch board for your team","Your data never touches a third-party CRM"].map((item) => (
-                  <li key={item} className="flex items-center gap-3 text-slate-300">
+                  <li key={item} className="flex items-center gap-3 text-roadcall-silver/85">
                     <CheckCircle2 className="h-4 w-4 text-blue-400 shrink-0" /> {item}
                   </li>
                 ))}
@@ -347,7 +347,7 @@ export default function HomePage() {
                   </Button>
                 </Link>
                 <Link href="/fleet/features">
-                  <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 rounded-xl px-6">
+                  <Button variant="outline" className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl px-6">
                     See Features
                   </Button>
                 </Link>
@@ -358,15 +358,15 @@ export default function HomePage() {
       </section>
 
       {/* ── Built for Fleets. Trusted by Operators. (Security) ──────── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
             <div className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">Enterprise Security</div>
             <h2 className="text-4xl md:text-5xl font-bold mb-4">
               Built for Fleets.
-              <span className="block text-slate-300 font-light">Trusted by Operators.</span>
+              <span className="block text-roadcall-silver/85 font-light">Trusted by Operators.</span>
             </h2>
-            <p className="text-slate-400 text-lg mb-12 max-w-2xl mx-auto">
+            <p className="text-roadcall-muted text-lg mb-12 max-w-2xl mx-auto">
               Enterprise-grade security with flexible deployment options. Security that meets your standards. Support that exceeds them.
             </p>
           </FadeIn>
@@ -381,7 +381,7 @@ export default function HomePage() {
                 <GlassCard className="p-6 flex flex-col items-center text-center">
                   <item.icon className="h-7 w-7 text-blue-400 mb-3" />
                   <div className="text-sm font-semibold text-white mb-1">{item.label}</div>
-                  <div className="text-xs text-slate-400">{item.sub}</div>
+                  <div className="text-xs text-roadcall-muted">{item.sub}</div>
                 </GlassCard>
               </FadeIn>
             ))}
@@ -399,7 +399,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Seamless Integrations ───────────────────────────────────── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
             <div className="text-xs font-bold text-emerald-400 uppercase tracking-[0.2em] mb-4">Integrations</div>
@@ -407,20 +407,20 @@ export default function HomePage() {
               Seamless Integrations.
               <span className="block bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Stronger Operations.</span>
             </h2>
-            <p className="text-slate-400 text-lg mb-12">
+            <p className="text-roadcall-muted text-lg mb-12">
               Connect the tools you use. Sync what matters. Automate the rest.
             </p>
           </FadeIn>
           <div className="flex flex-wrap justify-center gap-3 mb-10">
             {integrations.map((name) => (
-              <div key={name} className="bg-slate-800/60 border border-slate-700/50 text-slate-300 text-sm font-medium px-5 py-2.5 rounded-xl">
+              <div key={name} className="bg-roadcall-panel/60 border border-slate-700/50 text-roadcall-silver/85 text-sm font-medium px-5 py-2.5 rounded-xl">
                 {name}
               </div>
             ))}
           </div>
           <FadeIn delay={0.1}>
             <Link href="/fleet/integrations">
-              <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-800 rounded-xl">
+              <Button variant="outline" className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl">
                 View All Integrations <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
@@ -429,7 +429,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Testimonials ────────────────────────────────────────────── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading eyebrow="What customers say" title="Real results from shops and fleets" />
           <div className="grid md:grid-cols-3 gap-6">
@@ -441,11 +441,11 @@ export default function HomePage() {
                       <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="text-slate-300 text-sm leading-relaxed flex-1 mb-4">&ldquo;{t.quote}&rdquo;</p>
+                  <p className="text-roadcall-silver/85 text-sm leading-relaxed flex-1 mb-4">&ldquo;{t.quote}&rdquo;</p>
                   <div>
                     <div className="text-sm font-semibold text-white">{t.name}</div>
-                    <div className="text-xs text-slate-500">{t.location}</div>
-                    <div className={`text-xs mt-1 font-medium ${t.vertical === "fleet" ? "text-blue-400" : "text-orange-400"}`}>
+                    <div className="text-xs text-roadcall-muted/70">{t.location}</div>
+                    <div className={`text-xs mt-1 font-medium ${t.vertical === "fleet" ? "text-blue-400" : "text-roadcall-orange"}`}>
                       {t.vertical === "fleet" ? "Roadcall Fleet" : "Roadcall Shops"}
                     </div>
                   </div>
@@ -457,20 +457,20 @@ export default function HomePage() {
       </section>
 
       {/* ── Lead Magnet — Weekly Dispatch newsletter ──────────────── */}
-      <section className="py-24 md:py-28 border-t border-white/[0.06]">
+      <section className="py-24 md:py-28 border-t border-roadcall-cyan/10">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-4 py-1.5 mb-6">
-              <Mail className="h-3.5 w-3.5 text-orange-400" />
-              <span className="text-xs font-semibold text-orange-300 uppercase tracking-wide">Free Weekly Dispatch</span>
+            <div className="inline-flex items-center gap-2 bg-roadcall-orange/10 border border-roadcall-orange/25 rounded-full px-4 py-1.5 mb-6">
+              <Mail className="h-3.5 w-3.5 text-roadcall-orange" />
+              <span className="text-xs font-semibold text-roadcall-orange uppercase tracking-wide">Free Weekly Dispatch</span>
             </div>
             <h2 className="text-4xl md:text-5xl font-black mb-4 leading-tight">
               AI tips for the
-              <span className="block bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-roadcall-orange to-roadcall-cyan bg-clip-text text-transparent">
                 trucking industry.
               </span>
             </h2>
-            <p className="text-slate-400 text-lg mb-10 leading-relaxed">
+            <p className="text-roadcall-muted text-lg mb-10 leading-relaxed">
               Join 500+ fleet managers and shop owners getting weekly insights on AI phones, driver downtime, dispatch ops, and more.
             </p>
             <LeadMagnetForm vertical="general" />
@@ -479,7 +479,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Final CTA — Roadcall. We Keep You Moving. ───────────────── */}
-      <section className="relative py-32 md:py-40 border-t border-white/[0.06] overflow-hidden">
+      <section className="relative py-32 md:py-40 border-t border-roadcall-cyan/10 overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=1920&q=80"
           alt="Truck on highway at sunset"
@@ -492,17 +492,17 @@ export default function HomePage() {
           <FadeIn>
             <h2 className="text-5xl md:text-6xl font-black mb-4">
               Roadcall.
-              <span className="block bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">
+              <span className="block bg-gradient-to-r from-roadcall-orange to-roadcall-cyan bg-clip-text text-transparent">
                 We Keep You Moving.
               </span>
             </h2>
-            <p className="text-xl text-slate-400 mb-10">
+            <p className="text-xl text-roadcall-muted mb-10">
               AI-driven roadside support and AI phones for the trucking industry.<br />
-              Less downtime. Lower costs. <span className="text-orange-400 font-medium">That&apos;s the Roadcall promise.</span>
+              Less downtime. Lower costs. <span className="text-roadcall-orange font-medium">That&apos;s the Roadcall promise.</span>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/shops/onboarding">
-                <Button size="lg" className="bg-orange-500 hover:bg-orange-400 text-white font-semibold rounded-xl px-8">
+                <Button size="lg" className="bg-roadcall-orange hover:brightness-110 text-white font-semibold rounded-xl px-8">
                   <Wrench className="h-5 w-5 mr-2" /> I&apos;m a Mechanic Shop
                 </Button>
               </Link>
@@ -512,9 +512,9 @@ export default function HomePage() {
                 </Button>
               </Link>
             </div>
-            <p className="text-slate-500 text-sm mt-6">
+            <p className="text-roadcall-muted/70 text-sm mt-6">
               Or call us:{" "}
-              <a href={telHref(HELP_PHONE)} className="text-orange-400 hover:text-orange-300 font-medium">{HELP_PHONE}</a>
+              <a href={telHref(HELP_PHONE)} className="text-roadcall-orange hover:text-roadcall-orange font-medium">{HELP_PHONE}</a>
             </p>
           </FadeIn>
         </div>

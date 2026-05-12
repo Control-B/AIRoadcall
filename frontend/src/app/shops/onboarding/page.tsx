@@ -87,7 +87,7 @@ export default function ShopsOnboardingPage() {
           </p>
           <a
             href="/shops"
-            className="inline-flex items-center gap-2 bg-orange-600 text-white font-semibold px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors"
+            className="inline-flex items-center gap-2 bg-roadcall-orange text-white font-semibold px-6 py-3 rounded-lg hover:brightness-90 transition-colors"
           >
             Back to Roadcall Shops <ArrowRight className="w-4 h-4" />
           </a>
@@ -101,7 +101,7 @@ export default function ShopsOnboardingPage() {
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <span className="inline-block bg-orange-100 text-orange-700 text-sm font-medium px-4 py-1 rounded-full mb-4">
+          <span className="inline-block bg-roadcall-orange/10 text-roadcall-orange text-sm font-medium px-4 py-1 rounded-full mb-4">
             Roadcall Shops Onboarding
           </span>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Create your shop profile</h1>
@@ -118,7 +118,7 @@ export default function ShopsOnboardingPage() {
                 <input
                   type="text" required value={form.business_name}
                   onChange={(e) => set("business_name", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
                   placeholder="Big Rig Repair Co."
                 />
               </div>
@@ -127,7 +127,7 @@ export default function ShopsOnboardingPage() {
                 <input
                   type="text" required value={form.owner_name}
                   onChange={(e) => set("owner_name", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
                   placeholder="John Smith"
                 />
               </div>
@@ -136,7 +136,7 @@ export default function ShopsOnboardingPage() {
                 <input
                   type="email" required value={form.email}
                   onChange={(e) => set("email", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
                   placeholder="john@bigrigrepair.com"
                 />
               </div>
@@ -145,7 +145,7 @@ export default function ShopsOnboardingPage() {
                 <input
                   type="tel" required value={form.phone}
                   onChange={(e) => set("phone", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
                   placeholder="(813) 555-0100"
                 />
               </div>
@@ -154,7 +154,7 @@ export default function ShopsOnboardingPage() {
                 <input
                   type="url" value={form.website}
                   onChange={(e) => set("website", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
                   placeholder="https://bigrigrepair.com"
                 />
               </div>
@@ -163,7 +163,7 @@ export default function ShopsOnboardingPage() {
                 <input
                   type="tel" value={form.current_phone_number}
                   onChange={(e) => set("current_phone_number", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
                   placeholder="(813) 555-0199"
                 />
               </div>
@@ -179,7 +179,7 @@ export default function ShopsOnboardingPage() {
                 <input
                   type="text" value={form.service_area}
                   onChange={(e) => set("service_area", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
                   placeholder="Tampa, FL — 50 mile radius"
                 />
               </div>
@@ -188,7 +188,7 @@ export default function ShopsOnboardingPage() {
                 <input
                   type="text" value={form.business_hours}
                   onChange={(e) => set("business_hours", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
                   placeholder="Mon–Fri 7am–6pm, Sat 8am–2pm"
                 />
               </div>
@@ -197,7 +197,7 @@ export default function ShopsOnboardingPage() {
                 <textarea
                   rows={2} value={form.services_offered}
                   onChange={(e) => set("services_offered", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
                   placeholder="Engine repair, brakes, tires, DOT inspections, mobile service..."
                 />
               </div>
@@ -218,7 +218,7 @@ export default function ShopsOnboardingPage() {
                     type="checkbox"
                     checked={form[field] as boolean}
                     onChange={(e) => set(field, e.target.checked)}
-                    className="w-4 h-4 text-orange-600 border-gray-300 rounded"
+                    className="w-4 h-4 text-roadcall-orange border-gray-300 rounded"
                   />
                   <span className="text-sm text-gray-700">{label}</span>
                 </label>
@@ -232,7 +232,7 @@ export default function ShopsOnboardingPage() {
             <textarea
               rows={3} value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-300"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
               placeholder="Special setup requests, existing software, questions..."
             />
           </div>
@@ -242,7 +242,7 @@ export default function ShopsOnboardingPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-orange-600 text-white font-semibold py-3 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full bg-roadcall-orange text-white font-semibold py-3 rounded-lg hover:brightness-90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><ArrowRight className="w-4 h-4" /> Create Shop Profile</>}
           </button>

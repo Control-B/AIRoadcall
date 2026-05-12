@@ -200,7 +200,7 @@ export default function AdminDashboard() {
                 {
                   key: "demo_completed",
                   label: "Demo Completed",
-                  color: "bg-orange-500",
+                  color: "bg-roadcall-orange",
                 },
                 {
                   key: "negotiating",

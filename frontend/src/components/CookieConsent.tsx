@@ -77,7 +77,7 @@ export default function CookieConsent() {
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
             <h2 className="text-lg font-semibold text-slate-900">Cookie preferences</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm text-roadcall-muted/70">
               Essential cookies keep roadside dispatch, GPS capture, and dashboard sessions
               working. Optional cookies are off until you turn them on.
             </p>
@@ -144,11 +144,11 @@ function Row({
     <div className="flex items-start justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/50 px-4 py-3">
       <div>
         <p className="text-sm font-semibold text-slate-800">{title}</p>
-        <p className="text-xs text-slate-500">{detail}</p>
+        <p className="text-xs text-roadcall-muted/70">{detail}</p>
       </div>
       <span
         className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-          disabled ? "bg-slate-200 text-slate-600" : "bg-emerald-100 text-emerald-700"
+          disabled ? "bg-slate-200 text-roadcall-muted/55" : "bg-emerald-100 text-emerald-700"
         }`}
       >
         {tag}

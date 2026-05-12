@@ -9,6 +9,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        roadcall: {
+          void: "#020715",
+          ink: "#050b18",
+          navy: "#071a33",
+          panel: "#0b1830",
+          line: "#153c75",
+          blue: "#0a84ff",
+          cyan: "#14d8ff",
+          orange: "#ff8a00",
+          silver: "#dbeafe",
+          muted: "#8fb4d9",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

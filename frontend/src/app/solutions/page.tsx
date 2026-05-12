@@ -34,8 +34,8 @@ const solutionBlocks = [
     description:
       "Replace your call center with an AI dispatcher that picks up every call instantly, collects the right information, and dispatches the closest qualified mechanic — all in under 5 minutes.",
     icon: Car,
-    accent: "from-orange-500 to-red-500",
-    iconBg: "from-orange-500/20 to-red-500/20",
+    accent: "from-roadcall-orange to-roadcall-blue",
+    iconBg: "from-roadcall-orange/20 to-roadcall-blue/20",
     benefits: [
       "Zero hold time — AI answers every call instantly",
       "SMS magic link for GPS sharing and payment authorization",
@@ -195,9 +195,9 @@ export default function SolutionsPage() {
 
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 rounded-full px-5 py-2 mb-8">
-              <Zap className="h-4 w-4 text-orange-400" />
-              <span className="text-sm font-medium text-orange-300">
+            <div className="inline-flex items-center gap-2 bg-roadcall-orange/10 border border-roadcall-orange/25 rounded-full px-5 py-2 mb-8">
+              <Zap className="h-4 w-4 text-roadcall-orange" />
+              <span className="text-sm font-medium text-roadcall-orange">
                 Solutions
               </span>
             </div>
@@ -207,14 +207,14 @@ export default function SolutionsPage() {
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
               AI dispatch for
               <br />
-              <span className="bg-gradient-to-r from-orange-400 via-amber-400 to-yellow-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-roadcall-orange via-amber-400 to-yellow-400 bg-clip-text text-transparent">
                 every use case
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={0.2}>
-            <p className="text-xl md:text-2xl text-slate-300 max-w-3xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-roadcall-silver/85 max-w-3xl mx-auto leading-relaxed">
               Whether you&apos;re rescuing stranded drivers, answering shop
               calls, or managing a fleet — Roadcall.ai has a solution
               built for you.
@@ -232,7 +232,7 @@ export default function SolutionsPage() {
             idx % 2 === 0
               ? ""
               : "bg-gradient-to-b from-white/[0.02] to-transparent"
-          } border-t border-white/[0.06]`}
+          } border-t border-roadcall-cyan/10`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <div className="grid md:grid-cols-2 gap-16 items-start">
@@ -247,7 +247,7 @@ export default function SolutionsPage() {
                   <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-5">
                     {sol.title}
                   </h2>
-                  <p className="text-lg text-slate-400 leading-relaxed mb-8">
+                  <p className="text-lg text-roadcall-muted leading-relaxed mb-8">
                     {sol.description}
                   </p>
 
@@ -255,7 +255,7 @@ export default function SolutionsPage() {
                     {sol.benefits.map((b) => (
                       <li key={b} className="flex items-start gap-3">
                         <CheckCircle2 className="h-5 w-5 text-emerald-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-300 text-[15px]">
+                        <span className="text-roadcall-silver/85 text-[15px]">
                           {b}
                         </span>
                       </li>
@@ -267,12 +267,12 @@ export default function SolutionsPage() {
                     {sol.stats.map((s) => (
                       <div
                         key={s.label}
-                        className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 text-center"
+                        className="rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/20 p-4 text-center"
                       >
                         <div className="text-2xl font-bold text-white">
                           {s.value}
                         </div>
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="text-xs text-roadcall-muted/70 mt-1">
                           {s.label}
                         </div>
                       </div>
@@ -301,7 +301,7 @@ export default function SolutionsPage() {
                       <p className="text-xl font-bold text-white text-center mb-2">
                         {sol.eyebrow}
                       </p>
-                      <p className="text-sm text-slate-500 text-center max-w-xs">
+                      <p className="text-sm text-roadcall-muted/70 text-center max-w-xs">
                         {sol.description.split(".")[0]}.
                       </p>
                     </GlassCard>
@@ -314,7 +314,7 @@ export default function SolutionsPage() {
       ))}
 
       {/* ── Why Roadcall ──────────────────────────────── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading
             eyebrow="Why Roadcall.ai"
@@ -326,13 +326,13 @@ export default function SolutionsPage() {
             {whyBlocks.map((block, idx) => (
               <FadeIn key={block.title} delay={idx * 0.08}>
                 <GlassCard className="p-7 h-full">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-white/[0.08] flex items-center justify-center mb-5">
-                    <block.icon className="h-6 w-6 text-orange-400" />
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-white/[0.05] to-white/[0.02] border border-roadcall-cyan/10 flex items-center justify-center mb-5">
+                    <block.icon className="h-6 w-6 text-roadcall-orange" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2 text-white">
                     {block.title}
                   </h3>
-                  <p className="text-slate-400 leading-relaxed text-[15px]">
+                  <p className="text-roadcall-muted leading-relaxed text-[15px]">
                     {block.description}
                   </p>
                 </GlassCard>
@@ -343,7 +343,7 @@ export default function SolutionsPage() {
       </section>
 
       {/* ── Testimonials ──────────────────────────────── */}
-      <section className="py-24 md:py-32 bg-gradient-to-b from-white/[0.02] to-transparent border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 bg-gradient-to-b from-white/[0.02] to-transparent border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading
             eyebrow="Testimonials"
@@ -362,14 +362,14 @@ export default function SolutionsPage() {
                       />
                     ))}
                   </div>
-                  <p className="text-slate-300 mb-5 leading-relaxed italic">
+                  <p className="text-roadcall-silver/85 mb-5 leading-relaxed italic">
                     &quot;{t.quote}&quot;
                   </p>
                   <div>
                     <p className="font-semibold text-white text-sm">
                       {t.name}
                     </p>
-                    <p className="text-xs text-slate-500">{t.location}</p>
+                    <p className="text-xs text-roadcall-muted/70">{t.location}</p>
                   </div>
                 </GlassCard>
               </FadeIn>
@@ -379,17 +379,17 @@ export default function SolutionsPage() {
       </section>
 
       {/* ── CTA ───────────────────────────────────────── */}
-      <section className="py-24 md:py-32 border-t border-white/[0.06]">
+      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-orange-600/10 via-red-600/5 to-transparent p-12 md:p-16 relative overflow-hidden">
-              <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-orange-600/10 blur-[80px]" />
+            <div className="rounded-3xl border border-roadcall-cyan/10 bg-gradient-to-br from-roadcall-orange/10 via-roadcall-blue/5 to-transparent p-12 md:p-16 relative overflow-hidden">
+              <div className="absolute -left-20 -top-20 h-64 w-64 rounded-full bg-roadcall-orange/10 blur-[80px]" />
               <div className="absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-red-600/10 blur-[80px]" />
               <div className="relative z-10">
                 <h2 className="text-3xl md:text-5xl font-bold mb-6">
                   Find your solution
                 </h2>
-                <p className="text-xl text-slate-300 mb-10 max-w-xl mx-auto">
+                <p className="text-xl text-roadcall-silver/85 mb-10 max-w-xl mx-auto">
                   Try the AI dispatcher yourself — one phone call, 60
                   seconds, and you&apos;ll see why shops are switching.
                 </p>
@@ -397,7 +397,7 @@ export default function SolutionsPage() {
                   <a href={telHref(HELP_PHONE)}>
                     <Button
                       size="xl"
-                      className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 text-xl gap-3 rounded-2xl shadow-xl shadow-orange-600/20"
+                      className="bg-gradient-to-r from-roadcall-orange to-roadcall-blue hover:from-roadcall-orange hover:to-roadcall-blue text-xl gap-3 rounded-2xl shadow-xl shadow-roadcall-orange/20"
                     >
                       <Phone className="h-6 w-6" />
                       Call {HELP_PHONE}
@@ -407,7 +407,7 @@ export default function SolutionsPage() {
                     <Button
                       size="lg"
                       variant="outline"
-                      className="rounded-full border-white/20 text-white hover:bg-white/5 px-8"
+                      className="rounded-full border-roadcall-cyan/20 text-white hover:bg-roadcall-panel/45 px-8"
                     >
                       View Pricing
                       <ArrowRight className="h-4 w-4 ml-2" />

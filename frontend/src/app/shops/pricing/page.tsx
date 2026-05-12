@@ -69,7 +69,7 @@ const PLANS = [
     setup: "$999 AI onboarding and configuration",
     target: "Growing diesel shops, towing companies, and repair teams",
     icon: Mic2,
-    accent: "from-orange-400 via-amber-400 to-blue-400",
+    accent: "from-roadcall-orange via-amber-400 to-blue-400",
     badge: "Most Popular",
     cta: "Upgrade To AI Telephony Pro",
     href: "/shops/onboarding",
@@ -95,7 +95,7 @@ const PLANS = [
     setup: "$2,500 dispatch deployment",
     target: "Roadside service providers ready to operationalize dispatch",
     icon: Radio,
-    accent: "from-orange-500 to-red-500",
+    accent: "from-roadcall-orange to-roadcall-blue",
     cta: "Launch Dispatch Operations",
     href: "/shops/onboarding",
     features: [
@@ -164,7 +164,7 @@ function fadeUp(delay = 0) {
 
 export default function ShopsPricingPage() {
   return (
-    <main className="min-h-screen overflow-hidden bg-[#02050c] text-white selection:bg-orange-500/30 selection:text-white">
+    <main className="min-h-screen overflow-hidden bg-[#02050c] text-white selection:bg-roadcall-orange/30 selection:text-white">
       <div className="pointer-events-none fixed inset-0 z-0" aria-hidden="true">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(37,99,235,0.22),transparent_30%),radial-gradient(circle_at_78%_8%,rgba(234,88,12,0.18),transparent_28%),linear-gradient(180deg,#02050c_0%,#07111f_46%,#02050c_100%)]" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:72px_72px] opacity-20" />
@@ -174,13 +174,13 @@ export default function ShopsPricingPage() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
           <motion.div {...fadeUp()}>
             <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-4 py-2 text-sm font-medium text-blue-100 shadow-[0_0_40px_rgba(37,99,235,0.12)] backdrop-blur-xl">
-              <Activity className="h-4 w-4 text-orange-300" />
+              <Activity className="h-4 w-4 text-roadcall-orange" />
               AI telephony for roadside revenue operations
             </div>
             <h1 className="max-w-4xl text-5xl font-black tracking-[-0.055em] text-white sm:text-6xl lg:text-7xl">
               Never Miss Another Roadside Call.
             </h1>
-            <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-roadcall-silver/85 sm:text-xl">
               AI-powered telephony and roadside operations built for truck mechanics, towing companies,
               and roadside service providers.
             </p>
@@ -193,14 +193,14 @@ export default function ShopsPricingPage() {
               </Link>
               <Link
                 href="/demo"
-                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-4 text-sm font-bold text-white backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-orange-300/50 hover:bg-orange-400/10 focus:outline-none focus:ring-2 focus:ring-orange-300"
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-roadcall-panel/45 px-6 py-4 text-sm font-bold text-white backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-roadcall-cyan/50 hover:bg-roadcall-cyan/10 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
               >
-                Book Demo <CalendarClock className="h-4 w-4 text-orange-300" />
+                Book Demo <CalendarClock className="h-4 w-4 text-roadcall-orange" />
               </Link>
             </div>
             <div className="mt-8 flex flex-wrap gap-2">
               {TRUST.map(({ icon: Icon, label }) => (
-                <span key={label} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-medium text-slate-300 backdrop-blur-xl">
+                <span key={label} className="inline-flex items-center gap-2 rounded-full border border-roadcall-cyan/10 bg-roadcall-panel/35 px-3 py-2 text-xs font-medium text-roadcall-silver/85 backdrop-blur-xl">
                   <Icon className="h-3.5 w-3.5 text-blue-300" />
                   {label}
                 </span>
@@ -210,11 +210,11 @@ export default function ShopsPricingPage() {
 
           <motion.div {...fadeUp(0.12)} className="relative">
             <div className="absolute -inset-8 rounded-[3rem] bg-[radial-gradient(circle,rgba(37,99,235,0.25),transparent_58%)] blur-2xl" aria-hidden="true" />
-            <div className="relative rounded-[2rem] border border-white/10 bg-white/[0.055] p-3 shadow-2xl backdrop-blur-2xl">
-              <div className="rounded-[1.5rem] border border-white/10 bg-[#06101e]/90 p-4">
-                <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="relative rounded-[2rem] border border-roadcall-cyan/10 bg-white/[0.055] p-3 shadow-2xl backdrop-blur-2xl">
+              <div className="rounded-[1.5rem] border border-roadcall-cyan/10 bg-[#06101e]/90 p-4">
+                <div className="mb-4 flex items-center justify-between border-b border-roadcall-cyan/10 pb-4">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Roadcall Command</p>
+                    <p className="text-xs uppercase tracking-[0.24em] text-roadcall-muted/70">Roadcall Command</p>
                     <p className="mt-1 text-lg font-bold">Live AI Intake Console</p>
                   </div>
                   <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">
@@ -229,12 +229,12 @@ export default function ShopsPricingPage() {
                     </div>
                     <div className="space-y-3">
                       {["Caller: FreightPro Driver", "Issue: Air leak", "Vehicle: Class 8 tractor"].map((item) => (
-                        <div key={item} className="rounded-xl bg-white/[0.06] px-3 py-2 text-xs text-slate-300">{item}</div>
+                        <div key={item} className="rounded-xl bg-roadcall-panel/50 px-3 py-2 text-xs text-roadcall-silver/85">{item}</div>
                       ))}
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-orange-400/20 bg-orange-400/10 p-4">
-                    <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-orange-100">
+                  <div className="rounded-2xl border border-roadcall-orange/25 bg-roadcall-orange/10 p-4">
+                    <div className="mb-4 flex items-center gap-2 text-sm font-semibold text-roadcall-orange">
                       <MapPin className="h-4 w-4" /> Dispatch workflow
                     </div>
                     <div className="space-y-2">
@@ -244,19 +244,19 @@ export default function ShopsPricingPage() {
                         ["ETA notification", "queued"],
                       ].map(([label, status]) => (
                         <div key={label} className="flex items-center justify-between rounded-xl bg-black/20 px-3 py-2 text-xs">
-                          <span className="text-slate-300">{label}</span>
-                          <span className={status === "complete" ? "text-emerald-300" : status === "running" ? "text-orange-300" : "text-slate-500"}>{status}</span>
+                          <span className="text-roadcall-silver/85">{label}</span>
+                          <span className={status === "complete" ? "text-emerald-300" : status === "running" ? "text-roadcall-orange" : "text-roadcall-muted/70"}>{status}</span>
                         </div>
                       ))}
                     </div>
                   </div>
                 </div>
-                <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="mt-3 rounded-2xl border border-roadcall-cyan/10 bg-black/20 p-4">
                   <div className="mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-roadcall-silver">
                       <Volume2 className="h-4 w-4 text-blue-300" /> AI voice waveform
                     </div>
-                    <span className="text-xs text-slate-500">00:42 active call</span>
+                    <span className="text-xs text-roadcall-muted/70">00:42 active call</span>
                   </div>
                   <div className="flex h-20 items-center gap-1 overflow-hidden" aria-hidden="true">
                     {Array.from({ length: 44 }).map((_, index) => (
@@ -277,9 +277,9 @@ export default function ShopsPricingPage() {
 
       <section id="pricing" className="relative z-10 px-4 py-16 sm:px-6 lg:py-24">
         <motion.div {...fadeUp()} className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-bold uppercase tracking-[0.3em] text-orange-300">Roadside AI Pricing</p>
+          <p className="text-sm font-bold uppercase tracking-[0.3em] text-roadcall-orange">Roadside AI Pricing</p>
           <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Plans built for mechanics, towers, and mobile repair operators.</h2>
-          <p className="mt-5 text-slate-400">Start with AI answering, then scale into telephony workflows and dispatch infrastructure when your operation is ready.</p>
+          <p className="mt-5 text-roadcall-muted">Start with AI answering, then scale into telephony workflows and dispatch infrastructure when your operation is ready.</p>
         </motion.div>
 
         <div className="mx-auto mt-12 grid max-w-7xl gap-5 lg:grid-cols-3">
@@ -289,37 +289,37 @@ export default function ShopsPricingPage() {
               <motion.article
                 key={plan.name}
                 {...fadeUp(index * 0.08)}
-                className={`group relative flex min-h-full flex-col overflow-hidden rounded-[2rem] border bg-white/[0.045] p-[1px] backdrop-blur-xl transition duration-500 hover:-translate-y-2 hover:shadow-[0_0_70px_rgba(37,99,235,0.22)] ${plan.badge ? "border-orange-300/40 shadow-[0_0_55px_rgba(234,88,12,0.18)]" : "border-white/10"}`}
+                className={`group relative flex min-h-full flex-col overflow-hidden rounded-[2rem] border bg-white/[0.045] p-[1px] backdrop-blur-xl transition duration-500 hover:-translate-y-2 hover:shadow-[0_0_70px_rgba(37,99,235,0.22)] ${plan.badge ? "border-orange-300/40 shadow-[0_0_55px_rgba(234,88,12,0.18)]" : "border-roadcall-cyan/10"}`}
               >
                 <div className={`absolute inset-x-0 top-0 h-px bg-gradient-to-r ${plan.accent} opacity-70`} />
-                <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-blue-500/20 blur-3xl transition group-hover:bg-orange-500/20" />
+                <div className="absolute -right-20 -top-20 h-44 w-44 rounded-full bg-blue-500/20 blur-3xl transition group-hover:bg-roadcall-orange/20" />
                 <div className="relative flex flex-1 flex-col rounded-[calc(2rem-1px)] bg-[#06101e]/75 p-6 sm:p-7">
                   <div className="mb-7 flex items-start justify-between gap-4">
                     <div className={`flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br ${plan.accent} text-slate-950 shadow-lg`}>
                       <Icon className="h-6 w-6" />
                     </div>
                     {plan.badge && (
-                      <span className="rounded-full border border-orange-300/30 bg-orange-400/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-orange-200">
+                      <span className="rounded-full border border-roadcall-orange/30 bg-roadcall-orange/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-roadcall-orange">
                         {plan.badge}
                       </span>
                     )}
                   </div>
                   <h3 className="text-2xl font-black tracking-tight">{plan.name}</h3>
-                  <p className="mt-2 min-h-12 text-sm leading-6 text-slate-400">{plan.target}</p>
+                  <p className="mt-2 min-h-12 text-sm leading-6 text-roadcall-muted">{plan.target}</p>
                   <div className="mt-7">
                     <span className="text-5xl font-black tracking-[-0.05em]">{plan.price}</span>
-                    <span className="ml-2 text-slate-400">/month</span>
-                    <p className="mt-3 text-sm font-medium text-orange-200">Setup: {plan.setup}</p>
+                    <span className="ml-2 text-roadcall-muted">/month</span>
+                    <p className="mt-3 text-sm font-medium text-roadcall-orange">Setup: {plan.setup}</p>
                   </div>
                   <Link
                     href={plan.href}
-                    className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-bold transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-300 ${plan.badge ? "bg-white text-slate-950 hover:bg-orange-50" : "border border-white/15 bg-white/5 text-white hover:border-blue-300/50 hover:bg-blue-400/10"}`}
+                    className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-bold transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-300 ${plan.badge ? "bg-white text-slate-950 hover:bg-roadcall-panel/40" : "border border-white/15 bg-roadcall-panel/45 text-white hover:border-blue-300/50 hover:bg-blue-400/10"}`}
                   >
                     {plan.cta} <ChevronRight className="h-4 w-4" />
                   </Link>
                   <ul className="mt-7 space-y-3">
                     {plan.features.map((feature) => (
-                      <li key={feature} className="flex gap-3 text-sm leading-6 text-slate-300">
+                      <li key={feature} className="flex gap-3 text-sm leading-6 text-roadcall-silver/85">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />
                         {feature}
                       </li>
@@ -339,14 +339,14 @@ export default function ShopsPricingPage() {
               <p className="text-sm font-bold uppercase tracking-[0.3em] text-blue-300">Add-ons</p>
               <h2 className="mt-3 text-3xl font-black tracking-[-0.035em] sm:text-4xl">Extend the platform around your operation.</h2>
             </div>
-            <p className="max-w-xl text-sm leading-6 text-slate-400">Add deeper automation, additional numbers, enterprise integrations, or fleet-facing workflows without rebuilding your phone stack.</p>
+            <p className="max-w-xl text-sm leading-6 text-roadcall-muted">Add deeper automation, additional numbers, enterprise integrations, or fleet-facing workflows without rebuilding your phone stack.</p>
           </motion.div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {ADD_ONS.map(({ icon: Icon, title, copy }, index) => (
-              <motion.div key={title} {...fadeUp(index * 0.04)} className="group rounded-3xl border border-white/10 bg-white/[0.045] p-5 backdrop-blur-xl transition hover:-translate-y-1 hover:border-blue-300/35 hover:bg-blue-400/10">
-                <Icon className="mb-5 h-6 w-6 text-orange-300" />
+              <motion.div key={title} {...fadeUp(index * 0.04)} className="group rounded-3xl border border-roadcall-cyan/10 bg-white/[0.045] p-5 backdrop-blur-xl transition hover:-translate-y-1 hover:border-blue-300/35 hover:bg-blue-400/10">
+                <Icon className="mb-5 h-6 w-6 text-roadcall-orange" />
                 <h3 className="font-bold">{title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">{copy}</p>
+                <p className="mt-2 text-sm leading-6 text-roadcall-muted">{copy}</p>
               </motion.div>
             ))}
           </div>
@@ -354,26 +354,26 @@ export default function ShopsPricingPage() {
       </section>
 
       <section className="relative z-10 px-4 py-16 sm:px-6 lg:py-24">
-        <motion.div {...fadeUp()} className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.045] backdrop-blur-xl">
-          <div className="border-b border-white/10 p-6 sm:p-8">
-            <p className="text-sm font-bold uppercase tracking-[0.3em] text-orange-300">Comparison</p>
+        <motion.div {...fadeUp()} className="mx-auto max-w-7xl overflow-hidden rounded-[2rem] border border-roadcall-cyan/10 bg-white/[0.045] backdrop-blur-xl">
+          <div className="border-b border-roadcall-cyan/10 p-6 sm:p-8">
+            <p className="text-sm font-bold uppercase tracking-[0.3em] text-roadcall-orange">Comparison</p>
             <h2 className="mt-3 text-3xl font-black tracking-[-0.035em] sm:text-4xl">Roadcall AI vs. traditional answering services</h2>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="bg-white/[0.035] text-slate-300">
+              <thead className="bg-white/[0.035] text-roadcall-silver/85">
                 <tr>
                   <th className="px-6 py-4 font-semibold">Capability</th>
                   <th className="px-6 py-4 font-semibold text-blue-200">Roadcall AI</th>
-                  <th className="px-6 py-4 font-semibold text-slate-400">Traditional Answering Service</th>
+                  <th className="px-6 py-4 font-semibold text-roadcall-muted">Traditional Answering Service</th>
                 </tr>
               </thead>
               <tbody>
                 {COMPARISON.map(([capability, roadcall, traditional]) => (
-                  <tr key={capability} className="border-t border-white/10">
+                  <tr key={capability} className="border-t border-roadcall-cyan/10">
                     <td className="px-6 py-4 font-medium text-white">{capability}</td>
-                    <td className="px-6 py-4 text-slate-300"><Check className="mr-2 inline h-4 w-4 text-emerald-300" />{roadcall}</td>
-                    <td className="px-6 py-4 text-slate-500">{traditional}</td>
+                    <td className="px-6 py-4 text-roadcall-silver/85"><Check className="mr-2 inline h-4 w-4 text-emerald-300" />{roadcall}</td>
+                    <td className="px-6 py-4 text-roadcall-muted/70">{traditional}</td>
                   </tr>
                 ))}
               </tbody>
@@ -387,13 +387,13 @@ export default function ShopsPricingPage() {
           <motion.div {...fadeUp()}>
             <p className="text-sm font-bold uppercase tracking-[0.3em] text-blue-300">ROI</p>
             <h2 className="mt-3 text-4xl font-black tracking-[-0.045em] sm:text-5xl">One Missed Roadside Call Can Cost Hundreds.</h2>
-            <p className="mt-5 text-lg leading-8 text-slate-400">After-hours breakdown calls are high-intent revenue. Roadcall AI captures the caller, qualifies the issue, sends follow-up, and moves the work into your operation before a competitor answers.</p>
+            <p className="mt-5 text-lg leading-8 text-roadcall-muted">After-hours breakdown calls are high-intent revenue. Roadcall AI captures the caller, qualifies the issue, sends follow-up, and moves the work into your operation before a competitor answers.</p>
           </motion.div>
-          <motion.div {...fadeUp(0.08)} className="rounded-[2rem] border border-white/10 bg-white/[0.045] p-5 backdrop-blur-xl sm:p-7">
+          <motion.div {...fadeUp(0.08)} className="rounded-[2rem] border border-roadcall-cyan/10 bg-white/[0.045] p-5 backdrop-blur-xl sm:p-7">
             <div className="grid gap-4 sm:grid-cols-2">
               {ROI_STATS.map(({ icon: Icon, value, label }, index) => (
-                <div key={label} className="rounded-3xl border border-white/10 bg-black/20 p-5">
-                  <Icon className="mb-6 h-6 w-6 text-orange-300" />
+                <div key={label} className="rounded-3xl border border-roadcall-cyan/10 bg-black/20 p-5">
+                  <Icon className="mb-6 h-6 w-6 text-roadcall-orange" />
                   <motion.div
                     initial={{ opacity: 0, scale: 0.94 }}
                     whileInView={{ opacity: 1, scale: 1 }}
@@ -403,18 +403,18 @@ export default function ShopsPricingPage() {
                   >
                     {value}
                   </motion.div>
-                  <p className="mt-2 text-sm leading-6 text-slate-400">{label}</p>
+                  <p className="mt-2 text-sm leading-6 text-roadcall-muted">{label}</p>
                 </div>
               ))}
             </div>
             <div className="mt-5 rounded-3xl border border-blue-400/15 bg-blue-400/10 p-5">
               <div className="mb-4 flex items-center justify-between text-sm">
                 <span className="font-semibold text-blue-100">Captured emergency revenue</span>
-                <span className="text-slate-400">AI availability impact</span>
+                <span className="text-roadcall-muted">AI availability impact</span>
               </div>
               <div className="space-y-3">
                 {[78, 54, 92].map((width, index) => (
-                  <div key={width} className="h-3 overflow-hidden rounded-full bg-white/10">
+                  <div key={width} className="h-3 overflow-hidden rounded-full bg-roadcall-panel/60">
                     <motion.div
                       initial={{ width: 0 }}
                       whileInView={{ width: `${width}%` }}
@@ -433,17 +433,17 @@ export default function ShopsPricingPage() {
       <section className="relative z-10 px-4 py-16 sm:px-6 lg:py-24">
         <div className="mx-auto max-w-5xl">
           <motion.div {...fadeUp()} className="text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.3em] text-orange-300">FAQ</p>
+            <p className="text-sm font-bold uppercase tracking-[0.3em] text-roadcall-orange">FAQ</p>
             <h2 className="mt-3 text-4xl font-black tracking-[-0.04em]">Built for real roadside operations.</h2>
           </motion.div>
           <div className="mt-10 grid gap-4 md:grid-cols-2">
             {FAQS.map(([question, answer], index) => (
-              <motion.div key={question} {...fadeUp(index * 0.03)} className="rounded-3xl border border-white/10 bg-white/[0.045] p-6 backdrop-blur-xl">
+              <motion.div key={question} {...fadeUp(index * 0.03)} className="rounded-3xl border border-roadcall-cyan/10 bg-white/[0.045] p-6 backdrop-blur-xl">
                 <div className="mb-3 flex gap-3">
                   <HelpCircle className="mt-0.5 h-5 w-5 shrink-0 text-blue-300" />
                   <h3 className="font-bold text-white">{question}</h3>
                 </div>
-                <p className="text-sm leading-7 text-slate-400">{answer}</p>
+                <p className="text-sm leading-7 text-roadcall-muted">{answer}</p>
               </motion.div>
             ))}
           </div>
@@ -451,33 +451,33 @@ export default function ShopsPricingPage() {
       </section>
 
       <section className="relative z-10 px-4 pb-28 pt-12 sm:px-6 lg:pb-32">
-        <motion.div {...fadeUp()} className="relative mx-auto max-w-7xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[0.055] p-8 shadow-[0_0_100px_rgba(37,99,235,0.16)] backdrop-blur-2xl sm:p-12 lg:p-14">
+        <motion.div {...fadeUp()} className="relative mx-auto max-w-7xl overflow-hidden rounded-[2.5rem] border border-roadcall-cyan/10 bg-white/[0.055] p-8 shadow-[0_0_100px_rgba(37,99,235,0.16)] backdrop-blur-2xl sm:p-12 lg:p-14">
           <div className="absolute -right-24 -top-24 h-80 w-80 rounded-full bg-blue-500/20 blur-3xl" />
-          <div className="absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-orange-500/15 blur-3xl" />
+          <div className="absolute -bottom-24 left-1/3 h-72 w-72 rounded-full bg-roadcall-orange/15 blur-3xl" />
           <div className="relative grid gap-10 lg:grid-cols-[1fr_0.9fr] lg:items-center">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.3em] text-blue-300">Roadcall AI</p>
               <h2 className="mt-4 text-4xl font-black tracking-[-0.045em] sm:text-5xl">Modernize Your Roadside Operations With AI.</h2>
-              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">Deploy an AI phone layer that answers instantly, captures high-value breakdown calls, and moves roadside work into reliable dispatch workflows.</p>
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-roadcall-silver/85">Deploy an AI phone layer that answers instantly, captures high-value breakdown calls, and moves roadside work into reliable dispatch workflows.</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <Link href="/shops/onboarding" className="inline-flex items-center justify-center gap-2 rounded-full bg-white px-6 py-4 text-sm font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-300">
                   Start Free Trial <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href="/demo" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:border-orange-300/50 hover:bg-orange-400/10 focus:outline-none focus:ring-2 focus:ring-orange-300">
-                  Schedule Demo <CalendarClock className="h-4 w-4 text-orange-300" />
+                <Link href="/demo" className="inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-roadcall-panel/45 px-6 py-4 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:border-roadcall-cyan/50 hover:bg-roadcall-cyan/10 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan">
+                  Schedule Demo <CalendarClock className="h-4 w-4 text-roadcall-orange" />
                 </Link>
               </div>
             </div>
-            <div className="rounded-[2rem] border border-white/10 bg-[#02050c]/55 p-5">
+            <div className="rounded-[2rem] border border-roadcall-cyan/10 bg-[#02050c]/55 p-5">
               <div className="mb-4 flex items-center justify-between">
                 <span className="text-sm font-semibold text-white">Dispatch Interface</span>
                 <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300">Live</span>
               </div>
               <div className="space-y-3">
                 {["AI intake completed", "Fleet notified", "Mechanic matched", "ETA text queued"].map((item, index) => (
-                  <div key={item} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm">
-                    <span className="flex items-center gap-2 text-slate-300"><Cpu className="h-4 w-4 text-blue-300" />{item}</span>
-                    <span className={index < 3 ? "text-emerald-300" : "text-orange-300"}>{index < 3 ? "done" : "next"}</span>
+                  <div key={item} className="flex items-center justify-between rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/35 px-4 py-3 text-sm">
+                    <span className="flex items-center gap-2 text-roadcall-silver/85"><Cpu className="h-4 w-4 text-blue-300" />{item}</span>
+                    <span className={index < 3 ? "text-emerald-300" : "text-roadcall-orange"}>{index < 3 ? "done" : "next"}</span>
                   </div>
                 ))}
               </div>
@@ -486,7 +486,7 @@ export default function ShopsPricingPage() {
         </motion.div>
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-[#02050c]/90 p-3 backdrop-blur-xl md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-roadcall-cyan/10 bg-[#02050c]/90 p-3 backdrop-blur-xl md:hidden">
         <Link href="/shops/onboarding" className="flex items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-[0_0_35px_rgba(255,255,255,0.16)] focus:outline-none focus:ring-2 focus:ring-blue-300">
           Start Free Trial <ArrowRight className="h-4 w-4" />
         </Link>

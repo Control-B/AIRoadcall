@@ -86,27 +86,27 @@ export default function ShopsFeaturesPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-black/50 via-transparent to-black/20 z-10" />
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(234,88,12,0.2),transparent_70%)] z-10" />
         <div className="relative z-20 max-w-4xl mx-auto px-4 sm:px-6 w-full pb-16 pt-28 text-center">
-          <span className="inline-flex items-center gap-2 bg-white/10 border border-white/20 backdrop-blur-sm text-sm font-medium px-4 py-1.5 rounded-full mb-8 text-slate-200">
+          <span className="inline-flex items-center gap-2 bg-roadcall-panel/60 border border-roadcall-cyan/20 backdrop-blur-sm text-sm font-medium px-4 py-1.5 rounded-full mb-8 text-roadcall-silver">
             Roadcall Shops — Features
           </span>
           <h1 className="text-5xl md:text-6xl font-black leading-[0.95] mb-6 text-white">
             Never miss another<br />
-            <span className="bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">repair call</span>
+            <span className="bg-gradient-to-r from-roadcall-orange to-roadcall-cyan bg-clip-text text-transparent">repair call</span>
           </h1>
-          <p className="text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <p className="text-lg text-roadcall-silver/85 max-w-2xl mx-auto mb-10 leading-relaxed">
             Roadcall Shops gives truck mechanics a full AI phone and CRM stack —
             answering calls, booking jobs, and following up automatically.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/shops/onboarding"
-              className="bg-orange-500 hover:bg-orange-400 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
+              className="bg-roadcall-orange hover:brightness-110 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
             >
               Start AI Phones for Your Shop <ArrowRight className="w-4 h-4" />
             </Link>
             <a
               href={`tel:${HELP_PHONE}`}
-              className="border border-white/30 bg-white/5 backdrop-blur-sm text-white font-semibold px-8 py-3 rounded-xl hover:bg-white/10 transition-colors"
+              className="border border-roadcall-cyan/30 bg-roadcall-panel/45 backdrop-blur-sm text-white font-semibold px-8 py-3 rounded-xl hover:bg-roadcall-panel/60 transition-colors"
             >
               Call {HELP_PHONE}
             </a>
@@ -130,8 +130,8 @@ export default function ShopsFeaturesPage() {
               const Icon = f.icon;
               return (
                 <div key={f.title} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                  <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
-                    <Icon className="w-5 h-5 text-orange-600" />
+                  <div className="w-10 h-10 bg-roadcall-orange/10 rounded-lg flex items-center justify-center mb-4">
+                    <Icon className="w-5 h-5 text-roadcall-orange" />
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">{f.title}</h3>
                   <p className="text-sm text-gray-600 leading-relaxed">{f.desc}</p>
@@ -152,7 +152,7 @@ export default function ShopsFeaturesPage() {
           <div className="space-y-6">
             {STEPS.map((s, i) => (
               <div key={s.title} className="flex gap-6 items-start p-6 bg-gray-50 rounded-xl border border-gray-100">
-                <div className="flex-shrink-0 w-12 h-12 bg-orange-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                <div className="flex-shrink-0 w-12 h-12 bg-roadcall-orange text-white rounded-full flex items-center justify-center font-bold text-lg">
                   {i + 1}
                 </div>
                 <div>
@@ -166,7 +166,7 @@ export default function ShopsFeaturesPage() {
       </section>
 
       {/* Value */}
-      <section className="py-20 px-4 bg-orange-50">
+      <section className="py-20 px-4 bg-roadcall-panel/40">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">Why it matters</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -178,8 +178,8 @@ export default function ShopsFeaturesPage() {
               const Icon = v.icon;
               return (
                 <div key={v.title} className="bg-white rounded-xl p-8 shadow-sm border border-orange-100 text-center">
-                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Icon className="w-6 h-6 text-orange-600" />
+                  <div className="w-12 h-12 bg-roadcall-orange/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Icon className="w-6 h-6 text-roadcall-orange" />
                   </div>
                   <h3 className="font-semibold text-gray-900 text-lg mb-3">{v.title}</h3>
                   <p className="text-gray-600 text-sm leading-relaxed">{v.body}</p>
@@ -191,13 +191,13 @@ export default function ShopsFeaturesPage() {
       </section>
 
       {/* CTA */}
-      <section className="py-20 px-4 bg-gradient-to-r from-orange-600 to-red-600 text-white text-center">
+      <section className="py-20 px-4 bg-gradient-to-r from-roadcall-orange to-roadcall-blue text-white text-center">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold mb-4">Ready to start AI Phones for your shop?</h2>
-          <p className="text-orange-100 mb-8 text-lg">Setup takes under 30 minutes. No long-term contracts on entry plans.</p>
+          <p className="text-roadcall-orange mb-8 text-lg">Setup takes under 30 minutes. No long-term contracts on entry plans.</p>
           <Link
             href="/shops/onboarding"
-            className="bg-white text-orange-600 font-semibold px-10 py-4 rounded-lg hover:bg-orange-50 transition-colors inline-flex items-center gap-2 text-lg"
+            className="bg-white text-roadcall-orange font-semibold px-10 py-4 rounded-lg hover:bg-roadcall-panel/40 transition-colors inline-flex items-center gap-2 text-lg"
           >
             Start AI Phones for Your Shop <ArrowRight className="w-5 h-5" />
           </Link>

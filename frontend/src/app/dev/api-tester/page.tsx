@@ -65,7 +65,7 @@ const TABS = [
   { id: "jobs", label: "🚗 Jobs", color: "bg-blue-500" },
   { id: "payments", label: "💳 Payments", color: "bg-green-500" },
   { id: "dispatch", label: "📡 Dispatch", color: "bg-purple-500" },
-  { id: "tracking", label: "📍 Tracking", color: "bg-orange-500" },
+  { id: "tracking", label: "📍 Tracking", color: "bg-roadcall-orange" },
   { id: "mechanics", label: "🔧 Mechanics", color: "bg-red-500" },
   { id: "livekit", label: "📞 LiveKit", color: "bg-indigo-500" },
   { id: "pipeline", label: "🔄 Pipeline", color: "bg-cyan-500" },
@@ -120,7 +120,7 @@ function getStatusColor(status: number): string {
   if (status === 0) return "text-gray-500";
   if (status < 300) return "text-emerald-600";
   if (status < 400) return "text-yellow-600";
-  if (status < 500) return "text-orange-600";
+  if (status < 500) return "text-roadcall-orange";
   return "text-red-600";
 }
 
@@ -133,7 +133,7 @@ function getMethodColor(method: string): string {
     case "PUT":
       return "bg-amber-100 text-amber-800";
     case "PATCH":
-      return "bg-orange-100 text-orange-800";
+      return "bg-roadcall-orange/10 text-roadcall-orange";
     case "DELETE":
       return "bg-red-100 text-red-800";
     default:
@@ -173,11 +173,11 @@ function ResponseViewer({ response }: { response: ApiResponse | null }) {
 
       {/* JSON body */}
       <div className="relative">
-        <pre className="max-h-96 overflow-auto rounded-lg bg-slate-900 p-4 text-xs text-slate-100">
+        <pre className="max-h-96 overflow-auto rounded-lg bg-roadcall-ink p-4 text-xs text-slate-100">
           {JSON.stringify(response.data, null, 2)}
         </pre>
         <button
-          className="absolute right-2 top-2 rounded bg-slate-700 px-2 py-1 text-xs text-slate-300 hover:bg-slate-600"
+          className="absolute right-2 top-2 rounded bg-slate-700 px-2 py-1 text-xs text-roadcall-silver/85 hover:bg-slate-600"
           onClick={() =>
             navigator.clipboard.writeText(
               JSON.stringify(response.data, null, 2)
@@ -774,7 +774,7 @@ function TrackingPanel({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg bg-orange-50 p-3">
+      <div className="rounded-lg bg-roadcall-panel/40 p-3">
         <Field label="🔑 Magic Link Token" hint="Use the token from Job creation">
           <Input
             value={token}
@@ -1571,7 +1571,7 @@ export default function ApiTesterPage() {
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
                     activeTab === tab.id
                       ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
-                      : "text-slate-600 hover:bg-white/50 hover:text-slate-900"
+                      : "text-roadcall-muted/55 hover:bg-roadcall-panel/450 hover:text-slate-900"
                   }`}
                 >
                   <span>{tab.label}</span>
@@ -1581,10 +1581,10 @@ export default function ApiTesterPage() {
 
             {/* Quick info */}
             <div className="mt-6 hidden rounded-lg bg-white p-4 shadow-sm ring-1 ring-slate-200 lg:block">
-              <h3 className="text-xs font-semibold uppercase text-slate-500">
+              <h3 className="text-xs font-semibold uppercase text-roadcall-muted/70">
                 Workflow
               </h3>
-              <ol className="mt-2 space-y-1 text-xs text-slate-600">
+              <ol className="mt-2 space-y-1 text-xs text-roadcall-muted/55">
                 <li>1. Check ❤️ Health</li>
                 <li>2. Create 🔧 Mechanic</li>
                 <li>3. Create 🚗 Job</li>
@@ -1703,7 +1703,7 @@ export default function ApiTesterPage() {
                             >
                               {entry.method}
                             </Badge>
-                            <span className="flex-1 truncate font-mono text-slate-600">
+                            <span className="flex-1 truncate font-mono text-roadcall-muted/55">
                               {entry.path}
                             </span>
                             <span
@@ -1711,7 +1711,7 @@ export default function ApiTesterPage() {
                             >
                               {entry.status || "ERR"}
                             </span>
-                            <span className="text-slate-400">
+                            <span className="text-roadcall-muted">
                               {entry.duration}ms
                             </span>
                           </button>

@@ -164,18 +164,18 @@ export default function DemoPage() {
             Again
           </h1>
 
-          <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-10">
+          <p className="text-xl text-roadcall-silver/85 max-w-2xl mx-auto mb-10">
             Your AI receptionist answers every call 24/7, qualifies leads,
             books appointments, and sounds like a real member of your team.
           </p>
 
           {/* Demo CTA */}
-          <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 max-w-lg mx-auto mb-12">
+          <div className="bg-roadcall-panel/50 backdrop-blur-sm border border-slate-700 rounded-2xl p-8 max-w-lg mx-auto mb-12">
             <div className="flex items-center justify-center gap-3 mb-4">
               <Headphones className="h-8 w-8 text-blue-400" />
               <h2 className="text-2xl font-bold">Try It Right Now</h2>
             </div>
-            <p className="text-slate-300 mb-6">
+            <p className="text-roadcall-silver/85 mb-6">
               Call our demo line and talk to the AI receptionist yourself.
               It&apos;s set up as a sample truck repair shop.
             </p>
@@ -185,13 +185,13 @@ export default function DemoPage() {
                 {HELP_PHONE}
               </Button>
             </a>
-            <p className="text-sm text-slate-400 mt-3">
+            <p className="text-sm text-roadcall-muted mt-3">
               Free call · No signup required · Takes 60 seconds
             </p>
           </div>
 
           {/* Social proof */}
-          <div className="flex items-center justify-center gap-8 text-slate-400 text-sm">
+          <div className="flex items-center justify-center gap-8 text-roadcall-muted text-sm">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-400" />
               <span>35,000+ shops in our network</span>
@@ -214,7 +214,7 @@ export default function DemoPage() {
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Everything Your Shop Needs
           </h2>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+          <p className="text-roadcall-muted text-lg max-w-2xl mx-auto">
             A complete AI phone system built specifically for mechanic shops,
             truck repair, and roadside service businesses.
           </p>
@@ -224,14 +224,14 @@ export default function DemoPage() {
           {features.map((feature) => (
             <Card
               key={feature.title}
-              className="bg-slate-800/50 border-slate-700 hover:border-blue-500/50 transition-colors"
+              className="bg-roadcall-panel/50 border-slate-700 hover:border-blue-500/50 transition-colors"
             >
               <CardHeader>
                 <feature.icon className="h-10 w-10 text-blue-400 mb-2" />
                 <CardTitle className="text-white">{feature.title}</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription className="text-slate-400 text-base">
+                <CardDescription className="text-roadcall-muted text-base">
                   {feature.description}
                 </CardDescription>
               </CardContent>
@@ -241,13 +241,13 @@ export default function DemoPage() {
       </section>
 
       {/* How It Works */}
-      <section className="bg-slate-800/30 py-20">
+      <section className="bg-roadcall-panel/30 py-20">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               How It Works
             </h2>
-            <p className="text-slate-400 text-lg">
+            <p className="text-roadcall-muted text-lg">
               Get set up in minutes, not days.
             </p>
           </div>
@@ -278,7 +278,7 @@ export default function DemoPage() {
                   {item.step}
                 </div>
                 <h3 className="text-xl font-semibold mb-3">{item.title}</h3>
-                <p className="text-slate-400">{item.description}</p>
+                <p className="text-roadcall-muted">{item.description}</p>
               </div>
             ))}
           </div>
@@ -297,7 +297,7 @@ export default function DemoPage() {
           {testimonials.map((t) => (
             <Card
               key={t.name}
-              className="bg-slate-800/50 border-slate-700"
+              className="bg-roadcall-panel/50 border-slate-700"
             >
               <CardContent className="pt-6">
                 <div className="flex gap-1 mb-4">
@@ -308,12 +308,12 @@ export default function DemoPage() {
                     />
                   ))}
                 </div>
-                <p className="text-slate-300 mb-4 italic">
+                <p className="text-roadcall-silver/85 mb-4 italic">
                   &quot;{t.quote}&quot;
                 </p>
                 <div>
                   <p className="font-semibold text-white">{t.name}</p>
-                  <p className="text-sm text-slate-400">{t.location}</p>
+                  <p className="text-sm text-roadcall-muted">{t.location}</p>
                 </div>
               </CardContent>
             </Card>
@@ -322,13 +322,13 @@ export default function DemoPage() {
       </section>
 
       {/* Pricing */}
-      <section className="bg-slate-800/30 py-20" id="pricing">
+      <section className="bg-roadcall-panel/30 py-20" id="pricing">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-slate-400 text-lg">
+            <p className="text-roadcall-muted text-lg">
               No contracts. No hidden fees. Cancel anytime.
             </p>
           </div>
@@ -337,7 +337,7 @@ export default function DemoPage() {
             {plans.map((plan) => (
               <Card
                 key={plan.name}
-                className={`bg-slate-800/50 border-slate-700 relative ${
+                className={`bg-roadcall-panel/50 border-slate-700 relative ${
                   plan.popular
                     ? "border-blue-500 ring-2 ring-blue-500/20"
                     : ""
@@ -352,14 +352,14 @@ export default function DemoPage() {
                   <CardTitle className="text-white text-xl">
                     {plan.name}
                   </CardTitle>
-                  <CardDescription className="text-slate-400">
+                  <CardDescription className="text-roadcall-muted">
                     {plan.description}
                   </CardDescription>
                   <div className="pt-4">
                     <span className="text-4xl font-bold text-white">
                       ${plan.price}
                     </span>
-                    <span className="text-slate-400">/month</span>
+                    <span className="text-roadcall-muted">/month</span>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -367,7 +367,7 @@ export default function DemoPage() {
                     {plan.features.map((f) => (
                       <li key={f} className="flex items-start gap-2">
                         <CheckCircle2 className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
-                        <span className="text-slate-300 text-sm">{f}</span>
+                        <span className="text-roadcall-silver/85 text-sm">{f}</span>
                       </li>
                     ))}
                   </ul>
@@ -394,7 +394,7 @@ export default function DemoPage() {
         <h2 className="text-3xl md:text-4xl font-bold mb-6">
           Ready to Stop Missing Calls?
         </h2>
-        <p className="text-xl text-slate-300 mb-8">
+        <p className="text-xl text-roadcall-silver/85 mb-8">
           Try the AI demo right now — call and hear it for yourself.
         </p>
         <a href={telHref(HELP_PHONE)}>
@@ -407,7 +407,7 @@ export default function DemoPage() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center text-slate-400 text-sm">
+        <div className="max-w-6xl mx-auto px-4 text-center text-roadcall-muted text-sm">
           <p>© {new Date().getFullYear()} AI Roadside Support. All rights reserved.</p>
         </div>
       </footer>

@@ -76,9 +76,9 @@ const sections = [
 
 function LegalSection({ title, body }: { title: string; body: string[] }) {
   return (
-    <section className="border-t border-white/10 py-8 first:border-t-0 first:pt-0">
+    <section className="border-t border-roadcall-cyan/10 py-8 first:border-t-0 first:pt-0">
       <h2 className="text-2xl font-semibold tracking-tight text-white">{title}</h2>
-      <div className="mt-4 space-y-4 text-sm leading-7 text-slate-300 md:text-base">
+      <div className="mt-4 space-y-4 text-sm leading-7 text-roadcall-silver/85 md:text-base">
         {body.map((paragraph) => (
           <p key={paragraph}>{paragraph}</p>
         ))}
@@ -92,18 +92,18 @@ export default function SmsConsentPage() {
     <PageLayout>
       <section className="pt-28 pb-20 md:pt-36 md:pb-28">
         <div className="mx-auto max-w-4xl px-4 sm:px-6">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-8 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-12">
+          <div className="rounded-3xl border border-roadcall-cyan/10 bg-roadcall-panel/35 p-8 shadow-2xl shadow-black/20 backdrop-blur-sm md:p-12">
             <div className="mb-10">
-              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-orange-400">
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-roadcall-orange">
                 Legal
               </p>
               <h1 className="mt-4 text-4xl font-bold tracking-tight text-white md:text-5xl">
                 SMS Consent Policy
               </h1>
-              <p className="mt-4 text-sm text-slate-400 md:text-base">
+              <p className="mt-4 text-sm text-roadcall-muted md:text-base">
                 Effective Date: April 10, 2026
               </p>
-              <p className="mt-6 max-w-3xl text-base leading-7 text-slate-300 md:text-lg">
+              <p className="mt-6 max-w-3xl text-base leading-7 text-roadcall-silver/85 md:text-lg">
                 Omniweb, LLC provides AI-powered communication services, including SMS notifications and messaging for Roadcall.ai and related service workflows. This policy explains how consent for SMS communications is collected and used in accordance with applicable legal and carrier requirements, including TCPA and CTIA guidelines.
               </p>
             </div>
@@ -120,9 +120,9 @@ export default function SmsConsentPage() {
               ))}
             </div>
 
-            <div className="mt-12 rounded-2xl border border-white/10 bg-[#0b1220] p-6 text-sm text-slate-300">
+            <div className="mt-12 rounded-2xl border border-roadcall-cyan/10 bg-[#0b1220] p-6 text-sm text-roadcall-silver/85">
               <p>
-                You can also review our <Link className="text-orange-300 hover:text-orange-200" href="/privacy">Privacy Policy</Link> and <Link className="text-orange-300 hover:text-orange-200" href="/terms">Terms of Use</Link> for related information about communications, data handling, and service limitations.
+                You can also review our <Link className="text-roadcall-orange hover:text-roadcall-orange" href="/privacy">Privacy Policy</Link> and <Link className="text-roadcall-orange hover:text-roadcall-orange" href="/terms">Terms of Use</Link> for related information about communications, data handling, and service limitations.
               </p>
             </div>
           </div>

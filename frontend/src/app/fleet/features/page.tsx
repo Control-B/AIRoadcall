@@ -149,7 +149,7 @@ export default function FleetFeaturesPage() {
                 ops team actually needs
               </span>
             </h1>
-            <p className="text-xl text-slate-300 max-w-2xl mx-auto mb-10">
+            <p className="text-xl text-roadcall-silver/85 max-w-2xl mx-auto mb-10">
               AI-powered roadside intake, GPS capture, mechanic matching, and full incident
               visibility — built for carriers who can&apos;t afford downtime or data leaks.
             </p>
@@ -157,7 +157,7 @@ export default function FleetFeaturesPage() {
               <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8">
                 <Link href="/fleet/onboarding">Book a Fleet Demo</Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="border-slate-600 text-slate-200 hover:bg-slate-800">
+              <Button asChild variant="outline" size="lg" className="border-slate-600 text-roadcall-silver hover:bg-roadcall-panel">
                 <a href={telHref(HELP_PHONE)}>Call {HELP_PHONE}</a>
               </Button>
             </div>
@@ -166,7 +166,7 @@ export default function FleetFeaturesPage() {
       </section>
 
       {/* Feature grid */}
-      <section className="py-20 bg-slate-900/50">
+      <section className="py-20 bg-roadcall-ink/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <SectionHeading
             title="Built for real fleet operations"
@@ -179,7 +179,7 @@ export default function FleetFeaturesPage() {
                   <f.icon className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-white font-semibold text-lg mb-2">{f.title}</h3>
-                <p className="text-slate-400 text-sm leading-relaxed">{f.description}</p>
+                <p className="text-roadcall-muted text-sm leading-relaxed">{f.description}</p>
               </GlassCard>
             ))}
           </div>
@@ -204,7 +204,7 @@ export default function FleetFeaturesPage() {
                     {w.step}
                   </div>
                   <h3 className="text-white font-semibold mb-2">{w.title}</h3>
-                  <p className="text-slate-400 text-sm leading-relaxed">{w.description}</p>
+                  <p className="text-roadcall-muted text-sm leading-relaxed">{w.description}</p>
                 </GlassCard>
               </div>
             ))}
@@ -213,7 +213,7 @@ export default function FleetFeaturesPage() {
       </section>
 
       {/* Differentiators */}
-      <section className="py-20 bg-slate-900/50">
+      <section className="py-20 bg-roadcall-ink/50">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <SectionHeading
             title="Why fleets choose Roadcall over generic tools"
@@ -221,9 +221,9 @@ export default function FleetFeaturesPage() {
           />
           <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 gap-4">
             {differentiators.map((d) => (
-              <div key={d} className="flex items-start gap-3 bg-slate-800/40 border border-slate-700/50 rounded-xl p-4">
+              <div key={d} className="flex items-start gap-3 bg-roadcall-panel/40 border border-slate-700/50 rounded-xl p-4">
                 <CheckCircle2 className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                <span className="text-slate-300 text-sm">{d}</span>
+                <span className="text-roadcall-silver/85 text-sm">{d}</span>
               </div>
             ))}
           </div>
@@ -238,7 +238,7 @@ export default function FleetFeaturesPage() {
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Your data stays yours
             </h2>
-            <p className="text-slate-300 text-lg mb-6 max-w-2xl mx-auto">
+            <p className="text-roadcall-silver/85 text-lg mb-6 max-w-2xl mx-auto">
               Fleet incident data — driver locations, breakdown history, vendor relationships —
               never flows into a shared third-party CRM. Private tenant and hybrid in-house modes
               give you full database isolation and credential ownership.
@@ -256,7 +256,7 @@ export default function FleetFeaturesPage() {
                   Book a Fleet Demo <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
-              <Button asChild variant="outline" size="lg" className="border-slate-600 text-slate-200 hover:bg-slate-800">
+              <Button asChild variant="outline" size="lg" className="border-slate-600 text-roadcall-silver hover:bg-roadcall-panel">
                 <Link href="/fleet/security">Security Details</Link>
               </Button>
             </div>
@@ -271,14 +271,14 @@ export default function FleetFeaturesPage() {
           <h3 className="text-xl font-semibold text-white mb-3">
             Average roadside intake: under 90 seconds
           </h3>
-          <p className="text-slate-400 mb-6">
+          <p className="text-roadcall-muted mb-6">
             From first ring to mechanic dispatched — without a single human dispatcher involved.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
               <Link href="/fleet/onboarding">Start Fleet Setup</Link>
             </Button>
-            <Button asChild variant="ghost" size="lg" className="text-slate-300 hover:text-white">
+            <Button asChild variant="ghost" size="lg" className="text-roadcall-silver/85 hover:text-white">
               <Link href="/fleet/pricing">
                 See Pricing <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
