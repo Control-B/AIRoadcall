@@ -78,10 +78,18 @@ class MajorVendorService:
         result = await db.execute(stmt)
         rows: list[MajorVendorLocation] = list(result.scalars().all())
         if not rows:
+            logger.info(
+                "major_vendor_lookup_empty state=%s — vendor_locations table may not be seeded yet",
+                state,
+            )
             return None
 
         needs = _capability_filter(vehicle, problem)
         capable = [r for r in rows if _row_matches_capability(r, needs)] or rows
+        logger.info(
+            "major_vendor_lookup state=%s rows=%d capable=%d needs=%s",
+            state, len(rows), len(capable), needs,
+        )
 
         if latitude is not None and longitude is not None:
             ranked: list[tuple[MajorVendorLocation, float]] = []

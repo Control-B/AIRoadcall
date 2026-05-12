@@ -42,6 +42,9 @@ async def init_db():
     from app.models.dispatch_attempt import DispatchAttempt
     from app.models.tracking_session import TrackingSession
     from app.models.audit_event import AuditEvent
+    # Major vendor (chain) locations — Love's, TA, Petro, Pilot/FJ, Speedco,
+    # Rush, FleetPride, Boss Truck Shops, Southern Tire Mart, etc.
+    from app.models.major_vendor_location import MajorVendorLocation
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -50,4 +53,11 @@ async def init_db():
 
 asyncio.run(init_db())
 "
+
+# Seed the major chain vendor table from the bundled Apify scrape.
+# Idempotent — safe on every deploy. Falls back silently if no DATABASE_URL.
+echo "Seeding major chain vendor locations from data/chains_raw.json…"
+python -m scripts.import_chain_locations --file data/chains_raw.json || \
+    echo "⚠️  chain seed skipped (non-fatal)"
+
 echo "Build complete"
