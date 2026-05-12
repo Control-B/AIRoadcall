@@ -1,0 +1,2 @@
+# Place image files here (PNG, JPG, WebP, AVIF, SVG).
+# Import with: `import hero from "@/assets/images/hero.jpg"`
