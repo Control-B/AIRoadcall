@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import peterbiltHero from "@/assets/images/Peterbilt.jpeg";
 
 const features = [
   { icon: Phone, title: "AI Roadside Intake", description: "Driver calls from the side of the road. Sandy collects incident type, vehicle, location description, and driver info in under 90 seconds." },
@@ -59,16 +60,16 @@ export default function FleetPage() {
       {/* Hero */}
       <section className="relative min-h-[85vh] flex flex-col justify-end overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1920&q=80"
-          alt="Fleet of semi trucks on a highway"
+          src={peterbiltHero}
+          alt="Peterbilt semi truck representing fleet roadside support"
           fill
           priority
-          className="object-cover object-center"
+          className="object-cover object-center md:object-[center_42%]"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#02050c]/60 via-[#02050c]/30 to-[#02050c] z-10" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#02050c]/60 via-transparent to-[#02050c]/40 z-10" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(59,130,246,0.2),transparent_70%)] z-10" />
+        <div className="absolute inset-0 bg-gradient-to-b from-roadcall-void/70 via-roadcall-void/35 to-roadcall-void z-10" />
+        <div className="absolute inset-0 bg-gradient-to-r from-roadcall-void/70 via-roadcall-void/25 to-roadcall-void/55 z-10" />
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(20,216,255,0.24),transparent_70%)] z-10" />
         <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 w-full pb-16 pt-32 text-center">
           <FadeIn>
             <div className="inline-flex items-center gap-2 bg-roadcall-panel/45 border border-roadcall-cyan/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-8">
