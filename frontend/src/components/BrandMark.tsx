@@ -30,7 +30,7 @@ export function BrandMark({
   priority = false,
 }: BrandMarkProps) {
   const logoHeight = height ?? size;
-  const logoWidth = width ?? Math.round(logoHeight * 1.565);
+  const logoWidth = width ?? Math.round(logoHeight * 3.08);
 
   return (
     <span className={className}>
@@ -40,7 +40,7 @@ export function BrandMark({
         width={logoWidth}
         height={logoHeight}
         priority={priority}
-        className="drop-shadow-[0_12px_24px_rgba(249,115,22,0.18)]"
+        className="drop-shadow-[0_12px_24px_rgba(10,132,255,0.20)]"
         style={{ width: logoWidth, height: logoHeight, objectFit: "contain" }}
       />
     </span>

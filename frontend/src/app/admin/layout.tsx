@@ -79,7 +79,7 @@ export default function AdminLayout({
       <aside className="w-64 bg-roadcall-ink text-white flex flex-col shrink-0">
         <div className="p-6 border-b border-slate-800">
           <Link href="/admin" aria-label="Roadcall.ai admin dashboard" className="inline-flex items-center">
-            <BrandMark width={150} height={60} />
+            <BrandMark width={170} height={56} />
           </Link>
           <p className="text-xs text-roadcall-muted mt-1">Admin Dashboard</p>
         </div>

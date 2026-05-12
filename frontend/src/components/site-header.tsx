@@ -157,7 +157,7 @@ export function SiteHeader() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
         {/* ── Logo ──────────────────────────────────────── */}
         <Link href="/" aria-label="Roadcall.ai home" className="shrink-0 group flex items-center">
-          <BrandMark width={190} height={64} priority className="flex items-center transition-opacity group-hover:opacity-90" />
+          <BrandMark width={220} height={72} priority className="flex items-center transition-opacity group-hover:opacity-90" />
         </Link>
 
         {/* ── Desktop nav ───────────────────────────────── */}

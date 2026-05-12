@@ -34,7 +34,7 @@ export function SiteFooter() {
           {/* Brand column */}
           <div className="lg:col-span-2">
             <Link href="/" className="mb-5 inline-block">
-              <BrandMark width={210} height={86} />
+              <BrandMark width={250} height={82} />
             </Link>
             <p className="text-sm text-roadcall-muted max-w-sm leading-relaxed mb-6">
               AI-powered roadside dispatch and mechanic shop phone system.
