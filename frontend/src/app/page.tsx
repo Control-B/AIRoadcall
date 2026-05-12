@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   Phone,
   Wrench,
@@ -128,6 +128,16 @@ function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general"
 }
 
 export default function HomePage() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(true);
+
+  function toggleSound() {
+    if (videoRef.current) {
+      videoRef.current.muted = !muted;
+      setMuted(!muted);
+    }
+  }
+
   return (
     <PageLayout>
 
@@ -136,15 +146,34 @@ export default function HomePage() {
       ═══════════════════════════════════════════════════════════════ */}
       <section className="relative min-h-screen flex flex-col justify-end overflow-hidden">
 
-        {/* Truck background image */}
-        <Image
-          src="https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=1920&q=80"
-          alt="Semi truck on night highway"
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
+        {/* Video background */}
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover object-center"
+          src="/videos/RoadcallPremium.mp4"
         />
+
+        {/* Sound toggle button */}
+        <button
+          onClick={toggleSound}
+          className="absolute top-24 right-6 z-30 flex items-center gap-2 bg-black/50 hover:bg-black/70 border border-white/20 hover:border-white/40 backdrop-blur-md text-white text-xs font-semibold px-4 py-2 rounded-full transition-all duration-200"
+        >
+          {muted ? (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+              Play with Sound
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              Mute
+            </>
+          )}
+        </button>
 
         {/* Layered overlays for cinematic depth */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#02050c]/70 via-[#02050c]/40 to-[#02050c] z-10" />
