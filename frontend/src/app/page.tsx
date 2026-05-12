@@ -200,64 +200,64 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <FadeIn delay={0.1}>
             <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-              <Link href="/shops" className="group relative h-full rounded-3xl border border-orange-500/25 bg-[#080b12]/90 backdrop-blur-xl p-6 text-left shadow-2xl shadow-black/30 hover:border-orange-500/55 transition-all duration-200 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-roadcall-orange/15 via-transparent to-transparent opacity-80" />
+              <Link href="/shops" className="group relative h-full rounded-3xl border border-orange-500/25 bg-[#080b12]/60 backdrop-blur-xl p-6 text-left shadow-2xl shadow-black/30 hover:border-orange-500/55 transition-all duration-200 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-roadcall-orange/12 via-transparent to-transparent opacity-55" />
                 <div className="relative flex h-full flex-col justify-between gap-6">
                   <div>
                     <div className="text-[10px] font-bold text-roadcall-orange uppercase tracking-[0.22em] mb-3">Roadcall Shops</div>
-                    <h2 className="text-2xl font-bold text-white mb-2">AI Phones + CRM</h2>
-                    <p className="text-sm font-medium text-roadcall-orange mb-5">for Truck Mechanics</p>
+                    <h2 className="text-xl font-bold text-white mb-2">AI Phones + CRM</h2>
+                    <p className="text-[13px] font-medium text-roadcall-orange mb-5">for Truck Mechanics</p>
                     <ul className="grid gap-2">
                       {["AI Call Answering","Missed-Call Text Back","Appointment Booking","CRM & Follow-Up"].map(i => (
-                        <li key={i} className="flex items-center gap-2 text-sm text-roadcall-silver/85">
+                        <li key={i} className="flex items-center gap-2 text-[13px] text-roadcall-silver/85">
                           <CheckCircle2 className="h-3.5 w-3.5 text-roadcall-orange shrink-0" />{i}
                         </li>
                       ))}
                     </ul>
                   </div>
-                  <div className="inline-flex items-center gap-2 self-start rounded-full bg-roadcall-orange px-5 py-3 text-sm font-semibold text-white group-hover:brightness-110 transition-all">
+                  <div className="inline-flex items-center gap-2 self-start rounded-full bg-roadcall-orange px-4 py-2.5 text-xs font-semibold text-white group-hover:brightness-110 transition-all">
                     For Mechanics <ArrowRight className="h-4 w-4" />
                   </div>
                 </div>
               </Link>
 
-              <Link href="/fleet" className="group relative h-full rounded-3xl border border-blue-500/25 bg-[#080b12]/90 backdrop-blur-xl p-6 text-left shadow-2xl shadow-black/30 hover:border-blue-500/55 transition-all duration-200 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/15 via-transparent to-transparent opacity-80" />
+              <Link href="/fleet" className="group relative h-full rounded-3xl border border-blue-500/25 bg-[#080b12]/60 backdrop-blur-xl p-6 text-left shadow-2xl shadow-black/30 hover:border-blue-500/55 transition-all duration-200 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/12 via-transparent to-transparent opacity-55" />
                 <div className="relative flex h-full flex-col justify-between gap-6">
                   <div>
                     <div className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.22em] mb-3">Roadcall Fleet</div>
-                    <h2 className="text-2xl font-bold text-white mb-2">AI Roadside Support</h2>
-                    <p className="text-sm font-medium text-blue-300 mb-5">for Fleets</p>
+                    <h2 className="text-xl font-bold text-white mb-2">AI Roadside Support</h2>
+                    <p className="text-[13px] font-medium text-blue-300 mb-5">for Fleets</p>
                     <ul className="grid gap-2">
                       {["AI Roadside Intake","GPS & Tracker Integration","Mechanic Matching","Dispatch & Tracking"].map(i => (
-                        <li key={i} className="flex items-center gap-2 text-sm text-roadcall-silver/85">
+                        <li key={i} className="flex items-center gap-2 text-[13px] text-roadcall-silver/85">
                           <CheckCircle2 className="h-3.5 w-3.5 text-blue-400 shrink-0" />{i}
                         </li>
                       ))}
                     </ul>
                   </div>
-                  <div className="inline-flex items-center gap-2 self-start rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white group-hover:bg-blue-500 transition-all">
+                  <div className="inline-flex items-center gap-2 self-start rounded-full bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white group-hover:bg-blue-500 transition-all">
                     For Fleets <ArrowRight className="h-4 w-4" />
                   </div>
                 </div>
               </Link>
 
-              <Link href="/marketplace" className="group relative h-full rounded-3xl border border-cyan-400/25 bg-[#080b12]/90 backdrop-blur-xl p-6 text-left shadow-2xl shadow-black/30 hover:border-cyan-400/55 transition-all duration-200 overflow-hidden md:col-span-2 lg:col-span-1">
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/15 via-transparent to-transparent opacity-80" />
+              <Link href="/marketplace" className="group relative h-full rounded-3xl border border-cyan-400/25 bg-[#080b12]/60 backdrop-blur-xl p-6 text-left shadow-2xl shadow-black/30 hover:border-cyan-400/55 transition-all duration-200 overflow-hidden md:col-span-2 lg:col-span-1">
+                <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/12 via-transparent to-transparent opacity-55" />
                 <div className="relative flex h-full flex-col justify-between gap-6">
                   <div>
                     <div className="text-[10px] font-bold text-cyan-300 uppercase tracking-[0.22em] mb-3">Roadcall Marketplace</div>
-                    <h2 className="text-2xl font-bold text-white mb-2">Find Roadside Help</h2>
-                    <p className="text-sm font-medium text-cyan-200 mb-5">for Drivers & Dispatchers</p>
+                    <h2 className="text-xl font-bold text-white mb-2">Find Roadside Help</h2>
+                    <p className="text-[13px] font-medium text-cyan-200 mb-5">for Drivers & Dispatchers</p>
                     <ul className="grid gap-2">
                       {["Verified Provider Network","Search by Location","Roadside & Towing","Fast Contact Options"].map(i => (
-                        <li key={i} className="flex items-center gap-2 text-sm text-roadcall-silver/85">
+                        <li key={i} className="flex items-center gap-2 text-[13px] text-roadcall-silver/85">
                           <CheckCircle2 className="h-3.5 w-3.5 text-cyan-300 shrink-0" />{i}
                         </li>
                       ))}
                     </ul>
                   </div>
-                  <div className="inline-flex items-center gap-2 self-start rounded-full bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 group-hover:bg-cyan-300 transition-all">
+                  <div className="inline-flex items-center gap-2 self-start rounded-full bg-cyan-500 px-4 py-2.5 text-xs font-semibold text-slate-950 group-hover:bg-cyan-300 transition-all">
                     Explore Marketplace <ArrowRight className="h-4 w-4" />
                   </div>
                 </div>
