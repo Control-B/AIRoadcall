@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import CookieConsent from "@/components/CookieConsent";
-import { SiteFooter } from "@/components/site-footer";
-import { SiteHeader } from "@/components/site-header";
+import { SiteFooterChrome, SiteHeaderChrome } from "@/components/site-chrome";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -74,11 +73,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${inter.className} bg-roadcall-void text-roadcall-silver`}>
-        <SiteHeader />
+        <SiteHeaderChrome />
         <main className="min-h-screen">
           {children}
         </main>
-        <SiteFooter />
+        <SiteFooterChrome />
         <CookieConsent />
       </body>
     </html>
