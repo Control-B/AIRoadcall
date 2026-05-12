@@ -1,0 +1,2 @@
+# Place imported video assets here (short MP4/WebM clips used by components).
+# For large videos or files needing a stable public URL, use `frontend/public/videos/` instead.

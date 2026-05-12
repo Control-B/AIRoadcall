@@ -9,7 +9,8 @@ assets/
 ├── images/        # Photos, screenshots, hero images, OG/share images
 ├── icons/         # SVG icons, favicons, app icons (use lucide-react for inline UI icons)
 ├── logos/         # Roadcall brand marks, partner/vendor logos
-└── illustrations/ # Decorative SVG/PNG illustrations
+├── illustrations/ # Decorative SVG/PNG illustrations
+└── videos/        # Short imported MP4/WebM clips used by React components
 ```
 
 ## Two ways to use these in Next.js
@@ -26,6 +27,17 @@ import logo from "@/assets/logos/roadcall-mark.svg";
 
 ### 2. `public/` URL (for raw, unhashed files — favicons, OG tags, robots.txt)
 Anything that must be reachable at a fixed URL (e.g. `/favicon.ico`, social-share image referenced in `<meta>` tags) belongs in `frontend/public/`, not here.
+
+### Videos
+Short UI videos that are imported by a component can live in `src/assets/videos/`:
+
+```tsx
+import introVideo from "@/assets/videos/fleet-intro.mp4";
+
+<video src={introVideo} autoPlay muted loop playsInline />
+```
+
+Large videos, CDN-served files, or videos that need a stable public URL should go in `frontend/public/videos/` and be referenced as `/videos/file-name.mp4`.
 
 ## Inline UI icons
 
