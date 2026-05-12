@@ -69,7 +69,7 @@ FLOW = {
         "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' Ask only ONE of these per turn, and only if truly missing.",
         "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
-        "When reading a mechanic, read matches[0].businessName and matches[0].phone exactly as returned, character by character.",
+        "When reading matches, never default to only matches[0] for a city-level search. If match_mechanic.message lists options, speak that options message. When match_mechanic returns multiple matches for a city-level search, do NOT force matches[0]. Read match_mechanic.message or summarize up to three returned businessName values exactly. Then ask: 'Do you want me to text you a secure GPS link to find the closest one, can you tell me your exact road or exit, or do you want me to start with one of these?' Do not read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.",
         "If match_mechanic returns zero matches or errors, do NOT name any business — go to manual dispatch.",
         "Never claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.",
         "If the driver mentions injury, fire, or danger, tell them to call 911 immediately.",
@@ -172,7 +172,7 @@ FLOW = {
                     "problemType": {"type": "string", "description": "Problem type, e.g. tire repair, engine, battery, fuel, towing"},
                     "callerPhone": {"type": "string", "description": "Caller's phone from Retell call metadata if available"},
                     "callbackNumber": {"type": "string", "description": "Callback/SMS number if already collected"},
-                    "limit": {"type": "integer", "description": "Return 1 or 2 matches for the caller"},
+                    "limit": {"type": "integer", "description": "Return up to 5 matches for city-level options, or fewer for precise GPS/radius matching"},
                 },
                 "required": ["message"]
             }
@@ -374,16 +374,15 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Tell the caller only the best one or two matches from match_mechanic. Keep it short and use the returned businessName exactly.\n"
-                    "You must speak the returned phone number from matches[0].phone if it is present.\n"
-                    "FORBIDDEN: inventing or guessing a mechanic name, phone, or address. Only speak businessName, phone, city, address values that appeared verbatim in the latest match_mechanic response. If you cannot recall the exact strings, call match_mechanic again before speaking.\n"
-                    "If matches is empty or missing, do NOT name any business. Move to no-mechanic / manual dispatch instead.\n"
-                    "Example shape only (replace bracketed values with the exact tool response): 'I found [matches[0].businessName] in [matches[0].city]. Their phone is [matches[0].phone]. Want me to create the dispatch request and text you the GPS link?'\n"
-                    "Mention the mechanic/shop name, city, phone, service match, mobile roadside service, and 24/7 availability if present.\n"
-                    "Do not read a long list. Do not say dispatched, confirmed, en route, or give ETA from this database match alone.\n"
-                    "If match_mechanic returned matches, never say no mechanic was found.\n"
-                    "If the caller wants only the number, read it once more and ask if they also want a dispatch request.\n"
-                    "If the caller wants dispatch/GPS/help continuing, move to post-match dispatch intake."
+                    "Use the latest match_mechanic tool response only. Prefer speaking match_mechanic.message verbatim when it is present, because the backend already decides whether this is a city-level options list or an exact/radius match.\n"
+                    "If the response includes several matches, mention up to three returned businessName values exactly; do not invent names and do not force matches[0].\n"
+                    "Do NOT read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.\n"
+                    "After listing options, ask exactly this choice question: 'Do you want me to text you a secure GPS link to find the closest one, can you tell me your exact road or exit, or do you want me to start with one of these?'\n"
+                    "If the caller gives an exact road, exit, landmark, or GPS details, go back to database match intake and call match_mechanic again with the more precise location.\n"
+                    "If the caller wants a GPS text or wants Roadcall to continue dispatch, move to post-match dispatch intake.\n"
+                    "If the caller chooses a mechanic by name or option number, use that match context and move to post-match dispatch intake.\n"
+                    "FORBIDDEN: inventing or guessing a mechanic name, phone, address, or ETA. Only speak businessName, phone, city, address values that appeared verbatim in the latest match_mechanic response.\n"
+                    "Never claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so."
                 )
             },
             "edges": [
@@ -413,7 +412,8 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Read matches[0].businessName and matches[0].phone clearly.\n"
+                    "Read the phone for the mechanic the caller chose. If they did not choose one, ask which option they want first.\n"
+                    "Use only businessName and phone values from the latest match_mechanic response; do not invent or guess.\n"
                     "Then ask: 'Do you want me to also create a Roadcall dispatch request and text you the GPS location link?'\n"
                     "Do not end unless the caller explicitly says they are all set or no longer need help."
                 )

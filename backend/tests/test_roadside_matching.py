@@ -135,6 +135,67 @@ def test_multiple_mechanics_rank_by_service_priority_and_fit():
     assert "Service match" in formatted[0].reason
 
 
+def test_city_level_match_message_lists_options_and_asks_choice():
+    context = RoadsideCallerContext(
+        city="Lakeland",
+        state="FL",
+        problemType="flat_tire",
+        serviceNeeded="tire repair",
+    )
+    mechanics = [
+        make_test_mechanic(id="a", company_name="Alpha Tire", city="Lakeland", state="FL"),
+        make_test_mechanic(id="b", company_name="Bravo Roadside", city="Lakeland", state="FL"),
+        make_test_mechanic(id="c", company_name="Charlie Mobile", city="Lakeland", state="FL"),
+    ]
+    formatted = formatDispatchRecommendation(
+        rankMechanics([(mechanic, scoreMechanicMatch(mechanic, context)) for mechanic in mechanics])
+    )
+
+    assert RoadsideMatchingService._is_city_level_request(context) is True
+    message = RoadsideMatchingService.match_message(
+        context=context,
+        matches=formatted,
+        search_level="exact_city",
+        city_level_request=True,
+    )
+
+    assert "I found a few matching mechanics near Lakeland, FL" in message
+    assert "1)" in message and "2)" in message and "3)" in message
+    assert "text you a secure GPS link" in message
+    assert "exact road, exit, or landmark" in message
+    assert "start with one of these matches" in message
+
+
+def test_precise_location_match_message_keeps_distance_options():
+    context = RoadsideCallerContext(
+        latitude=28.0395,
+        longitude=-81.9498,
+        city="Lakeland",
+        state="FL",
+        problemType="tow_needed",
+        serviceNeeded="towing",
+    )
+    mechanics = [
+        make_test_mechanic(id="near", company_name="Near Tow", base_lat=28.04, base_lng=-81.95, service_types=["tow_needed"]),
+        make_test_mechanic(id="far", company_name="Far Tow", base_lat=28.2, base_lng=-82.1, service_types=["tow_needed"]),
+    ]
+    formatted = formatDispatchRecommendation(
+        rankMechanics([(mechanic, scoreMechanicMatch(mechanic, context)) for mechanic in mechanics])
+    )
+
+    assert RoadsideMatchingService._is_city_level_request(context) is False
+    message = RoadsideMatchingService.match_message(
+        context=context,
+        matches=formatted,
+        search_level="radius_25_miles",
+        city_level_request=False,
+    )
+
+    assert "I found nearby roadside matches" in message
+    assert "miles away" in message
+    assert "text the GPS link" in message
+
+
 def test_emergency_mobile_mechanic_ranks_higher():
     context = RoadsideCallerContext(
         city="Tampa",

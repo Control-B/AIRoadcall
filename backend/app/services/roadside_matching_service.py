@@ -355,6 +355,7 @@ class RoadsideMatchingService:
     async def match_mechanic(db: AsyncSession, request: RoadsideMatchRequest) -> RoadsideMatchResponse:
         context = RoadsideMatchingService.build_context(request)
         missing_fields = RoadsideMatchingService.missing_fields(context)
+        city_level_request = RoadsideMatchingService._is_city_level_request(context)
         if missing_fields:
             logger.info(
                 "roadside_match_needs_more_info city=%s state=%s problem=%s missing=%s",
@@ -375,13 +376,14 @@ class RoadsideMatchingService:
                 message=RoadsideMatchingService.next_question(missing_fields),
             )
 
-        search_result = await RoadsideMatchingService.searchMechanics(db, context, limit=max(request.limit, 3))
+        option_limit = 5 if city_level_request else request.limit
+        search_result = await RoadsideMatchingService.searchMechanics(db, context, limit=max(option_limit, 3))
         scored = rankMechanics([
             (mechanic, scoreMechanicMatch(mechanic, context))
             for mechanic in search_result.mechanics
             if _has_usable_phone(mechanic)
         ])
-        top = scored[: request.limit]
+        top = scored[:option_limit]
         formatted = formatDispatchRecommendation(top)
         fallback_created = search_result.fallback_created or not bool(formatted)
         selected = formatted[0].businessName if formatted else None
@@ -406,10 +408,11 @@ class RoadsideMatchingService:
             callerLocation=context,
             fallbackEscalation=fallback_created,
             fallbackCreated=fallback_created,
-            message=(
-                "Got it. I found nearby mechanics."
-                if formatted
-                else "No mechanic match found within search radius. Manual dispatch case created."
+            message=RoadsideMatchingService.match_message(
+                context=context,
+                matches=formatted,
+                search_level=search_result.search_level,
+                city_level_request=city_level_request,
             ),
         )
 
@@ -463,6 +466,60 @@ class RoadsideMatchingService:
         if "problemType" in missing_fields:
             return "Is it tire, engine, battery, fuel, towing, or something else?"
         return "Got it. I’m checking nearby mechanics."
+
+    @staticmethod
+    def _is_city_level_request(context: RoadsideCallerContext) -> bool:
+        """True when caller gave city/state but no precise road/GPS/landmark.
+
+        For these calls, the safest voice UX is not "here is the one closest
+        mechanic" because we do not know the caller's exact position. Return a
+        short list of local options and ask whether to send a GPS text, collect
+        exact location, or proceed with one of the listed matches.
+        """
+        return bool(
+            context.city
+            and context.state
+            and context.latitude is None
+            and context.longitude is None
+            and not context.road
+            and not context.landmark
+        )
+
+    @staticmethod
+    def match_message(
+        *,
+        context: RoadsideCallerContext,
+        matches: list[RoadsideMechanicMatch],
+        search_level: str | None,
+        city_level_request: bool,
+    ) -> str:
+        if not matches:
+            return "No mechanic match found within search radius. Manual dispatch case created."
+
+        if city_level_request:
+            names = "; ".join(
+                f"{idx + 1}) {match.businessName}"
+                + (f" in {match.city}" if match.city else "")
+                for idx, match in enumerate(matches[:5])
+            )
+            return (
+                f"I found a few matching mechanics near {context.city}, {context.state}: {names}. "
+                "I can text you a secure GPS link to find the closest one, you can tell me your exact road, exit, or landmark, "
+                "or I can start with one of these matches. Which would you like?"
+            )
+
+        if search_level and search_level.startswith("radius_"):
+            names = "; ".join(
+                f"{idx + 1}) {match.businessName}"
+                + (f" about {match.distanceMiles:.1f} miles away" if match.distanceMiles is not None else "")
+                for idx, match in enumerate(matches[:3])
+            )
+            return (
+                f"I found nearby roadside matches: {names}. "
+                "I can text the GPS link and continue the dispatch request, or you can choose one of these."
+            )
+
+        return "Got it. I found nearby mechanics."
 
     @staticmethod
     async def findNearbyMechanics(db: AsyncSession, context: RoadsideCallerContext, limit: int = 10) -> list[Mechanic]:
