@@ -25,24 +25,25 @@ router = APIRouter(prefix="/mechanics", tags=["mechanics"])
 
 async def ensure_mechanic_admin_columns(db: AsyncSession) -> None:
     """Self-heal admin columns that older production DBs may not have yet."""
-    await db.execute(
-        text(
-            "ALTER TABLE mechanics "
-            "ADD COLUMN IF NOT EXISTS emergency_service BOOLEAN NOT NULL DEFAULT false"
-        )
-    )
-    await db.execute(
-        text(
-            "ALTER TABLE mechanics "
-            "ADD COLUMN IF NOT EXISTS service_radius_miles INTEGER NOT NULL DEFAULT 50"
-        )
-    )
-    await db.execute(
-        text(
-            "ALTER TABLE mechanics "
-            "ADD COLUMN IF NOT EXISTS priority_score INTEGER NOT NULL DEFAULT 50"
-        )
-    )
+    statements = [
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS email VARCHAR(255)",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS website TEXT",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS address TEXT",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS city VARCHAR(120)",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS state VARCHAR(10)",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS rating NUMERIC(3, 2)",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS review_count INTEGER",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS source VARCHAR(50)",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS source_confidence DOUBLE PRECISION",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS last_enriched_at TIMESTAMPTZ",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS enrichment_data JSONB",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS lead_status VARCHAR(50) DEFAULT 'new'",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS emergency_service BOOLEAN NOT NULL DEFAULT false",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS service_radius_miles INTEGER NOT NULL DEFAULT 50",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS priority_score INTEGER NOT NULL DEFAULT 50",
+    ]
+    for statement in statements:
+        await db.execute(text(statement))
 
 
 @router.get(

@@ -187,8 +187,33 @@ class MechanicDataService:
             filters.append(Mechanic.emergency_service == True)  # noqa: E712
 
         count_query = select(func.count(Mechanic.id))
+        list_columns = [
+            Mechanic.id,
+            Mechanic.company_name,
+            Mechanic.contact_name,
+            Mechanic.phone,
+            Mechanic.email,
+            Mechanic.website,
+            Mechanic.address,
+            Mechanic.city,
+            Mechanic.state,
+            Mechanic.service_types,
+            Mechanic.vehicle_types_supported,
+            Mechanic.active,
+            Mechanic.accepts_mobile_roadside,
+            Mechanic.emergency_service,
+            Mechanic.service_radius_miles,
+            Mechanic.priority_score,
+            Mechanic.rating,
+            Mechanic.review_count,
+            Mechanic.source,
+            Mechanic.source_confidence,
+            Mechanic.lead_status,
+            Mechanic.last_enriched_at,
+            Mechanic.created_at,
+        ]
         data_query = (
-            select(Mechanic)
+            select(*list_columns)
             .order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc())
             .limit(limit)
             .offset(offset)
@@ -198,8 +223,7 @@ class MechanicDataService:
             data_query = data_query.where(condition)
 
         total = await db.scalar(count_query) or 0
-        rows = await db.execute(data_query)
-        mechanics = rows.scalars().all()
+        rows = (await db.execute(data_query)).mappings().all()
 
         return MechanicAdminListResponse(
             total=total,
@@ -207,31 +231,31 @@ class MechanicDataService:
             offset=offset,
             items=[
                 MechanicAdminListItem(
-                    id=str(mechanic.id),
-                    company_name=mechanic.company_name,
-                    contact_name=mechanic.contact_name,
-                    phone=mechanic.phone,
-                    email=mechanic.email,
-                    website=mechanic.website,
-                    address=mechanic.address,
-                    city=mechanic.city,
-                    state=mechanic.state,
-                    service_types=mechanic.service_types or [],
-                    vehicle_types_supported=mechanic.vehicle_types_supported or [],
-                    active=mechanic.active,
-                    accepts_mobile_roadside=mechanic.accepts_mobile_roadside,
-                    emergency_service=mechanic.emergency_service,
-                    service_radius_miles=mechanic.service_radius_miles,
-                    priority_score=mechanic.priority_score,
-                    rating=float(mechanic.rating) if mechanic.rating is not None else None,
-                    review_count=mechanic.review_count,
-                    source=mechanic.source,
-                    source_confidence=mechanic.source_confidence,
-                    lead_status=mechanic.lead_status,
-                    last_enriched_at=mechanic.last_enriched_at,
-                    created_at=mechanic.created_at,
+                    id=str(row["id"]),
+                    company_name=row["company_name"],
+                    contact_name=row["contact_name"],
+                    phone=row["phone"],
+                    email=row["email"],
+                    website=row["website"],
+                    address=row["address"],
+                    city=row["city"],
+                    state=row["state"],
+                    service_types=row["service_types"] or [],
+                    vehicle_types_supported=row["vehicle_types_supported"] or [],
+                    active=row["active"],
+                    accepts_mobile_roadside=row["accepts_mobile_roadside"],
+                    emergency_service=row["emergency_service"],
+                    service_radius_miles=row["service_radius_miles"],
+                    priority_score=row["priority_score"],
+                    rating=float(row["rating"]) if row["rating"] is not None else None,
+                    review_count=row["review_count"],
+                    source=row["source"],
+                    source_confidence=row["source_confidence"],
+                    lead_status=row["lead_status"],
+                    last_enriched_at=row["last_enriched_at"],
+                    created_at=row["created_at"],
                 )
-                for mechanic in mechanics
+                for row in rows
             ],
         )
 
