@@ -69,6 +69,7 @@ FLOW = {
         "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.",
         "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
+        "PACING: Speak like a calm human dispatcher, not a robot. When you read match_mechanic.message, honor the ellipses (\"...\") and periods as real pauses — take a half-second breath at each ellipsis and a full beat at each period. Do not run sentences together. Read each numbered option as its own sentence: \"Number one ... Truck Tire LLC ... \" pause ... \"Number two ... Big Guy Truck ... \" pause ... \"Number three ... Bobby's Truck Shop.\" Then ask the question. Never list more than three local options.",
         "When reading results, ALWAYS prefer to speak match_mechanic.message exactly as returned — it is already worded for voice and includes both up to three local mobile mechanics and one major vendor (Love's, TA, Petro, Pilot, Speedco, Rush, FleetPride, Boss Truck Shops, or Southern Tire Mart) when one is nearby. Never list more than three local options. After reading the message, ask: 'Would you prefer the closest mobile mechanic or the larger truck service center?' Do not read phone numbers unless the caller asks or picks one.",
         "The major vendor is provided in match_mechanic.majorVendor with brandName, interstate, and exitNumber. You may speak its brandName, interstate, exit, and city verbatim — but only if majorVendor is present in the latest tool response. Never invent a major vendor.",
         "If match_mechanic returns zero matches AND no majorVendor, do NOT name any business — go to manual dispatch.",
@@ -783,8 +784,15 @@ agent_body = {
     },
     "voice_id": "11labs-Lily",
     "language": "en-US",
-    "interruption_sensitivity": 0.9,
+    # Pacing: lower interruption sensitivity = more patient, won't cut driver off mid-sentence.
+    # voice_speed < 1.0 slows delivery; responsiveness < 1.0 lets her wait a beat before replying.
+    "interruption_sensitivity": 0.55,
+    "responsiveness": 0.75,
+    "voice_speed": 0.93,
+    "voice_temperature": 0.75,
     "enable_backchannel": True,
+    "backchannel_frequency": 0.5,
+    "backchannel_words": ["okay", "got it", "uh huh", "right"],
     "max_call_duration_ms": 1800000,
     "end_call_after_silence_ms": 120000,
     "boosted_keywords": [

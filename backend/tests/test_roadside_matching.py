@@ -183,7 +183,8 @@ def test_city_level_match_message_lists_options_and_asks_choice():
 
     assert "local mechanic" in message
     assert "Lakeland, FL" in message
-    assert "1)" in message and "2)" in message and "3)" in message
+    assert "Number one" in message and "Number two" in message and "Number three" in message
+    assert "..." in message  # ellipsis pause for natural pacing
     assert "text you a secure GPS link" in message
 
 
@@ -552,9 +553,9 @@ def test_match_message_caps_local_options_at_three():
         city_level_request=True,
     )
 
-    # numbered options "1)" "2)" "3)" should appear, never "4)".
-    assert "1)" in message and "2)" in message and "3)" in message
-    assert "4)" not in message
+    # spoken numbering should appear, never a fourth option.
+    assert "Number one" in message and "Number two" in message and "Number three" in message
+    assert "Number four" not in message
 
 
 def test_dispatch_confidence_in_unit_range():

@@ -546,53 +546,73 @@ class RoadsideMatchingService:
         search_level: str | None,
         city_level_request: bool,
     ) -> str:
+        # Pacing tokens — periods + ellipses force ElevenLabs to take a real
+        # breath between options instead of speed-reading the whole list.
+        # We avoid SSML tags because Retell's normalize_for_speech may strip
+        # them; natural punctuation is the most reliable way to slow delivery.
+        PAUSE = " ... "
+        SHORT = ". "
+
         # Build the major-vendor sentence used in every variant.
         major_phrase = ""
         if majorVendor:
             corridor = ""
             if majorVendor.interstate and majorVendor.exitNumber:
-                corridor = f" off {majorVendor.interstate} exit {majorVendor.exitNumber}"
+                corridor = f" off {majorVendor.interstate}, exit {majorVendor.exitNumber}"
             elif majorVendor.interstate:
                 corridor = f" off {majorVendor.interstate}"
             elif majorVendor.city:
                 corridor = f" in {majorVendor.city}"
-            major_phrase = f" There is also a major option, {majorVendor.brandName}{corridor}."
+            major_phrase = (
+                f"{PAUSE}There is also a major option{PAUSE}{majorVendor.brandName}{corridor}."
+            )
 
         if not matches and majorVendor:
             return (
-                f"I don't see a local mobile mechanic open right now, but"
-                f"{major_phrase} Would you like me to dispatch them?"
-            ).replace("but There", "but there")
+                f"I don't see a local mobile mechanic open right now,{major_phrase} "
+                "Would you like me to dispatch them?"
+            )
 
         if not matches:
             return "No mechanic match found within search radius. Manual dispatch case created."
 
         local_count = len(matches[:3])
 
+        def _ordered(label: int, name: str, suffix: str = "") -> str:
+            # "Number one ... Truck Tire LLC ..." reads more naturally than "1) Truck Tire LLC"
+            spoken = {1: "Number one", 2: "Number two", 3: "Number three"}.get(label, f"Number {label}")
+            tail = f", {suffix}" if suffix else ""
+            return f"{spoken}{PAUSE}{name}{tail}"
+
         if city_level_request:
-            names = "; ".join(
-                f"{idx + 1}) {match.businessName}"
-                + (f" in {match.city}" if match.city else "")
+            options = [
+                _ordered(idx + 1, match.businessName, f"in {match.city}" if match.city else "")
                 for idx, match in enumerate(matches[:3])
-            )
+            ]
+            options_text = (PAUSE + PAUSE).join(options) + "."
             base = (
-                f"I found {local_count} local mechanic{'s' if local_count != 1 else ''} near "
-                f"{context.city}, {context.state}: {names}.{major_phrase} "
+                f"I found {local_count} local mechanic"
+                f"{'s' if local_count != 1 else ''} near {context.city}, {context.state}.{PAUSE}"
+                f"{options_text}{major_phrase}{PAUSE}"
                 "Would you prefer the closest mobile mechanic, the larger truck service center, "
                 "or should I text you a secure GPS link to confirm your exact location?"
             )
             return base
 
         if search_level and search_level.startswith("radius_"):
-            names = "; ".join(
-                f"{idx + 1}) {match.businessName}"
-                + (f" about {match.distanceMiles:.1f} miles away" if match.distanceMiles is not None else "")
+            options = [
+                _ordered(
+                    idx + 1,
+                    match.businessName,
+                    f"about {match.distanceMiles:.1f} miles away" if match.distanceMiles is not None else "",
+                )
                 for idx, match in enumerate(matches[:3])
-            )
+            ]
+            options_text = (PAUSE + PAUSE).join(options) + "."
             return (
-                f"I found {local_count} nearby roadside match{'es' if local_count != 1 else ''}: "
-                f"{names}.{major_phrase} "
-                "Which would you like — the closest mobile mechanic or the larger truck service center?"
+                f"I found {local_count} nearby roadside match"
+                f"{'es' if local_count != 1 else ''}.{PAUSE}{options_text}{major_phrase}{PAUSE}"
+                "Which would you like — the closest mobile mechanic, or the larger truck service center?"
             )
 
         return f"Got it. I found nearby mechanics.{major_phrase}"
