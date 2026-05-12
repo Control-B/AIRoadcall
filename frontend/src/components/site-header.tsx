@@ -225,17 +225,30 @@ export function SiteHeader() {
           ))}
         </nav>
 
-        {/* ── Desktop CTA ───────────────────────────────── */}
-        <div className="hidden lg:flex items-center gap-3 shrink-0">
-          <a href={telHref(HELP_PHONE)}>
-            <Button
-              size="sm"
-              className="roadcall-primary-button rounded-full px-5"
-            >
-              <Phone className="h-3.5 w-3.5 mr-1.5" />
-              Call for Help
-            </Button>
+        {/* ── Desktop CTA cluster ───────────────────────── */}
+        <div className="hidden lg:flex items-center gap-2 shrink-0">
+          <a
+            href={telHref(HELP_PHONE)}
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-roadcall-cyan/25 bg-roadcall-panel/40 px-3 text-sm font-semibold text-roadcall-silver hover:border-roadcall-cyan/50 hover:text-white transition-colors"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full border border-roadcall-cyan/25 bg-roadcall-void/60">
+              <Phone className="h-3.5 w-3.5 text-white" />
+            </span>
+            <span className="hidden xl:inline">Call</span>
+            <span className="text-white">{HELP_PHONE}</span>
           </a>
+          <Link
+            href="/marketplace"
+            className="hidden xl:inline-flex h-10 items-center gap-2 rounded-full border border-cyan-400/35 bg-cyan-400/10 px-4 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/15 transition-colors"
+          >
+            Explore marketplace <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
+          <Link
+            href="/shops/operations"
+            className="hidden 2xl:inline-flex h-10 items-center gap-2 rounded-full border border-roadcall-orange/40 bg-roadcall-orange/10 px-4 text-sm font-semibold text-roadcall-orange hover:bg-roadcall-orange/15 transition-colors"
+          >
+            Provider operations <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
         </div>
 
         {/* ── Mobile hamburger ──────────────────────────── */}
@@ -297,9 +310,15 @@ export function SiteHeader() {
                 <a href={telHref(HELP_PHONE)}>
                   <Button className="roadcall-primary-button w-full">
                     <Phone className="h-4 w-4 mr-2" />
-                    Call for Help: {HELP_PHONE}
+                    Call {HELP_PHONE}
                   </Button>
                 </a>
+                <Link href="/marketplace" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100">
+                  Explore marketplace <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/shops/operations" className="flex items-center justify-center gap-2 rounded-xl border border-roadcall-orange/35 bg-roadcall-orange/10 px-4 py-3 text-sm font-semibold text-roadcall-orange">
+                  Provider operations <ArrowRight className="h-4 w-4" />
+                </Link>
               </div>
             </div>
           </motion.div>

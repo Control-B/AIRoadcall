@@ -144,7 +144,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════
           HERO — Full-viewport cinematic truck section
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col justify-end overflow-hidden">
+      <section className="relative min-h-screen flex flex-col justify-center overflow-hidden">
 
         {/* Video background */}
         <video
@@ -175,18 +175,18 @@ export default function HomePage() {
           )}
         </button>
 
-        {/* Layered overlays for cinematic depth */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#02050c]/70 via-[#02050c]/40 to-[#02050c] z-10" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#02050c]/60 via-transparent to-[#02050c]/40 z-10" />
+        {/* Layered overlays: protect the copy while preserving the video text */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#02050c]/55 via-[#02050c]/20 to-[#02050c]/80 z-10" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,5,12,0.88)_0%,rgba(2,5,12,0.58)_30%,rgba(2,5,12,0.18)_58%,rgba(2,5,12,0.28)_100%)] z-10" />
         {/* Orange headlight bloom */}
         <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(234,88,12,0.18),transparent_70%)] z-10" />
 
         {/* Hero content */}
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 w-full pb-16 pt-32">
+        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 w-full py-32">
 
           {/* Badge */}
           <FadeIn>
-            <div className="inline-flex items-center gap-2 bg-roadcall-panel/45 border border-roadcall-cyan/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-10">
+            <div className="inline-flex items-center gap-2 bg-roadcall-panel/45 border border-roadcall-cyan/10 backdrop-blur-sm rounded-full px-4 py-1.5 mb-8">
               <Zap className="h-3.5 w-3.5 text-roadcall-orange" />
               <span className="text-xs font-medium text-roadcall-silver/85 tracking-wide">AI-Driven Roadside Support &amp; AI Phones for the Trucking Industry</span>
             </div>
@@ -194,84 +194,67 @@ export default function HomePage() {
 
           {/* Headline */}
           <FadeIn delay={0.1}>
-            <h1 className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tight leading-[0.95] mb-6">
+            <h1 className="max-w-4xl text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[0.95] mb-6">
               <span className="block text-white">AI That Answers.</span>
               <span className="block text-white">Jobs That Get Done.</span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={0.2}>
-            <p className="text-lg md:text-xl text-roadcall-silver/85 max-w-xl mb-12 leading-relaxed">
+            <p className="text-lg md:text-xl text-roadcall-silver/85 max-w-xl leading-relaxed">
               24/7 AI phone agents for mechanics. Less downtime for fleets.
               <br className="hidden sm:block" />
               One platform. Two powerful solutions.
             </p>
           </FadeIn>
+        </div>
+      </section>
 
-          {/* Vertical split cards */}
-          <FadeIn delay={0.3}>
-            <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mb-10">
-
-              {/* Shops card */}
-              <Link href="/shops">
-                <div className="group relative rounded-2xl border border-orange-500/25 bg-black/40 backdrop-blur-md p-6 text-left hover:border-orange-500/50 hover:bg-black/60 transition-all duration-200 cursor-pointer overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-roadcall-orange/10 to-transparent" />
-                  <div className="relative">
-                    <div className="text-[10px] font-bold text-roadcall-orange uppercase tracking-[0.2em] mb-3">Roadcall Shops</div>
-                    <h2 className="text-base font-bold text-white mb-1">AI Phones + CRM</h2>
-                    <p className="text-xs font-medium text-roadcall-orange mb-4">for Truck Mechanics</p>
-                    <ul className="space-y-1.5 mb-5">
+      {/* ── Choose your Roadcall path ──────────────────────────────── */}
+      <section className="relative -mt-10 pb-16 z-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <FadeIn delay={0.1}>
+            <div className="grid gap-5 md:grid-cols-2">
+              <Link href="/shops" className="group relative rounded-3xl border border-orange-500/25 bg-[#080b12]/90 backdrop-blur-xl p-7 text-left shadow-2xl shadow-black/30 hover:border-orange-500/55 transition-all duration-200 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-roadcall-orange/15 via-transparent to-transparent opacity-80" />
+                <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <div className="text-[10px] font-bold text-roadcall-orange uppercase tracking-[0.22em] mb-3">Roadcall Shops</div>
+                    <h2 className="text-2xl font-bold text-white mb-2">AI Phones + CRM</h2>
+                    <p className="text-sm font-medium text-roadcall-orange mb-5">for Truck Mechanics</p>
+                    <ul className="grid gap-2 sm:grid-cols-2">
                       {["AI Call Answering","Missed-Call Text Back","Appointment Booking","CRM & Follow-Up"].map(i => (
-                        <li key={i} className="flex items-center gap-2 text-xs text-roadcall-silver/85">
-                          <CheckCircle2 className="h-3 w-3 text-roadcall-orange shrink-0" />{i}
+                        <li key={i} className="flex items-center gap-2 text-sm text-roadcall-silver/85">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-roadcall-orange shrink-0" />{i}
                         </li>
                       ))}
                     </ul>
-                    <div className="inline-flex items-center gap-1.5 bg-roadcall-orange hover:brightness-110 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
-                      For Mechanics <ArrowRight className="h-3 w-3" />
-                    </div>
+                  </div>
+                  <div className="inline-flex items-center gap-2 self-start rounded-full bg-roadcall-orange px-5 py-3 text-sm font-semibold text-white group-hover:brightness-110 transition-all sm:self-end">
+                    For Mechanics <ArrowRight className="h-4 w-4" />
                   </div>
                 </div>
               </Link>
 
-              {/* Fleet card */}
-              <Link href="/fleet">
-                <div className="group relative rounded-2xl border border-blue-500/25 bg-black/40 backdrop-blur-md p-6 text-left hover:border-blue-500/50 hover:bg-black/60 transition-all duration-200 cursor-pointer overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500/8 to-transparent" />
-                  <div className="relative">
-                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-3">Roadcall Fleet</div>
-                    <h2 className="text-base font-bold text-white mb-1">AI Roadside Support</h2>
-                    <p className="text-xs font-medium text-blue-300 mb-4">for Fleets</p>
-                    <ul className="space-y-1.5 mb-5">
+              <Link href="/fleet" className="group relative rounded-3xl border border-blue-500/25 bg-[#080b12]/90 backdrop-blur-xl p-7 text-left shadow-2xl shadow-black/30 hover:border-blue-500/55 transition-all duration-200 overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/15 via-transparent to-transparent opacity-80" />
+                <div className="relative flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <div className="text-[10px] font-bold text-blue-400 uppercase tracking-[0.22em] mb-3">Roadcall Fleet</div>
+                    <h2 className="text-2xl font-bold text-white mb-2">AI Roadside Support</h2>
+                    <p className="text-sm font-medium text-blue-300 mb-5">for Fleets</p>
+                    <ul className="grid gap-2 sm:grid-cols-2">
                       {["AI Roadside Intake","GPS & Tracker Integration","Mechanic Matching","Dispatch & Tracking"].map(i => (
-                        <li key={i} className="flex items-center gap-2 text-xs text-roadcall-silver/85">
-                          <CheckCircle2 className="h-3 w-3 text-blue-400 shrink-0" />{i}
+                        <li key={i} className="flex items-center gap-2 text-sm text-roadcall-silver/85">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-blue-400 shrink-0" />{i}
                         </li>
                       ))}
                     </ul>
-                    <div className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors">
-                      For Fleets <ArrowRight className="h-3 w-3" />
-                    </div>
+                  </div>
+                  <div className="inline-flex items-center gap-2 self-start rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white group-hover:bg-blue-500 transition-all sm:self-end">
+                    For Fleets <ArrowRight className="h-4 w-4" />
                   </div>
                 </div>
-              </Link>
-            </div>
-          </FadeIn>
-
-          {/* Phone CTA */}
-          <FadeIn delay={0.4}>
-            <div className="flex flex-wrap items-center gap-3">
-              <a href={telHref(HELP_PHONE)} className="inline-flex items-center gap-2 text-roadcall-muted hover:text-white transition-colors text-sm">
-                <div className="w-8 h-8 rounded-full bg-roadcall-panel/60 border border-roadcall-cyan/20 flex items-center justify-center">
-                  <Phone className="h-3.5 w-3.5 text-white" />
-                </div>
-                <span>Call <strong className="text-white">{HELP_PHONE}</strong> — talk to Sandy live</span>
-              </a>
-              <Link href="/marketplace" className="inline-flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/15">
-                Explore marketplace <ArrowRight className="h-3.5 w-3.5" />
-              </Link>
-              <Link href="/shops/operations" className="inline-flex items-center gap-2 rounded-full border border-roadcall-orange/30 bg-roadcall-orange/10 px-4 py-2 text-sm font-semibold text-roadcall-orange hover:bg-roadcall-cyan/10">
-                Provider operations <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </div>
           </FadeIn>
