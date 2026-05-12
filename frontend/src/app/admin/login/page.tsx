@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center mb-3">
-            <BrandMark size={40} wordmarkClassName="text-2xl font-bold text-white" />
+            <BrandMark width={230} height={92} priority />
           </div>
           <p className="text-slate-400 text-sm">Admin Dashboard</p>
         </div>

@@ -9,7 +9,6 @@ import {
   Megaphone,
   BarChart3,
   Settings,
-  Phone,
   Wrench,
   ChevronLeft,
   LogOut,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, getUsername, logout } from "@/lib/admin-auth";
+import { BrandMark } from "@/components/BrandMark";
 
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -78,9 +78,8 @@ export default function AdminLayout({
       {/* Sidebar */}
       <aside className="w-64 bg-slate-900 text-white flex flex-col shrink-0">
         <div className="p-6 border-b border-slate-800">
-          <Link href="/admin" className="flex items-center gap-2">
-            <Phone className="h-6 w-6 text-blue-400" />
-            <span className="font-bold text-lg">AI Receptionist</span>
+          <Link href="/admin" aria-label="Roadcall.ai admin dashboard" className="inline-flex items-center">
+            <BrandMark width={150} height={60} />
           </Link>
           <p className="text-xs text-slate-400 mt-1">Admin Dashboard</p>
         </div>

@@ -1,8 +1,5 @@
 "use client";
 
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
-
 export function PageLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#050a14] text-white relative overflow-hidden">
@@ -23,14 +20,8 @@ export function PageLayout({ children }: { children: React.ReactNode }) {
         <div className="absolute top-1/3 right-0 w-[60vw] h-[60vh] bg-[radial-gradient(ellipse_50%_50%_at_80%_50%,rgba(59,130,246,0.06),transparent_50%)]" />
       </div>
 
-      {/* ── Header ─────────────────────────────────── */}
-      <SiteHeader />
-
       {/* ── Content ────────────────────────────────── */}
       <main className="relative z-10">{children}</main>
-
-      {/* ── Footer ─────────────────────────────────── */}
-      <SiteFooter />
     </div>
   );
 }

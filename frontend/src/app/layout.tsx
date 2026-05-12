@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import CookieConsent from "@/components/CookieConsent";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -71,10 +73,12 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} bg-[#050a14] text-white`}>
+        <SiteHeader />
         <main className="min-h-screen">
           {children}
         </main>
+        <SiteFooter />
         <CookieConsent />
       </body>
     </html>

@@ -2,12 +2,16 @@ import Image from "next/image";
 import logoSrc from "@/assets/logos/RoadcallLogo.png";
 
 interface BrandMarkProps {
-  /** Pixel size of the logo image (square). */
+  /** Legacy size prop. Used as height when width/height are omitted. */
   size?: number;
-  /** Show the "Roadcall.ai" wordmark next to the logo. */
+  /** Deprecated: the uploaded logo already includes the wordmark. */
   showWordmark?: boolean;
-  /** Tailwind text size for the wordmark. */
+  /** Deprecated: the uploaded logo already includes the wordmark. */
   wordmarkClassName?: string;
+  /** Rendered logo width in pixels. */
+  width?: number;
+  /** Rendered logo height in pixels. */
+  height?: number;
   /** Wrapper class. */
   className?: string;
   /** Mark image as priority (use on header/hero). */
@@ -20,27 +24,25 @@ interface BrandMarkProps {
  */
 export function BrandMark({
   size = 36,
-  showWordmark = true,
-  wordmarkClassName = "text-lg font-bold tracking-tight",
-  className = "flex items-center gap-2.5",
+  width,
+  height,
+  className = "inline-flex items-center",
   priority = false,
 }: BrandMarkProps) {
+  const logoHeight = height ?? size;
+  const logoWidth = width ?? Math.round(logoHeight * 1.565);
+
   return (
     <span className={className}>
       <Image
         src={logoSrc}
         alt="Roadcall.ai"
-        width={size}
-        height={size}
+        width={logoWidth}
+        height={logoHeight}
         priority={priority}
-        className="rounded-xl shadow-lg shadow-orange-500/20"
-        style={{ width: size, height: size, objectFit: "contain" }}
+        className="drop-shadow-[0_12px_24px_rgba(249,115,22,0.18)]"
+        style={{ width: logoWidth, height: logoHeight, objectFit: "contain" }}
       />
-      {showWordmark && (
-        <span className={wordmarkClassName}>
-          Roadcall<span className="text-orange-400">.ai</span>
-        </span>
-      )}
     </span>
   );
 }
