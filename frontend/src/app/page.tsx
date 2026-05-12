@@ -214,87 +214,13 @@ export default function HomePage() {
           )}
         </button>
 
-        {/* Light overlays — just enough so the cards remain readable without dimming the video */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[55%] bg-gradient-to-t from-[#02050c] via-[#02050c]/65 to-transparent z-10" />
+        {/* Light vignettes for headline readability without dimming the video */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-gradient-to-t from-[#02050c]/85 via-[#02050c]/35 to-transparent z-10" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-gradient-to-b from-[#02050c]/70 via-[#02050c]/20 to-transparent z-10" />
-        {/* Orange headlight bloom behind the cards */}
-        <div className="pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 w-[80vw] h-[40vh] bg-[radial-gradient(ellipse_60%_50%_at_50%_100%,rgba(234,88,12,0.18),transparent_70%)] z-10" />
 
         {/* Rotating marketing badge — upper-left */}
         <div className="absolute top-28 left-4 sm:left-8 md:left-12 z-20">
           <RotatingMarketingBadge />
-        </div>
-
-        {/* ── Choose your Roadcall path — overlaid at the bottom of the hero */}
-        <div className="absolute inset-x-0 bottom-6 md:bottom-10 z-20">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
-            <FadeIn delay={0.1}>
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-              <Link href="/shops" className="group relative h-full rounded-2xl border border-orange-500/25 bg-[#080b12]/60 backdrop-blur-xl p-4 text-left shadow-xl shadow-black/30 hover:border-orange-500/55 transition-all duration-200 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-roadcall-orange/12 via-transparent to-transparent opacity-55" />
-                <div className="relative flex h-full flex-col justify-between gap-4">
-                  <div>
-                    <div className="text-[9px] font-bold text-roadcall-orange uppercase tracking-[0.2em] mb-1.5">Roadcall Shops</div>
-                    <h2 className="text-base font-bold text-white mb-1">AI Phones + CRM</h2>
-                    <p className="text-[11px] font-medium text-roadcall-orange mb-3">for Truck Mechanics</p>
-                    <ul className="grid gap-1.5">
-                      {["AI Call Answering","Missed-Call Text Back","Appointment Booking","CRM & Follow-Up"].map(i => (
-                        <li key={i} className="flex items-center gap-1.5 text-[11px] text-roadcall-silver/85">
-                          <CheckCircle2 className="h-3 w-3 text-roadcall-orange shrink-0" />{i}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-roadcall-orange px-3 py-1.5 text-[11px] font-semibold text-white group-hover:brightness-110 transition-all">
-                    For Mechanics <ArrowRight className="h-3 w-3" />
-                  </div>
-                </div>
-              </Link>
-
-              <Link href="/fleet" className="group relative h-full rounded-2xl border border-blue-500/25 bg-[#080b12]/60 backdrop-blur-xl p-4 text-left shadow-xl shadow-black/30 hover:border-blue-500/55 transition-all duration-200 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/12 via-transparent to-transparent opacity-55" />
-                <div className="relative flex h-full flex-col justify-between gap-4">
-                  <div>
-                    <div className="text-[9px] font-bold text-blue-400 uppercase tracking-[0.2em] mb-1.5">Roadcall Fleet</div>
-                    <h2 className="text-base font-bold text-white mb-1">AI Roadside Support</h2>
-                    <p className="text-[11px] font-medium text-blue-300 mb-3">for Fleets</p>
-                    <ul className="grid gap-1.5">
-                      {["AI Roadside Intake","GPS & Tracker Integration","Mechanic Matching","Dispatch & Tracking"].map(i => (
-                        <li key={i} className="flex items-center gap-1.5 text-[11px] text-roadcall-silver/85">
-                          <CheckCircle2 className="h-3 w-3 text-blue-400 shrink-0" />{i}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-blue-600 px-3 py-1.5 text-[11px] font-semibold text-white group-hover:bg-blue-500 transition-all">
-                    For Fleets <ArrowRight className="h-3 w-3" />
-                  </div>
-                </div>
-              </Link>
-
-              <Link href="/marketplace" className="group relative h-full rounded-2xl border border-cyan-400/25 bg-[#080b12]/60 backdrop-blur-xl p-4 text-left shadow-xl shadow-black/30 hover:border-cyan-400/55 transition-all duration-200 overflow-hidden md:col-span-2 lg:col-span-1">
-                <div className="absolute inset-0 bg-gradient-to-br from-cyan-400/12 via-transparent to-transparent opacity-55" />
-                <div className="relative flex h-full flex-col justify-between gap-4">
-                  <div>
-                    <div className="text-[9px] font-bold text-cyan-300 uppercase tracking-[0.2em] mb-1.5">Roadcall Marketplace</div>
-                    <h2 className="text-base font-bold text-white mb-1">Find Roadside Help</h2>
-                    <p className="text-[11px] font-medium text-cyan-200 mb-3">for Drivers & Dispatchers</p>
-                    <ul className="grid gap-1.5">
-                      {["Verified Provider Network","Search by Location","Roadside & Towing","Fast Contact Options"].map(i => (
-                        <li key={i} className="flex items-center gap-1.5 text-[11px] text-roadcall-silver/85">
-                          <CheckCircle2 className="h-3 w-3 text-cyan-300 shrink-0" />{i}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="inline-flex items-center gap-1.5 self-start rounded-full bg-cyan-500 px-3 py-1.5 text-[11px] font-semibold text-slate-950 group-hover:bg-cyan-300 transition-all">
-                    Explore Marketplace <ArrowRight className="h-3 w-3" />
-                  </div>
-                </div>
-              </Link>
-            </div>
-          </FadeIn>
-          </div>
         </div>
       </section>
 

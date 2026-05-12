@@ -1,36 +1,80 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
+import Link from "next/link";
 import { useRef } from "react";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
 import { RotatingGlobeBackground } from "./rotating-globe-background";
 
-const orbitPoints = [
+type AudienceCard = {
+  href: string;
+  eyebrow: string;
+  eyebrowClass: string;
+  title: string;
+  audience: string;
+  audienceClass: string;
+  bullets: string[];
+  ctaLabel: string;
+  ctaClass: string;
+  border: string;
+  hoverBorder: string;
+  accentGradient: string;
+  glow: string;
+  iconClass: string;
+  desktopPosition: string;
+};
+
+const audienceCards: AudienceCard[] = [
   {
-    title: "AI Roadside Phone Agent",
-    description:
-      "Sandy answers every breakdown call 24/7 — capturing vehicle, location, and incident details in under 90 seconds, day or night.",
-    accent: "from-cyan-400/30 via-sky-400/20 to-blue-500/25",
-    border: "border-cyan-300/30",
-    glow: "shadow-[0_24px_80px_rgba(34,211,238,0.18)]",
-    position: "left-[4%] top-[12%]",
+    href: "/shops",
+    eyebrow: "Roadcall Shops",
+    eyebrowClass: "text-roadcall-orange",
+    title: "AI Phones + CRM",
+    audience: "for Truck Mechanics",
+    audienceClass: "text-roadcall-orange",
+    bullets: ["AI Call Answering", "Missed-Call Text Back", "Appointment Booking", "CRM & Follow-Up"],
+    ctaLabel: "For Mechanics",
+    ctaClass: "bg-roadcall-orange text-white group-hover:brightness-110",
+    border: "border-orange-500/30",
+    hoverBorder: "hover:border-orange-500/60",
+    accentGradient: "from-roadcall-orange/15 via-transparent to-transparent",
+    glow: "shadow-[0_24px_80px_rgba(234,88,12,0.22)]",
+    iconClass: "text-roadcall-orange",
+    desktopPosition: "left-[2%] top-[6%]",
   },
   {
-    title: "AI Mechanic Dispatcher",
-    description:
-      "Scores 35,000+ verified vendors by distance, truck class, specialty, and availability — then routes the right shop in seconds.",
-    accent: "from-orange-400/30 via-amber-400/18 to-rose-500/22",
-    border: "border-orange-300/30",
-    glow: "shadow-[0_24px_80px_rgba(255,138,0,0.18)]",
-    position: "right-[4%] top-[16%]",
+    href: "/fleet",
+    eyebrow: "Roadcall Fleet",
+    eyebrowClass: "text-blue-400",
+    title: "AI Roadside Support",
+    audience: "for Fleets",
+    audienceClass: "text-blue-300",
+    bullets: ["AI Roadside Intake", "GPS & Tracker Integration", "Mechanic Matching", "Dispatch & Tracking"],
+    ctaLabel: "For Fleets",
+    ctaClass: "bg-blue-600 text-white group-hover:bg-blue-500",
+    border: "border-blue-500/30",
+    hoverBorder: "hover:border-blue-500/60",
+    accentGradient: "from-blue-500/15 via-transparent to-transparent",
+    glow: "shadow-[0_24px_80px_rgba(59,130,246,0.22)]",
+    iconClass: "text-blue-400",
+    desktopPosition: "right-[2%] top-[6%]",
   },
   {
-    title: "AI Lead Capture for Shops",
-    description:
-      "Missed-call text-back, instant booking, and CRM follow-up so truck mechanic shops never lose a customer to a slow phone again.",
-    accent: "from-emerald-400/28 via-cyan-300/16 to-teal-400/24",
-    border: "border-emerald-300/30",
-    glow: "shadow-[0_24px_80px_rgba(16,185,129,0.18)]",
-    position: "left-1/2 top-[62%] -translate-x-1/2",
+    href: "/marketplace",
+    eyebrow: "Roadcall Marketplace",
+    eyebrowClass: "text-cyan-300",
+    title: "Find Roadside Help",
+    audience: "for Drivers & Dispatchers",
+    audienceClass: "text-cyan-200",
+    bullets: ["Verified Provider Network", "Search by Location", "Roadside & Towing", "Fast Contact Options"],
+    ctaLabel: "Explore Marketplace",
+    ctaClass: "bg-cyan-500 text-slate-950 group-hover:bg-cyan-300",
+    border: "border-cyan-400/30",
+    hoverBorder: "hover:border-cyan-400/60",
+    accentGradient: "from-cyan-400/15 via-transparent to-transparent",
+    glow: "shadow-[0_24px_80px_rgba(34,211,238,0.22)]",
+    iconClass: "text-cyan-300",
+    desktopPosition: "left-1/2 bottom-[2%] -translate-x-1/2",
   },
 ];
 
@@ -45,33 +89,33 @@ export function GlobeShowcaseSection() {
   return (
     <section
       ref={sectionRef}
-      className="relative -mt-px flex min-h-[88vh] items-center justify-center overflow-hidden border-y border-roadcall-line/30 bg-roadcall-void"
+      className="relative -mt-px flex min-h-[100vh] items-center justify-center overflow-hidden border-y border-roadcall-line/30 bg-roadcall-void"
     >
       <RotatingGlobeBackground className="z-0" />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-6 py-14 lg:px-8 lg:pt-14 lg:pb-6">
+      <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-6 py-14 lg:px-8 lg:pt-14 lg:pb-10">
         {/* Copy — centered at top */}
         <motion.div style={{ y: copyY }} className="w-full max-w-3xl text-center">
           <div className="inline-flex items-center rounded-full border border-cyan-300/35 bg-cyan-400/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-200 backdrop-blur-md shadow-[0_18px_60px_rgba(34,211,238,0.18)]">
-            Roadcall Orbit
+            Choose your Roadcall path
           </div>
           <h2 className="mt-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
-            Put AI specialists around every roadside call.
+            One platform. Three ways to win on the road.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-roadcall-silver/70 lg:text-base">
-            One platform answers the phones, dispatches the mechanic, and follows up with the
-            customer — so fleets, drivers, and shops never miss a beat.
+            Whether you run a shop, manage a fleet, or need help right now —
+            Roadcall puts the right AI specialist in your corner, 24/7.
           </p>
         </motion.div>
 
-        {/* Desktop orbit cards — pushed into bottom portion */}
-        <div className="relative mx-auto mt-4 hidden h-[36rem] w-full max-w-6xl lg:block">
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[29rem] w-[29rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
-          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[38rem] w-[38rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/10 border-dashed opacity-70" />
+        {/* Desktop orbit cards */}
+        <div className="relative mx-auto mt-6 hidden h-[40rem] w-full max-w-6xl lg:block">
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[32rem] w-[32rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/10" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[42rem] w-[42rem] -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/10 border-dashed opacity-70" />
 
-          {orbitPoints.map((point, index) => (
+          {audienceCards.map((card, index) => (
             <motion.div
-              key={point.title}
+              key={card.title}
               initial={{ opacity: 0, y: 24, scale: 0.96 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               animate={{ y: [0, index % 2 === 0 ? -10 : 10, 0] }}
@@ -81,40 +125,70 @@ export function GlobeShowcaseSection() {
                 y: { duration: 7 + index, repeat: Number.POSITIVE_INFINITY, ease: "easeInOut" },
                 scale: { duration: 0.45, delay: index * 0.12 },
               }}
-              className={`absolute w-[18rem] overflow-hidden rounded-[1.75rem] border bg-[linear-gradient(180deg,rgba(255,255,255,0.18),rgba(255,255,255,0.06))] px-6 py-6 text-left backdrop-blur-2xl ${point.border} ${point.glow} ${point.position}`}
+              className={`absolute w-[19rem] ${card.desktopPosition}`}
             >
-              <div className={`absolute inset-0 rounded-[1.75rem] bg-gradient-to-br ${point.accent} opacity-90`} />
-              <div className="relative z-10">
-                <div className="inline-flex rounded-full border border-white/20 bg-black/20 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-white/80">
-                  Roadcall AI
+              <Link
+                href={card.href}
+                className={`group relative block overflow-hidden rounded-[1.75rem] border bg-[#080b12]/65 px-6 py-6 text-left backdrop-blur-2xl transition-all duration-200 ${card.border} ${card.hoverBorder} ${card.glow}`}
+              >
+                <div className={`absolute inset-0 rounded-[1.75rem] bg-gradient-to-br ${card.accentGradient} opacity-90`} />
+                <div className="relative z-10">
+                  <div className={`text-[10px] font-bold uppercase tracking-[0.24em] mb-2 ${card.eyebrowClass}`}>
+                    {card.eyebrow}
+                  </div>
+                  <h3 className="text-lg font-bold leading-tight text-white">{card.title}</h3>
+                  <p className={`text-[11px] font-medium mt-1 mb-3 ${card.audienceClass}`}>{card.audience}</p>
+                  <ul className="grid gap-1.5 mb-4">
+                    {card.bullets.map((b) => (
+                      <li key={b} className="flex items-center gap-2 text-[12px] text-roadcall-silver/90">
+                        <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 ${card.iconClass}`} />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-all ${card.ctaClass}`}>
+                    {card.ctaLabel} <ArrowRight className="h-3 w-3" />
+                  </div>
                 </div>
-                <h3 className="mt-4 text-xl font-semibold leading-tight text-white">{point.title}</h3>
-                <p className="mt-3 text-sm leading-6 text-slate-100/88">{point.description}</p>
-              </div>
+              </Link>
             </motion.div>
           ))}
         </div>
 
-        {/* Mobile stacked cards */}
-        <div className="mt-12 grid gap-4 text-left lg:hidden">
-          {orbitPoints.map((point, index) => (
+        {/* Mobile / tablet stacked cards */}
+        <div className="mt-10 grid w-full gap-4 text-left lg:hidden">
+          {audienceCards.map((card, index) => (
             <motion.div
-              key={`${point.title}-mobile`}
+              key={`${card.title}-mobile`}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-60px" }}
               transition={{ duration: 0.4, delay: index * 0.1 }}
-              className={`relative overflow-hidden rounded-[1.5rem] border px-5 py-5 text-left backdrop-blur-xl ${point.border} ${point.glow}`}
-              style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.06))" }}
             >
-              <div className={`absolute inset-0 rounded-[1.5rem] bg-gradient-to-br ${point.accent} opacity-80`} />
-              <div className="relative z-10">
-                <div className="inline-flex rounded-full border border-white/20 bg-black/20 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.26em] text-white/80">
-                  Roadcall AI
+              <Link
+                href={card.href}
+                className={`group relative block overflow-hidden rounded-[1.5rem] border bg-[#080b12]/70 px-5 py-5 text-left backdrop-blur-xl transition-all duration-200 ${card.border} ${card.hoverBorder} ${card.glow}`}
+              >
+                <div className={`absolute inset-0 rounded-[1.5rem] bg-gradient-to-br ${card.accentGradient} opacity-90`} />
+                <div className="relative z-10">
+                  <div className={`text-[10px] font-bold uppercase tracking-[0.24em] mb-2 ${card.eyebrowClass}`}>
+                    {card.eyebrow}
+                  </div>
+                  <h3 className="text-lg font-bold text-white">{card.title}</h3>
+                  <p className={`text-[11px] font-medium mt-1 mb-3 ${card.audienceClass}`}>{card.audience}</p>
+                  <ul className="grid gap-1.5 mb-4">
+                    {card.bullets.map((b) => (
+                      <li key={b} className="flex items-center gap-2 text-[12px] text-roadcall-silver/90">
+                        <CheckCircle2 className={`h-3.5 w-3.5 shrink-0 ${card.iconClass}`} />
+                        {b}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-all ${card.ctaClass}`}>
+                    {card.ctaLabel} <ArrowRight className="h-3 w-3" />
+                  </div>
                 </div>
-                <h3 className="mt-4 text-lg font-semibold text-white">{point.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-100/88">{point.description}</p>
-              </div>
+              </Link>
             </motion.div>
           ))}
         </div>
