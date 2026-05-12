@@ -179,7 +179,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════
           HERO — Full-viewport cinematic truck section
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="relative h-[62vh] md:h-[68vh] lg:h-[72vh] flex flex-col justify-center overflow-hidden">
+      <section className="relative h-[52vh] md:h-[58vh] lg:h-[62vh] flex flex-col justify-center overflow-hidden">
 
         {/* Video background */}
         <video
@@ -223,7 +223,7 @@ export default function HomePage() {
       </section>
 
       {/* ── Choose your Roadcall path ──────────────────────── */}
-      <section className="relative -mt-16 md:-mt-20 pb-12 z-20">
+      <section className="relative mt-8 md:mt-12 pb-12 z-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <FadeIn delay={0.1}>
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
