@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Phone, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { login } from "@/lib/admin-auth";
+import { BrandMark } from "@/components/BrandMark";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -33,13 +34,8 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2.5 mb-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20">
-              <Phone className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-white">
-              Roadcall<span className="text-orange-400">.ai</span>
-            </span>
+          <div className="inline-flex items-center justify-center mb-3">
+            <BrandMark size={40} wordmarkClassName="text-2xl font-bold text-white" />
           </div>
           <p className="text-slate-400 text-sm">Admin Dashboard</p>
         </div>

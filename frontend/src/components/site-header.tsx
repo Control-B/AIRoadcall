@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Phone, Menu, X, ChevronDown, ArrowRight } from "lucide-react";
+import { Menu, X, ChevronDown, ArrowRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import { BrandMark } from "@/components/BrandMark";
 
 /* ── Navigation structure (Omniweb-style mega-dropdown) ──── */
 interface NavSubItem {
@@ -155,14 +156,8 @@ export function SiteHeader() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         {/* ── Logo ──────────────────────────────────────── */}
-        <Link href="/" className="flex items-center gap-2.5 group shrink-0">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/40 transition-shadow">
-            <Phone className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-lg font-bold tracking-tight">
-            Roadcall
-            <span className="text-orange-400">.ai</span>
-          </span>
+        <Link href="/" className="shrink-0 group">
+          <BrandMark size={36} priority className="flex items-center gap-2.5 transition-opacity group-hover:opacity-90" />
         </Link>
 
         {/* ── Desktop nav ───────────────────────────────── */}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Phone, Mail, MapPin } from "lucide-react";
 import { COMPANY_PHONE, HELP_PHONE, telHref } from "@/lib/phone";
+import { BrandMark } from "@/components/BrandMark";
 
 const footerLinks = {
   Product: [
@@ -32,13 +33,8 @@ export function SiteFooter() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
           {/* Brand column */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 mb-5">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center">
-                <Phone className="h-4 w-4 text-white" />
-              </div>
-              <span className="text-lg font-bold tracking-tight text-white">
-                Roadcall<span className="text-orange-400">.ai</span>
-              </span>
+            <Link href="/" className="mb-5 inline-block">
+              <BrandMark size={36} wordmarkClassName="text-lg font-bold tracking-tight text-white" />
             </Link>
             <p className="text-sm text-slate-500 max-w-sm leading-relaxed mb-6">
               AI-powered roadside dispatch and mechanic shop phone system.
