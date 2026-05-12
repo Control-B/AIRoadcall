@@ -25,6 +25,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
+import { GlobeShowcaseSection } from "@/components/marketing/globe-showcase-section";
+import { ScrollingMarqueeSection } from "@/components/marketing/scrolling-marquee-section";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 
 const shopsFeatures = [
@@ -293,6 +295,12 @@ export default function HomePage() {
           </FadeIn>
         </div>
       </section>
+
+      {/* ── Roadcall Orbit (globe + AI specialists) ─────────────────── */}
+      <GlobeShowcaseSection />
+
+      {/* ── Marketing message marquee ───────────────────────────────── */}
+      <ScrollingMarqueeSection />
 
       {/* ── Trust strip ─────────────────────────────────────────────── */}
       <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/20 py-5">
