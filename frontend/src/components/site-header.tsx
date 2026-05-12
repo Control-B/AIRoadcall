@@ -154,10 +154,10 @@ export function SiteHeader() {
           : "bg-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between">
         {/* ── Logo ──────────────────────────────────────── */}
-        <Link href="/" className="shrink-0 group">
-          <BrandMark size={36} priority className="flex items-center gap-2.5 transition-opacity group-hover:opacity-90" />
+        <Link href="/" aria-label="Roadcall.ai home" className="shrink-0 group flex items-center">
+          <BrandMark size={56} showWordmark={false} priority className="flex items-center transition-opacity group-hover:opacity-90" />
         </Link>
 
         {/* ── Desktop nav ───────────────────────────────── */}
