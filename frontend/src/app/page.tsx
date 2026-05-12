@@ -144,7 +144,7 @@ export default function HomePage() {
       {/* ═══════════════════════════════════════════════════════════════
           HERO — Full-viewport cinematic truck section
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex flex-col justify-center overflow-hidden">
+      <section className="relative min-h-[88vh] flex flex-col justify-center overflow-hidden">
 
         {/* Video background */}
         <video
