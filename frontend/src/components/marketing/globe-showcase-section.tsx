@@ -74,7 +74,9 @@ const audienceCards: AudienceCard[] = [
     accentGradient: "from-cyan-400/15 via-transparent to-transparent",
     glow: "shadow-[0_24px_80px_rgba(34,211,238,0.22)]",
     iconClass: "text-cyan-300",
-    desktopPosition: "left-1/2 bottom-[2%] -translate-x-1/2",
+    // NOTE: do not use Tailwind -translate-x-1/2 here — framer-motion's animate y writes
+    // to `transform` and would override the translate, pushing the card off-center.
+    desktopPosition: "left-[calc(50%-9.5rem)] bottom-[2%]",
   },
 ];
 
@@ -94,15 +96,18 @@ export function GlobeShowcaseSection() {
       <RotatingGlobeBackground className="z-0" />
 
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center px-6 py-14 lg:px-8 lg:pt-14 lg:pb-10">
-        {/* Copy — centered at top */}
-        <motion.div style={{ y: copyY }} className="w-full max-w-3xl text-center">
+        {/* Copy — centered at top, with soft glass backdrop for readability over the globe */}
+        <motion.div
+          style={{ y: copyY }}
+          className="relative w-full max-w-3xl rounded-3xl bg-roadcall-void/55 px-6 py-6 text-center backdrop-blur-md ring-1 ring-white/5 shadow-[0_30px_80px_rgba(2,5,12,0.55)]"
+        >
           <div className="inline-flex items-center rounded-full border border-cyan-300/35 bg-cyan-400/10 px-4 py-1.5 text-[11px] font-bold uppercase tracking-[0.28em] text-cyan-200 backdrop-blur-md shadow-[0_18px_60px_rgba(34,211,238,0.18)]">
             Choose your Roadcall path
           </div>
-          <h2 className="mt-4 text-3xl font-bold tracking-tight text-white lg:text-4xl">
+          <h2 className="mt-4 bg-gradient-to-b from-white via-cyan-50 to-cyan-200 bg-clip-text text-3xl font-bold tracking-tight text-transparent drop-shadow-[0_4px_24px_rgba(8,12,28,0.85)] lg:text-4xl">
             One platform. Three ways to win on the road.
           </h2>
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-roadcall-silver/70 lg:text-base">
+          <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-cyan-100/90 drop-shadow-[0_2px_12px_rgba(8,12,28,0.85)] lg:text-base">
             Whether you run a shop, manage a fleet, or need help right now —
             Roadcall puts the right AI specialist in your corner, 24/7.
           </p>
