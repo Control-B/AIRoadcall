@@ -77,6 +77,27 @@ def test_location_but_vague_problem_needs_problem_type():
     assert RoadsideMatchingService.missing_fields(context) == ["problemType"]
 
 
+def test_city_problem_without_vehicle_type_asks_vehicle_before_search():
+    context = RoadsideMatchingService.build_context(
+        RoadsideMatchRequest(message="I'm in Lakeland Florida and need a tow")
+    )
+
+    assert context.city == "Lakeland"
+    assert context.state == "FL"
+    assert context.problemType == "tow_needed"
+    assert RoadsideMatchingService.missing_fields(context) == ["vehicleType"]
+    assert RoadsideMatchingService.next_question(["vehicleType"]) == "What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?"
+
+
+def test_vehicle_type_is_parsed_from_caller_message():
+    context = RoadsideMatchingService.build_context(
+        RoadsideMatchRequest(message="I'm in Lakeland Florida with an RV that needs towing")
+    )
+
+    assert context.vehicleType == "rv"
+    assert RoadsideMatchingService.missing_fields(context) == []
+
+
 def test_same_state_fallback_scores_when_city_does_not_match():
     context = RoadsideCallerContext(
         city="Smalltown",
@@ -214,6 +235,72 @@ def test_emergency_mobile_mechanic_ranks_higher():
     assert ranked[0][0].id == "emergency_mobile"
     assert "24/7 emergency availability" in ranked[0][1].reasons
     assert "Mobile roadside service" in ranked[0][1].reasons
+
+
+def test_vehicle_type_match_ranks_rv_provider_over_heavy_duty_for_rv_call():
+    context = RoadsideCallerContext(
+        city="Lakeland",
+        state="FL",
+        problemType="tow_needed",
+        serviceNeeded="towing",
+        vehicleType="rv",
+    )
+    rv_provider = make_test_mechanic(
+        id="rv",
+        company_name="RV Roadside",
+        city="Lakeland",
+        state="FL",
+        service_types=["tow_needed"],
+        vehicle_types_supported=["rv", "motorhome"],
+    )
+    heavy_provider = make_test_mechanic(
+        id="heavy",
+        company_name="Heavy Diesel Tow",
+        city="Lakeland",
+        state="FL",
+        service_types=["tow_needed"],
+        vehicle_types_supported=["heavy_duty", "semi"],
+    )
+
+    ranked = rankMechanics(
+        [(m, scoreMechanicMatch(m, context)) for m in [heavy_provider, rv_provider]]
+    )
+
+    assert ranked[0][0].id == "rv"
+    assert "Vehicle type match" in ranked[0][1].reasons
+
+
+def test_vehicle_type_match_ranks_light_duty_provider_for_car_call():
+    context = RoadsideCallerContext(
+        city="Orlando",
+        state="FL",
+        problemType="dead_battery",
+        serviceNeeded="battery",
+        vehicleType="pickup truck",
+    )
+    light_provider = make_test_mechanic(
+        id="light",
+        company_name="Light Duty Roadside",
+        city="Orlando",
+        state="FL",
+        service_types=["dead_battery"],
+        vehicle_types_supported=["light_duty", "pickup", "car"],
+    )
+    trailer_provider = make_test_mechanic(
+        id="trailer",
+        company_name="Trailer Repair Only",
+        city="Orlando",
+        state="FL",
+        service_types=["dead_battery"],
+        vehicle_types_supported=["trailer", "heavy_duty"],
+    )
+
+    ranked = rankMechanics(
+        [(m, scoreMechanicMatch(m, context)) for m in [trailer_provider, light_provider]]
+    )
+
+    assert ranked[0][0].id == "light"
+    assert "Vehicle type match" in ranked[0][1].reasons
 
 
 def test_find_mechanics_by_state_city_groups_dataset_shape():

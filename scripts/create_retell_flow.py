@@ -60,14 +60,14 @@ FLOW = {
 
     "global_prompt": "\n".join([
         "You are Roadcall’s AI roadside dispatcher.",
-        "Your only job is: greet, get city + state + problem type, then trigger the database search.",
+        "Your only job is: greet, get city + state + problem type + vehicle type, then trigger the database search.",
         "The Roadcall mechanic database has 97+ mechanics in Lakeland alone and thousands across the country. You have direct access via the match_mechanic function.",
-        "HARD RULE — MINIMUM QUESTIONS: Ask ONLY three things. (1) Name + how can I help. (2) City and state if missing. (3) Problem type if missing. That is it. Do not ask about road, highway, exit, landmark, mile marker, GPS, cross street, vehicle type, company, callback, email, payment, insurance, license plate, or address before the database search.",
-        "As soon as you have city + state + problem type, STOP asking questions and let the flow run the database search. The function node will fire match_mechanic automatically.",
+        "HARD RULE — MINIMUM QUESTIONS: Ask ONLY four things. (1) Name + how can I help. (2) City and state if missing. (3) Problem type if missing. (4) Vehicle type if missing. That is it. Do not ask about road, highway, exit, landmark, mile marker, GPS, cross street, company, callback, email, payment, insurance, license plate, or address before the database search.",
+        "As soon as you have city + state + problem type + vehicle type, STOP asking questions and let the flow run the database search. The function node will fire match_mechanic automatically.",
         "'Mechanic in Lakeland' means search Lakeland — do not ask which part of Lakeland. The database returns nearby results automatically.",
         "Start exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?'",
-        "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' Ask only ONE of these per turn, and only if truly missing.",
-        "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem.",
+        "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.",
+        "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
         "When reading matches, never default to only matches[0] for a city-level search. If match_mechanic.message lists options, speak that options message. When match_mechanic returns multiple matches for a city-level search, do NOT force matches[0]. Read match_mechanic.message or summarize up to three returned businessName values exactly. Then ask: 'Do you want me to text you a secure GPS link to find the closest one, can you tell me your exact road or exit, or do you want me to start with one of these?' Do not read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.",
         "If match_mechanic returns zero matches or errors, do NOT name any business — go to manual dispatch.",
@@ -144,7 +144,7 @@ FLOW = {
             "type": "custom",
             "tool_id": "tool-roadcall-match-mechanic",
             "name": "match_mechanic",
-            "description": "Search and rank Roadcall mechanics by city, state, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Call immediately once city, state, and problem type are known.",
+            "description": "Search and rank Roadcall mechanics by city, state, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Call immediately once city, state, problem type, and vehicle type are known.",
             "url": f"{BACKEND_URL}/api/roadside/match-mechanic",
             "method": "POST",
             "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
@@ -168,7 +168,7 @@ FLOW = {
                             "longitude": {"type": "number"},
                         },
                     },
-                    "vehicleType": {"type": "string", "description": "Optional vehicle type if volunteered, e.g. semi truck"},
+                    "vehicleType": {"type": "string", "description": "Required if known before matching. Vehicle category: car/light-duty, pickup, box truck, semi/heavy-duty, trailer, RV, or fleet vehicle."},
                     "problemType": {"type": "string", "description": "Problem type, e.g. tire repair, engine, battery, fuel, towing"},
                     "callerPhone": {"type": "string", "description": "Caller's phone from Retell call metadata if available"},
                     "callbackNumber": {"type": "string", "description": "Callback/SMS number if already collected"},
@@ -266,19 +266,20 @@ FLOW = {
                     "- If city/state missing: 'What city and state are you in?'\n"
                     "- If state missing: 'What state is that in?'\n"
                     "- If problem type missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
-                    "Do NOT ask about road, highway, exit, mile marker, landmark, GPS, cross street, vehicle type, company, callback, email, payment, insurance, license plate, or address.\n"
-                    "As soon as you have city + state + problem, stop asking and move on so the database search can run."
+                    "- If vehicle type missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
+                    "Do NOT ask about road, highway, exit, mile marker, landmark, GPS, cross street, company, callback, email, payment, insurance, license plate, or address.\n"
+                    "As soon as you have city + state + problem + vehicle type, stop asking and move on so the database search can run."
                 )
             },
             "edges": [
                 {
                     "id": "edge-have-search-info",
-                    "transition_condition": {"type": "prompt", "prompt": "Caller has stated a city, a state (or US state implied by city), and any problem type (tire, engine, battery, fuel, towing, lockout, accident, etc.). Trigger this as soon as those three facts are present, even if the caller has not given vehicle type, road, or exit."},
+                    "transition_condition": {"type": "prompt", "prompt": "Caller has stated a city, a state (or US state implied by city), a problem type (tire, engine, battery, fuel, towing, lockout, accident, etc.), and a vehicle type (car, pickup, box truck, semi, trailer, RV, fleet vehicle). Trigger this as soon as those four facts are present, even if the caller has not given road or exit."},
                     "destination_node_id": "node-call-match-mechanic"
                 },
                 {
                     "id": "edge-need-more-info",
-                    "transition_condition": {"type": "prompt", "prompt": "Caller has not yet provided one of city, state, or problem type"},
+                    "transition_condition": {"type": "prompt", "prompt": "Caller has not yet provided one of city, state, problem type, or vehicle type"},
                     "destination_node_id": "node-match-more-info"
                 },
                 {
@@ -297,7 +298,7 @@ FLOW = {
             "display_position": {"x": 400, "y": 300},
             "instruction": {
                 "type": "prompt",
-                "text": "Do not ask any questions. Move immediately to the database search."
+                "text": "Do not ask any extra questions. If city, state, problem type, and vehicle type are all known, move immediately to the database search. If vehicle type is missing, ask only: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'"
             },
             "edges": [
                 {
@@ -353,13 +354,14 @@ FLOW = {
                     "If location is missing, ask: 'What city or nearest exit?'\n"
                     "If state is missing, ask: 'What state is that in?'\n"
                     "If problemType is missing, ask: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
+                    "If vehicleType is missing, ask: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
                     "After the caller answers, return to database match intake and call match_mechanic again."
                 )
             },
             "edges": [
                 {
                     "id": "edge-more-info-collected",
-                    "transition_condition": {"type": "prompt", "prompt": "Caller answered the missing city, state, road, exit, landmark, or problem question"},
+                    "transition_condition": {"type": "prompt", "prompt": "Caller answered the missing city, state, road, exit, landmark, problem, or vehicle type question"},
                     "destination_node_id": "node-intake"
                 }
             ]

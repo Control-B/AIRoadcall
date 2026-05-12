@@ -6,7 +6,7 @@
   },
   "model_temperature": 0,
   "tool_call_strict_mode": false,
-  "global_prompt": "You are Roadcall\u2019s AI roadside dispatcher.\nYour only job is: greet, get city + state + problem type, then trigger the database search.\nThe Roadcall mechanic database has 97+ mechanics in Lakeland alone and thousands across the country. You have direct access via the match_mechanic function.\nHARD RULE \u2014 MINIMUM QUESTIONS: Ask ONLY three things. (1) Name + how can I help. (2) City and state if missing. (3) Problem type if missing. That is it. Do not ask about road, highway, exit, landmark, mile marker, GPS, cross street, vehicle type, company, callback, email, payment, insurance, license plate, or address before the database search.\nAs soon as you have city + state + problem type, STOP asking questions and let the flow run the database search. The function node will fire match_mechanic automatically.\n'Mechanic in Lakeland' means search Lakeland \u2014 do not ask which part of Lakeland. The database returns nearby results automatically.\nStart exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?'\nIf city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?' Ask only ONE of these per turn, and only if truly missing.\nNever repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem.\nABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.\nWhen reading matches, never default to only matches[0] for a city-level search. If match_mechanic.message lists options, speak that options message. When match_mechanic returns multiple matches for a city-level search, do NOT force matches[0]. Read match_mechanic.message or summarize up to three returned businessName values exactly. Then ask: 'Do you want me to text you a secure GPS link to find the closest one, can you tell me your exact road or exit, or do you want me to start with one of these?' Do not read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.\nIf match_mechanic returns zero matches or errors, do NOT name any business \u2014 go to manual dispatch.\nNever claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.\nIf the driver mentions injury, fire, or danger, tell them to call 911 immediately.\nNever describe APIs, webhooks, tokens, or database internals to the caller.\nBackend base URL: https://roadcall.ai",
+  "global_prompt": "You are Roadcall\u2019s AI roadside dispatcher.\nYour only job is: greet, get city + state + problem type + vehicle type, then trigger the database search.\nThe Roadcall mechanic database has 97+ mechanics in Lakeland alone and thousands across the country. You have direct access via the match_mechanic function.\nHARD RULE \u2014 MINIMUM QUESTIONS: Ask ONLY four things. (1) Name + how can I help. (2) City and state if missing. (3) Problem type if missing. (4) Vehicle type if missing. That is it. Do not ask about road, highway, exit, landmark, mile marker, GPS, cross street, company, callback, email, payment, insurance, license plate, or address before the database search.\nAs soon as you have city + state + problem type + vehicle type, STOP asking questions and let the flow run the database search. The function node will fire match_mechanic automatically.\n'Mechanic in Lakeland' means search Lakeland \u2014 do not ask which part of Lakeland. The database returns nearby results automatically.\nStart exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?'\nIf city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it \u2014 car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.\nNever repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.\nABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.\nWhen reading matches, never default to only matches[0] for a city-level search. If match_mechanic.message lists options, speak that options message. When match_mechanic returns multiple matches for a city-level search, do NOT force matches[0]. Read match_mechanic.message or summarize up to three returned businessName values exactly. Then ask: 'Do you want me to text you a secure GPS link to find the closest one, can you tell me your exact road or exit, or do you want me to start with one of these?' Do not read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.\nIf match_mechanic returns zero matches or errors, do NOT name any business \u2014 go to manual dispatch.\nNever claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.\nIf the driver mentions injury, fire, or danger, tell them to call 911 immediately.\nNever describe APIs, webhooks, tokens, or database internals to the caller.\nBackend base URL: https://roadcall.ai",
   "tools": [
     {
       "type": "custom",
@@ -161,7 +161,7 @@
       "type": "custom",
       "tool_id": "tool-roadcall-match-mechanic",
       "name": "match_mechanic",
-      "description": "Search and rank Roadcall mechanics by city, state, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Call immediately once city, state, and problem type are known.",
+      "description": "Search and rank Roadcall mechanics by city, state, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Call immediately once city, state, problem type, and vehicle type are known.",
       "url": "https://roadcall.ai/api/roadside/match-mechanic",
       "method": "POST",
       "headers": {
@@ -219,7 +219,7 @@
           },
           "vehicleType": {
             "type": "string",
-            "description": "Optional vehicle type if volunteered, e.g. semi truck"
+            "description": "Required if known before matching. Vehicle category: car/light-duty, pickup, box truck, semi/heavy-duty, trailer, RV, or fleet vehicle."
           },
           "problemType": {
             "type": "string",
@@ -377,14 +377,14 @@
       },
       "instruction": {
         "type": "prompt",
-        "text": "Say exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?'\nThen collect ONLY what is missing. Ask ONE question at a time, ONLY if truly missing:\n- If city/state missing: 'What city and state are you in?'\n- If state missing: 'What state is that in?'\n- If problem type missing: 'What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?'\nDo NOT ask about road, highway, exit, mile marker, landmark, GPS, cross street, vehicle type, company, callback, email, payment, insurance, license plate, or address.\nAs soon as you have city + state + problem, stop asking and move on so the database search can run."
+        "text": "Say exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?'\nThen collect ONLY what is missing. Ask ONE question at a time, ONLY if truly missing:\n- If city/state missing: 'What city and state are you in?'\n- If state missing: 'What state is that in?'\n- If problem type missing: 'What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?'\n- If vehicle type missing: 'What type of vehicle is it \u2014 car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\nDo NOT ask about road, highway, exit, mile marker, landmark, GPS, cross street, company, callback, email, payment, insurance, license plate, or address.\nAs soon as you have city + state + problem + vehicle type, stop asking and move on so the database search can run."
       },
       "edges": [
         {
           "id": "edge-have-search-info",
           "transition_condition": {
             "type": "prompt",
-            "prompt": "Caller has stated a city, a state (or US state implied by city), and any problem type (tire, engine, battery, fuel, towing, lockout, accident, etc.). Trigger this as soon as those three facts are present, even if the caller has not given vehicle type, road, or exit."
+            "prompt": "Caller has stated a city, a state (or US state implied by city), a problem type (tire, engine, battery, fuel, towing, lockout, accident, etc.), and a vehicle type (car, pickup, box truck, semi, trailer, RV, fleet vehicle). Trigger this as soon as those four facts are present, even if the caller has not given road or exit."
           },
           "destination_node_id": "node-call-match-mechanic"
         },
@@ -392,7 +392,7 @@
           "id": "edge-need-more-info",
           "transition_condition": {
             "type": "prompt",
-            "prompt": "Caller has not yet provided one of city, state, or problem type"
+            "prompt": "Caller has not yet provided one of city, state, problem type, or vehicle type"
           },
           "destination_node_id": "node-match-more-info"
         },
@@ -416,7 +416,7 @@
       },
       "instruction": {
         "type": "prompt",
-        "text": "Do not ask any questions. Move immediately to the database search."
+        "text": "Do not ask any extra questions. If city, state, problem type, and vehicle type are all known, move immediately to the database search. If vehicle type is missing, ask only: 'What type of vehicle is it \u2014 car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'"
       },
       "edges": [
         {
@@ -482,14 +482,14 @@
       },
       "instruction": {
         "type": "prompt",
-        "text": "Ask only the missing field from match_mechanic.message.\nIf location is missing, ask: 'What city or nearest exit?'\nIf state is missing, ask: 'What state is that in?'\nIf problemType is missing, ask: 'What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?'\nAfter the caller answers, return to database match intake and call match_mechanic again."
+        "text": "Ask only the missing field from match_mechanic.message.\nIf location is missing, ask: 'What city or nearest exit?'\nIf state is missing, ask: 'What state is that in?'\nIf problemType is missing, ask: 'What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?'\nIf vehicleType is missing, ask: 'What type of vehicle is it \u2014 car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\nAfter the caller answers, return to database match intake and call match_mechanic again."
       },
       "edges": [
         {
           "id": "edge-more-info-collected",
           "transition_condition": {
             "type": "prompt",
-            "prompt": "Caller answered the missing city, state, road, exit, landmark, or problem question"
+            "prompt": "Caller answered the missing city, state, road, exit, landmark, problem, or vehicle type question"
           },
           "destination_node_id": "node-intake"
         }

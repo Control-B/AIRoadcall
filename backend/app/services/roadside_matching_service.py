@@ -47,14 +47,37 @@ SERVICE_LABELS = {
 }
 
 VEHICLE_ALIASES = {
+    "car": "light_duty",
+    "auto": "light_duty",
+    "automobile": "light_duty",
+    "sedan": "light_duty",
+    "suv": "light_duty",
+    "pickup": "light_duty",
+    "pickup truck": "light_duty",
+    "light duty": "light_duty",
+    "light-duty": "light_duty",
+    "van": "light_duty",
     "semi": "heavy_duty",
     "semi truck": "heavy_duty",
+    "tractor": "heavy_duty",
     "tractor trailer": "heavy_duty",
     "18 wheeler": "heavy_duty",
+    "eighteen wheeler": "heavy_duty",
     "big rig": "heavy_duty",
+    "heavy duty": "heavy_duty",
+    "heavy-duty": "heavy_duty",
+    "diesel truck": "heavy_duty",
     "box truck": "commercial",
+    "straight truck": "commercial",
+    "medium duty": "commercial",
+    "medium-duty": "commercial",
     "trailer": "trailer",
+    "reefer": "trailer",
+    "dry van": "trailer",
     "rv": "rv",
+    "motorhome": "rv",
+    "camper": "rv",
+    "travel trailer": "rv",
     "fleet": "fleet",
 }
 
@@ -165,7 +188,7 @@ def normalizeVehicleType(text: str | None) -> str | None:
     for alias, normalized in VEHICLE_ALIASES.items():
         if alias in lowered:
             return normalized
-    return lowered.strip() or None
+    return None
 
 
 def parseCallerContext(message: str) -> RoadsideCallerContext:
@@ -281,12 +304,15 @@ def scoreMechanicMatch(mechanic: object, callerContext: RoadsideCallerContext) -
     vehicle_types = _lower_list(getattr(mechanic, "vehicle_types_supported", []) or [])
     vehicle = normalizeVehicleType(callerContext.vehicleType)
     raw_vehicle = (callerContext.vehicleType or "").lower()
-    if vehicle and (vehicle in vehicle_types or raw_vehicle in " ".join(vehicle_types)):
+    if vehicle and _vehicle_matches(vehicle_types, vehicle, raw_vehicle):
         score += 15
         reasons.append("Vehicle type match")
-    elif vehicle and any(v in vehicle_types for v in ("heavy_duty", "commercial", "fleet")):
+    elif vehicle in {"heavy_duty", "commercial", "fleet", "trailer"} and any(v in vehicle_types for v in ("heavy_duty", "commercial", "fleet", "trailer")):
         score += 8
         reasons.append("Commercial vehicle capable")
+    elif vehicle:
+        score -= 6
+        reasons.append(f"Vehicle type not confirmed for {vehicle.replace('_', ' ')}")
 
     if is_24_7(mechanic):
         score += 15
@@ -448,6 +474,12 @@ class RoadsideMatchingService:
     @staticmethod
     def missing_fields(context: RoadsideCallerContext) -> list[str]:
         missing = []
+        has_usable_location = bool(
+            (context.latitude is not None and context.longitude is not None)
+            or context.city
+            or context.road
+            or context.landmark
+        )
         if context.latitude is None and context.longitude is None:
             if not context.city and not context.road and not context.landmark:
                 missing.append("location")
@@ -455,6 +487,8 @@ class RoadsideMatchingService:
                 missing.append("state")
         if not context.problemType:
             missing.append("problemType")
+        if has_usable_location and context.state and context.problemType and not context.vehicleType:
+            missing.append("vehicleType")
         return missing
 
     @staticmethod
@@ -465,6 +499,8 @@ class RoadsideMatchingService:
             return "What state are you in?"
         if "problemType" in missing_fields:
             return "Is it tire, engine, battery, fuel, towing, or something else?"
+        if "vehicleType" in missing_fields:
+            return "What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?"
         return "Got it. I’m checking nearby mechanics."
 
     @staticmethod
@@ -734,17 +770,43 @@ def _filter_problem_capable(mechanics: Iterable[object], context: RoadsideCaller
         return phone_ready
 
     strong_matches = []
+    vehicle_matches = []
+    vehicle = normalizeVehicleType(context.vehicleType)
+    raw_vehicle = (context.vehicleType or "").lower()
     for mechanic in mechanics:
         if not _has_usable_phone(mechanic):
             continue
         service_types = _lower_list(getattr(mechanic, "service_types", []) or [])
+        vehicle_types = _lower_list(getattr(mechanic, "vehicle_types_supported", []) or [])
         if _service_matches_problem(service_types, context.problemType, context.serviceNeeded):
             strong_matches.append(mechanic)
-    return _dedupe_mechanics([*strong_matches, *phone_ready])
+            if vehicle and _vehicle_matches(vehicle_types, vehicle, raw_vehicle):
+                vehicle_matches.append(mechanic)
+    return _dedupe_mechanics([*vehicle_matches, *strong_matches, *phone_ready])
 
 
 def _has_usable_phone(mechanic: object) -> bool:
     return bool(str(getattr(mechanic, "phone", "") or "").strip())
+
+
+def _vehicle_matches(vehicle_types: list[str], vehicle: str, raw_vehicle: str = "") -> bool:
+    vehicle_text = " ".join(vehicle_types)
+    equivalent = {
+        "light_duty": {"light_duty", "car", "auto", "automotive", "pickup", "suv", "van"},
+        "heavy_duty": {"heavy_duty", "semi", "tractor", "diesel", "truck", "commercial", "fleet"},
+        "commercial": {"commercial", "box_truck", "straight_truck", "medium_duty", "fleet", "truck"},
+        "trailer": {"trailer", "reefer", "dry_van", "flatbed", "semi", "heavy_duty"},
+        "rv": {"rv", "motorhome", "camper", "travel_trailer"},
+        "fleet": {"fleet", "commercial", "heavy_duty", "truck"},
+    }
+    allowed = equivalent.get(vehicle, {vehicle})
+    raw_key = _service_key(raw_vehicle)
+    return any(
+        candidate in vehicle_types
+        or candidate in vehicle_text
+        or (raw_key and raw_key in vehicle_text)
+        for candidate in allowed
+    )
 
 
 def _problem_service_terms(problem: str) -> set[str]:
