@@ -74,7 +74,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} bg-roadcall-void text-roadcall-silver`}>
         <SiteHeaderChrome />
-        <main className="min-h-screen">
+          <main className="min-h-screen pt-20">
           {children}
         </main>
         <SiteFooterChrome />

@@ -183,7 +183,7 @@ export default function HomePage() {
           Video uses object-contain so the entire frame fits — never cut,
           never stretched. Cards overlap the bottom of the hero.
       ═══════════════════════════════════════════════════════════════ */}
-      <section className="relative pt-32 min-h-[calc(100vh-2rem)] flex flex-col overflow-hidden bg-roadcall-void">
+        <section className="relative mt-0 min-h-[100vh] flex flex-col overflow-hidden bg-roadcall-void">
 
         {/* Video background — object-contain keeps the whole frame visible */}
         <video
