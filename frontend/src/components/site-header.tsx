@@ -24,6 +24,27 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
+    label: "Find Service",
+    href: "/search",
+    children: [
+      {
+        label: "Search All Providers",
+        description: "Browse 35,000+ mechanics, tow trucks & repair shops",
+        href: "/search",
+      },
+      {
+        label: "Driver Help Center",
+        description: "Stranded? Get help fast — no app needed",
+        href: "/driver",
+      },
+      {
+        label: "AI Marketplace",
+        description: "AI-ranked providers matched to your exact problem",
+        href: "/marketplace",
+      },
+    ],
+  },
+  {
     label: "For Shops",
     href: "/shops",
     children: [
@@ -77,6 +98,27 @@ const navItems: NavItem[] = [
         label: "Pricing",
         description: "Enterprise pricing for fleets of all sizes",
         href: "/fleet/pricing",
+      },
+    ],
+  },
+  {
+    label: "For Providers",
+    href: "/provider",
+    children: [
+      {
+        label: "List Your Shop",
+        description: "Add or claim your mechanic profile — free",
+        href: "/provider",
+      },
+      {
+        label: "Get Verified & Dispatched",
+        description: "Receive AI-routed leads and grow your revenue",
+        href: "/provider#verified",
+      },
+      {
+        label: "Roadcall Shops (AI Phone)",
+        description: "AI call answering, CRM, and booking for your shop",
+        href: "/shops",
       },
     ],
   },
@@ -231,16 +273,22 @@ export function SiteHeader() {
             <span className="text-white">{HELP_PHONE}</span>
           </a>
           <Link
+            href="/search"
+            className="hidden xl:inline-flex h-8 items-center rounded-full border border-roadcall-cyan/35 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 hover:bg-cyan-400/15 transition-colors"
+          >
+            Find Service
+          </Link>
+          <Link
             href="/marketplace"
             className="hidden xl:inline-flex h-8 items-center rounded-full border border-cyan-400/35 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 hover:bg-cyan-400/15 transition-colors"
           >
             Explore marketplace
           </Link>
           <Link
-            href="/shops/operations"
-            className="hidden 2xl:inline-flex h-8 items-center rounded-full border border-roadcall-orange/40 bg-roadcall-orange/10 px-3 text-xs font-semibold text-roadcall-orange hover:bg-roadcall-orange/15 transition-colors"
+            href="/provider"
+            className="hidden 2xl:inline-flex h-8 items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/15 transition-colors"
           >
-            Provider operations
+            List your shop
           </Link>
         </div>
 
@@ -306,11 +354,14 @@ export function SiteHeader() {
                     Call {HELP_PHONE}
                   </Button>
                 </a>
+                <Link href="/search" className="flex items-center justify-center gap-2 rounded-xl border border-roadcall-cyan/30 bg-roadcall-cyan/10 px-4 py-3 text-sm font-semibold text-cyan-100">
+                  Find Service <ArrowRight className="h-4 w-4" />
+                </Link>
                 <Link href="/marketplace" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100">
                   Explore marketplace <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href="/shops/operations" className="flex items-center justify-center gap-2 rounded-xl border border-roadcall-orange/35 bg-roadcall-orange/10 px-4 py-3 text-sm font-semibold text-roadcall-orange">
-                  Provider operations <ArrowRight className="h-4 w-4" />
+                <Link href="/provider" className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300">
+                  List your shop <ArrowRight className="h-4 w-4" />
                 </Link>
               </div>
             </div>

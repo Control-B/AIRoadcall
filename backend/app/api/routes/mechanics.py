@@ -97,6 +97,61 @@ async def list_mechanics_admin(
 
 
 @router.get(
+    "/search",
+)
+async def public_search_mechanics(
+    q: str | None = Query(default=None, description="Company name, city, or keyword"),
+    city: str | None = Query(default=None),
+    state: str | None = Query(default=None, min_length=2, max_length=2),
+    service_type: str | None = Query(default=None),
+    is_24_7: bool | None = Query(default=None),
+    mobile_only: bool | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=24, ge=1, le=100),
+    db: AsyncSession = Depends(get_session),
+):
+    """Public directory search — returns basic provider info safe for public display."""
+    await ensure_mechanic_admin_columns(db)
+    result = await MechanicDataService.list_admin_mechanics(
+        db,
+        q=q,
+        city=city,
+        state=state,
+        service_type=service_type,
+        has_email=None,
+        has_website=None,
+        roadside_only=mobile_only or False,
+        emergency_only=is_24_7 or False,
+        limit=page_size,
+        offset=(page - 1) * page_size,
+    )
+    # Strip sensitive fields — only return public-safe data
+    safe_mechanics = []
+    for m in result.items:
+        safe_mechanics.append({
+            "id": m.id,
+            "company_name": m.company_name,
+            "city": m.city,
+            "state": m.state,
+            "phone": m.phone,
+            "website": m.website,
+            "rating": m.rating,
+            "review_count": m.review_count,
+            "accepts_mobile_roadside": m.accepts_mobile_roadside,
+            "emergency_service": m.emergency_service,
+            "is_emergency_24_7": getattr(m, "is_emergency_24_7", False),
+            "service_types": m.service_types,
+            "priority_score": m.priority_score,
+        })
+    return {
+        "mechanics": safe_mechanics,
+        "total": result.total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+@router.get(
     "/marketplace",
     response_model=MarketplaceSearchResponse,
 )

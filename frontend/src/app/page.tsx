@@ -28,6 +28,7 @@ import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
 import { GlobeShowcaseSection } from "@/components/marketing/globe-showcase-section";
 import { ScrollingMarqueeSection } from "@/components/marketing/scrolling-marquee-section";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import { mediaUrl } from "@/lib/media";
 
 const shopsFeatures = [
   { icon: Phone,        title: "AI Call Answering",      description: "Sandy answers every call instantly — day or night — and captures lead details." },
@@ -198,7 +199,7 @@ export default function HomePage() {
           loop
           playsInline
           className="absolute inset-0 w-full h-full object-contain"
-          src="/videos/RoadcallPremium.mp4"
+          src={mediaUrl("videos/RoadcallPremium.mp4")}
         />
 
         {/* Sound toggle button */}

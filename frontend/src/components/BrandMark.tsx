@@ -1,5 +1,6 @@
 import Image from "next/image";
 import logoSrc from "@/assets/logos/RoadcallLogo.png";
+import { mediaUrl } from "@/lib/media";
 
 interface BrandMarkProps {
   /** Legacy size prop. Used as height when width/height are omitted. */
@@ -31,11 +32,12 @@ export function BrandMark({
 }: BrandMarkProps) {
   const logoHeight = height ?? size;
   const logoWidth = width ?? Math.round(logoHeight * 3.08);
+  const logoUrl = mediaUrl("images/RoadcallLogo.png", logoSrc.src);
 
   return (
     <span className={className}>
       <Image
-        src={logoSrc}
+        src={logoUrl}
         alt="Roadcall.ai"
         width={logoWidth}
         height={logoHeight}

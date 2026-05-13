@@ -24,6 +24,7 @@ import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import roadcallSupportVideo from "@/assets/videos/RoadcallSupport.mp4";
+import { mediaUrl } from "@/lib/media";
 
 const features = [
   { icon: Phone, title: "AI Roadside Intake", description: "Driver calls from the side of the road. Sandy collects incident type, vehicle, location description, and driver info in under 90 seconds." },
@@ -61,7 +62,7 @@ export default function FleetPage() {
       <section className="relative min-h-[85vh] flex flex-col justify-end overflow-hidden">
         <video
           className="absolute inset-0 h-full w-full object-cover object-center"
-          src={roadcallSupportVideo}
+          src={mediaUrl("videos/RoadcallSupport.mp4", roadcallSupportVideo)}
           autoPlay
           muted
           loop

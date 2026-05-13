@@ -4,17 +4,23 @@ import { COMPANY_PHONE, HELP_PHONE, telHref } from "@/lib/phone";
 import { BrandMark } from "@/components/BrandMark";
 
 const footerLinks = {
-  Product: [
-    { label: "Features", href: "/features" },
-    { label: "Solutions", href: "/solutions" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Dashboard", href: "/admin/login" },
+  "Find Service": [
+    { label: "Search Providers", href: "/search" },
+    { label: "Driver Help", href: "/driver" },
+    { label: "AI Marketplace", href: "/marketplace" },
+    { label: "All 50 States", href: "/search" },
   ],
-  Solutions: [
-    { label: "Roadside Assistance", href: "/solutions#roadside" },
-    { label: "Mechanic Shops", href: "/solutions#shops" },
-    { label: "Fleet Management", href: "/solutions#fleet" },
-    { label: "Heavy Duty", href: "/solutions#heavy-duty" },
+  Providers: [
+    { label: "List Your Shop", href: "/provider" },
+    { label: "Get Verified", href: "/provider#verified" },
+    { label: "AI Phone (Shops)", href: "/shops" },
+    { label: "Fleet Solutions", href: "/fleet" },
+  ],
+  Platform: [
+    { label: "Features", href: "/features" },
+    { label: "Pricing", href: "/pricing" },
+    { label: "Solutions", href: "/solutions" },
+    { label: "Dashboard", href: "/admin/login" },
   ],
   Company: [
     { label: "About", href: "/company#about" },

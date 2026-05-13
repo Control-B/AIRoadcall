@@ -218,6 +218,7 @@ LIVEKIT_API_KEY=xxx LIVEKIT_API_SECRET=xxx LIVEKIT_URL=wss://... \
 ```bash
 cd frontend
 
+
 # Install dependencies
 npm install
 
@@ -231,6 +232,33 @@ npx prisma generate
 # Start dev server
 npm run dev
 ```
+
+## DO Spaces Media (Videos + Images)
+
+Use DigitalOcean Spaces for large media files and keep fast deploys.
+
+1. Configure AWS-compatible credentials for Spaces in your shell (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`).
+2. Export Spaces settings:
+
+```bash
+export DO_SPACES_BUCKET="your-bucket"
+export DO_SPACES_REGION="nyc3"
+export DO_SPACES_ENDPOINT="https://nyc3.digitaloceanspaces.com"
+```
+
+3. Sync media files:
+
+```bash
+bash scripts/sync_media_to_spaces.sh
+```
+
+4. Point the frontend to Spaces/CDN:
+
+```bash
+export NEXT_PUBLIC_MEDIA_BASE_URL="https://your-bucket.nyc3.digitaloceanspaces.com"
+```
+
+The app uses local fallbacks when `NEXT_PUBLIC_MEDIA_BASE_URL` is not set.
 
 ### Verify
 
