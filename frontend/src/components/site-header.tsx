@@ -24,63 +24,26 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    label: "Find Service",
-    href: "/search",
-    children: [
-      {
-        label: "Search All Providers",
-        description: "Browse 35,000+ mechanics, tow trucks & repair shops",
-        href: "/search",
-      },
-      {
-        label: "Driver Help Center",
-        description: "Stranded? Get help fast — no app needed",
-        href: "/driver",
-      },
-      {
-        label: "AI Marketplace",
-        description: "AI-ranked providers matched to your exact problem",
-        href: "/marketplace",
-      },
-    ],
-  },
-  {
-    label: "For Shops",
+    label: "Features",
     href: "/shops",
     children: [
       {
-        label: "Roadcall Shops Overview",
+        label: "Roadcall Shops",
         description: "AI phones + CRM for truck mechanic shops",
         href: "/shops",
       },
       {
-        label: "Features",
+        label: "Shops Features",
         description: "AI answering, missed-call text-back, booking & pipeline",
         href: "/shops/features",
       },
       {
-        label: "Pricing",
-        description: "Simple monthly plans for shops of every size",
-        href: "/shops/pricing",
-      },
-      {
-        label: "Get Started",
-        description: "Connect your shop in minutes",
-        href: "/shops/onboarding",
-      },
-    ],
-  },
-  {
-    label: "For Fleets",
-    href: "/fleet",
-    children: [
-      {
-        label: "Roadcall Fleet Overview",
+        label: "Roadcall Fleet",
         description: "AI roadside support for trucking companies & fleets",
         href: "/fleet",
       },
       {
-        label: "Features",
+        label: "Fleet Features",
         description: "Incident intake, GPS capture, mechanic matching & dispatch",
         href: "/fleet/features",
       },
@@ -94,17 +57,27 @@ const navItems: NavItem[] = [
         description: "Connect fleet trackers, telematics & existing tools",
         href: "/fleet/integrations",
       },
-      {
-        label: "Pricing",
-        description: "Enterprise pricing for fleets of all sizes",
-        href: "/fleet/pricing",
-      },
     ],
   },
   {
-    label: "For Providers",
-    href: "/provider",
+    label: "Solutions",
+    href: "/search",
     children: [
+      {
+        label: "Find Service",
+        description: "Browse 35,000+ mechanics, tow trucks & repair shops",
+        href: "/search",
+      },
+      {
+        label: "Driver Help Center",
+        description: "Stranded? Get help fast — no app needed",
+        href: "/driver",
+      },
+      {
+        label: "AI Marketplace",
+        description: "AI-ranked providers matched to your exact problem",
+        href: "/marketplace",
+      },
       {
         label: "List Your Shop",
         description: "Add or claim your mechanic profile — free",
@@ -115,10 +88,36 @@ const navItems: NavItem[] = [
         description: "Receive AI-routed leads and grow your revenue",
         href: "/provider#verified",
       },
+    ],
+  },
+  {
+    label: "Resources",
+    href: "/privacy",
+    children: [
       {
-        label: "Roadcall Shops (AI Phone)",
-        description: "AI call answering, CRM, and booking for your shop",
-        href: "/shops",
+        label: "Privacy Policy",
+        description: "How Roadcall.ai collects, uses, and protects data",
+        href: "/privacy",
+      },
+      {
+        label: "Terms of Use",
+        description: "Service rules, limitations, disclaimers, and obligations",
+        href: "/terms",
+      },
+      {
+        label: "SMS Consent Policy",
+        description: "How SMS opt-in, HELP, STOP, and service texting work",
+        href: "/sms-consent",
+      },
+      {
+        label: "Contact",
+        description: "Get in touch with our team",
+        href: "/company#contact",
+      },
+      {
+        label: "About Us",
+        description: "Our mission to reinvent roadside rescue",
+        href: "/company#about",
       },
     ],
   },
@@ -141,19 +140,9 @@ const navItems: NavItem[] = [
         href: "/company#contact",
       },
       {
-        label: "SMS Consent Policy",
-        description: "How SMS opt-in, HELP, STOP, and service texting work",
-        href: "/sms-consent",
-      },
-      {
-        label: "Privacy Policy",
-        description: "How Roadcall.ai collects, uses, and protects data",
-        href: "/privacy",
-      },
-      {
-        label: "Terms of Use",
-        description: "Service rules, limitations, disclaimers, and obligations",
-        href: "/terms",
+        label: "Roadcall Shops (AI Phone)",
+        description: "AI call answering, CRM, and booking for your shop",
+        href: "/shops",
       },
     ],
   },
@@ -272,24 +261,6 @@ export function SiteHeader() {
             <span className="hidden xl:inline">Call</span>
             <span className="text-white">{HELP_PHONE}</span>
           </a>
-          <Link
-            href="/search"
-            className="hidden xl:inline-flex h-8 items-center rounded-full border border-roadcall-cyan/35 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 hover:bg-cyan-400/15 transition-colors"
-          >
-            Find Service
-          </Link>
-          <Link
-            href="/marketplace"
-            className="hidden xl:inline-flex h-8 items-center rounded-full border border-cyan-400/35 bg-cyan-400/10 px-3 text-xs font-semibold text-cyan-100 hover:bg-cyan-400/15 transition-colors"
-          >
-            Explore marketplace
-          </Link>
-          <Link
-            href="/provider"
-            className="hidden 2xl:inline-flex h-8 items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 text-xs font-semibold text-emerald-300 hover:bg-emerald-500/15 transition-colors"
-          >
-            List your shop
-          </Link>
         </div>
 
         {/* ── Mobile hamburger ──────────────────────────── */}
@@ -354,15 +325,6 @@ export function SiteHeader() {
                     Call {HELP_PHONE}
                   </Button>
                 </a>
-                <Link href="/search" className="flex items-center justify-center gap-2 rounded-xl border border-roadcall-cyan/30 bg-roadcall-cyan/10 px-4 py-3 text-sm font-semibold text-cyan-100">
-                  Find Service <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link href="/marketplace" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-3 text-sm font-semibold text-cyan-100">
-                  Explore marketplace <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link href="/provider" className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/35 bg-emerald-500/10 px-4 py-3 text-sm font-semibold text-emerald-300">
-                  List your shop <ArrowRight className="h-4 w-4" />
-                </Link>
               </div>
             </div>
           </motion.div>

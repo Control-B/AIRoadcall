@@ -220,6 +220,16 @@ export default function HomePage() {
           )}
         </button>
 
+        {/* Hero CTAs — Find Service and List your shop, above video button */}
+        <div className="absolute top-32 left-1/2 -translate-x-1/2 z-30 flex flex-col gap-2 sm:flex-row sm:gap-3">
+          <Link href="/search" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-5 py-3 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/20 transition-colors backdrop-blur-md">
+            Find Service <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link href="/provider" className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors backdrop-blur-md">
+            List your shop <ArrowRight className="h-4 w-4" />
+          </Link>
+        </div>
+
         {/* Light vignettes for headline readability without dimming the video */}
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-gradient-to-t from-[#02050c]/85 via-[#02050c]/35 to-transparent z-10" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-gradient-to-b from-[#02050c]/70 via-[#02050c]/20 to-transparent z-10" />

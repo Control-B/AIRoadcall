@@ -205,8 +205,8 @@ export default function NewCampaignPage() {
                     onClick={() => updateField("channel", ch.value)}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                       form.channel === ch.value
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-slate-200 hover:bg-slate-50"
+                        ? "border-blue-500/50 bg-blue-500/20 text-blue-300"
+                        : "border-white/10 hover:bg-white/5"
                     }`}
                   >
                     <ch.icon className="h-4 w-4" />
@@ -328,7 +328,7 @@ export default function NewCampaignPage() {
               </Button>
 
               {previewResult && (
-                <div className="mt-3 bg-slate-50 rounded-lg p-4">
+                <div className="mt-3 bg-white/5 border border-white/10 rounded-lg p-4">
                   <p className="font-medium">
                     {previewResult.total_matching.toLocaleString()} mechanics
                     match

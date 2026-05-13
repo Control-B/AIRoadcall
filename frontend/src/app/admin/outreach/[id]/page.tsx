@@ -60,7 +60,7 @@ function StatBox({
   color?: string;
 }) {
   return (
-    <div className="text-center p-4 rounded-lg bg-slate-50">
+    <div className="text-center p-4 rounded-lg bg-white/5 border border-white/10">
       <p className="text-2xl font-bold">{value.toLocaleString()}</p>
       <p className="text-xs text-muted-foreground">{label}</p>
       {rate !== undefined && (
@@ -137,12 +137,12 @@ export default function CampaignDetailPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-64 bg-slate-100 animate-pulse rounded" />
+        <div className="h-8 w-64 bg-white/10 animate-pulse rounded" />
         <div className="grid grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
             <div
               key={i}
-              className="h-20 bg-slate-100 animate-pulse rounded-lg"
+              className="h-20 bg-white/10 animate-pulse rounded-lg"
             />
           ))}
         </div>
@@ -277,7 +277,7 @@ export default function CampaignDetailPage() {
                 <span className="font-medium">{campaign.subject}</span>
               </div>
             )}
-            <div className="bg-slate-50 rounded-lg p-4 text-sm whitespace-pre-wrap font-mono">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-sm whitespace-pre-wrap font-mono text-slate-300">
               {campaign.body_template}
             </div>
           </CardContent>

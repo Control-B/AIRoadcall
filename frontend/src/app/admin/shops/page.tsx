@@ -65,17 +65,17 @@ export default function ShopsPage() {
   );
 
   const planColors: Record<string, string> = {
-    starter: "bg-slate-100 text-slate-700",
-    professional: "bg-blue-100 text-blue-700",
-    enterprise: "bg-purple-100 text-purple-700",
+    starter: "bg-slate-500/20 text-slate-300",
+    professional: "bg-blue-500/20 text-blue-300",
+    enterprise: "bg-purple-500/20 text-purple-300",
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Shop Customers</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold text-white">Shop Customers</h1>
+          <p className="text-slate-400">
             Manage shops subscribed to AI Receptionist
           </p>
         </div>
@@ -90,12 +90,12 @@ export default function ShopsPage() {
       {/* Search */}
       <div className="flex gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
           <Input
             placeholder="Search by name, phone, or address..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
+            className="pl-9 bg-white/5 border-white/10 text-slate-200 placeholder:text-slate-500"
           />
         </div>
       </div>
@@ -104,89 +104,65 @@ export default function ShopsPage() {
       {loading ? (
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="pt-6">
-                <div className="h-16 bg-slate-100 animate-pulse rounded" />
-              </CardContent>
-            </Card>
+            <div key={i} className="h-20 animate-pulse rounded-2xl border border-white/5 bg-slate-900/60" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6 text-center py-12">
-            <Store className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-medium mb-2">
-              {shops.length === 0 ? "No shops yet" : "No matching shops"}
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {shops.length === 0
-                ? "Add your first shop customer to get started."
-                : "Try a different search term."}
-            </p>
-            {shops.length === 0 && (
-              <Link href="/admin/shops/new">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First Shop
-                </Button>
-              </Link>
-            )}
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 py-16 text-center">
+          <Store className="h-12 w-12 text-slate-500 mx-auto mb-4" />
+          <h3 className="text-lg font-medium mb-2 text-slate-200">
+            {shops.length === 0 ? "No shops yet" : "No matching shops"}
+          </h3>
+          <p className="text-slate-400 mb-4">
+            {shops.length === 0
+              ? "Add your first shop customer to get started."
+              : "Try a different search term."}
+          </p>
+          {shops.length === 0 && (
+            <Link href="/admin/shops/new">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Add First Shop
+              </Button>
+            </Link>
+          )}
+        </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((shop) => (
             <Link key={shop.id} href={`/admin/shops/${shop.id}`}>
-              <Card className="hover:border-blue-200 hover:shadow-md transition-all cursor-pointer">
-                <CardContent className="pt-4 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <Store className="h-5 w-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold">
-                            {shop.business_name}
-                          </h3>
-                          <Badge
-                            variant="secondary"
-                            className={planColors[shop.plan] || ""}
-                          >
-                            {shop.plan}
-                          </Badge>
-                          {!shop.active && (
-                            <Badge variant="destructive">Inactive</Badge>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Phone className="h-3 w-3" />
-                            {shop.business_phone}
-                          </span>
-                          {shop.business_address && (
-                            <span className="truncate max-w-xs">
-                              {shop.business_address}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+              <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 p-4 hover:border-blue-500/30 hover:bg-slate-900 transition-all cursor-pointer">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center">
+                      <Store className="h-5 w-5 text-blue-400" />
                     </div>
-
-                    <div className="flex items-center gap-6">
-                      <div className="text-right hidden md:block">
-                        <div className="text-sm font-medium">
-                          {shop.total_calls_handled} calls
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {shop.total_leads_captured} leads
-                        </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold text-slate-100">{shop.business_name}</h3>
+                        <Badge variant="secondary" className={planColors[shop.plan] || ""}>{shop.plan}</Badge>
+                        {!shop.active && <Badge variant="destructive">Inactive</Badge>}
                       </div>
-                      <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                      <div className="flex items-center gap-4 mt-1 text-sm text-slate-400">
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {shop.business_phone}
+                        </span>
+                        {shop.business_address && (
+                          <span className="truncate max-w-xs">{shop.business_address}</span>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex items-center gap-6">
+                    <div className="text-right hidden md:block">
+                      <div className="text-sm font-medium text-slate-200">{shop.total_calls_handled} calls</div>
+                      <div className="text-xs text-slate-500">{shop.total_leads_captured} leads</div>
+                    </div>
+                    <ChevronRight className="h-5 w-5 text-slate-500" />
+                  </div>
+                </div>
+              </div>
             </Link>
           ))}
         </div>

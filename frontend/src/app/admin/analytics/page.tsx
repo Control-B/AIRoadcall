@@ -52,14 +52,10 @@ export default function AnalyticsPage() {
   if (loading || !stats) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Analytics</h1>
+        <h1 className="text-2xl font-bold text-white">Analytics</h1>
         <div className="grid grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="pt-6">
-                <div className="h-24 bg-slate-100 animate-pulse rounded" />
-              </CardContent>
-            </Card>
+            <div key={i} className="h-24 animate-pulse rounded-2xl border border-white/5 bg-slate-900/60" />
           ))}
         </div>
       </div>
@@ -83,53 +79,33 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold">Analytics</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl font-bold text-white">Analytics</h1>
+        <p className="text-slate-400">
           Business performance & revenue projections
         </p>
       </div>
 
       {/* Revenue */}
       <div>
-        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          <DollarSign className="h-5 w-5 text-green-500" />
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+          <DollarSign className="h-5 w-5 text-emerald-400" />
           Revenue
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="border-green-200 bg-green-50/50">
-            <CardContent className="pt-6 text-center">
-              <p className="text-4xl font-bold text-green-700">
-                ${mrr.toLocaleString()}
-              </p>
-              <p className="text-sm text-green-600 mt-1">
-                Monthly Recurring Revenue
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                {signups} active shops × ${avgPlanValue} avg
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-4xl font-bold">
-                ${arr.toLocaleString()}
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Annualized Revenue
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p className="text-4xl font-bold">{conversionRate}%</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Outreach → Signup Rate
-              </p>
-              <p className="text-xs text-muted-foreground mt-2">
-                {leadBreakdown.signed_up || 0} / {contacted} contacted
-              </p>
-            </CardContent>
-          </Card>
+          <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 p-6 text-center">
+            <p className="text-4xl font-bold text-emerald-400">${mrr.toLocaleString()}</p>
+            <p className="text-sm text-slate-400 mt-1">Monthly Recurring Revenue</p>
+            <p className="text-xs text-slate-500 mt-2">{signups} active shops × ${avgPlanValue} avg</p>
+          </div>
+          <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 p-6 text-center">
+            <p className="text-4xl font-bold text-white">${arr.toLocaleString()}</p>
+            <p className="text-sm text-slate-400 mt-1">Annualized Revenue</p>
+          </div>
+          <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 p-6 text-center">
+            <p className="text-4xl font-bold text-blue-300">{conversionRate}%</p>
+            <p className="text-sm text-slate-400 mt-1">Outreach → Signup Rate</p>
+            <p className="text-xs text-slate-500 mt-2">{leadBreakdown.signed_up || 0} / {contacted} contacted</p>
+          </div>
         </div>
       </div>
 
@@ -139,93 +115,89 @@ export default function AnalyticsPage() {
           <TrendingUp className="h-5 w-5 text-blue-500" />
           Sales Funnel
         </h2>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              {[
-                {
-                  label: "Total Database",
-                  value: stats.total_mechanics,
-                  color: "bg-slate-500",
-                  width: 100,
-                },
-                {
-                  label: "Contacted",
-                  value: contacted,
-                  color: "bg-blue-500",
-                  width: stats.total_mechanics > 0
-                    ? (contacted / stats.total_mechanics) * 100
-                    : 0,
-                },
-                {
-                  label: "Interested",
-                  value: (leadBreakdown.interested || 0) +
-                    (leadBreakdown.demo_scheduled || 0) +
-                    (leadBreakdown.demo_completed || 0) +
-                    (leadBreakdown.negotiating || 0) +
-                    (leadBreakdown.signed_up || 0),
-                  color: "bg-cyan-500",
-                  width: stats.total_mechanics > 0
-                    ? (((leadBreakdown.interested || 0) +
-                        (leadBreakdown.demo_scheduled || 0) +
-                        (leadBreakdown.demo_completed || 0) +
-                        (leadBreakdown.negotiating || 0) +
-                        (leadBreakdown.signed_up || 0)) /
-                        stats.total_mechanics) *
-                      100
-                    : 0,
-                },
-                {
-                  label: "Demo Completed",
-                  value: (leadBreakdown.demo_completed || 0) +
-                    (leadBreakdown.negotiating || 0) +
-                    (leadBreakdown.signed_up || 0),
-                  color: "bg-amber-500",
-                  width: stats.total_mechanics > 0
-                    ? (((leadBreakdown.demo_completed || 0) +
-                        (leadBreakdown.negotiating || 0) +
-                        (leadBreakdown.signed_up || 0)) /
-                        stats.total_mechanics) *
-                      100
-                    : 0,
-                },
-                {
-                  label: "Signed Up",
-                  value: leadBreakdown.signed_up || 0,
-                  color: "bg-green-500",
-                  width: stats.total_mechanics > 0
-                    ? ((leadBreakdown.signed_up || 0) /
-                        stats.total_mechanics) *
-                      100
-                    : 0,
-                },
-              ].map((stage) => (
-                <div key={stage.label}>
-                  <div className="flex justify-between text-sm mb-1">
-                    <span className="font-medium">{stage.label}</span>
-                    <span className="text-muted-foreground">
-                      {stage.value.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="h-8 bg-slate-100 rounded-lg overflow-hidden">
-                    <div
-                      className={`${stage.color} h-full rounded-lg transition-all flex items-center px-3`}
-                      style={{
-                        width: `${Math.max(stage.width, 1)}%`,
-                      }}
-                    >
-                      {stage.width > 10 && (
-                        <span className="text-white text-xs font-medium">
-                          {stage.width.toFixed(1)}%
-                        </span>
-                      )}
-                    </div>
+        <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 p-6">
+          <div className="space-y-4">
+            {[
+              {
+                label: "Total Database",
+                value: stats.total_mechanics,
+                color: "bg-slate-500",
+                width: 100,
+              },
+              {
+                label: "Contacted",
+                value: contacted,
+                color: "bg-blue-500",
+                width: stats.total_mechanics > 0
+                  ? (contacted / stats.total_mechanics) * 100
+                  : 0,
+              },
+              {
+                label: "Interested",
+                value: (leadBreakdown.interested || 0) +
+                  (leadBreakdown.demo_scheduled || 0) +
+                  (leadBreakdown.demo_completed || 0) +
+                  (leadBreakdown.negotiating || 0) +
+                  (leadBreakdown.signed_up || 0),
+                color: "bg-cyan-500",
+                width: stats.total_mechanics > 0
+                  ? (((leadBreakdown.interested || 0) +
+                      (leadBreakdown.demo_scheduled || 0) +
+                      (leadBreakdown.demo_completed || 0) +
+                      (leadBreakdown.negotiating || 0) +
+                      (leadBreakdown.signed_up || 0)) /
+                      stats.total_mechanics) *
+                    100
+                  : 0,
+              },
+              {
+                label: "Demo Completed",
+                value: (leadBreakdown.demo_completed || 0) +
+                  (leadBreakdown.negotiating || 0) +
+                  (leadBreakdown.signed_up || 0),
+                color: "bg-amber-500",
+                width: stats.total_mechanics > 0
+                  ? (((leadBreakdown.demo_completed || 0) +
+                      (leadBreakdown.negotiating || 0) +
+                      (leadBreakdown.signed_up || 0)) /
+                      stats.total_mechanics) *
+                    100
+                  : 0,
+              },
+              {
+                label: "Signed Up",
+                value: leadBreakdown.signed_up || 0,
+                color: "bg-emerald-500",
+                width: stats.total_mechanics > 0
+                  ? ((leadBreakdown.signed_up || 0) /
+                      stats.total_mechanics) *
+                    100
+                  : 0,
+              },
+            ].map((stage) => (
+              <div key={stage.label}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium text-slate-200">{stage.label}</span>
+                  <span className="text-slate-400">{stage.value.toLocaleString()}</span>
+                </div>
+                <div className="h-8 bg-white/5 rounded-lg overflow-hidden">
+                  <div
+                    className={`${stage.color} h-full rounded-lg transition-all flex items-center px-3`}
+                    style={{
+                      width: `${Math.max(stage.width, 1)}%`,
+                    }}
+                  >
+                    {stage.width > 10 && (
+                      <span className="text-white text-xs font-medium">
+                        {stage.width.toFixed(1)}%
+                      </span>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* State Heatmap */}
@@ -234,23 +206,19 @@ export default function AnalyticsPage() {
           <BarChart3 className="h-5 w-5 text-purple-500" />
           Coverage by State
         </h2>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-              {stats.top_states.map((s) => (
-                <div
-                  key={s.state}
-                  className="bg-slate-50 rounded-lg p-3 text-center hover:bg-blue-50 transition-colors"
-                >
-                  <p className="text-lg font-bold">{s.state}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {s.count.toLocaleString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 p-6">
+          <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+            {stats.top_states.map((s) => (
+              <div
+                key={s.state}
+                className="bg-white/5 rounded-lg p-3 text-center hover:bg-blue-500/10 transition-colors"
+              >
+                <p className="text-lg font-bold text-slate-100">{s.state}</p>
+                <p className="text-xs text-slate-400">{s.count.toLocaleString()}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );

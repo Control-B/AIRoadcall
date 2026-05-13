@@ -93,12 +93,12 @@ export default function ShopDetailPage() {
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="h-8 w-48 bg-slate-100 animate-pulse rounded" />
+        <div className="h-8 w-48 bg-white/10 animate-pulse rounded" />
         <div className="grid grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
             <Card key={i}>
               <CardContent className="pt-6">
-                <div className="h-16 bg-slate-100 animate-pulse rounded" />
+                <div className="h-16 bg-white/10 animate-pulse rounded" />
               </CardContent>
             </Card>
           ))}
@@ -119,12 +119,12 @@ export default function ShopDetailPage() {
   }
 
   const intentColors: Record<string, string> = {
-    repair_request: "bg-blue-100 text-blue-700",
-    tow_request: "bg-amber-100 text-amber-700",
-    emergency: "bg-red-100 text-red-700",
-    price_inquiry: "bg-green-100 text-green-700",
-    scheduling: "bg-purple-100 text-purple-700",
-    general_question: "bg-slate-100 text-slate-700",
+    repair_request: "bg-blue-500/20 text-blue-300",
+    tow_request: "bg-amber-500/20 text-amber-300",
+    emergency: "bg-red-500/20 text-red-300",
+    price_inquiry: "bg-green-500/20 text-green-300",
+    scheduling: "bg-purple-500/20 text-purple-300",
+    general_question: "bg-slate-500/20 text-slate-300",
   };
 
   return (
@@ -256,7 +256,7 @@ export default function ShopDetailPage() {
             )}
             <div className="pt-2">
               <span className="text-muted-foreground">Greeting:</span>
-              <p className="italic text-xs mt-1 bg-slate-50 p-2 rounded">
+              <p className="italic text-xs mt-1 bg-white/5 border border-white/10 p-2 rounded text-slate-300">
                 &quot;{shop.agent_greeting}&quot;
               </p>
             </div>
@@ -285,7 +285,7 @@ export default function ShopDetailPage() {
                 {calls.map((call) => (
                   <div
                     key={call.id}
-                    className="flex items-center justify-between p-3 rounded-lg border hover:bg-slate-50 transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <div
