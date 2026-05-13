@@ -165,6 +165,23 @@ docker compose down
 docker compose down -v
 ```
 
+### Market-ready smoke check
+
+Run this before and after production deploys to validate critical public pages and backend availability:
+
+```bash
+bash scripts/smoke_check_market_ready.sh
+```
+
+Optional overrides:
+
+```bash
+BASE_URL="https://roadcall.ai" \
+API_URL="https://airoadcall-i76ba.ondigitalocean.app/api" \
+HEALTH_URL="https://airoadcall-i76ba.ondigitalocean.app/health" \
+bash scripts/smoke_check_market_ready.sh
+```
+
 ### Local Development (without Docker)
 
 #### Prerequisites

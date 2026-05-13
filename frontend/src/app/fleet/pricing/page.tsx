@@ -99,7 +99,7 @@ export default function FleetPricingPage() {
             {TIERS.map((t) => (
               <div key={t.name} className={`rounded-2xl border-2 p-8 flex flex-col ${t.color}`}>
                 {t.highlight && (
-                  <span className="inline-block bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full mb-4 self-start">MOST POPULAR</span>
+                  <span className="inline-block bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white text-xs font-bold px-3 py-1 rounded-full mb-4 self-start">MOST POPULAR</span>
                 )}
                 <div className="text-sm text-gray-500 mb-2">{t.tag}</div>
                 <div className="text-3xl font-bold text-gray-900 mb-2">{t.price}</div>
@@ -114,7 +114,7 @@ export default function FleetPricingPage() {
                 <Link
                   href={t.ctaHref}
                   className={`w-full text-center font-semibold py-3 rounded-lg transition-colors ${
-                    t.highlight ? "bg-blue-600 text-white hover:bg-blue-700" : "border border-blue-600 text-blue-600 hover:bg-blue-50"
+                    t.highlight ? "bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white hover:brightness-110" : "border border-blue-600 text-blue-600 hover:bg-blue-50"
                   }`}
                 >
                   {t.cta}

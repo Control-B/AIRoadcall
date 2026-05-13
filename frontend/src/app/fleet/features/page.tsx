@@ -154,7 +154,7 @@ export default function FleetFeaturesPage() {
               visibility — built for carriers who can&apos;t afford downtime or data leaks.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8">
+              <Button asChild size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white px-8">
                 <Link href="/fleet/onboarding">Book a Fleet Demo</Link>
               </Button>
               <Button asChild variant="outline" size="lg" className="border-slate-600 text-roadcall-silver hover:bg-roadcall-panel">
@@ -251,7 +251,7 @@ export default function FleetFeaturesPage() {
               ))}
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white px-8">
+              <Button asChild size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white px-8">
                 <Link href="/fleet/onboarding">
                   Book a Fleet Demo <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
@@ -275,7 +275,7 @@ export default function FleetFeaturesPage() {
             From first ring to mechanic dispatched — without a single human dispatcher involved.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button asChild size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white">
               <Link href="/fleet/onboarding">Start Fleet Setup</Link>
             </Button>
             <Button asChild variant="ghost" size="lg" className="text-roadcall-silver/85 hover:text-white">

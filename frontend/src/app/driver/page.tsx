@@ -113,7 +113,7 @@ export default function DriverPage() {
           <FadeIn delay={0.3}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <a href={telHref(HELP_PHONE)}>
-                <button className="inline-flex items-center justify-center gap-2 bg-roadcall-orange hover:brightness-110 text-white font-bold text-lg px-10 py-5 rounded-2xl shadow-2xl shadow-orange-900/40 transition-all">
+                <button className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold text-lg px-10 py-5 rounded-2xl shadow-2xl shadow-blue-900/40 transition-all">
                   <Phone className="h-6 w-6" /> Call Now — {HELP_PHONE}
                 </button>
               </a>
@@ -213,7 +213,7 @@ export default function DriverPage() {
             <h2 className="text-3xl font-black text-white mb-4">Stranded right now?</h2>
             <p className="text-roadcall-muted mb-8">Don&apos;t wait — call our AI dispatcher. We&apos;ll have someone on the way fast.</p>
             <a href={telHref(HELP_PHONE)}>
-              <button className="inline-flex items-center gap-2 bg-roadcall-orange hover:brightness-110 text-white font-bold px-10 py-4 rounded-2xl text-lg transition-all shadow-xl shadow-orange-900/30">
+              <button className="inline-flex items-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold px-10 py-4 rounded-2xl text-lg transition-all shadow-xl shadow-blue-900/30">
                 <Phone className="h-5 w-5" /> {HELP_PHONE}
               </button>
             </a>

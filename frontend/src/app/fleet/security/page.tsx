@@ -86,7 +86,7 @@ export default function FleetSecurityPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/fleet/onboarding"
-              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
+              className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
             >
               Request Fleet Security Review <ArrowRight className="w-4 h-4" />
             </Link>

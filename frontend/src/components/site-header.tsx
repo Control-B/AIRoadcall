@@ -320,7 +320,7 @@ export function SiteHeader() {
               ))}
               <div className="pt-3 border-t border-roadcall-cyan/15 space-y-2">
                 <a href={telHref(HELP_PHONE)}>
-                  <Button className="roadcall-primary-button w-full">
+                  <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 w-full">
                     <Phone className="h-4 w-4 mr-2" />
                     Call {HELP_PHONE}
                   </Button>

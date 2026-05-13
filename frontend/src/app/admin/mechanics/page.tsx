@@ -319,7 +319,7 @@ export default function AdminMechanicsPage() {
             <Button variant="outline" size="sm" onClick={() => exportCsv(records?.items || [])} disabled={!records?.items.length} className="gap-2">
               <Download className="h-4 w-4" /> Export CSV
             </Button>
-            <Button size="sm" onClick={() => setEnrichOpen(true)} className="gap-2 bg-blue-600 hover:bg-blue-500">
+            <Button size="sm" onClick={() => setEnrichOpen(true)} className="gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110">
               <Sparkles className="h-4 w-4" /> Enrich from Apify
             </Button>
           </div>
@@ -611,7 +611,7 @@ export default function AdminMechanicsPage() {
                 <Button
                   onClick={startEnrichment}
                   disabled={enrichBusy || enrichStatus?.running}
-                  className="gap-2 bg-blue-600 hover:bg-blue-500"
+                  className="gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110"
                 >
                   <PlayCircle className="h-4 w-4" />
                   {enrichStatus?.running ? "Running..." : "Run email enrichment (200)"}

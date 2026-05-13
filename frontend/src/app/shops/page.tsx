@@ -141,7 +141,7 @@ export default function ShopsPage() {
           <FadeIn delay={0.3}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <Link href="/shops/onboarding">
-                <Button size="lg" className="bg-roadcall-orange hover:brightness-110 text-white font-semibold rounded-xl px-8 shadow-xl shadow-roadcall-orange/20">
+                <Button size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-8 shadow-xl shadow-blue-500/20">
                   Connect Your Shop <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </Link>

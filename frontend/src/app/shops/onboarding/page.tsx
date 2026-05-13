@@ -87,7 +87,7 @@ export default function ShopsOnboardingPage() {
           </p>
           <a
             href="/shops"
-            className="inline-flex items-center gap-2 bg-roadcall-orange text-white font-semibold px-6 py-3 rounded-lg hover:brightness-90 transition-colors"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold px-6 py-3 rounded-lg hover:brightness-110 transition-colors"
           >
             Back to Roadcall Shops <ArrowRight className="w-4 h-4" />
           </a>
@@ -242,7 +242,7 @@ export default function ShopsOnboardingPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-roadcall-orange text-white font-semibold py-3 rounded-lg hover:brightness-90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold py-3 rounded-lg hover:brightness-110 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><ArrowRight className="w-4 h-4" /> Create Shop Profile</>}
           </button>

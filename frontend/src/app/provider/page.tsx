@@ -153,7 +153,7 @@ export default function ProviderPage() {
           <FadeIn delay={0.3}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <a href={GHL_PROVIDER_SIGNUP}>
-                <button className="inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold text-lg px-10 py-5 rounded-2xl shadow-2xl shadow-emerald-900/30 transition-all">
+                <button className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold text-lg px-10 py-5 rounded-2xl shadow-2xl shadow-blue-900/30 transition-all">
                   <Wrench className="h-5 w-5" /> List My Shop — Free
                 </button>
               </a>
@@ -280,7 +280,7 @@ export default function ProviderPage() {
             <h2 className="text-3xl font-black text-white mb-4">Ready to grow your shop?</h2>
             <p className="text-roadcall-muted mb-8">List free today. Get your first dispatched lead this week.</p>
             <a href={GHL_PROVIDER_SIGNUP}>
-              <button className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-10 py-4 rounded-2xl text-lg transition-all shadow-xl shadow-emerald-900/20">
+              <button className="inline-flex items-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold px-10 py-4 rounded-2xl text-lg transition-all shadow-xl shadow-blue-900/20">
                 <Wrench className="h-5 w-5" /> List My Shop Free
               </button>
             </a>

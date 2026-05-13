@@ -94,7 +94,7 @@ export default function FleetPage() {
           <FadeIn delay={0.3}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
               <Link href="/fleet/onboarding">
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-8 shadow-xl shadow-blue-600/20">
+                <Button size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-8 shadow-xl shadow-blue-600/20">
                   Book Fleet Demo <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </Link>

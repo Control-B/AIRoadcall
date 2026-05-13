@@ -249,7 +249,7 @@ export default function MarketplacePage() {
           </p>
           <button
             onClick={() => setSubmitOpen(true)}
-            className="mt-2 inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-white shadow-lg shadow-emerald-500/30 transition hover:bg-emerald-400"
+            className="mt-2 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-5 py-3 font-semibold text-white shadow-lg shadow-blue-500/30 transition hover:brightness-110"
           >
             <Plus className="h-4 w-4" /> Add your business
           </button>
@@ -479,7 +479,7 @@ function ClaimModal({ provider, onClose, onSaved }: { provider: Provider; onClos
         <Field label="Notes (optional)"><textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className={INPUT_CLS} /></Field>
         {err && <p className="text-sm text-red-300">{err}</p>}
         {ok && <p className="text-sm text-emerald-300">{ok}</p>}
-        <button disabled={busy || !name || !phone} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-3 font-semibold text-white hover:bg-blue-400 disabled:opacity-60">
+        <button disabled={busy || !name || !phone} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-4 py-3 font-semibold text-white hover:brightness-110 disabled:opacity-60">
           <ShieldCheck className="h-4 w-4" /> Submit claim
         </button>
       </div>
@@ -544,7 +544,7 @@ function SubmitModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         </div>
         {err && <p className="text-sm text-red-300">{err}</p>}
         {ok && <p className="text-sm text-emerald-300">{ok}</p>}
-        <button disabled={busy || !form.company_name || !form.contact_name || !form.phone} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 font-semibold text-white hover:bg-emerald-400 disabled:opacity-60">
+        <button disabled={busy || !form.company_name || !form.contact_name || !form.phone} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-4 py-3 font-semibold text-white hover:brightness-110 disabled:opacity-60">
           <Plus className="h-4 w-4" /> Submit listing
         </button>
         <p className="text-xs text-roadcall-muted">Your listing will be reviewed by our team before going live. To edit it later, use the &ldquo;Claim listing&rdquo; option.</p>

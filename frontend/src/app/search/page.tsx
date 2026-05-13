@@ -132,7 +132,7 @@ function MechanicCard({ m }: { m: Mechanic }) {
           {m.phone && (
             <a
               href={`tel:${m.phone}`}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-roadcall-orange hover:brightness-110 text-white text-xs font-semibold rounded-xl px-3 py-2.5 transition-all"
+              className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white text-xs font-semibold rounded-xl px-3 py-2.5 transition-all"
             >
               <Phone className="h-3.5 w-3.5" /> Call Now
             </a>
@@ -245,7 +245,7 @@ function SearchPageInner() {
             </div>
             <button
               type="submit"
-              className="bg-roadcall-orange hover:brightness-110 text-white font-semibold px-6 py-3.5 rounded-xl text-sm transition-all shrink-0"
+              className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-6 py-3.5 rounded-xl text-sm transition-all shrink-0"
             >
               Search
             </button>
@@ -383,7 +383,7 @@ function SearchPageInner() {
             <p className="text-roadcall-muted text-sm mb-6">Try broadening your search or let our AI dispatcher find the best match instantly.</p>
             <a
               href={telHref(HELP_PHONE)}
-              className="inline-flex items-center gap-2 bg-roadcall-orange hover:brightness-110 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-all"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-6 py-3 rounded-xl text-sm transition-all"
             >
               <Phone className="h-4 w-4" /> Call AI Dispatcher
             </a>
@@ -427,7 +427,7 @@ function SearchPageInner() {
           <div className="flex flex-col gap-3 shrink-0">
             <a
               href={telHref(HELP_PHONE)}
-              className="inline-flex items-center justify-center gap-2 bg-roadcall-orange hover:brightness-110 text-white font-bold px-8 py-4 rounded-2xl text-sm transition-all shadow-xl shadow-orange-900/30"
+              className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold px-8 py-4 rounded-2xl text-sm transition-all shadow-xl shadow-blue-900/30"
             >
               <Phone className="h-5 w-5" /> Call AI Dispatcher
             </a>

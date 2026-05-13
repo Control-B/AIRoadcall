@@ -89,7 +89,7 @@ export default function FleetIntegrationsPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/fleet/onboarding"
-              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
+              className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
             >
               Plan Fleet Integration <ArrowRight className="w-4 h-4" />
             </Link>
@@ -165,7 +165,7 @@ export default function FleetIntegrationsPage() {
           </p>
           <Link
             href="/fleet/onboarding"
-            className="bg-blue-600 text-white font-semibold px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors inline-flex items-center gap-2"
+            className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold px-8 py-3 rounded-lg hover:brightness-110 transition-colors inline-flex items-center gap-2"
           >
             Plan Fleet Integration <ArrowRight className="w-4 h-4" />
           </Link>

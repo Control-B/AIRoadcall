@@ -62,7 +62,7 @@ export default function CookieConsent() {
                 </button>
                 <button
                   onClick={() => pick("granted")}
-                  className="rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                  className="rounded-lg bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-110"
                 >
                   Accept all
                 </button>
@@ -117,7 +117,7 @@ export default function CookieConsent() {
               </button>
               <button
                 onClick={() => pick("granted")}
-                className="rounded-lg bg-blue-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
+                className="rounded-lg bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:brightness-110"
               >
                 Save — allow analytics
               </button>

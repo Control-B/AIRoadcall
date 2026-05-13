@@ -34,7 +34,7 @@ export default function ProviderRegisterPage() {
         ) : (
           <a
             href="tel:+18668183060"
-            className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-bold px-8 py-4 rounded-2xl transition-all text-sm"
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold px-8 py-4 rounded-2xl transition-all text-sm"
           >
             Call to Get Listed
           </a>

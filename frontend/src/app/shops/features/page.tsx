@@ -100,7 +100,7 @@ export default function ShopsFeaturesPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/shops/onboarding"
-              className="bg-roadcall-orange hover:brightness-110 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
+              className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
             >
               Start AI Phones for Your Shop <ArrowRight className="w-4 h-4" />
             </Link>

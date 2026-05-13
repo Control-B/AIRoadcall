@@ -180,7 +180,7 @@ export default function DemoPage() {
               It&apos;s set up as a sample truck repair shop.
             </p>
             <a href={telHref(HELP_PHONE)}>
-              <Button size="xl" className="w-full bg-blue-600 hover:bg-blue-700 text-xl gap-3">
+              <Button size="xl" className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-xl gap-3">
                 <Phone className="h-6 w-6" />
                 {HELP_PHONE}
               </Button>
@@ -398,7 +398,7 @@ export default function DemoPage() {
           Try the AI demo right now — call and hear it for yourself.
         </p>
         <a href={telHref(HELP_PHONE)}>
-          <Button size="xl" className="bg-blue-600 hover:bg-blue-700 text-xl gap-3">
+          <Button size="xl" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-xl gap-3">
             <Phone className="h-6 w-6" />
             Call {HELP_PHONE} Now
           </Button>

@@ -103,7 +103,7 @@ export default function LocatePage() {
             </p>
             <button
               onClick={handleShare}
-              className="w-full bg-blue-600 text-white font-semibold py-4 rounded-xl hover:bg-blue-700 transition-colors text-lg flex items-center justify-center gap-2"
+              className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold py-4 rounded-xl hover:brightness-110 transition-colors text-lg flex items-center justify-center gap-2"
             >
               <MapPin className="w-5 h-5" /> Share My Location
             </button>

@@ -115,7 +115,7 @@ function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general"
       <button
         type="submit"
         disabled={status === "loading"}
-        className="w-full bg-roadcall-orange hover:brightness-110 disabled:opacity-60 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors flex items-center justify-center gap-2"
+        className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 disabled:opacity-60 text-white font-semibold rounded-xl px-6 py-3 text-sm transition-colors flex items-center justify-center gap-2"
       >
         {status === "loading" ? (
           <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
@@ -281,7 +281,7 @@ export default function HomePage() {
               </ul>
               <div className="flex gap-3">
                 <Link href="/shops/onboarding">
-                  <Button className="bg-roadcall-orange hover:brightness-110 text-white font-semibold rounded-xl px-6">
+                  <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-6">
                     Start All Phones
                   </Button>
                 </Link>
@@ -340,8 +340,8 @@ export default function HomePage() {
               </ul>
               <div className="flex gap-3">
                 <Link href="/fleet/onboarding">
-                  <Button className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-6">
-                    Book a Demo
+                  <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-6">
+                    Book A Demo
                   </Button>
                 </Link>
                 <Link href="/fleet/features">
@@ -500,12 +500,12 @@ export default function HomePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/shops/onboarding">
-                <Button size="lg" className="bg-roadcall-orange hover:brightness-110 text-white font-semibold rounded-xl px-8">
+                <Button size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-8">
                   <Wrench className="h-5 w-5 mr-2" /> I&apos;m a Mechanic Shop
                 </Button>
               </Link>
               <Link href="/fleet/onboarding">
-                <Button size="lg" className="bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl px-8">
+                <Button size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-8">
                   <Truck className="h-5 w-5 mr-2" /> I Manage a Fleet
                 </Button>
               </Link>
