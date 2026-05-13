@@ -6,12 +6,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_admin_api_key
-from app.models.ghl_integration import GHLTenantMapping
+from app.models.ghl_integration import GHLRetryQueueItem, GHLTenantMapping
 from app.models.job import Job
 from app.models.lead_capture import LeadCapture
 from app.services.ghl_service import GHLService
@@ -39,6 +39,16 @@ class TenantMappingOut(BaseModel):
     pipeline_id: str | None
     default_workflow_id: str | None
     is_active: bool
+
+
+class TenantMappingListResponse(BaseModel):
+    mappings: list[TenantMappingOut]
+
+
+class RetryOverviewResponse(BaseModel):
+    pending: int = 0
+    succeeded: int = 0
+    failed: int = 0
 
 
 class OrganizationScopedIn(BaseModel):
@@ -150,6 +160,37 @@ async def upsert_tenant_mapping(payload: TenantMappingIn, db: AsyncSession = Dep
         pipeline_id=mapping.pipeline_id,
         default_workflow_id=mapping.default_workflow_id,
         is_active=mapping.is_active,
+    )
+
+
+@router.get("/admin/tenant-mappings", response_model=TenantMappingListResponse, dependencies=[Depends(require_admin_api_key)])
+async def list_tenant_mappings(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(GHLTenantMapping).order_by(GHLTenantMapping.created_at.desc()))
+    mappings = result.scalars().all()
+    return TenantMappingListResponse(
+        mappings=[
+            TenantMappingOut(
+                id=str(mapping.id),
+                organization_id=str(mapping.organization_id),
+                location_id=mapping.location_id,
+                subaccount_name=mapping.subaccount_name,
+                pipeline_id=mapping.pipeline_id,
+                default_workflow_id=mapping.default_workflow_id,
+                is_active=mapping.is_active,
+            )
+            for mapping in mappings
+        ]
+    )
+
+
+@router.get("/retry/overview", response_model=RetryOverviewResponse, dependencies=[Depends(require_admin_api_key)])
+async def get_retry_overview(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(GHLRetryQueueItem.status, func.count()).group_by(GHLRetryQueueItem.status))
+    counts = {status: count for status, count in result.all()}
+    return RetryOverviewResponse(
+        pending=counts.get("pending", 0),
+        succeeded=counts.get("succeeded", 0),
+        failed=counts.get("failed", 0),
     )
 
 

@@ -16,6 +16,7 @@ import {
   Mail,
   Truck,
   MapPinned,
+  Workflow,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, getUsername, logout } from "@/lib/admin-auth";
@@ -27,6 +28,7 @@ const navItems = [
   { href: "/admin/trucking-companies", icon: Truck, label: "Trucking Companies" },
   { href: "/admin/national-vendors", icon: MapPinned, label: "National Vendors" },
   { href: "/admin/leads", icon: Mail, label: "Email List" },
+  { href: "/admin/integrations/ghl", icon: Workflow, label: "GHL Integration" },
   { href: "/admin/shops", icon: Store, label: "Shops" },
   { href: "/admin/outreach", icon: Megaphone, label: "Outreach" },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
