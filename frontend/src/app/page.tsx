@@ -258,63 +258,44 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <FadeIn direction="left">
-              <div className="relative w-full aspect-video bg-gradient-to-br from-roadcall-orange/10 to-roadcall-cyan/10 rounded-3xl border border-roadcall-orange/20 overflow-hidden flex items-center justify-center">
-                <Image
-                  src={mediaUrl("images/shops-hero.jpg")}
-                  alt="Repair shop AI phone system"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-              </div>
-            </FadeIn>
-            <FadeIn direction="right">
               <div className="text-xs font-bold text-roadcall-orange uppercase tracking-[0.2em] mb-4">Roadcall Shops</div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-8 leading-tight">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
                 Never Miss Another
                 <span className="block bg-gradient-to-r from-roadcall-orange to-roadcall-cyan bg-clip-text text-transparent">Repair Call</span>
               </h2>
-
-              <div className="space-y-8 mb-10">
-                <div>
-                  <div className="text-xs font-bold text-roadcall-orange/60 uppercase tracking-[0.15em] mb-2">THE PROBLEM</div>
-                  <p className="text-white text-base leading-relaxed">Phones ring. Voicemail fills up. Customers call your competitors instead. You&apos;re losing jobs you never knew you had.</p>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-emerald-400/60 uppercase tracking-[0.15em] mb-2">HOW ROADCALL SOLVES IT</div>
-                  <p className="text-white text-base leading-relaxed">Sandy (your AI receptionist) answers every call instantly. Captures the details. Books directly into your calendar. You never miss another job.</p>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-cyan-400/60 uppercase tracking-[0.15em] mb-2">EXPECTED OUTCOME</div>
-                  <p className="text-white text-base leading-relaxed">15–30% more booked jobs. Zero missed calls. Your team focusing on repairs, not phones.</p>
-                </div>
+              <p className="text-roadcall-muted text-lg mb-8 leading-relaxed">
+                Your AI receptionist answers every call, captures the details, and books more jobs — while you focus on what you do best: fixing trucks.
+              </p>
+              <ul className="space-y-3 mb-10">
+                {["AI answers instantly, 24/7","Missed-call text-back in seconds","Appointment booking to your calendar","CRM pipeline with automated follow-up","Review request automation after jobs"].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-roadcall-silver/85">
+                    <CheckCircle2 className="h-4 w-4 text-roadcall-orange shrink-0" /> {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-3">
+                <Link href="/shops/onboarding">
+                  <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-6">
+                    Start All Phones
+                  </Button>
+                </Link>
+                <Link href="/shops/features">
+                  <Button variant="outline" className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl px-6">
+                    See Features
+                  </Button>
+                </Link>
               </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-10">
-                <div className="bg-roadcall-panel/60 border border-roadcall-orange/20 rounded-2xl p-4 text-center">
-                  <div className="text-2xl font-bold text-roadcall-orange">24/7</div>
-                  <div className="text-xs text-roadcall-muted mt-1">Always answering</div>
-                </div>
-                <div className="bg-roadcall-panel/60 border border-roadcall-orange/20 rounded-2xl p-4 text-center">
-                  <div className="text-2xl font-bold text-roadcall-orange">+40%</div>
-                  <div className="text-xs text-roadcall-muted mt-1">More jobs booked</div>
-                </div>
-                <div className="bg-roadcall-panel/60 border border-roadcall-orange/20 rounded-2xl p-4 text-center">
-                  <div className="text-2xl font-bold text-roadcall-orange">$0</div>
-                  <div className="text-xs text-roadcall-muted mt-1">Setup fees</div>
-                </div>
-                <div className="bg-roadcall-panel/60 border border-roadcall-orange/20 rounded-2xl p-4 text-center">
-                  <div className="text-2xl font-bold text-roadcall-orange">&lt;1 min</div>
-                  <div className="text-xs text-roadcall-muted mt-1">To activate</div>
-                </div>
+            </FadeIn>
+            <FadeIn direction="right">
+              <div className="grid grid-cols-2 gap-4">
+                {shopsFeatures.map((f) => (
+                  <GlassCard key={f.title} className="p-5">
+                    <f.icon className="h-6 w-6 text-roadcall-orange mb-3" />
+                    <h3 className="text-sm font-semibold text-white mb-1.5">{f.title}</h3>
+                    <p className="text-xs text-roadcall-muted leading-relaxed">{f.description}</p>
+                  </GlassCard>
+                ))}
               </div>
-
-              <Link href="/shops/onboarding">
-                <Button className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-6 py-3 flex items-center justify-center gap-2">
-                  Get Started <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
             </FadeIn>
           </div>
         </div>
@@ -324,64 +305,45 @@ export default function HomePage() {
       <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
-            <FadeIn direction="left">
-              <div className="relative w-full aspect-video bg-gradient-to-br from-blue-400/10 to-roadcall-cyan/10 rounded-3xl border border-blue-400/20 overflow-hidden flex items-center justify-center">
-                <Image
-                  src={mediaUrl("images/fleet-hero.jpg")}
-                  alt="Fleet AI roadside dispatch system"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+            <FadeIn direction="left" className="order-2 lg:order-1">
+              <div className="grid grid-cols-2 gap-4">
+                {fleetFeatures.map((f) => (
+                  <GlassCard key={f.title} className="p-5">
+                    <f.icon className="h-6 w-6 text-blue-400 mb-3" />
+                    <h3 className="text-sm font-semibold text-white mb-1.5">{f.title}</h3>
+                    <p className="text-xs text-roadcall-muted leading-relaxed">{f.description}</p>
+                  </GlassCard>
+                ))}
               </div>
             </FadeIn>
-            <FadeIn direction="right">
+            <FadeIn direction="right" className="order-1 lg:order-2">
               <div className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">Roadcall Fleet</div>
-              <h2 className="text-4xl md:text-5xl font-bold mb-8 leading-tight">
+              <h2 className="text-4xl md:text-5xl font-bold mb-4 leading-tight">
                 AI Roadside Support
                 <span className="block bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">That Delivers</span>
               </h2>
-
-              <div className="space-y-8 mb-10">
-                <div>
-                  <div className="text-xs font-bold text-blue-400/60 uppercase tracking-[0.15em] mb-2">THE PROBLEM</div>
-                  <p className="text-white text-base leading-relaxed">Driver breaks down. Slow intake. Wrong mechanic dispatched. Your truck sits idle for hours. Revenue lost.</p>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-emerald-400/60 uppercase tracking-[0.15em] mb-2">HOW ROADCALL SOLVES IT</div>
-                  <p className="text-white text-base leading-relaxed">AI intake in 90 seconds. GPS in one tap. Right mechanic matched instantly. Your ops team sees everything in real-time.</p>
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-cyan-400/60 uppercase tracking-[0.15em] mb-2">EXPECTED OUTCOME</div>
-                  <p className="text-white text-base leading-relaxed">60% faster resolution. Lower downtime costs. Happier drivers. Full audit trail, always.</p>
-                </div>
+              <p className="text-roadcall-muted text-lg mb-8 leading-relaxed">
+                Fast intake. Accurate data. The right mechanic dispatched — faster. Your fleet data stays in your control.
+              </p>
+              <ul className="space-y-3 mb-10">
+                {["AI driver intake in under 90 seconds","GPS location via one-tap SMS link","Matches nearest qualified mechanic instantly","Real-time dispatch board for your team","Your data never touches a third-party CRM"].map((item) => (
+                  <li key={item} className="flex items-center gap-3 text-roadcall-silver/85">
+                    <CheckCircle2 className="h-4 w-4 text-blue-400 shrink-0" /> {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex gap-3">
+                <Link href="/fleet/onboarding">
+                  <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-6">
+                    Book A Demo
+                  </Button>
+                </Link>
+                <Link href="/fleet/features">
+                  <Button variant="outline" className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl px-6">
+                    See Features
+                  </Button>
+                </Link>
               </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-10">
-                <div className="bg-roadcall-panel/60 border border-blue-400/20 rounded-2xl p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-400">90s</div>
-                  <div className="text-xs text-roadcall-muted mt-1">Full intake</div>
-                </div>
-                <div className="bg-roadcall-panel/60 border border-blue-400/20 rounded-2xl p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-400">-60%</div>
-                  <div className="text-xs text-roadcall-muted mt-1">Downtime</div>
-                </div>
-                <div className="bg-roadcall-panel/60 border border-blue-400/20 rounded-2xl p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-400">100%</div>
-                  <div className="text-xs text-roadcall-muted mt-1">Your data</div>
-                </div>
-                <div className="bg-roadcall-panel/60 border border-blue-400/20 rounded-2xl p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-400">24/7</div>
-                  <div className="text-xs text-roadcall-muted mt-1">Live support</div>
-                </div>
-              </div>
-
-              <Link href="/fleet/onboarding">
-                <Button className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-6 py-3 flex items-center justify-center gap-2">
-                  Get Started <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
             </FadeIn>
           </div>
         </div>
