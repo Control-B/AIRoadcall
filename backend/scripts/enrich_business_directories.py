@@ -15,6 +15,7 @@ Notes:
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import ssl
@@ -35,6 +36,8 @@ for env_path in (ROOT / ".env", ROOT / "backend" / ".env"):
                 os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
+TAVILY_API_KEY = os.environ.get("TAVILY_API_KEY", "")
+TAVILY_API_URL = "https://api.tavily.com/search"
 EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}", re.IGNORECASE)
 DOT_RE = re.compile(r"USDOT[^0-9]{0,100}(\d{4,9})", re.IGNORECASE)
 MC_RE = re.compile(r"\bMC[^0-9]{0,30}(\d{4,9})", re.IGNORECASE)
@@ -184,6 +187,122 @@ def safer_lookup(company_name: str) -> tuple[str | None, str | None]:
     return dot, mc
 
 
+def tavily_search(query: str) -> dict[str, Any]:
+    if not TAVILY_API_KEY:
+        raise RuntimeError("TAVILY_API_KEY is not configured")
+    payload = {
+        "api_key": TAVILY_API_KEY,
+        "query": query,
+        "search_depth": "advanced",
+        "include_answer": True,
+        "include_raw_content": False,
+        "max_results": 8,
+    }
+    request = urllib.request.Request(
+        TAVILY_API_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def _extract_from_tavily(data: dict[str, Any], website: str | None) -> tuple[str | None, str | None, str | None]:
+    haystack_parts: list[str] = []
+    if data.get("answer"):
+        haystack_parts.append(str(data["answer"]))
+    for result in data.get("results") or []:
+        if not isinstance(result, dict):
+            continue
+        haystack_parts.extend(str(result.get(key) or "") for key in ("title", "url", "content"))
+    haystack = "\n".join(haystack_parts)
+    email = _pick_email(EMAIL_RE.findall(haystack), website)
+    dot_match = DOT_RE.search(haystack)
+    mc_match = MC_RE.search(haystack)
+    return (
+        email,
+        dot_match.group(1) if dot_match else None,
+        mc_match.group(1) if mc_match else None,
+    )
+
+
+def enrich_with_tavily(kind: str, limit: int, sleep_sec: float) -> tuple[int, int]:
+    table = "trucking_companies" if kind == "trucking" else "national_vendors"
+    name_col = "company_name" if kind == "trucking" else "location_name"
+    select_extra = ", dot_number, mc_number" if kind == "trucking" else ""
+    missing_clause = "(email IS NULL OR email = '' OR dot_number IS NULL OR dot_number = '' OR mc_number IS NULL OR mc_number = '')" if kind == "trucking" else "(email IS NULL OR email = '')"
+    conn = _connect()
+    attempted = updated = 0
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT id, {name_col}, city, state, website{select_extra}
+                FROM {table}
+                WHERE {missing_clause}
+                ORDER BY updated_at NULLS FIRST, id
+                LIMIT %s
+                """,
+                (limit,),
+            )
+            rows = cur.fetchall()
+            for row in rows:
+                attempted += 1
+                row_id, name, city, state, website, *rest = row
+                location = ", ".join(part for part in (city, state) if part)
+                if kind == "trucking":
+                    query = f'"{name}" trucking company {location} email USDOT MC number official website'
+                else:
+                    query = f'"{name}" {location} official email phone truck service location'
+                try:
+                    data = tavily_search(query)
+                    email, dot, mc = _extract_from_tavily(data, website)
+                except Exception as exc:
+                    print(f"⚠ Tavily failed for {name}: {exc}")
+                    continue
+
+                if kind == "trucking":
+                    cur.execute(
+                        """
+                        UPDATE trucking_companies
+                        SET email = COALESCE(email, %s),
+                            dot_number = COALESCE(dot_number, %s),
+                            mc_number = COALESCE(mc_number, %s),
+                            last_enriched_at = NOW(),
+                            updated_at = NOW()
+                        WHERE id = %s
+                          AND ((email IS NULL OR email = '') OR (dot_number IS NULL OR dot_number = '') OR (mc_number IS NULL OR mc_number = ''))
+                        """,
+                        (email, dot, mc, row_id),
+                    )
+                    changed = bool(email or dot or mc)
+                    if changed:
+                        print(f"✓ {name} -> email={email or '-'} DOT={dot or '-'} MC={mc or '-'}")
+                else:
+                    cur.execute(
+                        """
+                        UPDATE national_vendors
+                        SET email = COALESCE(email, %s),
+                            last_enriched_at = NOW(),
+                            updated_at = NOW()
+                        WHERE id = %s
+                          AND (email IS NULL OR email = '')
+                        """,
+                        (email, row_id),
+                    )
+                    changed = bool(email)
+                    if changed:
+                        print(f"✓ {name} -> {email}")
+                updated += 1 if changed else 0
+                conn.commit()
+                if sleep_sec:
+                    time.sleep(sleep_sec)
+    finally:
+        conn.close()
+    return attempted, updated
+
+
 def enrich_emails(kind: str, limit: int, sleep_sec: float) -> tuple[int, int]:
     table = "trucking_companies" if kind == "trucking" else "national_vendors"
     name_col = "company_name" if kind == "trucking" else "location_name"
@@ -271,16 +390,21 @@ def main() -> int:
     parser.add_argument("--emails", choices=["trucking", "vendors"], default=None)
     parser.add_argument("--email-limit", type=int, default=100)
     parser.add_argument("--dot-limit", type=int, default=0)
+    parser.add_argument("--tavily", choices=["trucking", "vendors"], default=None, help="Use Tavily search to enrich missing email/DOT/MC values")
+    parser.add_argument("--tavily-limit", type=int, default=25)
     parser.add_argument("--sleep", type=float, default=0.15)
     args = parser.parse_args()
 
+    if args.tavily:
+        attempted, updated = enrich_with_tavily(args.tavily, args.tavily_limit, args.sleep)
+        print(f"Tavily enrichment complete: kind={args.tavily} attempted={attempted} updated={updated}")
     if args.emails:
         attempted, updated = enrich_emails(args.emails, args.email_limit, args.sleep)
         print(f"Email enrichment complete: kind={args.emails} attempted={attempted} updated={updated}")
     if args.dot_limit > 0:
         attempted, dot_updates, mc_updates = enrich_dot_numbers(args.dot_limit, args.sleep)
         print(f"DOT/MC enrichment complete: attempted={attempted} dot_updates={dot_updates} mc_updates={mc_updates}")
-    if not args.emails and args.dot_limit <= 0:
+    if not args.tavily and not args.emails and args.dot_limit <= 0:
         parser.print_help()
     return 0
 
