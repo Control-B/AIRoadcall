@@ -202,32 +202,33 @@ export default function HomePage() {
           src={mediaUrl("videos/RoadcallPremium.mp4")}
         />
 
-        {/* Sound toggle button */}
-        <button
-          onClick={toggleSound}
-          className="absolute top-24 right-6 z-30 flex items-center gap-2 bg-black/50 hover:bg-black/70 border border-white/20 hover:border-white/40 backdrop-blur-md text-white text-xs font-semibold px-4 py-2 rounded-full transition-all duration-200"
-        >
-          {muted ? (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-              Play with Sound
-            </>
-          ) : (
-            <>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
-              Mute
-            </>
-          )}
-        </button>
-
-        {/* Hero CTAs — Find Service and List your shop, above video button */}
-        <div className="absolute top-32 left-1/2 -translate-x-1/2 z-30 flex flex-col gap-2 sm:flex-row sm:gap-3">
-          <Link href="/search" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-5 py-3 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/20 transition-colors backdrop-blur-md">
+        {/* Sound toggle button + Hero CTAs — top-right corner, stacked */}
+        <div className="absolute top-20 right-4 sm:right-6 z-30 flex flex-col items-end gap-2">
+          {/* Hero CTAs — above the sound button */}
+          <Link href="/search" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/20 transition-colors backdrop-blur-md">
             Find Service <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link href="/provider" className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-3 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors backdrop-blur-md">
+          <Link href="/provider" className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors backdrop-blur-md">
             List your shop <ArrowRight className="h-4 w-4" />
           </Link>
+
+          {/* Sound toggle button — below the CTAs */}
+          <button
+            onClick={toggleSound}
+            className="flex items-center gap-2 bg-black/50 hover:bg-black/70 border border-white/20 hover:border-white/40 backdrop-blur-md text-white text-xs font-semibold px-4 py-2 rounded-full transition-all duration-200"
+          >
+            {muted ? (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                Play with Sound
+              </>
+            ) : (
+              <>
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                Mute
+              </>
+            )}
+          </button>
         </div>
 
         {/* Light vignettes for headline readability without dimming the video */}
