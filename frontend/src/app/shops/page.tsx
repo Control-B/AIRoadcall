@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
-import roadcallSupportVideo from "@/assets/videos/RoadcallSupport.mp4";
+import roadcallRoadsideVideo from "@/assets/videos/Roadcall.Roadside.mp4";
 
 const features = [
   {
@@ -108,7 +108,7 @@ export default function ShopsPage() {
       <section className="relative min-h-[85vh] flex flex-col justify-end overflow-hidden">
         <video
           className="absolute inset-0 h-full w-full object-cover object-center"
-          src={roadcallSupportVideo}
+          src={roadcallRoadsideVideo}
           autoPlay
           muted
           loop

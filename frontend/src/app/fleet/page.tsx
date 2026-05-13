@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
-import peterbiltHero from "@/assets/images/Peterbilt.jpeg";
+import roadcallSupportVideo from "@/assets/videos/RoadcallSupport.mp4";
 
 const features = [
   { icon: Phone, title: "AI Roadside Intake", description: "Driver calls from the side of the road. Sandy collects incident type, vehicle, location description, and driver info in under 90 seconds." },
@@ -59,13 +59,15 @@ export default function FleetPage() {
     <PageLayout>
       {/* Hero */}
       <section className="relative min-h-[85vh] flex flex-col justify-end overflow-hidden">
-        <Image
-          src={peterbiltHero}
-          alt="Peterbilt semi truck representing fleet roadside support"
-          fill
-          priority
-          className="object-cover object-center md:object-[center_42%]"
-          sizes="100vw"
+        <video
+          className="absolute inset-0 h-full w-full object-cover object-center"
+          src={roadcallSupportVideo}
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          aria-hidden="true"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-roadcall-void/70 via-roadcall-void/35 to-roadcall-void z-10" />
         <div className="absolute inset-0 bg-gradient-to-r from-roadcall-void/70 via-roadcall-void/25 to-roadcall-void/55 z-10" />
