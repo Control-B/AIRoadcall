@@ -23,3 +23,4 @@ from app.models.roadside_incident import RoadsideIncident, IncidentStatus
 from app.models.location_capture_session import LocationCaptureSession, LocationSessionStatus
 from app.models.integration_connection import IntegrationConnection, IntegrationProvider
 from app.models.lead_capture import LeadCapture
+from app.models.business_directory import TruckingCompany, NationalVendor

@@ -22,10 +22,12 @@ interface Lead {
 interface LeadListResponse { total: number; page: number; page_size: number; leads: Lead[]; }
 interface MechanicItem {
   id: string; company_name: string; contact_name: string; phone: string;
+  email_quality: string | null;
   email: string | null; website: string | null; city: string | null;
   state: string | null; rating: number | null; source: string | null; last_enriched_at: string | null;
 }
 interface MechanicListResponse { total: number; limit: number; offset: number; items: MechanicItem[]; }
+interface MechanicStats { total_mechanics: number; total_with_email: number; }
 
 const VERTICAL_COLORS: Record<string, string> = {
   shops:   "bg-orange-500/15 text-orange-300 border border-orange-500/25",
@@ -80,6 +82,23 @@ function EmptyRow({ icon: Icon, message, sub }: { icon: React.ElementType; messa
       <p className="text-xs mt-1 text-slate-500">{sub}</p>
     </div>
   );
+}
+
+function emailQualityBadge(kind: string | null) {
+  switch (kind) {
+    case "domain_match":
+      return { label: "Domain match", cls: "bg-emerald-500/15 text-emerald-300 border border-emerald-500/25" };
+    case "domain_role":
+      return { label: "Domain role", cls: "bg-cyan-500/15 text-cyan-300 border border-cyan-500/25" };
+    case "role_based":
+      return { label: "Role-based", cls: "bg-blue-500/15 text-blue-300 border border-blue-500/25" };
+    case "noreply":
+      return { label: "No-reply", cls: "bg-amber-500/15 text-amber-300 border border-amber-500/25" };
+    case "unmatched":
+      return { label: "Unmatched", cls: "bg-slate-500/15 text-slate-300 border border-slate-500/25" };
+    default:
+      return { label: "Unknown", cls: "bg-slate-500/15 text-slate-400 border border-slate-500/25" };
+  }
 }
 
 export default function LeadsPage() {
@@ -212,6 +231,7 @@ function SignupsTab() {
 
 function MechanicEmailsTab() {
   const [data, setData] = useState<MechanicListResponse | null>(null);
+  const [stats, setStats] = useState<MechanicStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState("");
@@ -221,10 +241,21 @@ function MechanicEmailsTab() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams({ has_email: "true", limit: String(PAGE_SIZE), offset: String(offset) });
+      const params = new URLSearchParams({
+        has_email: "true",
+        limit: String(PAGE_SIZE),
+        offset: String(offset),
+        sort_by: "last_enriched_at",
+        sort_dir: "desc",
+      });
       if (search) params.set("q", search);
       if (stateFilter) params.set("state", stateFilter);
-      setData(await adminFetch<MechanicListResponse>(`/mechanics/admin/list?${params}`));
+      const [listData, statsData] = await Promise.all([
+        adminFetch<MechanicListResponse>(`/mechanics/admin/list?${params}`),
+        adminFetch<MechanicStats>("/mechanics/admin/stats"),
+      ]);
+      setData(listData);
+      setStats(statsData);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }, [offset, search, stateFilter]);
 
@@ -241,14 +272,17 @@ function MechanicEmailsTab() {
 
   const page = Math.floor(offset / PAGE_SIZE) + 1;
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
-  const TOTAL_MECHANICS = 35351;
+  const totalMechanics = stats?.total_mechanics ?? 0;
+  const enriched = stats?.total_with_email ?? data?.total ?? 0;
+  const pending = Math.max(0, totalMechanics - enriched);
+  const coverage = totalMechanics > 0 ? `${((enriched / totalMechanics) * 100).toFixed(1)}%` : "0.0%";
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <StatCard icon={Wrench} color="text-orange-400"  value={data?.total ?? "—"} label="Mechanics with Email" />
-        <StatCard icon={Mail}   color="text-blue-400"    value={data ? Math.max(0, TOTAL_MECHANICS - data.total) : "—"} label="Still Enriching" />
-        <StatCard icon={Users}  color="text-emerald-400" value={data ? `${((data.total / TOTAL_MECHANICS) * 100).toFixed(1)}%` : "—"} label="Coverage" />
+        <StatCard icon={Wrench} color="text-orange-400"  value={enriched || "—"} label="Mechanics with Email" />
+        <StatCard icon={Mail}   color="text-blue-400"    value={pending || "—"} label="Still Enriching" />
+        <StatCard icon={Users}  color="text-emerald-400" value={coverage} label="Coverage" />
       </div>
       <DarkCard className="p-4">
         <div className="flex gap-3 flex-wrap">
@@ -278,7 +312,7 @@ function MechanicEmailsTab() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5">
-                    {["Business","Email","Location","Phone","Website","Enriched"].map(h=>(
+                    {["Business","Email","Quality","Location","Phone","Website","Enriched"].map(h=>(
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -288,6 +322,7 @@ function MechanicEmailsTab() {
                     <tr key={m.id} className="hover:bg-white/[0.02]">
                       <td className="px-4 py-3"><div className="font-medium text-slate-200 max-w-[180px] truncate">{m.company_name}</div><div className="text-xs text-slate-500">{m.contact_name}</div></td>
                       <td className="px-4 py-3"><a href={`mailto:${m.email}`} className="text-blue-400 hover:underline text-sm">{m.email}</a></td>
+                      <td className="px-4 py-3"><span className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-medium ${emailQualityBadge(m.email_quality).cls}`}>{emailQualityBadge(m.email_quality).label}</span></td>
                       <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">{[m.city,m.state].filter(Boolean).join(", ")||"—"}</td>
                       <td className="px-4 py-3 text-slate-400 text-xs">{m.phone}</td>
                       <td className="px-4 py-3">{m.website?<a href={m.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-blue-400"><ExternalLink className="h-3 w-3"/>Visit</a>:<span className="text-slate-600">—</span>}</td>

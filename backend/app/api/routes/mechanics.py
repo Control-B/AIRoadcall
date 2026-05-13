@@ -74,6 +74,8 @@ async def list_mechanics_admin(
     has_website: bool | None = Query(default=None),
     roadside_only: bool = Query(default=False),
     emergency_only: bool = Query(default=False),
+    sort_by: str | None = Query(default=None, description="company_name, city, state, rating, created_at, last_enriched_at"),
+    sort_dir: str = Query(default="asc", pattern="^(asc|desc)$"),
     limit: int = Query(default=50, ge=1, le=500),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_session),
@@ -91,6 +93,8 @@ async def list_mechanics_admin(
         has_website=has_website,
         roadside_only=roadside_only,
         emergency_only=emergency_only,
+        sort_by=sort_by,
+        sort_dir=sort_dir,
         limit=limit,
         offset=offset,
     )

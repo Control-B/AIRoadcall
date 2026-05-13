@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import math
 import re
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, desc
+from sqlalchemy import select, func, or_, desc, asc
 
 from app.models.mechanic import Mechanic
 from app.schemas.mechanic import (
@@ -140,6 +140,8 @@ class MechanicDataService:
         has_website: bool | None = None,
         roadside_only: bool = False,
         emergency_only: bool = False,
+        sort_by: str | None = None,
+        sort_dir: str = "asc",
         limit: int = 50,
         offset: int = 0,
     ) -> MechanicAdminListResponse:
@@ -212,12 +214,29 @@ class MechanicDataService:
             Mechanic.last_enriched_at,
             Mechanic.created_at,
         ]
-        data_query = (
-            select(*list_columns)
-            .order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc())
-            .limit(limit)
-            .offset(offset)
-        )
+        data_query = select(*list_columns)
+
+        sort_key = (sort_by or "").strip().lower()
+        sort_direction = "desc" if (sort_dir or "").strip().lower() == "desc" else "asc"
+        sortable_columns = {
+            "company_name": Mechanic.company_name,
+            "city": Mechanic.city,
+            "state": Mechanic.state,
+            "rating": Mechanic.rating,
+            "created_at": Mechanic.created_at,
+            "last_enriched_at": Mechanic.last_enriched_at,
+        }
+
+        if sort_key in sortable_columns:
+            order_col = sortable_columns[sort_key]
+            order_expr = desc(order_col) if sort_direction == "desc" else asc(order_col)
+            if sort_key in {"rating", "last_enriched_at"}:
+                order_expr = order_expr.nullslast()
+            data_query = data_query.order_by(order_expr, Mechanic.company_name.asc())
+        else:
+            data_query = data_query.order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc())
+
+        data_query = data_query.limit(limit).offset(offset)
         for condition in filters:
             count_query = count_query.where(condition)
             data_query = data_query.where(condition)
@@ -236,6 +255,7 @@ class MechanicDataService:
                     contact_name=row["contact_name"],
                     phone=row["phone"],
                     email=row["email"],
+                    email_quality=MechanicDataService._classify_email_quality(row["email"], row["website"]),
                     website=row["website"],
                     address=row["address"],
                     city=row["city"],
@@ -258,6 +278,51 @@ class MechanicDataService:
                 for row in rows
             ],
         )
+
+    @staticmethod
+    def _classify_email_quality(email: str | None, website: str | None) -> str | None:
+        if not email:
+            return None
+
+        normalized_email = email.strip().lower()
+        if "@" not in normalized_email:
+            return "invalid"
+
+        local_part, _, email_domain = normalized_email.partition("@")
+        email_domain = email_domain.strip()
+        website_domain = MechanicDataService._normalize_domain(website)
+
+        role_accounts = {
+            "info", "support", "service", "dispatch", "sales", "office", "contact", "help", "admin",
+        }
+        no_reply_accounts = {"noreply", "no-reply", "donotreply", "do-not-reply", "mailer-daemon"}
+
+        if local_part in no_reply_accounts:
+            return "noreply"
+
+        if website_domain and (
+            email_domain == website_domain or email_domain.endswith(f".{website_domain}")
+        ):
+            if local_part in role_accounts:
+                return "domain_role"
+            return "domain_match"
+
+        if local_part in role_accounts:
+            return "role_based"
+
+        return "unmatched"
+
+    @staticmethod
+    def _normalize_domain(url: str | None) -> str | None:
+        if not url:
+            return None
+        value = url.strip().lower()
+        if not value:
+            return None
+        value = re.sub(r"^https?://", "", value)
+        value = re.sub(r"^www\.", "", value)
+        value = value.split("/")[0].split(":")[0].strip()
+        return value or None
 
     @staticmethod
     def _city_search_terms(city: str) -> list[str]:

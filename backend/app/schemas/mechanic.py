@@ -67,6 +67,7 @@ class MechanicAdminListItem(BaseModel):
     contact_name: str
     phone: str
     email: Optional[str] = None
+    email_quality: Optional[str] = None
     website: Optional[str] = None
     address: Optional[str] = None
     city: Optional[str] = None

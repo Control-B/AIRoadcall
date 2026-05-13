@@ -63,6 +63,18 @@ _IGNORE_EMAIL_DOMAINS = {
     "png", "jpg", "jpeg", "gif", "svg", "webp",
 }
 
+_PREFERRED_LOCALS = {
+    "service", "support", "info", "dispatch", "contact", "sales", "office", "help", "admin",
+}
+
+_DISCOURAGED_LOCALS = {
+    "noreply", "no-reply", "donotreply", "do-not-reply", "mailer-daemon",
+}
+
+_FREE_EMAIL_PROVIDERS = {
+    "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com", "aol.com", "proton.me", "protonmail.com",
+}
+
 
 def _is_valid_email(email: str) -> bool:
     if len(email) > 254:
@@ -76,9 +88,66 @@ def _is_valid_email(email: str) -> bool:
     return "." in domain
 
 
+def _normalize_domain(url: str | None) -> str | None:
+    if not url:
+        return None
+    value = url.strip().lower()
+    if not value:
+        return None
+    if "://" in value:
+        value = value.split("://", 1)[1]
+    if value.startswith("www."):
+        value = value[4:]
+    value = value.split("/", 1)[0].split(":", 1)[0].strip()
+    return value or None
+
+
+def _email_score(email: str, root_domain: str | None) -> int:
+    local, _, domain = email.partition("@")
+    local = local.lower()
+    domain = domain.lower()
+
+    score = 0
+    if root_domain and (domain == root_domain or domain.endswith(f".{root_domain}")):
+        score += 120
+    if local in _PREFERRED_LOCALS:
+        score += 35
+    if local in _DISCOURAGED_LOCALS:
+        score -= 50
+    if domain in _FREE_EMAIL_PROVIDERS and (not root_domain or domain != root_domain):
+        score -= 20
+    if any(local.startswith(prefix) for prefix in ("info", "support", "service", "sales")):
+        score += 10
+    return score
+
+
+def pick_best_email(candidates: list[str], website_url: str) -> str | None:
+    if not candidates:
+        return None
+
+    root_domain = _normalize_domain(website_url)
+    unique: list[str] = []
+    seen: set[str] = set()
+    for email in candidates:
+        normalized = email.strip().lower()
+        if normalized and normalized not in seen:
+            seen.add(normalized)
+            unique.append(normalized)
+
+    ranked = sorted(unique, key=lambda e: _email_score(e, root_domain), reverse=True)
+    return ranked[0] if ranked else None
+
+
 def extract_emails_from_text(text: str) -> list[str]:
     found = EMAIL_RE.findall(text)
-    return [e.lower() for e in found if _is_valid_email(e)]
+    seen: set[str] = set()
+    emails: list[str] = []
+    for email in found:
+        normalized = email.lower().strip().strip(".,;:'\"()[]{}<>")
+        if _is_valid_email(normalized) and normalized not in seen:
+            seen.add(normalized)
+            emails.append(normalized)
+    return emails
 
 
 # ── Apify helpers ─────────────────────────────────────────────────────────────
@@ -189,13 +258,15 @@ def run_crawler_batch(urls: list[str]) -> dict[str, str]:
             item.get("html", "") or "",
             json.dumps(item.get("metadata", {})),
         ]))
-        emails = extract_emails_from_text(text_blob)
-        if not emails:
+        candidates = extract_emails_from_text(text_blob)
+        if not candidates:
             continue
         root = _root_match(page_url)
         if root and root not in results:
-            results[root] = emails[0]
-            print(f"    ✓ {root} → {emails[0]}")
+            best = pick_best_email(candidates, root)
+            if best:
+                results[root] = best
+                print(f"    ✓ {root} → {best}")
 
     return results
 

@@ -48,6 +48,7 @@ interface MechanicRecord {
   contact_name: string;
   phone: string;
   email: string | null;
+  email_quality: string | null;
   website: string | null;
   address: string | null;
   city: string | null;
@@ -141,6 +142,23 @@ function HeroStat({
 function cleanUrl(url: string) {
   if (url.startsWith("http://") || url.startsWith("https://")) return url;
   return `https://${url}`;
+}
+
+function emailQualityLabel(kind: string | null) {
+  switch (kind) {
+    case "domain_match":
+      return { text: "Domain match", cls: "bg-emerald-500/15 text-emerald-300" };
+    case "domain_role":
+      return { text: "Domain role", cls: "bg-cyan-500/15 text-cyan-300" };
+    case "role_based":
+      return { text: "Role-based", cls: "bg-blue-500/15 text-blue-300" };
+    case "noreply":
+      return { text: "No-reply", cls: "bg-amber-500/15 text-amber-300" };
+    case "unmatched":
+      return { text: "Unmatched", cls: "bg-slate-500/20 text-slate-300" };
+    default:
+      return null;
+  }
 }
 
 function exportCsv(records: MechanicRecord[]) {
@@ -490,9 +508,16 @@ export default function AdminMechanicsPage() {
                                   <Phone className="h-3.5 w-3.5" /> {m.phone}
                                 </a>
                                 {m.email ? (
-                                  <a href={`mailto:${m.email}`} className="flex items-center gap-2 text-blue-300 hover:underline">
-                                    <Mail className="h-3.5 w-3.5" /> {m.email}
-                                  </a>
+                                  <div>
+                                    <a href={`mailto:${m.email}`} className="flex items-center gap-2 text-blue-300 hover:underline">
+                                      <Mail className="h-3.5 w-3.5" /> {m.email}
+                                    </a>
+                                    {emailQualityLabel(m.email_quality) && (
+                                      <Badge className={`mt-1 ${emailQualityLabel(m.email_quality)?.cls}`}>
+                                        {emailQualityLabel(m.email_quality)?.text}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 ) : (
                                   <div className="flex items-center gap-2 text-slate-600">
                                     <Mail className="h-3.5 w-3.5" /> No email
