@@ -24,3 +24,10 @@ from app.models.location_capture_session import LocationCaptureSession, Location
 from app.models.integration_connection import IntegrationConnection, IntegrationProvider
 from app.models.lead_capture import LeadCapture
 from app.models.business_directory import TruckingCompany, NationalVendor
+from app.models.ghl_integration import (
+    GHLTenantMapping,
+    GHLContactLink,
+    GHLWebhookEvent,
+    GHLAuditLog,
+    GHLRetryQueueItem,
+)

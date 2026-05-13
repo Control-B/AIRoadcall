@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     # Tavily
     TAVILY_API_KEY: str = ""
 
+    # GoHighLevel (CRM/workflow automation only; Roadcall remains source of truth)
+    GHL_BASE_URL: str = "https://services.leadconnectorhq.com"
+    GHL_ENCRYPTION_KEY: str = ""
+    GHL_WEBHOOK_TOLERANCE_SECONDS: int = 300
+
     # DigitalOcean AI Gradient (text chat)
     DO_AI_ENDPOINT: str = ""  # e.g. https://cluster-api.do-ai.run/v1
     DO_AI_API_KEY: str = ""

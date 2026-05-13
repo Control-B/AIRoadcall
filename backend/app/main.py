@@ -32,6 +32,7 @@ from app.api.routes import (
     marketplace,
     admin_enrichment,
     business_directories,
+    ghl,
 )
 
 settings = get_settings()
@@ -138,6 +139,7 @@ app.include_router(major_vendors.router, prefix="/api")
 app.include_router(marketplace.router, prefix="/api")
 app.include_router(admin_enrichment.router, prefix="/api")
 app.include_router(business_directories.router, prefix="/api")
+app.include_router(ghl.router, prefix="/api")
 
 
 @app.on_event("startup")
