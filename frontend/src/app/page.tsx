@@ -350,19 +350,21 @@ export default function HomePage() {
       </section>
 
       {/* ── Built for Fleets. Trusted by Operators. (Security) ──────── */}
-      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+      <section className="relative py-24 md:py-32 border-t border-roadcall-cyan/10 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(56,189,248,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.06)_1px,transparent_1px)] bg-[size:64px_64px] opacity-25" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_80%_60%,rgba(59,130,246,0.18),transparent_65%)]" />
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <div className="text-xs font-bold text-blue-400 uppercase tracking-[0.2em] mb-4">Enterprise Security</div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <div className="text-xs font-bold text-blue-400 uppercase tracking-[0.24em] mb-5">Enterprise Security</div>
+            <h2 className="text-5xl md:text-6xl font-bold mb-5 leading-[1.05]">
               Built for Fleets.
-              <span className="block text-roadcall-silver/85 font-light">Trusted by Operators.</span>
+              <span className="block text-roadcall-silver/80 font-light">Trusted by Operators.</span>
             </h2>
-            <p className="text-roadcall-muted text-lg mb-12 max-w-2xl mx-auto">
+            <p className="text-roadcall-muted text-lg md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed">
               Enterprise-grade security with flexible deployment options. Security that meets your standards. Support that exceeds them.
             </p>
           </FadeIn>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
               { icon: Shield,    label: "Tenant Isolation",       sub: "Your data. Your control." },
               { icon: Lock,      label: "RBAC & Audit Logs",      sub: "Secure access. Full visibility." },
@@ -370,18 +372,18 @@ export default function HomePage() {
               { icon: Zap,       label: "Data Minimization",      sub: "We only collect what's needed." },
             ].map((item) => (
               <FadeIn key={item.label}>
-                <GlassCard className="p-6 flex flex-col items-center text-center">
-                  <item.icon className="h-7 w-7 text-blue-400 mb-3" />
-                  <div className="text-sm font-semibold text-white mb-1">{item.label}</div>
-                  <div className="text-xs text-roadcall-muted">{item.sub}</div>
-                </GlassCard>
+                <div className="rounded-3xl border border-blue-500/25 bg-[#05152d]/60 px-6 py-8 flex flex-col items-center text-center backdrop-blur-sm">
+                  <item.icon className="h-8 w-8 text-blue-400 mb-5" />
+                  <div className="text-xl md:text-2xl font-semibold text-white mb-2 leading-tight">{item.label}</div>
+                  <div className="text-[1.05rem] text-roadcall-muted/90 leading-relaxed">{item.sub}</div>
+                </div>
               </FadeIn>
             ))}
           </div>
           <FadeIn delay={0.2}>
-            <div className="mt-8">
+            <div className="mt-12">
               <Link href="/fleet/security">
-                <Button variant="outline" className="border-blue-500/30 text-blue-300 hover:bg-blue-500/10 rounded-xl px-6">
+                <Button variant="outline" className="h-14 min-w-[320px] border-blue-500/45 text-blue-300 hover:bg-blue-500/10 rounded-2xl px-10 text-lg md:text-xl font-semibold">
                   Request Security Review <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </Link>
@@ -391,28 +393,30 @@ export default function HomePage() {
       </section>
 
       {/* ── Seamless Integrations ───────────────────────────────────── */}
-      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center">
+      <section className="relative py-24 md:py-32 border-t border-roadcall-cyan/10 overflow-hidden">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(56,189,248,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(56,189,248,0.06)_1px,transparent_1px)] bg-[size:64px_64px] opacity-25" />
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1/3 bg-[radial-gradient(circle_at_80%_60%,rgba(34,211,238,0.15),transparent_65%)]" />
+        <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <div className="text-xs font-bold text-emerald-400 uppercase tracking-[0.2em] mb-4">Integrations</div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">
+            <div className="text-xs font-bold text-emerald-400 uppercase tracking-[0.24em] mb-5">Integrations</div>
+            <h2 className="text-5xl md:text-6xl font-bold mb-5 leading-[1.05]">
               Seamless Integrations.
               <span className="block bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Stronger Operations.</span>
             </h2>
-            <p className="text-roadcall-muted text-lg mb-12">
+            <p className="text-roadcall-muted text-lg md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed">
               Connect the tools you use. Sync what matters. Automate the rest.
             </p>
           </FadeIn>
-          <div className="flex flex-wrap justify-center gap-3 mb-10">
+          <div className="flex flex-wrap justify-center gap-4 mb-12">
             {integrations.map((name) => (
-              <div key={name} className="bg-roadcall-panel/60 border border-slate-700/50 text-roadcall-silver/85 text-sm font-medium px-5 py-2.5 rounded-xl">
+              <div key={name} className="bg-[#0a1830]/70 border border-blue-500/25 text-roadcall-silver/90 text-base md:text-xl font-medium px-6 md:px-8 py-2.5 md:py-3 rounded-2xl">
                 {name}
               </div>
             ))}
           </div>
           <FadeIn delay={0.1}>
             <Link href="/fleet/integrations">
-              <Button variant="outline" className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl">
+              <Button variant="outline" className="h-14 min-w-[320px] border-blue-500/45 text-roadcall-silver/90 hover:bg-roadcall-panel rounded-2xl px-10 text-lg md:text-xl font-semibold">
                 View All Integrations <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
