@@ -150,15 +150,20 @@ function RotatingMarketingBadge() {
     <AnimatePresence mode="wait">
       <motion.div
         key={index}
-        initial={{ opacity: 0, y: -6 }}
+        initial={{ opacity: 0, y: 10, scale: 0.98 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 6 }}
+        exit={{ opacity: 0, y: -10, scale: 0.98 }}
         transition={{ duration: 0.35 }}
-        className={`relative inline-flex items-center gap-2 overflow-hidden bg-roadcall-panel/55 border ${msg.border} backdrop-blur-md rounded-full px-4 py-1.5 shadow-lg shadow-black/30`}
+        className={`relative w-[min(92vw,26rem)] overflow-hidden rounded-[1.75rem] border ${msg.border} bg-[#080b12]/70 p-6 text-left backdrop-blur-2xl shadow-[0_24px_80px_rgba(2,5,12,0.55)]`}
       >
-        <span className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${msg.accent} via-transparent to-transparent opacity-70`} />
-        <Zap className={`relative h-3.5 w-3.5 ${msg.iconColor}`} />
-        <span className="relative text-xs font-medium text-roadcall-silver/90 tracking-wide whitespace-nowrap">{msg.text}</span>
+        <span className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${msg.accent} via-transparent to-transparent opacity-90`} />
+        <div className="relative z-10">
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/20 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.24em] text-roadcall-silver/80">
+            <Zap className={`h-3.5 w-3.5 ${msg.iconColor}`} />
+            Roadcall Platform
+          </div>
+          <p className="text-2xl font-bold leading-tight text-white sm:text-[1.75rem]">{msg.text}</p>
+        </div>
       </motion.div>
     </AnimatePresence>
   );
@@ -218,8 +223,8 @@ export default function HomePage() {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-gradient-to-t from-[#02050c]/85 via-[#02050c]/35 to-transparent z-10" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-gradient-to-b from-[#02050c]/70 via-[#02050c]/20 to-transparent z-10" />
 
-        {/* Rotating marketing badge — upper-left */}
-        <div className="absolute top-28 left-4 sm:left-8 md:left-12 z-20">
+        {/* Rotating marketing card — bottom-right */}
+        <div className="absolute bottom-6 right-4 sm:bottom-8 sm:right-8 md:bottom-10 md:right-12 z-20">
           <RotatingMarketingBadge />
         </div>
       </section>
