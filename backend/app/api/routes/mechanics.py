@@ -137,8 +137,6 @@ async def public_search_mechanics(
             "company_name": m.company_name,
             "city": m.city,
             "state": m.state,
-            "phone": m.phone,
-            "website": m.website,
             "rating": m.rating,
             "review_count": m.review_count,
             "accepts_mobile_roadside": m.accepts_mobile_roadside,

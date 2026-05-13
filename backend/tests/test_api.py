@@ -2,6 +2,7 @@
 import pytest
 
 from app.services.mechanic_data_service import MechanicDataService
+from app.api.routes.public_directories import _split_public_tags
 
 
 class TestMechanicAdminSearch:
@@ -15,6 +16,13 @@ class TestMechanicAdminSearch:
         assert "Fort Lauderdale" in fort_terms
         assert "Ft Lauderdale" in fort_terms
         assert "Ft. Lauderdale" in fort_terms
+
+
+class TestPublicDirectories:
+    def test_public_tags_are_limited_and_deduped(self):
+        tags = _split_public_tags("Roadside; Tire Repair, roadside, Heavy Duty, Fleet, Extra", limit=3)
+
+        assert tags == ["Roadside", "Tire Repair", "Heavy Duty"]
 
 
 class TestHealthCheck:

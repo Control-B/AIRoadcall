@@ -21,6 +21,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
+import { NoCopySurface } from "@/components/privacy/no-copy-surface";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -33,7 +34,6 @@ type Provider = {
   company_name: string;
   city: string | null;
   state: string | null;
-  website: string | null;
   rating: number | null;
   review_count: number | null;
   distance_miles: number | null;
@@ -137,6 +137,7 @@ export default function MarketplacePage() {
 
   return (
     <main className="roadcall-page min-h-screen text-roadcall-silver">
+      <NoCopySurface>
       <section className="relative overflow-hidden border-b border-roadcall-cyan/10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(20,216,255,0.26),transparent_32%),radial-gradient(circle_at_top_right,rgba(10,132,255,0.26),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(255,138,0,0.13),transparent_26%)]" />
         <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -265,6 +266,7 @@ export default function MarketplacePage() {
       {submitOpen && (
         <SubmitModal onClose={() => setSubmitOpen(false)} onSaved={() => { setSubmitOpen(false); search(); }} />
       )}
+      </NoCopySurface>
     </main>
   );
 }

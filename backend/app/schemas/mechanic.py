@@ -163,7 +163,6 @@ class MarketplaceProviderView(BaseModel):
     company_name: str
     city: Optional[str] = None
     state: Optional[str] = None
-    website: Optional[str] = None
     rating: Optional[float] = None
     review_count: Optional[int] = None
     distance_miles: Optional[float] = None

@@ -6,6 +6,8 @@ import { BrandMark } from "@/components/BrandMark";
 const footerLinks = {
   "Find Service": [
     { label: "Search Providers", href: "/search" },
+    { label: "Trucking Companies", href: "/directories/trucking-companies" },
+    { label: "National Vendors", href: "/directories/national-vendors" },
     { label: "Driver Help", href: "/driver" },
     { label: "AI Marketplace", href: "/marketplace" },
     { label: "All 50 States", href: "/search" },

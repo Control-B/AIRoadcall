@@ -729,7 +729,6 @@ class MechanicDataService:
                     company_name=mechanic.company_name,
                     city=mechanic.city,
                     state=mechanic.state,
-                    website=mechanic.website,
                     rating=float(mechanic.rating) if mechanic.rating else None,
                     review_count=mechanic.review_count,
                     distance_miles=distance_miles,

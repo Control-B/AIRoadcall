@@ -8,7 +8,6 @@ import {
   MapPin,
   Filter,
   Phone,
-  Globe,
   Star,
   CheckCircle2,
   Clock,
@@ -23,6 +22,7 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import { NoCopySurface } from "@/components/privacy/no-copy-surface";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
@@ -55,8 +55,6 @@ type Mechanic = {
   company_name: string;
   city: string | null;
   state: string | null;
-  phone: string | null;
-  website: string | null;
   rating: number | null;
   review_count: number | null;
   accepts_mobile_roadside: boolean;
@@ -127,34 +125,8 @@ function MechanicCard({ m }: { m: Mechanic }) {
           ))}
         </div>
 
-        {/* Actions */}
-        <div className="flex gap-2">
-          {m.phone && (
-            <a
-              href={`tel:${m.phone}`}
-              className="flex-1 flex items-center justify-center gap-1.5 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white text-xs font-semibold rounded-xl px-3 py-2.5 transition-all"
-            >
-              <Phone className="h-3.5 w-3.5" /> Call Now
-            </a>
-          )}
-          {m.website && (
-            <a
-              href={m.website.startsWith("http") ? m.website : `https://${m.website}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-1.5 border border-roadcall-cyan/20 bg-roadcall-panel/50 text-roadcall-silver hover:text-white hover:border-roadcall-cyan/40 text-xs font-medium rounded-xl px-3 py-2.5 transition-all"
-            >
-              <Globe className="h-3.5 w-3.5" /> Website
-            </a>
-          )}
-          {!m.phone && !m.website && (
-            <a
-              href={telHref(HELP_PHONE)}
-              className="flex-1 flex items-center justify-center gap-1.5 border border-roadcall-cyan/20 bg-roadcall-panel/50 text-roadcall-silver hover:text-white text-xs font-medium rounded-xl px-3 py-2.5 transition-all"
-            >
-              <Phone className="h-3.5 w-3.5" /> Dispatch via AI
-            </a>
-          )}
+        <div className="rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/50 px-3 py-2.5 text-center text-xs text-roadcall-muted">
+          Contact details are protected. Use Roadcall dispatch to connect.
         </div>
       </div>
     </div>
@@ -216,6 +188,7 @@ function SearchPageInner() {
 
   return (
     <PageLayout>
+      <NoCopySurface>
       {/* Hero search header */}
       <section className="relative pt-10 pb-8 border-b border-roadcall-cyan/10 bg-gradient-to-b from-roadcall-panel/30 to-transparent">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
@@ -440,6 +413,7 @@ function SearchPageInner() {
           </div>
         </div>
       </section>
+      </NoCopySurface>
     </PageLayout>
   );
 }

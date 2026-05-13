@@ -79,6 +79,16 @@ const navItems: NavItem[] = [
         href: "/marketplace",
       },
       {
+        label: "Trucking Companies",
+        description: "Limited public trucking company directory",
+        href: "/directories/trucking-companies",
+      },
+      {
+        label: "National Vendors",
+        description: "Limited public national service provider directory",
+        href: "/directories/national-vendors",
+      },
+      {
         label: "List Your Shop",
         description: "Add or claim your mechanic profile — free",
         href: "/provider",
