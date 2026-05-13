@@ -250,29 +250,6 @@ export default function ShopsPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 border-t border-roadcall-cyan/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <SectionHeading eyebrow="Shop owners love it" title="From the people running real shops" />
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { name: "Mike's Diesel Repair", location: "Dallas, TX", quote: "We were missing 40% of after-hours calls. Now the AI picks up every one and I wake up to a list of leads.", rating: 5 },
-              { name: "Big Rig Solutions", location: "Phoenix, AZ", quote: "One after-hours tow job the AI booked covered two months of the service. Paid for itself week one.", rating: 5 },
-              { name: "Interstate Truck Service", location: "Atlanta, GA", quote: "The AI sounds like a real dispatcher who knows our business. Customers love the text-back.", rating: 5 },
-            ].map((t) => (
-              <FadeIn key={t.name}>
-                <GlassCard className="p-6 flex flex-col h-full">
-                  <div className="flex gap-1 mb-4">{Array.from({ length: t.rating }).map((_, i) => <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />)}</div>
-                  <p className="text-roadcall-silver/85 text-sm leading-relaxed flex-1 mb-4">&ldquo;{t.quote}&rdquo;</p>
-                  <div>
-                    <div className="text-sm font-semibold text-white">{t.name}</div>
-                    <div className="text-xs text-roadcall-muted/70">{t.location}</div>
-                  </div>
-                </GlassCard>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Bottom CTA */}
       <section className="py-24 border-t border-roadcall-cyan/10">

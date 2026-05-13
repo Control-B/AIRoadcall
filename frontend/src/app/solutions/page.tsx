@@ -158,33 +158,6 @@ const whyBlocks = [
   },
 ];
 
-/* ── Testimonials ────────────────────────────────────────────── */
-
-const testimonials = [
-  {
-    name: "Mike's Diesel Repair",
-    location: "Dallas, TX",
-    quote:
-      "We were missing 40% of our after-hours calls. Now the AI picks up every single one.",
-    rating: 5,
-  },
-  {
-    name: "Interstate Truck Service",
-    location: "Atlanta, GA",
-    quote:
-      "Customers can't tell the difference — and they love the text link for location sharing.",
-    rating: 5,
-  },
-  {
-    name: "Big Rig Solutions",
-    location: "Phoenix, AZ",
-    quote:
-      "Paid for itself in the first week. One after-hours tow job covered two months of service.",
-    rating: 5,
-  },
-];
-
-/* ── Page ─────────────────────────────────────────────────────── */
 
 export default function SolutionsPage() {
   return (
@@ -343,40 +316,6 @@ export default function SolutionsPage() {
       </section>
 
       {/* ── Testimonials ──────────────────────────────── */}
-      <section className="py-24 md:py-32 bg-gradient-to-b from-white/[0.02] to-transparent border-t border-roadcall-cyan/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <SectionHeading
-            eyebrow="Testimonials"
-            title="Trusted by shops nationwide"
-          />
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t, idx) => (
-              <FadeIn key={t.name} delay={idx * 0.1}>
-                <GlassCard className="p-7 h-full">
-                  <div className="flex gap-1 mb-4">
-                    {Array.from({ length: t.rating }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className="h-4 w-4 fill-amber-400 text-amber-400"
-                      />
-                    ))}
-                  </div>
-                  <p className="text-roadcall-silver/85 mb-5 leading-relaxed italic">
-                    &quot;{t.quote}&quot;
-                  </p>
-                  <div>
-                    <p className="font-semibold text-white text-sm">
-                      {t.name}
-                    </p>
-                    <p className="text-xs text-roadcall-muted/70">{t.location}</p>
-                  </div>
-                </GlassCard>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── CTA ───────────────────────────────────────── */}
       <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">

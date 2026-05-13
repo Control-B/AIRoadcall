@@ -44,12 +44,6 @@ const fleetFeatures = [
   { icon: Radio,      title: "Dispatch & Tracking",       description: "Real-time ops board — driver pin, mechanic ETA, full incident audit trail." },
 ];
 
-const testimonials = [
-  { name: "Mike's Diesel Repair",  location: "Dallas, TX",   vertical: "shops", quote: "We were missing 40% of after-hours calls. Now the AI picks up every one and I wake up to a list of qualified leads.", rating: 5 },
-  { name: "Coastal Freight Lines", location: "Atlanta, GA",  vertical: "fleet", quote: "Our drivers get a text link mid-call and share their GPS without downloading a thing. Dispatch time dropped by 60%.", rating: 5 },
-  { name: "Big Rig Solutions",     location: "Phoenix, AZ",  vertical: "shops", quote: "One after-hours job the AI booked covered two months of the subscription. Paid for itself week one.", rating: 5 },
-];
-
 const integrations = [
   "Samsara", "Geotab", "Motive", "ELD", "Fleetio", "Zenduit", "Google Maps", "Custom API",
 ];
@@ -427,32 +421,6 @@ export default function HomePage() {
       </section>
 
       {/* ── Testimonials ────────────────────────────────────────────── */}
-      <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <SectionHeading eyebrow="What customers say" title="Real results from shops and fleets" />
-          <div className="grid md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <FadeIn key={t.name}>
-                <GlassCard className="p-6 h-full flex flex-col">
-                  <div className="flex gap-1 mb-4">
-                    {Array.from({ length: t.rating }).map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />
-                    ))}
-                  </div>
-                  <p className="text-roadcall-silver/85 text-sm leading-relaxed flex-1 mb-4">&ldquo;{t.quote}&rdquo;</p>
-                  <div>
-                    <div className="text-sm font-semibold text-white">{t.name}</div>
-                    <div className="text-xs text-roadcall-muted/70">{t.location}</div>
-                    <div className={`text-xs mt-1 font-medium ${t.vertical === "fleet" ? "text-blue-400" : "text-roadcall-orange"}`}>
-                      {t.vertical === "fleet" ? "Roadcall Fleet" : "Roadcall Shops"}
-                    </div>
-                  </div>
-                </GlassCard>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── Lead Magnet — Weekly Dispatch newsletter ──────────────── */}
       <section className="py-24 md:py-28 border-t border-roadcall-cyan/10">

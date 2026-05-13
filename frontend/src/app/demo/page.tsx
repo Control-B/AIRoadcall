@@ -108,30 +108,6 @@ const plans = [
   },
 ];
 
-const testimonials = [
-  {
-    name: "Mike's Diesel Repair",
-    location: "Dallas, TX",
-    quote:
-      "We were missing 40% of our after-hours calls. Now the AI picks up every single one and I wake up to a list of qualified leads.",
-    rating: 5,
-  },
-  {
-    name: "Interstate Truck Service",
-    location: "Atlanta, GA",
-    quote:
-      "The AI sounds like a real employee who knows our business. Customers can't tell the difference.",
-    rating: 5,
-  },
-  {
-    name: "Big Rig Solutions",
-    location: "Phoenix, AZ",
-    quote:
-      "Paid for itself in the first week. One after-hours tow job the AI booked covered two months of service.",
-    rating: 5,
-  },
-];
-
 export default function DemoPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 text-white">
@@ -286,40 +262,6 @@ export default function DemoPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="max-w-6xl mx-auto px-4 py-20">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Shops Love It
-          </h2>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {testimonials.map((t) => (
-            <Card
-              key={t.name}
-              className="bg-roadcall-panel/50 border-slate-700"
-            >
-              <CardContent className="pt-6">
-                <div className="flex gap-1 mb-4">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className="h-5 w-5 fill-yellow-400 text-yellow-400"
-                    />
-                  ))}
-                </div>
-                <p className="text-roadcall-silver/85 mb-4 italic">
-                  &quot;{t.quote}&quot;
-                </p>
-                <div>
-                  <p className="font-semibold text-white">{t.name}</p>
-                  <p className="text-sm text-roadcall-muted">{t.location}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
 
       {/* Pricing */}
       <section className="bg-roadcall-panel/30 py-20" id="pricing">

@@ -217,30 +217,6 @@ export default function FleetPage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-24 border-t border-roadcall-cyan/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <SectionHeading eyebrow="Fleet operators trust us" title="Results from the road" />
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              { name: "Coastal Freight Lines", location: "Atlanta, GA", quote: "Drivers get a text link mid-call and share GPS without downloading anything. Dispatch time dropped 60%.", rating: 5 },
-              { name: "Lone Star Logistics", location: "Houston, TX", quote: "We had no visibility when drivers broke down. Now every incident has a full audit trail and we know who responded in minutes.", rating: 5 },
-              { name: "Mountain West Carriers", location: "Denver, CO", quote: "The fact that our driver data doesn't go into some third-party CRM was the deciding factor for us.", rating: 5 },
-            ].map((t) => (
-              <FadeIn key={t.name}>
-                <GlassCard className="p-6 flex flex-col h-full">
-                  <div className="flex gap-1 mb-4">{Array.from({ length: t.rating }).map((_, i) => <Star key={i} className="h-4 w-4 fill-amber-400 text-amber-400" />)}</div>
-                  <p className="text-roadcall-silver/85 text-sm leading-relaxed flex-1 mb-4">&ldquo;{t.quote}&rdquo;</p>
-                  <div>
-                    <div className="text-sm font-semibold text-white">{t.name}</div>
-                    <div className="text-xs text-roadcall-muted/70">{t.location}</div>
-                    <div className="text-xs mt-1 font-medium text-blue-400">Roadcall Fleet</div>
-                  </div>
-                </GlassCard>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Bottom CTA */}
       <section className="py-24 border-t border-roadcall-cyan/10">
