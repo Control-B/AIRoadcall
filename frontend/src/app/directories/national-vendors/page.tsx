@@ -50,6 +50,41 @@ function Rating({ rating, count }: { rating: number | null; count: number | null
   );
 }
 
+function filterFallbackRows(rows: PublicVendor[], query: string, brand: string, state: string) {
+  const needle = query.trim().toLowerCase();
+  const brandNeedle = brand.trim().toLowerCase();
+  const stateNeedle = state.trim().toUpperCase();
+  return rows.filter((row) => {
+    const matchesBrand = !brandNeedle || row.brand_name.toLowerCase().includes(brandNeedle);
+    const matchesState = !stateNeedle || row.state?.toUpperCase() === stateNeedle;
+    const haystack = [row.brand_name, row.location_name, row.city, row.state, row.address, row.phone, ...(row.services || [])]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return matchesBrand && matchesState && (!needle || haystack.includes(needle));
+  });
+}
+
+function buildFallbackStats(rows: PublicVendor[]): StatsResponse {
+  const stateCounts: Record<string, number> = {};
+  const brandCounts: Record<string, number> = {};
+  for (const row of rows) {
+    if (row.state) stateCounts[row.state] = (stateCounts[row.state] || 0) + 1;
+    if (row.brand_name) brandCounts[row.brand_name] = (brandCounts[row.brand_name] || 0) + 1;
+  }
+  return {
+    total: rows.length,
+    top_states: Object.entries(stateCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 12)
+      .map(([state, count]) => ({ state, count })),
+    brands: Object.entries(brandCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 16)
+      .map(([brand, count]) => ({ brand, count })),
+  };
+}
+
 function VendorCard({ vendor }: { vendor: PublicVendor }) {
   return (
     <article className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/45 p-5 shadow-xl shadow-black/10 backdrop-blur transition hover:border-roadcall-cyan/25">
@@ -113,10 +148,31 @@ export default function PublicNationalVendorsPage() {
         fetch(`${API_URL}/directories/national-vendors/stats`),
       ]);
       if (!listRes.ok || !statsRes.ok) throw new Error("Directory unavailable");
-      setData(await listRes.json());
-      setStats(await statsRes.json());
+      const listData = (await listRes.json()) as DirectoryResponse;
+      const statsData = (await statsRes.json()) as StatsResponse;
+      if (listData.total === 0) {
+        const fallbackRes = await fetch("/data/national-vendors-public.json");
+        if (fallbackRes.ok) {
+          const fallbackRows = (await fallbackRes.json()) as PublicVendor[];
+          const filtered = filterFallbackRows(fallbackRows, query, brand, state);
+          setData({ total: filtered.length, limit: PAGE_SIZE, offset, items: filtered.slice(offset, offset + PAGE_SIZE) });
+          setStats(buildFallbackStats(fallbackRows));
+          return;
+        }
+      }
+      setData(listData);
+      setStats(statsData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load directory");
+      try {
+        const fallbackRes = await fetch("/data/national-vendors-public.json");
+        if (!fallbackRes.ok) throw err;
+        const fallbackRows = (await fallbackRes.json()) as PublicVendor[];
+        const filtered = filterFallbackRows(fallbackRows, query, brand, state);
+        setData({ total: filtered.length, limit: PAGE_SIZE, offset, items: filtered.slice(offset, offset + PAGE_SIZE) });
+        setStats(buildFallbackStats(fallbackRows));
+      } catch {
+        setError(err instanceof Error ? err.message : "Could not load directory");
+      }
     } finally {
       setLoading(false);
     }
