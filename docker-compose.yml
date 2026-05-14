@@ -15,7 +15,7 @@
 # the public API gateway, and the frontend can be redeployed independently.
 
 x-backend-env: &backend-env
-  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-airoadcall}:${POSTGRES_PASSWORD:-airoadcall}@postgres:5432/${POSTGRES_DB:-airoadcall}
+  DATABASE_URL: ${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-airoadcall}:${POSTGRES_PASSWORD:-airoadcall}@postgres:5432/${POSTGRES_DB:-airoadcall}}
   FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
   ADMIN_API_KEY: ${ADMIN_API_KEY:-}
   ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
