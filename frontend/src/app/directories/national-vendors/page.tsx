@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Building2, Lock, MapPin, RefreshCw, Search, ShieldCheck, Star, Truck } from "lucide-react";
+import { Building2, MapPin, Phone, Search, ShieldCheck, Star, Truck } from "lucide-react";
 import Link from "next/link";
 import { PageLayout } from "@/components/page-layout";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
@@ -17,6 +17,8 @@ const PAGE_SIZE = 24;
 interface PublicVendor {
   brand_name: string;
   location_name: string;
+  phone: string | null;
+  address: string | null;
   city: string | null;
   state: string | null;
   rating: number | null;
@@ -68,9 +70,21 @@ function VendorCard({ vendor }: { vendor: PublicVendor }) {
           </span>
         ))}
       </div>
+      <div className="mb-4 space-y-2 rounded-xl border border-roadcall-cyan/10 bg-roadcall-ink/45 p-3 text-xs text-roadcall-muted">
+        {vendor.phone ? (
+          <a href={`tel:${vendor.phone}`} className="flex items-center gap-2 text-roadcall-cyan hover:text-white">
+            <Phone className="h-3.5 w-3.5" /> {vendor.phone}
+          </a>
+        ) : <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> Phone pending</div>}
+        {vendor.address ? (
+          <div className="flex items-start gap-2">
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /> <span>{vendor.address}</span>
+          </div>
+        ) : null}
+      </div>
       <div className="flex items-center justify-between border-t border-roadcall-cyan/10 pt-3">
         <Rating rating={vendor.rating} count={vendor.review_count} />
-        <span className="inline-flex items-center gap-1 text-[11px] text-roadcall-muted"><Lock className="h-3 w-3" /> Contact protected</span>
+        <span className="inline-flex items-center gap-1 text-[11px] text-roadcall-muted">No export/download</span>
       </div>
     </article>
   );
@@ -126,13 +140,13 @@ export default function PublicNationalVendorsPage() {
               </div>
               <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">National truck service provider directory</h1>
               <p className="mt-4 text-sm leading-6 text-roadcall-muted">
-                Browse limited public profiles for national truck-service, tire, travel-center, and roadside brands. Contact details, exact addresses, source data, and enrichment metadata are intentionally hidden.
+                Browse public profiles for national truck-service, tire, travel-center, and roadside brands with names, phone numbers, and addresses. Emails, source data, coordinates, and enrichment metadata remain hidden.
               </p>
             </div>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-4"><p className="text-2xl font-bold text-white">{stats?.total?.toLocaleString() || "—"}</p><p className="text-xs text-roadcall-muted">Limited public records</p></div>
               <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-4"><p className="text-2xl font-bold text-white">{stats?.brands?.[0]?.brand || "—"}</p><p className="text-xs text-roadcall-muted">Largest brand group</p></div>
-              <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-4"><p className="text-2xl font-bold text-white">0</p><p className="text-xs text-roadcall-muted">Public contact fields exposed</p></div>
+              <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-4"><p className="text-2xl font-bold text-white">No</p><p className="text-xs text-roadcall-muted">Download or copy controls</p></div>
             </div>
           </div>
         </section>

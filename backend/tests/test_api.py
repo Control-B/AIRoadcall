@@ -2,7 +2,7 @@
 import pytest
 
 from app.services.mechanic_data_service import MechanicDataService
-from app.api.routes.public_directories import _split_public_tags
+from app.api.routes.public_directories import _public_trucking_row, _public_vendor_row, _split_public_tags
 
 
 class TestMechanicAdminSearch:
@@ -23,6 +23,35 @@ class TestPublicDirectories:
         tags = _split_public_tags("Roadside; Tire Repair, roadside, Heavy Duty, Fleet, Extra", limit=3)
 
         assert tags == ["Roadside", "Tire Repair", "Heavy Duty"]
+
+    def test_public_rows_include_requested_fields_only(self):
+        truck = _public_trucking_row({
+            "company_name": "Example Trucking",
+            "phone": "+15551234567",
+            "address": "100 Road Ave, Dallas, TX",
+            "city": "Dallas",
+            "state": "TX",
+            "email": "hidden@example.com",
+            "website": "https://hidden.example",
+            "dot_number": "123",
+        })
+        vendor = _public_vendor_row({
+            "brand_name": "Example Vendor",
+            "location_name": "Example Stop",
+            "phone": "+15557654321",
+            "address": "200 Service Rd, Tampa, FL",
+            "city": "Tampa",
+            "state": "FL",
+            "email": "hidden@example.com",
+            "website": "https://hidden.example",
+        })
+
+        assert truck["phone"] == "+15551234567"
+        assert truck["address"] == "100 Road Ave, Dallas, TX"
+        assert vendor["phone"] == "+15557654321"
+        assert vendor["address"] == "200 Service Rd, Tampa, FL"
+        assert "email" not in truck and "website" not in truck and "dot_number" not in truck
+        assert "email" not in vendor and "website" not in vendor
 
 
 class TestHealthCheck:

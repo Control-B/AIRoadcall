@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Building2, Lock, MapPin, RefreshCw, Search, ShieldCheck, Star, Truck } from "lucide-react";
+import { Building2, MapPin, Phone, Search, ShieldCheck, Star, Truck } from "lucide-react";
 import Link from "next/link";
 import { PageLayout } from "@/components/page-layout";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
@@ -16,6 +16,8 @@ const PAGE_SIZE = 24;
 
 interface PublicTruckingCompany {
   company_name: string;
+  phone: string | null;
+  address: string | null;
   city: string | null;
   state: string | null;
   rating: number | null;
@@ -65,9 +67,21 @@ function CompanyCard({ company }: { company: PublicTruckingCompany }) {
           </span>
         ))}
       </div>
+      <div className="mb-4 space-y-2 rounded-xl border border-roadcall-cyan/10 bg-roadcall-ink/45 p-3 text-xs text-roadcall-muted">
+        {company.phone ? (
+          <a href={`tel:${company.phone}`} className="flex items-center gap-2 text-roadcall-cyan hover:text-white">
+            <Phone className="h-3.5 w-3.5" /> {company.phone}
+          </a>
+        ) : <div className="flex items-center gap-2"><Phone className="h-3.5 w-3.5" /> Phone pending</div>}
+        {company.address ? (
+          <div className="flex items-start gap-2">
+            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" /> <span>{company.address}</span>
+          </div>
+        ) : null}
+      </div>
       <div className="flex items-center justify-between border-t border-roadcall-cyan/10 pt-3">
         <Rating rating={company.rating} count={company.review_count} />
-        <span className="inline-flex items-center gap-1 text-[11px] text-roadcall-muted"><Lock className="h-3 w-3" /> Contact protected</span>
+        <span className="inline-flex items-center gap-1 text-[11px] text-roadcall-muted">No export/download</span>
       </div>
     </article>
   );
@@ -121,13 +135,13 @@ export default function PublicTruckingCompaniesPage() {
               </div>
               <h1 className="text-4xl font-black tracking-tight text-white sm:text-5xl">U.S. trucking companies directory</h1>
               <p className="mt-4 text-sm leading-6 text-roadcall-muted">
-                Browse limited public profiles for trucking companies. Contact details, DOT/MC numbers, exact addresses, source data, and enrichment metadata are intentionally hidden.
+                Browse public trucking company profiles with names, phone numbers, and addresses. DOT/MC numbers, emails, source data, coordinates, and enrichment metadata remain hidden.
               </p>
             </div>
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-4"><p className="text-2xl font-bold text-white">{stats?.total?.toLocaleString() || "—"}</p><p className="text-xs text-roadcall-muted">Limited public records</p></div>
               <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-4"><p className="text-2xl font-bold text-white">{stats?.top_states?.[0]?.state || "—"}</p><p className="text-xs text-roadcall-muted">Top state by coverage</p></div>
-              <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-4"><p className="text-2xl font-bold text-white">0</p><p className="text-xs text-roadcall-muted">Public contact fields exposed</p></div>
+              <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-4"><p className="text-2xl font-bold text-white">No</p><p className="text-xs text-roadcall-muted">Download or copy controls</p></div>
             </div>
           </div>
         </section>
