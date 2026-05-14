@@ -19,6 +19,8 @@ const footerLinks = {
     { label: "Fleet Solutions", href: "/fleet" },
   ],
   Platform: [
+    { label: "Get Started", href: "/get-started" },
+    { label: "Sign In", href: "/sign-in" },
     { label: "Features", href: "/features" },
     { label: "Pricing", href: "/pricing" },
     { label: "Solutions", href: "/solutions" },

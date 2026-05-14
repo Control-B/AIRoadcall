@@ -8,6 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { BrandMark } from "@/components/BrandMark";
+import { GHL_GET_STARTED_URL, GHL_SIGN_IN_URL, isExternalUrl } from "@/lib/ghl-links";
 
 /* ── Navigation structure (Omniweb-style mega-dropdown) ──── */
 interface NavSubItem {
@@ -166,6 +167,8 @@ export function SiteHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const pathname = usePathname();
+  const getStartedHref = isExternalUrl(GHL_GET_STARTED_URL) ? "/get-started" : GHL_GET_STARTED_URL;
+  const signInHref = GHL_SIGN_IN_URL ? "/sign-in" : "/admin/login";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -261,6 +264,18 @@ export function SiteHeader() {
 
         {/* ── Desktop CTA cluster ───────────────────────── */}
         <div className="hidden lg:flex items-center gap-1.5 shrink-0 -mr-6 xl:-mr-12 2xl:-mr-20">
+          <Link
+            href={signInHref}
+            className="inline-flex h-8 items-center rounded-full border border-white/10 bg-roadcall-panel/30 px-3 text-xs font-semibold text-roadcall-muted hover:border-roadcall-cyan/35 hover:text-white transition-colors"
+          >
+            Sign In
+          </Link>
+          <Link
+            href={getStartedHref}
+            className="inline-flex h-8 items-center gap-1 rounded-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-3 text-xs font-bold text-white shadow-lg shadow-cyan-950/30 hover:brightness-110 transition-all"
+          >
+            Get Started <ArrowRight className="h-3.5 w-3.5" />
+          </Link>
           <a
             href={telHref(HELP_PHONE)}
             className="inline-flex h-8 items-center gap-1.5 rounded-full border border-roadcall-cyan/25 bg-roadcall-panel/40 px-2.5 text-xs font-semibold text-roadcall-silver hover:border-roadcall-cyan/50 hover:text-white transition-colors"
@@ -329,6 +344,17 @@ export function SiteHeader() {
                 </div>
               ))}
               <div className="pt-3 border-t border-roadcall-cyan/15 space-y-2">
+                <Link href={getStartedHref}>
+                  <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 w-full">
+                    Get Started
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </Link>
+                <Link href={signInHref}>
+                  <Button variant="outline" className="border-roadcall-cyan/25 bg-roadcall-panel/40 text-roadcall-silver hover:bg-roadcall-cyan/10 w-full">
+                    Sign In
+                  </Button>
+                </Link>
                 <a href={telHref(HELP_PHONE)}>
                   <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 w-full">
                     <Phone className="h-4 w-4 mr-2" />

@@ -202,6 +202,9 @@ export default function HomePage() {
           <Link href="/search" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/20 transition-colors backdrop-blur-md">
             Find Service <ArrowRight className="h-4 w-4" />
           </Link>
+          <Link href="/get-started" className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-cyan-950/30 hover:brightness-110 transition-all backdrop-blur-md">
+            Get Started <ArrowRight className="h-4 w-4" />
+          </Link>
           <Link href="/provider" className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors backdrop-blur-md">
             List your shop <ArrowRight className="h-4 w-4" />
           </Link>
