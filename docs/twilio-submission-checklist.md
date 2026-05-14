@@ -76,7 +76,7 @@ In Twilio Console, open `Complete A2P registration` for local number.
 5. **Sample Messages** (paste same 4 messages as above)
 
 6. **HELP Message**
-   - `Roadcall.ai support: support@roadcall.ai. For immediate assistance call +1 866-650-1939. Msg&data rates may apply. Reply STOP to cancel.`
+   - `Roadcall.ai support: support@roadcall.ai. For immediate assistance call +1 866-415-9494. Msg&data rates may apply. Reply STOP to cancel.`
 
 7. **STOP Message**
    - `You’ve opted out of Roadcall.ai messages. No further messages will be sent. Reply START to re-subscribe.`
