@@ -1,0 +1,320 @@
+{
+  "name": "Roadcall GHL Operating Kit",
+  "version": "1.0.0",
+  "owner": "Roadcall",
+  "sourceOfTruth": {
+    "roadcall": [
+      "mechanics database",
+      "dispatch requests",
+      "fleet accounts",
+      "national vendor database",
+      "geolocation",
+      "provider matching",
+      "transfer billing",
+      "service status",
+      "marketplace analytics",
+      "lifecycle events"
+    ],
+    "ghl": [
+      "CRM contact sync",
+      "lead pipeline updates",
+      "onboarding reminders",
+      "missed-call recovery",
+      "demo booking follow-up",
+      "marketing automation",
+      "review follow-up",
+      "AI receptionist summaries"
+    ],
+    "stripe": [
+      "payment methods",
+      "subscriptions",
+      "invoices",
+      "billing portal",
+      "failed payment state"
+    ]
+  },
+  "roadcallLifecycleEvents": [
+    "new_lead",
+    "demo_booked",
+    "subscription_started",
+    "subscription_updated",
+    "subscription_cancelled",
+    "checkout_completed",
+    "invoice_paid",
+    "payment_failed",
+    "qualified_roadside_request",
+    "successful_transfer",
+    "completed_job",
+    "review_request",
+    "missed_call",
+    "contact_updated"
+  ],
+  "customFields": [
+    {"name": "Roadcall Organization ID", "key": "roadcall_organization_id", "type": "text", "required": false},
+    {"name": "Roadcall Lifecycle Event", "key": "roadcall_lifecycle_event", "type": "text", "required": false},
+    {"name": "Roadcall Lifecycle Event ID", "key": "roadcall_lifecycle_event_id", "type": "text", "required": false},
+    {"name": "Roadcall Vertical", "key": "roadcall_vertical", "type": "single_select", "options": ["fleet", "shop", "vendor", "general"], "required": false},
+    {"name": "Roadcall Subscription Status", "key": "roadcall_subscription_status", "type": "single_select", "options": ["trial", "active", "past_due", "cancelled", "unknown"], "required": false},
+    {"name": "Roadcall Onboarding Stage", "key": "roadcall_onboarding_stage", "type": "single_select", "options": ["not_started", "demo_booked", "checkout_completed", "account_created", "data_connected", "first_call_tested", "first_dispatch_completed", "activated"], "required": false},
+    {"name": "Roadcall Last Service Request ID", "key": "roadcall_last_service_request_id", "type": "text", "required": false},
+    {"name": "Roadcall Last Service Status", "key": "roadcall_last_service_status", "type": "text", "required": false},
+    {"name": "Roadcall Missed Call Summary", "key": "roadcall_missed_call_summary", "type": "large_text", "required": false},
+    {"name": "Roadcall AI Call Summary", "key": "roadcall_ai_call_summary", "type": "large_text", "required": false}
+  ],
+  "tags": [
+    "roadcall",
+    "roadcall:new-lead",
+    "roadcall:demo-booked",
+    "roadcall:trial",
+    "roadcall:customer",
+    "roadcall:past-due",
+    "roadcall:cancelled",
+    "roadcall:fleet",
+    "roadcall:shop",
+    "roadcall:vendor",
+    "roadcall:missed-call",
+    "roadcall:review-request",
+    "roadcall:dispatch-event",
+    "roadcall:ai-receptionist"
+  ],
+  "pipelines": [
+    {
+      "name": "Roadcall Revenue Pipeline",
+      "stages": [
+        "New Lead",
+        "Contacted",
+        "Demo Booked",
+        "Demo Completed",
+        "Checkout Started",
+        "Customer Active",
+        "Onboarding",
+        "Activated",
+        "At Risk",
+        "Churned"
+      ]
+    },
+    {
+      "name": "Roadcall Onboarding Pipeline",
+      "stages": [
+        "Account Created",
+        "Billing Connected",
+        "Profile Completed",
+        "AI Receptionist Configured",
+        "Test Call Completed",
+        "First Dispatch Completed",
+        "Activated"
+      ]
+    },
+    {
+      "name": "Roadcall Recovery Pipeline",
+      "stages": [
+        "Missed Call",
+        "AI Follow-up Sent",
+        "Human Review Needed",
+        "Recovered",
+        "Lost"
+      ]
+    }
+  ],
+  "workflowBlueprints": [
+    {
+      "name": "Roadcall - New Lead Speed to Lead",
+      "trigger": "workflow event: new_lead",
+      "goal": "Respond within 60 seconds, qualify the company, and push to demo booking.",
+      "steps": [
+        "Create or update contact",
+        "Add tags: roadcall, roadcall:new-lead, vertical-specific tag",
+        "Create opportunity in Roadcall Revenue Pipeline at New Lead",
+        "Send immediate email: Welcome + demo CTA",
+        "Send SMS if phone is present: quick intro + booking link",
+        "Wait 15 minutes; if no appointment booked, assign sales task",
+        "Wait 1 day; send value email based on vertical",
+        "Wait 3 days; send case-study email",
+        "Stop when demo_booked or subscription_started event arrives"
+      ]
+    },
+    {
+      "name": "Roadcall - Demo Booked Confirmation",
+      "trigger": "workflow event: demo_booked",
+      "goal": "Confirm demo attendance and pre-qualify operational needs.",
+      "steps": [
+        "Move opportunity to Demo Booked",
+        "Add tag roadcall:demo-booked",
+        "Send confirmation email with calendar details",
+        "Send SMS confirmation with reschedule link",
+        "Send reminder 24 hours before appointment",
+        "Send reminder 1 hour before appointment",
+        "After demo time, create follow-up task if subscription_started did not arrive"
+      ]
+    },
+    {
+      "name": "Roadcall - Customer Onboarding",
+      "trigger": "workflow event: subscription_started or checkout_completed",
+      "goal": "Move paying customers from checkout to activated account.",
+      "steps": [
+        "Move opportunity to Customer Active",
+        "Add tags: roadcall:customer and roadcall:trial or active",
+        "Create opportunity in Roadcall Onboarding Pipeline at Account Created",
+        "Send onboarding kickoff email",
+        "Send checklist email: profile, phone routing, AI greeting, team contacts",
+        "Create internal onboarding task due same day",
+        "Wait 1 day; remind customer to complete setup if onboarding stage is not activated",
+        "Wait 3 days; escalate to human onboarding task",
+        "Stop when Roadcall marks first_call_tested or first_dispatch_completed"
+      ]
+    },
+    {
+      "name": "Roadcall - Missed Call Recovery",
+      "trigger": "workflow event: missed_call",
+      "goal": "Recover missed inbound calls quickly without moving operational state out of Roadcall.",
+      "steps": [
+        "Add tags: roadcall:missed-call and roadcall:ai-receptionist",
+        "Create opportunity in Roadcall Recovery Pipeline at Missed Call",
+        "Send SMS: apology + fast call-back CTA",
+        "Send email with AI call summary if email exists",
+        "Create urgent sales/support task due in 5 minutes",
+        "Wait 15 minutes; if unrecovered, notify owner/manager",
+        "Move opportunity to Recovered only when Roadcall or rep confirms outcome"
+      ]
+    },
+    {
+      "name": "Roadcall - Dispatch Milestone Notify",
+      "trigger": "workflow event: qualified_roadside_request or successful_transfer or completed_job",
+      "goal": "Keep CRM timeline informed about operational milestones without controlling dispatch.",
+      "steps": [
+        "Append note to contact/opportunity timeline",
+        "Add tag roadcall:dispatch-event",
+        "If qualified_roadside_request, notify internal ops channel",
+        "If successful_transfer, add success note and no customer marketing message",
+        "If completed_job, wait 2 hours then trigger review_request workflow"
+      ]
+    },
+    {
+      "name": "Roadcall - Review Request",
+      "trigger": "workflow event: review_request or completed_job",
+      "goal": "Generate reviews after successful service experiences.",
+      "steps": [
+        "Send SMS review request if phone consent exists",
+        "Send email review request with direct review link",
+        "Wait 2 days; send one reminder if no review recorded",
+        "Create task for manual follow-up on high-value accounts"
+      ]
+    },
+    {
+      "name": "Roadcall - Failed Payment Save",
+      "trigger": "workflow event: payment_failed",
+      "goal": "Recover billing issues while Stripe remains billing source of truth.",
+      "steps": [
+        "Move opportunity to At Risk",
+        "Add tag roadcall:past-due",
+        "Send billing update email with Stripe billing portal link",
+        "Send SMS if consent exists",
+        "Create finance/support task",
+        "Stop when invoice_paid or subscription_updated event arrives"
+      ]
+    }
+  ],
+  "emailTemplates": [
+    {
+      "name": "New Lead - Roadcall Intro",
+      "subject": "Roadcall can help recover calls and dispatch faster",
+      "body": "Hi {{contact.first_name}},\n\nThanks for checking out Roadcall. We help trucking operators, repair shops, and roadside teams answer urgent calls, qualify breakdowns, and move faster from intake to dispatch.\n\nIf you want, book a quick demo here: {{calendar.link}}\n\n- Roadcall"
+    },
+    {
+      "name": "Demo Booked - Confirmation",
+      "subject": "Your Roadcall demo is confirmed",
+      "body": "Hi {{contact.first_name}},\n\nYou are booked for a Roadcall demo. We will walk through AI call handling, missed-call recovery, dispatch workflows, and how Roadcall connects with your operations.\n\nBefore the call, think about your biggest bottleneck: missed calls, driver downtime, dispatch speed, or customer follow-up.\n\nTalk soon,\nRoadcall"
+    },
+    {
+      "name": "Onboarding - Kickoff",
+      "subject": "Welcome to Roadcall — next setup steps",
+      "body": "Hi {{contact.first_name}},\n\nWelcome to Roadcall. Your next steps are simple:\n\n1. Confirm your business profile\n2. Confirm phone routing and call handling rules\n3. Review your AI receptionist greeting\n4. Run a test call\n5. Complete your first live dispatch or recovery workflow\n\nRoadcall remains your operational source of truth. GHL will handle reminders and follow-up.\n\n- Roadcall"
+    },
+    {
+      "name": "Missed Call Recovery",
+      "subject": "We saw a missed call — want help recovering it?",
+      "body": "Hi {{contact.first_name}},\n\nRoadcall detected a missed call event. If this was a customer or driver needing help, reply here or call us back and we will help recover it quickly.\n\nSummary:\n{{custom_values.roadcall_ai_call_summary}}\n\n- Roadcall"
+    },
+    {
+      "name": "Failed Payment",
+      "subject": "Action needed: update your Roadcall billing",
+      "body": "Hi {{contact.first_name}},\n\nStripe reported a failed payment for your Roadcall account. Please update your payment method here: {{custom_values.stripe_billing_portal_link}}\n\nYour Roadcall account state is managed inside Roadcall and billing is managed securely by Stripe.\n\n- Roadcall"
+    }
+  ],
+  "smsTemplates": [
+    {
+      "name": "New Lead SMS",
+      "body": "Thanks for checking out Roadcall. Want to see how AI call recovery + dispatch works? Book a demo: {{calendar.link}} Reply STOP to opt out."
+    },
+    {
+      "name": "Demo Reminder SMS",
+      "body": "Roadcall demo reminder: you are booked for {{appointment.start_time}}. Need to reschedule? {{appointment.reschedule_link}} Reply STOP to opt out."
+    },
+    {
+      "name": "Onboarding Reminder SMS",
+      "body": "Roadcall setup reminder: finish your profile + test call so we can activate your workflow. Need help? Reply here. STOP to opt out."
+    },
+    {
+      "name": "Missed Call Recovery SMS",
+      "body": "Roadcall saw a missed call. Want us to help recover it? Reply YES or call back. STOP to opt out."
+    },
+    {
+      "name": "Review Request SMS",
+      "body": "Thanks for using Roadcall. If we helped, would you leave a quick review? {{custom_values.review_link}} Reply STOP to opt out."
+    }
+  ],
+  "aiReceptionist": {
+    "name": "Roadcall GHL AI Receptionist",
+    "purpose": "Qualify leads, recover missed calls, book demos, and summarize calls. Do not dispatch mechanics or make billing decisions.",
+    "guardrails": [
+      "Do not promise mechanic availability or ETA.",
+      "Do not quote final repair costs.",
+      "Do not collect full payment card details by voice.",
+      "Do not change Roadcall service status.",
+      "If the caller has an active roadside emergency, route to Roadcall intake or human ops immediately.",
+      "Always disclose if the call may be recorded according to account settings and local requirements."
+    ],
+    "opening": "Thanks for calling Roadcall. I can help with demos, account setup, missed-call recovery, or route urgent roadside requests to the right flow. What can I help with today?",
+    "qualificationQuestions": [
+      "Are you calling as a fleet, repair shop, national vendor, or driver?",
+      "What problem are you trying to solve first: missed calls, dispatch speed, customer follow-up, or onboarding automation?",
+      "How many urgent calls or roadside requests do you handle in a typical week?",
+      "Do you want to book a Roadcall demo or have someone call you back?",
+      "What is the best email and phone number for follow-up?"
+    ],
+    "handoffRules": [
+      "If caller asks for roadside help now, hand off to Roadcall roadside intake.",
+      "If caller asks pricing and is qualified, book demo or send pricing page link if approved.",
+      "If caller is an active customer with operational issue, create urgent support task and notify Roadcall ops.",
+      "If caller is angry, billing-related, or compliance-related, escalate to human."
+    ],
+    "summaryFormat": "Caller type: [fleet/shop/vendor/driver/other]\nIntent: [demo/onboarding/support/roadside/missed call/pricing]\nUrgency: [low/medium/high]\nKey details: [bullets]\nRequested next step: [book demo/callback/support/roadside intake]\nConsent notes: [SMS/email/call recording if captured]"
+  },
+  "askAiPrompts": [
+    {
+      "name": "Generate New Lead Workflow",
+      "prompt": "Create a HighLevel workflow named Roadcall - New Lead Speed to Lead. Trigger it from a custom workflow event named new_lead. Add tags roadcall and roadcall:new-lead, create or update an opportunity in the Roadcall Revenue Pipeline at New Lead, send an immediate email and SMS, create a follow-up task if no appointment is booked after 15 minutes, and stop when demo_booked or subscription_started is received. Keep Roadcall as the operational source of truth."
+    },
+    {
+      "name": "Generate Customer Onboarding Workflow",
+      "prompt": "Create a HighLevel workflow named Roadcall - Customer Onboarding. Trigger from subscription_started or checkout_completed workflow events. Move opportunity to Customer Active, add tag roadcall:customer, create an onboarding opportunity, send a kickoff email, send setup reminders, create internal onboarding tasks, and stop when Roadcall indicates activation or first dispatch completed. Do not make GHL the source of truth for billing, dispatch, or account access."
+    },
+    {
+      "name": "Generate Missed Call Recovery Workflow",
+      "prompt": "Create a HighLevel workflow named Roadcall - Missed Call Recovery. Trigger from missed_call workflow event. Add tags roadcall:missed-call and roadcall:ai-receptionist. Send a short recovery SMS, send an email with the AI call summary, create an urgent task due in 5 minutes, notify an owner if not handled after 15 minutes, and only mark recovered after a human or Roadcall event confirms recovery."
+    },
+    {
+      "name": "Generate AI Receptionist Script",
+      "prompt": "Draft a HighLevel AI receptionist script for Roadcall. The assistant should qualify leads, recover missed calls, book demos, and summarize calls. It must not dispatch mechanics, promise ETA, quote final repair costs, collect full card details, or change Roadcall service status. It should hand off urgent roadside requests to Roadcall intake or a human operator. Include opening, qualification questions, escalation rules, and summary format."
+    }
+  ],
+  "acceptanceTests": [
+    "A new_lead event creates/updates a contact, tags it, creates an opportunity, and sends first-touch messages.",
+    "A demo_booked event moves the opportunity to Demo Booked and sends reminders.",
+    "A subscription_started or checkout_completed event starts onboarding but does not update Stripe directly.",
+    "A missed_call event sends recovery messages and creates an urgent task.",
+    "Dispatch milestone events append notes/notifications only and do not control provider matching.",
+    "A payment_failed event sends billing recovery messages with Stripe portal link and does not collect card details in GHL.",
+    "AI receptionist summaries map into Roadcall AI Call Summary and do not alter Roadcall operational state."
+  ]
+}
