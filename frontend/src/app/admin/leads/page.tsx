@@ -28,6 +28,16 @@ interface MechanicItem {
 }
 interface MechanicListResponse { total: number; limit: number; offset: number; items: MechanicItem[]; }
 interface MechanicStats { total_mechanics: number; total_with_email: number; }
+interface EnrichmentStatus {
+  kind: "emails" | "mechanics";
+  running: boolean;
+  started_at: string | null;
+  finished_at: string | null;
+  exit_code: number | null;
+  log_tail: string[];
+  enriched_total: number;
+  pending_total: number;
+}
 
 const VERTICAL_COLORS: Record<string, string> = {
   shops:   "bg-orange-500/15 text-orange-300 border border-orange-500/25",
@@ -232,7 +242,10 @@ function SignupsTab() {
 function MechanicEmailsTab() {
   const [data, setData] = useState<MechanicListResponse | null>(null);
   const [stats, setStats] = useState<MechanicStats | null>(null);
+  const [enrichStatus, setEnrichStatus] = useState<EnrichmentStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [enrichBusy, setEnrichBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState("");
   const [offset, setOffset] = useState(0);
@@ -240,6 +253,7 @@ function MechanicEmailsTab() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({
         has_email: "true",
@@ -250,17 +264,45 @@ function MechanicEmailsTab() {
       });
       if (search) params.set("q", search);
       if (stateFilter) params.set("state", stateFilter);
-      const [listData, statsData] = await Promise.all([
+      const [listData, statsData, statusData] = await Promise.all([
         adminFetch<MechanicListResponse>(`/mechanics/admin/list?${params}`),
         adminFetch<MechanicStats>("/mechanics/admin/stats"),
+        adminFetch<EnrichmentStatus>("/admin/enrichment/status?kind=emails"),
       ]);
       setData(listData);
       setStats(statsData);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+      setEnrichStatus(statusData);
+    } catch (e) {
+      console.error(e);
+      setError(e instanceof Error ? e.message : "Failed to load mechanic emails");
+    } finally { setLoading(false); }
   }, [offset, search, stateFilter]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setOffset(0); }, [search, stateFilter]);
+  useEffect(() => {
+    if (!enrichStatus?.running) return;
+    const id = window.setInterval(load, 5000);
+    return () => window.clearInterval(id);
+  }, [enrichStatus?.running, load]);
+
+  async function startEmailEnrichment() {
+    setEnrichBusy(true);
+    setError(null);
+    try {
+      const status = await adminFetch<EnrichmentStatus>("/admin/enrichment/start", {
+        method: "POST",
+        body: JSON.stringify({ kind: "emails", limit: 200, batch: 20, dry_run: false }),
+      });
+      setEnrichStatus(status);
+      await load();
+    } catch (e) {
+      console.error(e);
+      setError(e instanceof Error ? e.message : "Failed to start Apify email enrichment");
+    } finally {
+      setEnrichBusy(false);
+    }
+  }
 
   function exportCSV() {
     if (!data?.items.length) return;
@@ -273,8 +315,8 @@ function MechanicEmailsTab() {
   const page = Math.floor(offset / PAGE_SIZE) + 1;
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
   const totalMechanics = stats?.total_mechanics ?? 0;
-  const enriched = stats?.total_with_email ?? data?.total ?? 0;
-  const pending = Math.max(0, totalMechanics - enriched);
+  const enriched = enrichStatus?.enriched_total ?? stats?.total_with_email ?? data?.total ?? 0;
+  const pending = enrichStatus?.pending_total ?? Math.max(0, totalMechanics - enriched);
   const coverage = totalMechanics > 0 ? `${((enriched / totalMechanics) * 100).toFixed(1)}%` : "0.0%";
 
   return (
@@ -299,8 +341,20 @@ function MechanicEmailsTab() {
             className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-40">
             <RefreshCw className={`h-4 w-4 ${loading?"animate-spin":""}`}/>
           </button>
+          <button onClick={startEmailEnrichment} disabled={enrichBusy || enrichStatus?.running}
+            className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-200 hover:bg-blue-500/20 disabled:opacity-40">
+            <RefreshCw className={`h-4 w-4 ${enrichStatus?.running?"animate-spin":""}`}/>{enrichStatus?.running ? "Apify running" : "Run Apify (200)"}
+          </button>
+        </div>
+        <div className="mt-3 rounded-lg border border-white/5 bg-black/30 p-3 text-xs text-slate-400">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>Apify email enrichment: {enrichStatus?.running ? "running" : enrichStatus?.exit_code === 0 ? "last run completed" : enrichStatus?.exit_code != null ? `last run error (${enrichStatus.exit_code})` : "idle"}</span>
+            {enrichStatus?.finished_at && <span>Finished {new Date(enrichStatus.finished_at).toLocaleString()}</span>}
+          </div>
+          {enrichStatus?.log_tail?.length ? <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap text-slate-500">{enrichStatus.log_tail.slice(-6).join("\n")}</pre> : null}
         </div>
       </DarkCard>
+      {error && <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-3 text-sm text-red-200">{error}</div>}
       <DarkCard>
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
           <p className="text-sm text-slate-400">{data ? `${data.total.toLocaleString()} mechanics with email` : "Loading…"}</p>
