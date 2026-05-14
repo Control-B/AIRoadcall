@@ -35,6 +35,7 @@ from app.models.job import Job
 from app.schemas.job import JobCreateRequest
 from app.services.dispatch_service import DispatchService
 from app.services.job_service import JobService
+from app.services.lifecycle_service import LifecycleService
 from app.services.payment_service import PaymentService
 from app.services.sms_service import SMSService
 
@@ -44,6 +45,7 @@ from app.enums.issue_type import IssueType
 
 logger = logging.getLogger("retell-dispatch")
 settings = get_settings()
+lifecycle_service = LifecycleService()
 
 # Map Retell problem_type strings → IssueType enum values
 _PROBLEM_TYPE_MAP: dict[str, str] = {
@@ -295,6 +297,25 @@ async def _create_fleet_service_request(
     db.add(incident)
     await db.commit()
     await db.refresh(incident)
+    try:
+        await lifecycle_service.emit_event(
+            db,
+            event_type="qualified_roadside_request",
+            source="retell",
+            organization_id=incident.organization_id,
+            entity_type="roadside_incident",
+            entity_id=str(incident.id),
+            payload={
+                "retell_call_id": payload.retell_call_id,
+                "priority": priority,
+                "problem_type": payload.problem_type,
+                "company_name": payload.company_name,
+            },
+            idempotency_key=f"retell_fleet_intake:{payload.retell_call_id or incident.id}",
+        )
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
     logger.info(
         "create_fleet_service_request: incident=%s retell_call=%s",
@@ -346,6 +367,24 @@ async def create_service_request(
     )
     resp = await JobService.create_job(db, req)
     await db.commit()
+    try:
+        await lifecycle_service.emit_event(
+            db,
+            event_type="qualified_roadside_request",
+            source="retell",
+            entity_type="job",
+            entity_id=resp.public_job_id,
+            payload={
+                "retell_call_id": payload.retell_call_id,
+                "priority": priority,
+                "problem_type": payload.problem_type,
+                "public_job_id": resp.public_job_id,
+            },
+            idempotency_key=f"retell_job_intake:{payload.retell_call_id or resp.public_job_id}",
+        )
+        await db.commit()
+    except Exception:
+        await db.rollback()
 
     logger.info(
         "create_service_request: job=%s retell_call=%s",
@@ -602,6 +641,25 @@ async def confirm_dispatch(
         await SMSService.send_sms(job.driver_phone, body)
 
     await db.commit()
+    try:
+        await lifecycle_service.emit_event(
+            db,
+            event_type="successful_transfer",
+            source="roadcall",
+            entity_type="job",
+            entity_id=str(job.id),
+            payload={
+                "public_job_id": job.public_job_id,
+                "status": "mechanic_en_route",
+                "driver_city": job.driver_city,
+                "driver_state": job.driver_state,
+                "assigned_mechanic_id": str(job.assigned_mechanic_id) if job.assigned_mechanic_id else None,
+            },
+            idempotency_key=f"dispatch_confirmed:{job.id}",
+        )
+        await db.commit()
+    except Exception:
+        await db.rollback()
     logger.info("confirm_dispatch: job=%s dispatched", job.public_job_id)
 
     return ConfirmDispatchOut(
@@ -687,6 +745,22 @@ async def initiate_warm_transfer(
     )
 
     logger.info("warm_transfer: job=%s → %s", job.public_job_id, mechanic_company)
+    try:
+        await lifecycle_service.emit_event(
+            db,
+            event_type="successful_transfer",
+            source="retell",
+            entity_type="job",
+            entity_id=str(job.id),
+            payload={
+                "public_job_id": job.public_job_id,
+                "mechanic_company": mechanic_company,
+                "transfer_approved": True,
+            },
+            idempotency_key=f"warm_transfer:{job.id}",
+        )
+    except Exception:
+        await db.rollback()
 
     return WarmTransferOut(
         ok=True,

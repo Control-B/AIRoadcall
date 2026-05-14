@@ -18,9 +18,11 @@ from app.api.deps import get_db
 from app.core.config import get_settings
 from app.api.routes.admin_auth import verify_admin
 from app.models.lead_capture import LeadCapture
+from app.services.lifecycle_service import LifecycleService
 
 router = APIRouter(prefix="/leads", tags=["leads"])
 settings = get_settings()
+lifecycle_service = LifecycleService()
 
 
 class LeadIn(BaseModel):
@@ -90,6 +92,24 @@ async def capture_lead(
 
     # Fire welcome email via Resend (best-effort, non-blocking)
     _send_welcome_email(lead)
+    try:
+        await lifecycle_service.emit_event(
+            db,
+            event_type="new_lead",
+            source="roadcall",
+            entity_type="lead",
+            entity_id=str(lead.id),
+            payload={
+                "email": lead.email,
+                "name": lead.name,
+                "company": lead.company,
+                "vertical": lead.vertical,
+                "source": lead.source,
+            },
+            idempotency_key=f"lead_capture:{lead.id}:new_lead",
+        )
+    except Exception:
+        pass
 
     return LeadOut(id=str(lead.id), email=lead.email)
 

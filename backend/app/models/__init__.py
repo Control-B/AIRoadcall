@@ -31,3 +31,4 @@ from app.models.ghl_integration import (
     GHLAuditLog,
     GHLRetryQueueItem,
 )
+from app.models.lifecycle_event import LifecycleEvent

@@ -15,9 +15,11 @@ from app.models.ghl_integration import GHLRetryQueueItem, GHLTenantMapping
 from app.models.job import Job
 from app.models.lead_capture import LeadCapture
 from app.services.ghl_service import GHLService
+from app.services.lifecycle_service import LifecycleService
 
 router = APIRouter(prefix="/ghl", tags=["gohighlevel"])
 service = GHLService()
+lifecycle_service = LifecycleService()
 
 
 class TenantMappingIn(BaseModel):
@@ -302,6 +304,16 @@ async def receive_ghl_form_submission(request: Request, db: AsyncSession = Depen
         lead.email,
         None,
     )
+    await lifecycle_service.emit_event(
+        db,
+        event_type="new_lead",
+        source="ghl",
+        organization_id=mapping.organization_id,
+        entity_type="lead",
+        entity_id=str(lead.id),
+        payload={"lead": lead_data, "ghl_payload": payload},
+        idempotency_key=f"ghl_form:{mapping.id}:{payload.get('id') or payload.get('eventId') or lead.id}",
+    )
     await db.commit()
     return {"ok": True, "lead_id": str(lead.id)}
 
@@ -322,6 +334,17 @@ async def receive_ghl_contact_update(request: Request, db: AsyncSession = Depend
             contact.get("email"),
             contact.get("phone"),
         )
+    await lifecycle_service.emit_event(
+        db,
+        event_type="contact_updated",
+        source="ghl",
+        organization_id=mapping.organization_id,
+        entity_type="ghl_contact",
+        entity_id=contact_id or None,
+        payload={"contact": contact, "ghl_payload": payload},
+        idempotency_key=f"ghl_contact:{mapping.id}:{payload.get('id') or payload.get('eventId') or contact_id or uuid.uuid4()}",
+        trigger_ghl=False,
+    )
     await db.commit()
     return {"ok": True}
 
@@ -330,7 +353,16 @@ async def receive_ghl_contact_update(request: Request, db: AsyncSession = Depend
 async def receive_ghl_appointment(request: Request, db: AsyncSession = Depends(get_db)):
     mapping, payload, _ = await _signed_webhook_context(request, db)
     await service.record_webhook(db, mapping, "appointment_booking", payload, True, "processed")
-    await service.trigger_workflow(db, mapping, "new_lead", {"source": "ghl_appointment", "appointment": payload})
+    await lifecycle_service.emit_event(
+        db,
+        event_type="demo_booked",
+        source="ghl",
+        organization_id=mapping.organization_id,
+        entity_type="appointment",
+        entity_id=str(payload.get("appointmentId") or payload.get("id") or payload.get("eventId") or ""),
+        payload={"appointment": payload},
+        idempotency_key=f"ghl_appointment:{mapping.id}:{payload.get('appointmentId') or payload.get('id') or payload.get('eventId') or uuid.uuid4()}",
+    )
     await db.commit()
     return {"ok": True}
 
@@ -341,6 +373,15 @@ async def receive_ghl_voice_call(request: Request, db: AsyncSession = Depends(ge
     call_status = str(payload.get("status") or payload.get("callStatus") or "").lower()
     await service.record_webhook(db, mapping, "ai_voice_call", payload, True, "processed")
     if "missed" in call_status:
-        await service.trigger_workflow(db, mapping, "missed_call", {"source": "ghl_ai_receptionist", "call": payload})
+        await lifecycle_service.emit_event(
+            db,
+            event_type="missed_call",
+            source="ghl",
+            organization_id=mapping.organization_id,
+            entity_type="ai_voice_call",
+            entity_id=str(payload.get("callId") or payload.get("id") or payload.get("eventId") or ""),
+            payload={"call": payload},
+            idempotency_key=f"ghl_voice:{mapping.id}:{payload.get('callId') or payload.get('id') or payload.get('eventId') or uuid.uuid4()}",
+        )
     await db.commit()
     return {"ok": True}
