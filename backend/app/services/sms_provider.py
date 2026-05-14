@@ -186,26 +186,26 @@ def get_sms_provider(vertical: str = "fleet") -> SMSProvider:
     from app.core.config import get_settings
     cfg = get_settings()
 
-    if vertical == "shops" and getattr(cfg, "ghl_api_key", None) and getattr(cfg, "ghl_location_id", None):
+    if vertical == "shops" and getattr(cfg, "GHL_API_KEY", None) and getattr(cfg, "GHL_LOCATION_ID", None):
         return GhlSmsProvider(
-            api_key=cfg.ghl_api_key,
-            location_id=cfg.ghl_location_id,
-            default_from=getattr(cfg, "ghl_from_number", None),
+            api_key=cfg.GHL_API_KEY,
+            location_id=cfg.GHL_LOCATION_ID,
+            default_from=getattr(cfg, "GHL_FROM_NUMBER", None),
         )
 
     # Fleet (or Shops fallback) — Twilio primary
-    if getattr(cfg, "twilio_account_sid", None) and getattr(cfg, "twilio_auth_token", None):
+    if getattr(cfg, "TWILIO_ACCOUNT_SID", None) and getattr(cfg, "TWILIO_AUTH_TOKEN", None):
         return TwilioSmsProvider(
-            account_sid=cfg.twilio_account_sid,
-            auth_token=cfg.twilio_auth_token,
-            default_from=cfg.twilio_from_number,
+            account_sid=cfg.TWILIO_ACCOUNT_SID,
+            auth_token=cfg.TWILIO_AUTH_TOKEN,
+            default_from=cfg.TWILIO_FROM_NUMBER,
         )
 
     # Telnyx fallback
-    if getattr(cfg, "telnyx_api_key", None) and getattr(cfg, "telnyx_from_number", None):
+    if getattr(cfg, "TELNYX_API_KEY", None) and getattr(cfg, "TELNYX_FROM_NUMBER", None):
         return TelnyxSmsProvider(
-            api_key=cfg.telnyx_api_key,
-            default_from=cfg.telnyx_from_number,
+            api_key=cfg.TELNYX_API_KEY,
+            default_from=cfg.TELNYX_FROM_NUMBER,
         )
 
     # Last resort: Console (dev / missing config)

@@ -18,6 +18,7 @@ See docs/backend-integration.md for the full contract.
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -37,6 +38,7 @@ from app.services.dispatch_service import DispatchService
 from app.services.job_service import JobService
 from app.services.lifecycle_service import LifecycleService
 from app.services.payment_service import PaymentService
+from app.services.sms_provider import GhlSmsProvider
 from app.services.sms_service import SMSService
 
 import os
@@ -152,6 +154,26 @@ class RequestLocationOut(BaseModel):
     location_status: str
     secure_location_token: str | None = None
     location_url: str | None = None
+    expires_at: str | None = None
+    driver_message: str | None = None
+
+
+class LocationStatusIn(BaseModel):
+    service_request_id: str
+
+
+class LocationStatusOut(BaseModel):
+    ok: bool
+    service_request_id: str
+    location_status: str
+    location_captured: bool
+    location_url: str | None = None
+    secure_location_token: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    city: str | None = None
+    state: str | None = None
+    captured_at: str | None = None
     expires_at: str | None = None
     driver_message: str | None = None
 
@@ -438,14 +460,75 @@ async def request_location(
         )
 
     # SMS magic link
+    location_url = (
+        job.magic_link_url if hasattr(job, "magic_link_url") else
+        f"{settings.public_app_base_url}/support/{job.magic_link_token}"
+    )
+
+    if settings.TWILIO_STUDIO_FLOW_SID:
+        studio_execution_sid = await SMSService.start_twilio_studio_execution(
+            to_number=payload.callback_number,
+            parameters={
+                "service_request_id": job.public_job_id,
+                "public_job_id": job.public_job_id,
+                "secure_location_token": job.magic_link_token,
+                "location_url": location_url,
+                "driver_name": job.driver_name or "Driver",
+                "callback_number": payload.callback_number,
+                "expires_at": job.magic_link_expires_at.isoformat() if job.magic_link_expires_at else None,
+            },
+        )
+        if studio_execution_sid:
+            logger.info(
+                "request_location: Twilio Studio started for %s job=%s execution=%s",
+                payload.callback_number,
+                job.public_job_id,
+                studio_execution_sid,
+            )
+            return RequestLocationOut(
+                ok=True,
+                location_status="studio_started",
+                secure_location_token=job.magic_link_token,
+                location_url=location_url,
+                expires_at=job.magic_link_expires_at.isoformat() if job.magic_link_expires_at else None,
+                driver_message="Location flow started by SMS.",
+            )
+
     sms_sent = await SMSService.send_magic_link(
         payload.callback_number,
-        job.magic_link_url if hasattr(job, "magic_link_url") else
-        f"{settings.public_app_base_url}/support/{job.magic_link_token}",
+        location_url,
         job.driver_name or "Driver",
     )
 
     if not sms_sent:
+        if settings.GHL_API_KEY and settings.GHL_LOCATION_ID:
+            body = SMSService._with_compliance_footer(
+                (
+                    f"{SMSService.BRAND_NAME}: Hi {job.driver_name or 'Driver'}, tap this secure link to share your "
+                    f"location so we can dispatch the nearest mechanic: {location_url}"
+                )
+            )
+            ghl_result = GhlSmsProvider(
+                api_key=settings.GHL_API_KEY,
+                location_id=settings.GHL_LOCATION_ID,
+                default_from=settings.GHL_FROM_NUMBER or None,
+            ).send(payload.callback_number, body)
+            if ghl_result.success:
+                logger.info(
+                    "request_location: GHL SMS sent to %s for job %s message_id=%s",
+                    payload.callback_number,
+                    job.public_job_id,
+                    ghl_result.message_id,
+                )
+                return RequestLocationOut(
+                    ok=True,
+                    location_status="ghl_sms_sent",
+                    secure_location_token=job.magic_link_token,
+                    location_url=location_url,
+                    expires_at=job.magic_link_expires_at.isoformat() if job.magic_link_expires_at else None,
+                    driver_message="Location link sent by GHL SMS.",
+                )
+
         return RequestLocationOut(
             ok=False,
             location_status="sms_failed",
@@ -458,8 +541,72 @@ async def request_location(
         ok=True,
         location_status="sms_sent",
         secure_location_token=job.magic_link_token,
-        location_url=f"{settings.public_app_base_url}/support/{job.magic_link_token}",
+        location_url=location_url,
+        expires_at=job.magic_link_expires_at.isoformat() if job.magic_link_expires_at else None,
         driver_message="Location link sent by text.",
+    )
+
+
+@router.post(
+    "/api/location/status",
+    response_model=LocationStatusOut,
+    dependencies=[Depends(require_retell_auth)],
+)
+async def get_location_status(
+    payload: LocationStatusIn,
+    db: AsyncSession = Depends(get_session),
+) -> LocationStatusOut:
+    """Poll whether location has been captured for a service request."""
+    job = await _get_job_or_404(payload.service_request_id, db)
+    location_url = f"{settings.public_app_base_url}/support/{job.magic_link_token}"
+
+    location_captured = bool(job.driver_lat is not None and job.driver_lng is not None)
+    if location_captured:
+        return LocationStatusOut(
+            ok=True,
+            service_request_id=job.public_job_id,
+            location_status="captured",
+            location_captured=True,
+            location_url=location_url,
+            secure_location_token=job.magic_link_token,
+            lat=job.driver_lat,
+            lng=job.driver_lng,
+            city=job.driver_city,
+            state=job.driver_state,
+            captured_at=(
+                job.driver_location_captured_at.isoformat()
+                if job.driver_location_captured_at else None
+            ),
+            expires_at=(
+                job.magic_link_expires_at.isoformat()
+                if job.magic_link_expires_at else None
+            ),
+            driver_message="Driver location received.",
+        )
+
+    if job.magic_link_expires_at and job.magic_link_expires_at < datetime.now(timezone.utc):
+        status_value = "expired"
+    else:
+        status_value = "pending"
+
+    return LocationStatusOut(
+        ok=True,
+        service_request_id=job.public_job_id,
+        location_status=status_value,
+        location_captured=False,
+        location_url=location_url,
+        secure_location_token=job.magic_link_token,
+        city=job.driver_city,
+        state=job.driver_state,
+        expires_at=(
+            job.magic_link_expires_at.isoformat()
+            if job.magic_link_expires_at else None
+        ),
+        driver_message=(
+            "Waiting for driver to open the link and share location."
+            if status_value == "pending"
+            else "Location link expired; resend required."
+        ),
     )
 
 

@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { BrandMark } from "@/components/BrandMark";
-import { GHL_GET_STARTED_URL, GHL_SIGN_IN_URL, isExternalUrl } from "@/lib/ghl-links";
+import { GHL_SIGN_IN_URL } from "@/lib/ghl-links";
 
 /* ── Navigation structure (Omniweb-style mega-dropdown) ──── */
 interface NavSubItem {
@@ -167,7 +167,7 @@ export function SiteHeader() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout>();
   const pathname = usePathname();
-  const getStartedHref = isExternalUrl(GHL_GET_STARTED_URL) ? "/get-started" : GHL_GET_STARTED_URL;
+  const getStartedHref = "/get-started";
   const signInHref = GHL_SIGN_IN_URL ? "/sign-in" : "/admin/login";
 
   useEffect(() => {

@@ -1,0 +1,212 @@
+{
+  "description": "Roadcall Studio flow template for SMS magic-link location capture",
+  "initial_state": "send_location_link",
+  "flags": {
+    "allow_concurrent_calls": true
+  },
+  "states": [
+    {
+      "name": "send_location_link",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent",
+          "next": "wait_before_poll"
+        },
+        {
+          "event": "failed",
+          "next": "send_send_failed"
+        }
+      ],
+      "properties": {
+        "service": "{{trigger.message.InstanceSid}}",
+        "from": "{{flow.channel.address}}",
+        "to": "{{contact.channel.address}}",
+        "body": "Hi {{flow.data.driver_name}}, tap this secure link to share your location: {{flow.data.location_url}}"
+      }
+    },
+    {
+      "name": "wait_before_poll",
+      "type": "delay",
+      "transitions": [
+        {
+          "event": "timeout",
+          "next": "poll_location_status"
+        }
+      ],
+      "properties": {
+        "offset": {
+          "minutes": 0,
+          "seconds": 12
+        }
+      }
+    },
+    {
+      "name": "poll_location_status",
+      "type": "make-http-request",
+      "transitions": [
+        {
+          "event": "success",
+          "next": "route_by_location_status"
+        },
+        {
+          "event": "failed",
+          "next": "send_poll_failed"
+        }
+      ],
+      "properties": {
+        "method": "POST",
+        "content_type": "application/json",
+        "url": "https://YOUR_BACKEND_HOST/api/location/status",
+        "parameters": [
+          {
+            "key": "Authorization",
+            "value": "Bearer YOUR_RETELL_BACKEND_WEBHOOK_TOKEN"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": "{\"service_request_id\":\"{{flow.data.service_request_id}}\"}"
+      }
+    },
+    {
+      "name": "route_by_location_status",
+      "type": "split-based-on",
+      "transitions": [
+        {
+          "event": "noMatch",
+          "next": "send_poll_failed"
+        }
+      ],
+      "properties": {
+        "input": "{{widgets.poll_location_status.parsed.location_status}}",
+        "cases": [
+          {
+            "friendly_name": "captured",
+            "arguments": [
+              "captured"
+            ],
+            "type": "equal_to",
+            "next": "send_location_captured"
+          },
+          {
+            "friendly_name": "pending",
+            "arguments": [
+              "pending"
+            ],
+            "type": "equal_to",
+            "next": "wait_before_poll"
+          },
+          {
+            "friendly_name": "expired",
+            "arguments": [
+              "expired"
+            ],
+            "type": "equal_to",
+            "next": "send_link_expired"
+          }
+        ]
+      }
+    },
+    {
+      "name": "send_location_captured",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent",
+          "next": "complete_success"
+        },
+        {
+          "event": "failed",
+          "next": "complete_success"
+        }
+      ],
+      "properties": {
+        "body": "Thanks. We received your location and your dispatcher is continuing service request {{flow.data.public_job_id}}."
+      }
+    },
+    {
+      "name": "send_link_expired",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent",
+          "next": "complete_expired"
+        },
+        {
+          "event": "failed",
+          "next": "complete_expired"
+        }
+      ],
+      "properties": {
+        "body": "Your location link expired. Please reply and we will send a new one."
+      }
+    },
+    {
+      "name": "send_send_failed",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent",
+          "next": "complete_failed"
+        },
+        {
+          "event": "failed",
+          "next": "complete_failed"
+        }
+      ],
+      "properties": {
+        "body": "We hit a messaging issue while sending your location link. Please stay on the line with dispatch."
+      }
+    },
+    {
+      "name": "send_poll_failed",
+      "type": "send-message",
+      "transitions": [
+        {
+          "event": "sent",
+          "next": "complete_failed"
+        },
+        {
+          "event": "failed",
+          "next": "complete_failed"
+        }
+      ],
+      "properties": {
+        "body": "We sent your location link. If you already shared it, dispatch is still processing."
+      }
+    },
+    {
+      "name": "complete_success",
+      "type": "trigger",
+      "transitions": [],
+      "properties": {
+        "offset": {
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "complete_expired",
+      "type": "trigger",
+      "transitions": [],
+      "properties": {
+        "offset": {
+          "minutes": 0
+        }
+      }
+    },
+    {
+      "name": "complete_failed",
+      "type": "trigger",
+      "transitions": [],
+      "properties": {
+        "offset": {
+          "minutes": 0
+        }
+      }
+    }
+  ]
+}

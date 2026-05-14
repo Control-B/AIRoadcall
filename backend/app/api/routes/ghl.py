@@ -96,6 +96,30 @@ class GenericResponse(BaseModel):
     result: dict[str, Any] | None = None
 
 
+class OnboardingSetupIn(BaseModel):
+    organization_id: str
+    location_id: str | None = None
+    subaccount_name: str | None = None
+    create_subaccount: bool = False
+    subaccount_payload: dict[str, Any] = Field(default_factory=dict)
+    access_token: str | None = Field(default=None, repr=False)
+    refresh_token: str | None = Field(default=None, repr=False)
+    webhook_secret: str | None = Field(default=None, repr=False)
+    pipeline_id: str | None = None
+    default_workflow_id: str | None = None
+    ghl_api_key: str | None = Field(default=None, repr=False)
+
+
+class OnboardingSetupOut(BaseModel):
+    ok: bool = True
+    organization_id: str
+    location_id: str
+    subaccount_created: bool = False
+    subaccount_name: str | None = None
+    verification: dict[str, Any] | None = None
+    mapping: TenantMappingOut
+
+
 async def _mapping_or_404(db: AsyncSession, organization_id: str) -> GHLTenantMapping:
     mapping = await service.get_mapping_by_org(db, organization_id)
     if not mapping:
@@ -162,6 +186,70 @@ async def upsert_tenant_mapping(payload: TenantMappingIn, db: AsyncSession = Dep
         pipeline_id=mapping.pipeline_id,
         default_workflow_id=mapping.default_workflow_id,
         is_active=mapping.is_active,
+    )
+
+
+@router.post("/admin/onboarding/setup", response_model=OnboardingSetupOut, dependencies=[Depends(require_admin_api_key)])
+async def setup_onboarding_with_api_key(payload: OnboardingSetupIn, db: AsyncSession = Depends(get_db)):
+    api_key = payload.ghl_api_key or service.settings.GHL_API_KEY
+    if not api_key:
+        raise HTTPException(status_code=400, detail="Missing GHL API key. Provide ghl_api_key or set GHL_API_KEY.")
+
+    location_id = payload.location_id
+    verification: dict[str, Any] | None = None
+    subaccount_created = False
+
+    if payload.create_subaccount:
+        if not payload.subaccount_payload:
+            raise HTTPException(status_code=400, detail="subaccount_payload is required when create_subaccount=true")
+        try:
+            created = await service.create_subaccount_via_api_key(api_key, payload.subaccount_payload)
+        except Exception as exc:
+            raise HTTPException(status_code=400, detail=f"Subaccount creation failed: {exc}") from exc
+        location_id = created["location_id"]
+        verification = created
+        subaccount_created = True
+
+    if not location_id:
+        raise HTTPException(status_code=400, detail="location_id is required when create_subaccount=false")
+
+    try:
+        location_info = await service.get_location_via_api_key(api_key, location_id)
+        verification = verification or {}
+        verification["location"] = location_info
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Location verification failed: {exc}") from exc
+
+    mapping = await service.upsert_mapping(
+        db,
+        organization_id=payload.organization_id,
+        location_id=location_id,
+        subaccount_name=payload.subaccount_name,
+        access_token=payload.access_token,
+        refresh_token=payload.refresh_token,
+        webhook_secret=payload.webhook_secret,
+        pipeline_id=payload.pipeline_id,
+        default_workflow_id=payload.default_workflow_id,
+    )
+    await db.commit()
+    await db.refresh(mapping)
+
+    mapping_out = TenantMappingOut(
+        id=str(mapping.id),
+        organization_id=str(mapping.organization_id),
+        location_id=mapping.location_id,
+        subaccount_name=mapping.subaccount_name,
+        pipeline_id=mapping.pipeline_id,
+        default_workflow_id=mapping.default_workflow_id,
+        is_active=mapping.is_active,
+    )
+    return OnboardingSetupOut(
+        organization_id=str(mapping.organization_id),
+        location_id=mapping.location_id,
+        subaccount_created=subaccount_created,
+        subaccount_name=mapping.subaccount_name,
+        verification=verification,
+        mapping=mapping_out,
     )
 
 

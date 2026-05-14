@@ -234,6 +234,55 @@ In Roadcall admin, use the GHL Integration page to configure:
 - pipeline ID
 - default workflow ID if applicable
 
+### API-key onboarding shortcut (new)
+
+If you want Roadcall to help create/verify the GHL subaccount and save tenant mapping in one call, use:
+
+- `POST /api/ghl/admin/onboarding/setup`
+- Header: `x-admin-key: <ADMIN_API_KEY>`
+
+Environment variables used by this flow:
+
+- `GHL_API_KEY` (agency or location API key)
+- `GHL_LOCATION_ID` (optional default location)
+- `GHL_FROM_NUMBER` (optional, for GHL SMS sender override)
+
+Example (create subaccount + map tenant):
+
+```bash
+curl -X POST "$API_BASE/api/ghl/admin/onboarding/setup" \
+  -H "x-admin-key: $ADMIN_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{
+    "organization_id": "REPLACE_WITH_ORG_UUID",
+    "create_subaccount": true,
+    "subaccount_name": "Roadcall Fleet - Test",
+    "subaccount_payload": {
+      "name": "Roadcall Fleet - Test",
+      "companyName": "Roadcall Fleet"
+    },
+    "pipeline_id": "OPTIONAL_PIPELINE_ID",
+    "default_workflow_id": "OPTIONAL_WORKFLOW_ID"
+  }'
+```
+
+Example (existing location only):
+
+```bash
+curl -X POST "$API_BASE/api/ghl/admin/onboarding/setup" \
+  -H "x-admin-key: $ADMIN_API_KEY" \
+  -H "content-type: application/json" \
+  -d '{
+    "organization_id": "REPLACE_WITH_ORG_UUID",
+    "location_id": "REPLACE_WITH_LOCATION_ID",
+    "subaccount_name": "Roadcall Fleet - Existing",
+    "pipeline_id": "OPTIONAL_PIPELINE_ID",
+    "default_workflow_id": "OPTIONAL_WORKFLOW_ID"
+  }'
+```
+
+If Twilio traffic is blocked, Roadcall can temporarily use GHL SMS for location-link delivery when `GHL_API_KEY` + `GHL_LOCATION_ID` are set.
+
 Roadcall endpoints already exist for:
 
 - outbound lead/contact/workflow sync

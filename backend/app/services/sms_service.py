@@ -1,5 +1,6 @@
 """SMS delivery service for sending magic links to drivers."""
 import asyncio
+from typing import Any
 
 from app.core.config import get_settings
 from app.core.logging import get_logger
@@ -10,6 +11,25 @@ settings = get_settings()
 
 class SMSService:
     """SMS delivery — Telnyx primary, Twilio fallback."""
+
+    BRAND_NAME = "Roadcall.ai"
+    COMPLIANCE_FOOTER = "Reply STOP to opt out, HELP for help."
+
+    @staticmethod
+    def _with_compliance_footer(body: str) -> str:
+        text = (body or "").strip()
+        if not text:
+            return text
+
+        lower = text.lower()
+        has_stop = "stop" in lower
+        has_help = "help" in lower
+        if has_stop and has_help:
+            return text
+
+        if text.endswith("."):
+            return f"{text} {SMSService.COMPLIANCE_FOOTER}"
+        return f"{text}. {SMSService.COMPLIANCE_FOOTER}"
 
     @staticmethod
     def _send_via_telnyx(phone_number: str, body: str) -> bool:
@@ -78,9 +98,11 @@ class SMSService:
         if not phone_number:
             logger.warning("Cannot send SMS — no phone number provided")
             return False
-        body = (
-            f"Hi {driver_name}, tap this link to share your location and "
-            f"we'll dispatch the nearest mechanic:\n{magic_link_url}"
+        body = SMSService._with_compliance_footer(
+            (
+                f"{SMSService.BRAND_NAME}: Hi {driver_name}, tap this secure link to share your location "
+                f"so we can dispatch the nearest mechanic: {magic_link_url}"
+            )
         )
         return await asyncio.to_thread(SMSService._send_sync, phone_number, body)
 
@@ -89,4 +111,64 @@ class SMSService:
         """Send a generic SMS (outreach, dispatch notifications, etc.)."""
         if not phone_number:
             return False
-        return await asyncio.to_thread(SMSService._send_sync, phone_number, body)
+        safe_body = SMSService._with_compliance_footer(body)
+        return await asyncio.to_thread(SMSService._send_sync, phone_number, safe_body)
+
+    @staticmethod
+    def _start_twilio_studio_execution_sync(
+        to_number: str,
+        flow_sid: str,
+        parameters: dict[str, Any],
+        status_callback: str | None = None,
+    ) -> str | None:
+        try:
+            from twilio.rest import Client
+
+            cfg = get_settings()
+            client = Client(cfg.TWILIO_ACCOUNT_SID, cfg.TWILIO_AUTH_TOKEN)
+            payload: dict[str, Any] = {
+                "to": to_number,
+                "from_": cfg.TWILIO_FROM_NUMBER,
+                "parameters": parameters,
+            }
+            if cfg.TWILIO_MESSAGING_SERVICE_SID:
+                payload.pop("from_", None)
+                payload["messaging_service_sid"] = cfg.TWILIO_MESSAGING_SERVICE_SID
+            if status_callback:
+                payload["status_callback"] = status_callback
+
+            execution = client.studio.v2.flows(flow_sid).executions.create(**payload)
+            logger.info(
+                "Twilio Studio execution started to %s: flow=%s execution=%s",
+                to_number,
+                flow_sid,
+                execution.sid,
+            )
+            return execution.sid
+        except Exception as e:
+            logger.error(f"Twilio Studio execution failed to {to_number}: {e}")
+            return None
+
+    @staticmethod
+    async def start_twilio_studio_execution(
+        to_number: str,
+        parameters: dict[str, Any],
+        flow_sid: str | None = None,
+        status_callback: str | None = None,
+    ) -> str | None:
+        if not to_number:
+            return None
+
+        cfg = get_settings()
+        selected_flow_sid = (flow_sid or cfg.TWILIO_STUDIO_FLOW_SID or "").strip()
+        if not selected_flow_sid:
+            logger.warning("Twilio Studio flow SID missing; skipping Studio execution")
+            return None
+
+        return await asyncio.to_thread(
+            SMSService._start_twilio_studio_execution_sync,
+            to_number,
+            selected_flow_sid,
+            parameters,
+            status_callback or cfg.TWILIO_STUDIO_STATUS_CALLBACK or None,
+        )

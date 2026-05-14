@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     TWILIO_AUTH_TOKEN: str = ""
     TWILIO_FROM_NUMBER: str = ""
     TWILIO_MESSAGING_SERVICE_SID: str = ""
+    TWILIO_STUDIO_FLOW_SID: str = ""
+    TWILIO_STUDIO_STATUS_CALLBACK: str = ""
 
     # Telnyx
     TELNYX_API_KEY: str = ""
@@ -28,6 +30,9 @@ class Settings(BaseSettings):
 
     # GoHighLevel (CRM/workflow automation only; Roadcall remains source of truth)
     GHL_BASE_URL: str = "https://services.leadconnectorhq.com"
+    GHL_API_KEY: str = ""
+    GHL_LOCATION_ID: str = ""
+    GHL_FROM_NUMBER: str = ""
     GHL_ENCRYPTION_KEY: str = ""
     GHL_WEBHOOK_TOLERANCE_SECONDS: int = 300
 
@@ -79,7 +84,10 @@ class Settings(BaseSettings):
             return frontend_url
         return app_base_url or "http://localhost:3000"
 
-    model_config = {"env_file": ".env", "case_sensitive": True}
+    model_config = {
+        "env_file": (".env", "../.env"),
+        "case_sensitive": True,
+    }
 
 
 @lru_cache()

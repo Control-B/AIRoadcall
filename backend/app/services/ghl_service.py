@@ -258,6 +258,71 @@ class GHLService:
             "Version": "2021-07-28",
         }
 
+    def _api_key_headers(self, api_key: str) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Version": "2021-07-28",
+        }
+
+    async def get_location_via_api_key(self, api_key: str, location_id: str) -> dict[str, Any]:
+        if not api_key:
+            raise RuntimeError("Missing GHL API key")
+        if not location_id:
+            raise RuntimeError("Missing GHL location ID")
+
+        headers = self._api_key_headers(api_key)
+        errors: list[str] = []
+        endpoints = [
+            f"/locations/{location_id}",
+            f"/locations/{location_id}/",
+        ]
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            for endpoint in endpoints:
+                response = await client.get(f"{self.base_url}{endpoint}", headers=headers)
+                if response.status_code < 400:
+                    data = response.json() if response.text else {}
+                    return data.get("location") or data.get("data") or data
+                errors.append(f"{endpoint}: HTTP {response.status_code} {response.text[:200]}")
+        raise RuntimeError("; ".join(errors))
+
+    async def create_subaccount_via_api_key(self, api_key: str, subaccount_payload: dict[str, Any]) -> dict[str, Any]:
+        if not api_key:
+            raise RuntimeError("Missing GHL API key")
+        if not isinstance(subaccount_payload, dict) or not subaccount_payload:
+            raise RuntimeError("subaccount_payload must be a non-empty object")
+
+        headers = self._api_key_headers(api_key)
+        errors: list[str] = []
+        endpoints = ["/locations/", "/locations"]
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for endpoint in endpoints:
+                response = await client.post(
+                    f"{self.base_url}{endpoint}",
+                    headers=headers,
+                    json=subaccount_payload,
+                )
+                if response.status_code < 400:
+                    body = response.json() if response.text else {}
+                    location_obj = body.get("location") or body.get("data") or body
+                    location_id = (
+                        location_obj.get("id")
+                        or location_obj.get("locationId")
+                        or body.get("id")
+                        or body.get("locationId")
+                    )
+                    if not location_id:
+                        raise RuntimeError("Subaccount created but no location ID returned")
+                    return {
+                        "location_id": str(location_id),
+                        "subaccount": location_obj,
+                        "raw": body,
+                    }
+                errors.append(f"{endpoint}: HTTP {response.status_code} {response.text[:300]}")
+
+        raise RuntimeError("; ".join(errors))
+
     async def _post(self, db: AsyncSession, mapping: GHLTenantMapping, endpoint: str, payload: dict[str, Any], action: str) -> dict[str, Any]:
         url = f"{self.base_url}{endpoint}"
         try:
