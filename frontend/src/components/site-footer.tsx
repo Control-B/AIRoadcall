@@ -40,7 +40,7 @@ export function SiteFooter() {
     <footer className="border-t border-roadcall-cyan/10 bg-[linear-gradient(180deg,rgba(3,12,30,0.96),rgba(2,7,21,0.98))]">
       {/* ── Main footer ─────────────────────────────── */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 xl:gap-12">
           {/* Brand column */}
           <div className="lg:col-span-2">
             <Link href="/" className="mb-5 inline-block">
