@@ -48,7 +48,11 @@ const integrations = [
   "Samsara", "Geotab", "Motive", "ELD", "Fleetio", "Zenduit", "Google Maps", "Custom API",
 ];
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://airoadcall-i76ba.ondigitalocean.app/api";
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? `${window.location.origin.replace(/\/$/, "")}/api`
+    : "http://localhost:8000/api");
 
 function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general" }) {
   const [email, setEmail] = useState("");
@@ -177,6 +181,19 @@ export default function HomePage() {
 
   return (
     <PageLayout>
+      {/* Floating "I Need Help Now" SOS button — visible on every scroll position
+          for stranded drivers who only remember roadcall.ai */}
+      <Link
+        href="/go"
+        aria-label="I need roadside help now"
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-bold text-slate-950 shadow-2xl ring-2 ring-orange-300/60 transition hover:scale-105 hover:bg-orange-400 sm:bottom-8 sm:right-8 sm:px-6 sm:py-4 sm:text-base"
+      >
+        <span className="relative flex h-3 w-3">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+          <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
+        </span>
+        I Need Help Now
+      </Link>
 
       {/* ═══════════════════════════════════════════════════════════════
           HERO — Full-viewport cinematic truck section.

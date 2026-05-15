@@ -148,6 +148,83 @@ class GeocodingService:
             logger.error("Mapbox geocoding failed for '%s': %s", query, e)
             return None
 
+    @staticmethod
+    async def reverse_geocode(latitude: float, longitude: float) -> dict | None:
+        """Reverse-geocode a (lat, lng) into city, state, address.
+
+        Returns a dict like:
+            {
+                "city": "Lakeland",
+                "state": "FL",
+                "address": "1234 Main St",
+                "place_name": "1234 Main St, Lakeland, Florida 33801, United States",
+                "latitude": 28.0395,
+                "longitude": -81.9498,
+                "mapbox_metadata": {...}
+            }
+        Returns None on failure.
+        """
+        token = settings.MAPBOX_ACCESS_TOKEN
+        if not token:
+            logger.warning("MAPBOX_ACCESS_TOKEN not set — cannot reverse geocode")
+            return None
+
+        cache_key = f"rev:{round(latitude, 5)},{round(longitude, 5)}"
+        cached = _GEOCODE_CACHE.get(cache_key)
+        now = time.monotonic()
+        if cached and now - cached[0] < _CACHE_TTL_SECONDS:
+            return cached[1]
+
+        params = {
+            "access_token": token,
+            "country": "us",
+            "limit": 1,
+            "types": "address,poi,place,locality,neighborhood,postcode",
+        }
+
+        data = None
+        last_error: Exception | None = None
+        for attempt in range(3):
+            try:
+                async with httpx.AsyncClient(timeout=8) as client:
+                    response = await client.get(
+                        f"{MAPBOX_GEOCODE_URL}/{longitude},{latitude}.json",
+                        params=params,
+                    )
+                    response.raise_for_status()
+                    data = response.json()
+                    break
+            except Exception as exc:
+                last_error = exc
+                await asyncio.sleep(0.25 * (attempt + 1))
+
+        if data is None:
+            logger.error("Mapbox reverse_geocode failed for (%s,%s): %s", latitude, longitude, last_error)
+            return None
+
+        features = data.get("features", [])
+        if not features:
+            logger.info("Mapbox returned no reverse results for (%s,%s)", latitude, longitude)
+            return None
+
+        feature = features[0]
+        city, state = _extract_city_state(feature)
+        # Try to find a sibling address feature even if first feature is a POI/place
+        address = feature.get("address") or feature.get("text")
+        place_name = feature.get("place_name")
+
+        result = {
+            "city": city,
+            "state": state,
+            "address": address,
+            "place_name": place_name,
+            "latitude": float(latitude),
+            "longitude": float(longitude),
+            "mapbox_metadata": feature,
+        }
+        _GEOCODE_CACHE[cache_key] = (now, result)
+        return result
+
 
 def _mentions_florida(value: str) -> bool:
     lowered = value.lower()

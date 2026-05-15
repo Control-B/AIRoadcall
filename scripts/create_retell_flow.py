@@ -69,6 +69,8 @@ FLOW = {
         "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.",
         "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
+        "WEBSITE-FIRST LOCATION (PRIMARY FLOW WHILE SMS IS PENDING): As soon as you have the caller on the line, before asking for city, say warmly: 'For the fastest help, please open your phone browser and go to roadcall dot a-i slash g-o — that's r-o-a-d-c-a-l-l dot a-i slash g-o — enter your phone number and tap Submit. The moment you do, I'll see your exact GPS location and find the closest mechanic.' If they say they did it, wait two seconds and call get_dispatch_status using their phone number — the result will appear automatically. If they cannot use the website (no smartphone, no signal, refuses), THEN fall back to asking city + state verbally. Never push the website twice — ask once, then move on if they say no.",
+        "WEBSITE STATUS POLLING: After you direct the caller to roadcall.ai/go, poll get_dispatch_status every 8 to 10 seconds using their callback phone number as the work_order_id. As soon as the status response includes matches, read the top three options exactly as worded.",
         "PACING: Speak like a calm human dispatcher, not a robot. When you read match_mechanic.message, honor the ellipses (\"...\") and periods as real pauses — take a half-second breath at each ellipsis and a full beat at each period. Do not run sentences together. Read each numbered option as its own sentence: \"Number one ... Truck Tire LLC ... \" pause ... \"Number two ... Big Guy Truck ... \" pause ... \"Number three ... Bobby's Truck Shop.\" Then ask the question. Never list more than three local options.",
         "When reading results, ALWAYS prefer to speak match_mechanic.message exactly as returned — it is already worded for voice and may include up to three local options and one major vendor when one is nearby. Never list more than three local options. After reading the message, ask one short next-step question. Do not read phone numbers unless the caller asks or picks one.",
         "The major vendor is provided in match_mechanic.majorVendor with brandName, interstate, and exitNumber. You may speak its brandName, interstate, exit, and city verbatim — but only if majorVendor is present in the latest tool response. Never invent a major vendor.",
@@ -193,6 +195,21 @@ FLOW = {
                     "service_request_id": {"type": "string", "description": "The service_request_id to check status for"}
                 },
                 "required": ["service_request_id"]
+            }
+        },
+        {
+            "type": "custom",
+            "tool_id": "tool-roadcall-go-status",
+            "name": "check_go_dispatch",
+            "description": "Check whether the caller has submitted their phone + GPS location on roadcall.ai/go. Call this every 8-10 seconds AFTER you direct the caller to the website. Pass the caller's 10-digit phone number. Returns 404 until they submit; once they do, returns the resolved location and the top three mechanic matches you can read aloud.",
+            "url": f"{BACKEND_URL}/api/go/status/{{phone}}",
+            "method": "GET",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "phone": {"type": "string", "description": "Caller's 10-digit US phone number, digits only (e.g. 8635551212)"}
+                },
+                "required": ["phone"]
             }
         },
         {
@@ -797,7 +814,8 @@ agent_body = {
     "end_call_after_silence_ms": 120000,
     "boosted_keywords": [
         "roadside", "mechanic", "towing", "tractor", "trailer",
-        "tire", "coolant", "no-start", "derate", "air leak"
+        "tire", "coolant", "no-start", "derate", "air leak",
+        "roadcall", "roadcall.ai", "roadcall dot a-i", "slash g-o", "submit",
     ],
     "normalize_for_speech": True,
 }

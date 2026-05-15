@@ -1,131 +1,546 @@
 "use client";
 
-import { FormEvent, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowRight, MapPin } from "lucide-react";
+/**
+ * roadcall.ai/go — website-first dispatch flow.
+ *
+ * Replaces SMS magic-link while Twilio A2P is pending.
+ * Driver enters phone number, taps Submit, browser captures GPS,
+ * backend reverse-geocodes via Mapbox and returns top 3 mechanics.
+ */
 
-import { Button } from "@/components/ui/button";
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  MapPin,
+  Phone,
+  RefreshCcw,
+  Wrench,
+  AlertTriangle,
+} from "lucide-react";
 
-function normalizeCaseCode(raw: string): string {
-  const cleaned = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
-  if (!cleaned) {
-    return "";
-  }
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? `${window.location.origin.replace(/\/$/, "")}/api`
+    : "http://localhost:8000/api");
 
-  const withoutPrefix = cleaned.startsWith("RC") ? cleaned.slice(2) : cleaned;
-  if (!withoutPrefix) {
-    return "RC-";
-  }
-
-  return `RC-${withoutPrefix}`;
+// ───────── helpers ─────────
+function formatPhonePretty(raw: string): string {
+  const d = raw.replace(/\D/g, "").slice(0, 10);
+  if (d.length <= 3) return d;
+  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
+  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
+function digitsOnly(raw: string): string {
+  return raw.replace(/\D/g, "").slice(0, 10);
+}
+function telHrefFor(raw?: string | null): string {
+  if (!raw) return "#";
+  const d = raw.replace(/[^\d+]/g, "");
+  if (d.startsWith("+")) return `tel:${d}`;
+  if (d.length === 10) return `tel:+1${d}`;
+  if (d.length === 11 && d.startsWith("1")) return `tel:+${d}`;
+  return `tel:${d}`;
 }
 
-export default function GoEntryPage() {
-  const router = useRouter();
-  const [codeInput, setCodeInput] = useState("");
-  const [error, setError] = useState("");
+const US_STATES = [
+  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
+  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
+  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
+  "VA","WA","WV","WI","WY",
+];
+
+// ───────── types ─────────
+type Mechanic = {
+  mechanicId: string;
+  businessName: string;
+  phone: string;
+  city?: string;
+  state?: string;
+  address?: string;
+  distanceMiles?: number | null;
+  reason?: string;
+  mobileService?: boolean;
+  emergencyService?: boolean;
+};
+
+type MajorVendor = {
+  vendorId: string;
+  brandName: string;
+  locationName?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  interstate?: string;
+  exitNumber?: string;
+  distanceMiles?: number | null;
+};
+
+type DispatchResponse = {
+  work_order_id: string;
+  status: string;
+  location: {
+    latitude?: number;
+    longitude?: number;
+    city?: string;
+    state?: string;
+    address?: string;
+    place_name?: string;
+    accuracy_m?: number;
+    source: string;
+  };
+  match: {
+    status: string;
+    matches: Mechanic[];
+    majorVendor?: MajorVendor | null;
+    message?: string;
+    needsMoreInfo?: boolean;
+    missingFields?: string[];
+  };
+};
+
+type Step = "intake" | "locating" | "matching" | "results" | "manual_fallback";
+
+// ───────── component ─────────
+export default function GoPage() {
+  const [step, setStep] = useState<Step>("intake");
+  const [phone, setPhone] = useState("");
+  const [problem, setProblem] = useState("");
+  const [vehicleType, setVehicleType] = useState("");
+  const [name, setName] = useState("");
+  const [manualCity, setManualCity] = useState("");
+  const [manualState, setManualState] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<DispatchResponse | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [progressMsg, setProgressMsg] = useState<string>("");
+  const pollRef = useRef<number | null>(null);
 
-  const normalizedPreview = useMemo(() => normalizeCaseCode(codeInput), [codeInput]);
+  const phoneDigits = useMemo(() => digitsOnly(phone), [phone]);
+  const phoneValid = phoneDigits.length === 10;
 
-  function handleChange(value: string) {
-    setCodeInput(value);
-    if (error) {
-      setError("");
-    }
-  }
+  const submitDispatch = useCallback(
+    async (opts: {
+      latitude?: number;
+      longitude?: number;
+      accuracy_m?: number;
+      city?: string;
+      state?: string;
+    }) => {
+      setSubmitting(true);
+      setError(null);
+      setStep("matching");
+      setProgressMsg("Finding the closest mechanic to you…");
+      try {
+        const res = await fetch(`${API_URL}/go/dispatch`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            phone: phoneDigits,
+            latitude: opts.latitude ?? null,
+            longitude: opts.longitude ?? null,
+            accuracy_m: opts.accuracy_m ?? null,
+            city: opts.city ?? null,
+            state: opts.state ?? null,
+            problem: problem || null,
+            vehicle_type: vehicleType || null,
+            name: name || null,
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.detail || `Dispatch failed (${res.status})`);
+        }
+        const data: DispatchResponse = await res.json();
+        setResult(data);
+        if (data.match.needsMoreInfo) {
+          setStep("manual_fallback");
+        } else {
+          setStep("results");
+        }
+      } catch (err: any) {
+        setError(err?.message || "Something went wrong. Please try again.");
+        setStep("intake");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [phoneDigits, problem, vehicleType, name],
+  );
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const normalizedCode = normalizeCaseCode(codeInput);
-    const isValid = /^RC-[A-Z0-9]{4,12}$/.test(normalizedCode);
-
-    if (!isValid) {
-      setError("Enter the case code exactly as Roadcall gave it to you.");
+  const requestGpsThenDispatch = useCallback(() => {
+    if (!phoneValid) {
+      setError("Please enter a 10-digit phone number.");
       return;
     }
+    if (!("geolocation" in navigator)) {
+      setStep("manual_fallback");
+      setError("Your browser does not support GPS. Please enter your city and state.");
+      return;
+    }
+    setError(null);
+    setStep("locating");
+    setProgressMsg("Getting your location… please tap “Allow” if your phone asks.");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        submitDispatch({
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy_m: pos.coords.accuracy,
+        });
+      },
+      (geoErr) => {
+        // Permission denied / timeout → fallback
+        let msg = "We couldn't get your GPS location.";
+        if (geoErr.code === geoErr.PERMISSION_DENIED) {
+          msg = "Location permission was blocked. Enter your city and state below and we'll still find help.";
+        } else if (geoErr.code === geoErr.TIMEOUT) {
+          msg = "GPS timed out. Enter your city and state below.";
+        }
+        setError(msg);
+        setStep("manual_fallback");
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
+    );
+  }, [phoneValid, submitDispatch]);
 
-    setSubmitting(true);
-    router.push(`/go/${normalizedCode}`);
-  }
+  const handleSubmitForm = (e: FormEvent) => {
+    e.preventDefault();
+    requestGpsThenDispatch();
+  };
 
+  const handleManualSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!manualCity.trim() || !manualState) {
+      setError("City and state are required.");
+      return;
+    }
+    submitDispatch({ city: manualCity.trim(), state: manualState });
+  };
+
+  // Light polling while results are visible — picks up dispatch state changes
+  useEffect(() => {
+    if (step !== "results" || !result?.work_order_id) return;
+    const id = window.setInterval(async () => {
+      try {
+        const res = await fetch(`${API_URL}/go/status/${result.work_order_id}`);
+        if (res.ok) {
+          const data: DispatchResponse = await res.json();
+          setResult(data);
+        }
+      } catch {
+        /* swallow polling errors */
+      }
+    }, 15000);
+    pollRef.current = id;
+    return () => {
+      window.clearInterval(id);
+      pollRef.current = null;
+    };
+  }, [step, result?.work_order_id]);
+
+  const reset = () => {
+    setStep("intake");
+    setResult(null);
+    setError(null);
+    setProgressMsg("");
+  };
+
+  // ───────── render ─────────
   return (
-    <div className="min-h-screen bg-background px-4 py-10 text-foreground">
-      <div className="mx-auto max-w-md">
-        <Card className="border-border/80 shadow-xl">
-          <CardHeader className="space-y-4 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-              <MapPin className="h-8 w-8 text-primary" />
-            </div>
-            <div className="space-y-2">
-              <CardTitle className="text-3xl">Find your roadside case</CardTitle>
-              <CardDescription className="text-sm leading-6">
-                Enter the case code the agent gave you to open your Roadcall link,
-                share your exact location, and track your mechanic.
-              </CardDescription>
-            </div>
-          </CardHeader>
+    <div className="min-h-screen bg-slate-950 text-slate-50">
+      <header className="border-b border-slate-800/70 bg-slate-900/70 px-4 py-3">
+        <div className="mx-auto flex max-w-md items-center justify-between">
+          <Link href="/" className="text-sm font-semibold text-slate-200 hover:text-white">
+            ← Roadcall
+          </Link>
+          <span className="text-xs uppercase tracking-widest text-emerald-400">
+            Live Dispatch
+          </span>
+        </div>
+      </header>
 
-          <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="case-code" className="text-sm font-medium">
-                  Case code
-                </label>
-                <Input
-                  id="case-code"
-                  value={codeInput}
-                  onChange={(event) => handleChange(event.target.value)}
-                  placeholder="RC-1234ABCD"
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                  spellCheck={false}
-                  inputMode="text"
-                  className="h-14 text-center font-mono text-lg tracking-[0.2em] uppercase"
+      <main className="mx-auto max-w-md px-4 pb-20 pt-6">
+        {/* Hero */}
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/20 ring-1 ring-orange-400/40">
+            <MapPin className="h-7 w-7 text-orange-400" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">I need help now</h1>
+          <p className="mt-2 text-sm leading-6 text-slate-300">
+            Enter your phone number and tap submit. We'll find the closest mechanic to your exact GPS location and call them for you.
+          </p>
+        </div>
+
+        {/* INTAKE */}
+        {step === "intake" && (
+          <form
+            onSubmit={handleSubmitForm}
+            className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl"
+          >
+            <div>
+              <label htmlFor="phone" className="mb-1 block text-sm font-medium text-slate-200">
+                Your phone number <span className="text-orange-400">*</span>
+              </label>
+              <input
+                id="phone"
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                value={formatPhonePretty(phone)}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="(555) 123-4567"
+                className="h-14 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-center text-2xl font-semibold tracking-wider text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
+              />
+              <p className="mt-1 text-xs text-slate-400">
+                This is your work order — we'll text you updates and the mechanic will call this number.
+              </p>
+            </div>
+
+            <details className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-sm">
+              <summary className="cursor-pointer text-slate-300">Optional — helps us match faster</summary>
+              <div className="mt-3 space-y-3">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
                 />
-                <p className="text-xs text-muted-foreground">
-                  Example: <span className="font-mono">RC-A1B2C3D4</span>
-                </p>
+                <input
+                  type="text"
+                  value={problem}
+                  onChange={(e) => setProblem(e.target.value)}
+                  placeholder="What's wrong? (tire, battery, fuel, towing…)"
+                  className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
+                />
+                <select
+                  value={vehicleType}
+                  onChange={(e) => setVehicleType(e.target.value)}
+                  className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-orange-400 focus:outline-none"
+                >
+                  <option value="">Vehicle type…</option>
+                  <option value="car">Car / SUV / pickup</option>
+                  <option value="box truck">Box truck / straight truck</option>
+                  <option value="semi">Semi / tractor</option>
+                  <option value="trailer">Trailer / reefer</option>
+                  <option value="rv">RV / motorhome</option>
+                </select>
               </div>
+            </details>
 
-              {normalizedPreview && normalizedPreview !== "RC-" && (
-                <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-center text-sm text-muted-foreground">
-                  We&apos;ll look up: <span className="font-mono font-semibold text-foreground">{normalizedPreview}</span>
-                </div>
+            {error && (
+              <div className="flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={!phoneValid || submitting}
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 text-lg font-bold text-slate-950 shadow-lg transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+            >
+              {submitting ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                <>
+                  Submit & share my location
+                  <ArrowRight className="h-5 w-5" />
+                </>
               )}
+            </button>
 
-              {error && (
-                <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                  {error}
-                </div>
-              )}
+            <p className="text-center text-xs text-slate-500">
+              Tapping submit asks your browser for your GPS location.
+            </p>
+          </form>
+        )}
 
-              <Button
-                type="submit"
-                size="lg"
-                className="w-full"
-                disabled={submitting}
-              >
-                {submitting ? "Opening your case..." : "Open my case"}
-                {!submitting && <ArrowRight className="ml-2 h-4 w-4" />}
-              </Button>
-            </form>
+        {/* LOCATING / MATCHING */}
+        {(step === "locating" || step === "matching") && (
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center shadow-xl">
+            <Loader2 className="mx-auto h-10 w-10 animate-spin text-orange-400" />
+            <h2 className="mt-4 text-xl font-semibold">{progressMsg}</h2>
+            <p className="mt-2 text-sm text-slate-400">
+              {step === "locating"
+                ? "Some phones take a few seconds to fix GPS — hang tight."
+                : "Searching 35,000+ mechanics across the US."}
+            </p>
+          </div>
+        )}
 
-            <div className="mt-6 rounded-xl border border-border/70 bg-muted/30 p-4 text-sm text-muted-foreground">
-              If you&apos;re on the phone with Roadcall, the agent can read your case code out loud.
-              Once your page opens, you&apos;ll be able to confirm your location and follow your mechanic on the map.
+        {/* MANUAL FALLBACK */}
+        {step === "manual_fallback" && (
+          <form
+            onSubmit={handleManualSubmit}
+            className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl"
+          >
+            <div className="flex items-start gap-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error || "GPS unavailable — tell us where you are and we'll still find help."}</span>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <input
+              type="text"
+              value={manualCity}
+              onChange={(e) => setManualCity(e.target.value)}
+              placeholder="City"
+              className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
+            />
+            <select
+              value={manualState}
+              onChange={(e) => setManualState(e.target.value)}
+              className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-orange-400 focus:outline-none"
+            >
+              <option value="">State…</option>
+              {US_STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 text-base font-bold text-slate-950 hover:bg-orange-400 disabled:bg-slate-700 disabled:text-slate-400"
+            >
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Find mechanics"}
+            </button>
+            <button
+              type="button"
+              onClick={requestGpsThenDispatch}
+              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-orange-400 hover:text-orange-300"
+            >
+              <RefreshCcw className="h-4 w-4" /> Try GPS again
+            </button>
+          </form>
+        )}
+
+        {/* RESULTS */}
+        {step === "results" && result && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+                <div>
+                  <div className="font-semibold">Got your location.</div>
+                  <div className="text-emerald-200/90">
+                    {result.location.place_name ||
+                      [result.location.city, result.location.state].filter(Boolean).join(", ") ||
+                      "Location received"}
+                  </div>
+                  <div className="mt-1 text-xs text-emerald-300/80">
+                    Work order: <span className="font-mono">{result.work_order_id}</span>
+                    {result.location.accuracy_m
+                      ? ` · GPS ±${Math.round(result.location.accuracy_m)} m`
+                      : ""}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {result.match.matches.length > 0 ? (
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold text-slate-100">
+                  Closest mechanics
+                </h2>
+                {result.match.matches.map((m, i) => (
+                  <div
+                    key={m.mechanicId}
+                    className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs uppercase tracking-wider text-orange-400">
+                          Option {i + 1}
+                        </div>
+                        <div className="mt-1 text-base font-semibold text-white">
+                          {m.businessName}
+                        </div>
+                        <div className="mt-0.5 text-xs text-slate-400">
+                          {[m.city, m.state].filter(Boolean).join(", ")}
+                          {typeof m.distanceMiles === "number"
+                            ? ` · ${m.distanceMiles.toFixed(1)} mi away`
+                            : ""}
+                        </div>
+                        {m.reason && (
+                          <div className="mt-1 text-xs text-slate-500">{m.reason}</div>
+                        )}
+                      </div>
+                      <a
+                        href={telHrefFor(m.phone)}
+                        className="flex h-12 shrink-0 items-center gap-2 rounded-xl bg-emerald-500 px-4 text-sm font-bold text-slate-950 hover:bg-emerald-400"
+                      >
+                        <Phone className="h-4 w-4" /> Call
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-center text-sm text-slate-300">
+                <Wrench className="mx-auto mb-2 h-6 w-6 text-slate-500" />
+                No local mechanics matched in our directory yet — but we have a major-vendor option below.
+              </div>
+            )}
+
+            {result.match.majorVendor && (
+              <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 p-4">
+                <div className="text-xs uppercase tracking-wider text-blue-300">
+                  National vendor
+                </div>
+                <div className="mt-1 text-base font-semibold text-white">
+                  {result.match.majorVendor.brandName}
+                  {result.match.majorVendor.locationName ? ` · ${result.match.majorVendor.locationName}` : ""}
+                </div>
+                <div className="mt-0.5 text-xs text-blue-200/90">
+                  {[result.match.majorVendor.city, result.match.majorVendor.state]
+                    .filter(Boolean)
+                    .join(", ")}
+                  {result.match.majorVendor.interstate
+                    ? ` · ${result.match.majorVendor.interstate}${
+                        result.match.majorVendor.exitNumber
+                          ? ` exit ${result.match.majorVendor.exitNumber}`
+                          : ""
+                      }`
+                    : ""}
+                </div>
+                {result.match.majorVendor.phone && (
+                  <a
+                    href={telHrefFor(result.match.majorVendor.phone)}
+                    className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-500 text-sm font-bold text-slate-950 hover:bg-blue-400"
+                  >
+                    <Phone className="h-4 w-4" /> Call {result.match.majorVendor.brandName}
+                  </a>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={reset}
+              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-orange-400 hover:text-orange-300"
+            >
+              <RefreshCcw className="h-4 w-4" /> Start over
+            </button>
+
+            <p className="text-center text-xs text-slate-500">
+              If no one answers, call our dispatcher: {" "}
+              <a href="tel:+18889999999" className="text-orange-400 hover:underline">
+                Roadcall AI dispatch
+              </a>
+            </p>
+          </div>
+        )}
+
+        {/* Existing case-code lookup link */}
+        <div className="mt-10 text-center text-xs text-slate-500">
+          Have a case code from the dispatcher?{" "}
+          <Link href="/go/lookup" className="text-orange-400 hover:underline">
+            Look it up
+          </Link>
+        </div>
+      </main>
     </div>
   );
 }
