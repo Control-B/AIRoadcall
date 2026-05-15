@@ -1,0 +1,161 @@
+{
+  "id": "standard",
+  "snapshotName": "Roadcall Standard - AI Answering Snapshot",
+  "displayName": "Standard",
+  "pricing": {
+    "monthly": 197,
+    "setup": 99
+  },
+  "target": "Small mechanics and mobile roadside businesses that need 24/7 AI answering, missed-call recovery, basic CRM, and SMS follow-up.",
+  "tags": [
+    "roadcall",
+    "roadcall:plan-standard",
+    "roadcall:new-lead",
+    "roadcall:demo-booked",
+    "roadcall:customer",
+    "roadcall:missed-call",
+    "roadcall:ai-receptionist",
+    "roadcall:website-widget"
+  ],
+  "customFields": [
+    {
+      "name": "Roadcall Plan",
+      "key": "roadcall_plan",
+      "type": "single_select",
+      "options": [
+        "standard",
+        "professional",
+        "premium"
+      ]
+    },
+    {
+      "name": "Roadcall Organization ID",
+      "key": "roadcall_organization_id",
+      "type": "text"
+    },
+    {
+      "name": "Roadcall Lifecycle Event",
+      "key": "roadcall_lifecycle_event",
+      "type": "text"
+    },
+    {
+      "name": "Roadcall Lifecycle Event ID",
+      "key": "roadcall_lifecycle_event_id",
+      "type": "text"
+    },
+    {
+      "name": "Roadcall Vertical",
+      "key": "roadcall_vertical",
+      "type": "single_select",
+      "options": [
+        "fleet",
+        "shop",
+        "vendor",
+        "driver",
+        "general"
+      ]
+    },
+    {
+      "name": "Roadcall Subscription Status",
+      "key": "roadcall_subscription_status",
+      "type": "single_select",
+      "options": [
+        "trial",
+        "active",
+        "past_due",
+        "cancelled",
+        "unknown"
+      ]
+    },
+    {
+      "name": "Roadcall Missed Call Summary",
+      "key": "roadcall_missed_call_summary",
+      "type": "large_text"
+    },
+    {
+      "name": "Roadcall AI Call Summary",
+      "key": "roadcall_ai_call_summary",
+      "type": "large_text"
+    }
+  ],
+  "pipelines": [
+    {
+      "name": "Roadcall Revenue Pipeline - Standard",
+      "stages": [
+        "New Lead",
+        "Contacted",
+        "Demo Booked",
+        "Checkout Started",
+        "Customer Active",
+        "At Risk",
+        "Churned"
+      ]
+    },
+    {
+      "name": "Roadcall Recovery Pipeline - Standard",
+      "stages": [
+        "Missed Call",
+        "AI Follow-up Sent",
+        "Human Review Needed",
+        "Recovered",
+        "Lost"
+      ]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "Roadcall Standard - New Lead Speed to Lead",
+      "trigger": "workflow event: new_lead",
+      "actions": [
+        "Create or update contact with roadcall and roadcall:plan-standard tags.",
+        "Create an opportunity in Roadcall Revenue Pipeline - Standard at New Lead.",
+        "Send immediate intro SMS and email with demo CTA.",
+        "Create a sales task if no demo is booked after 15 minutes.",
+        "Stop when demo_booked, checkout_completed, or subscription_started arrives."
+      ]
+    },
+    {
+      "name": "Roadcall Standard - Missed Call Recovery",
+      "trigger": "workflow event: missed_call",
+      "actions": [
+        "Add roadcall:missed-call and roadcall:ai-receptionist tags.",
+        "Create recovery opportunity at Missed Call.",
+        "Send short recovery SMS with opt-out language.",
+        "Create urgent task due in 5 minutes.",
+        "Move to Recovered only after human or Roadcall confirmation."
+      ]
+    }
+  ],
+  "emailTemplates": [
+    {
+      "name": "Roadcall Standard - Intro",
+      "subject": "Your Roadcall AI answering setup",
+      "body": "Hi {{contact.first_name}},\n\nThanks for checking out Roadcall Standard. This plan gives your shop 24/7 AI answering, missed-call text back, call summaries, multilingual support, and basic CRM follow-up.\n\nBook your setup call here: {{calendar.link}}\n\n- Roadcall"
+    },
+    {
+      "name": "Roadcall Standard - Missed Call Recovery",
+      "subject": "We saw a missed call",
+      "body": "Hi {{contact.first_name}},\n\nRoadcall detected a missed call and queued a recovery follow-up. Summary:\n{{custom_values.roadcall_ai_call_summary}}\n\n- Roadcall"
+    }
+  ],
+  "smsTemplates": [
+    {
+      "name": "Roadcall Standard - New Lead SMS",
+      "body": "Thanks for checking out Roadcall Standard. Want 24/7 AI answering + missed-call text back? Book here: {{calendar.link}} Reply STOP to opt out."
+    },
+    {
+      "name": "Roadcall Standard - Missed Call SMS",
+      "body": "Roadcall saw a missed call. Want help recovering it? Reply YES or call back. Reply STOP to opt out."
+    }
+  ],
+  "aiReceptionist": {
+    "purpose": "Answer calls, qualify leads, summarize conversations, collect callback details, and route urgent roadside calls to Roadcall intake or a human.",
+    "guardrails": [
+      "Do not dispatch mechanics.",
+      "Do not promise ETA.",
+      "Do not quote final repair costs.",
+      "Do not collect full card details."
+    ]
+  },
+  "calendars": []
+}

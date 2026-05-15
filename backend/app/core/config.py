@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     GHL_FROM_NUMBER: str = ""
     GHL_ENCRYPTION_KEY: str = ""
     GHL_WEBHOOK_TOLERANCE_SECONDS: int = 300
+    GHL_STANDARD_SNAPSHOT_ID: str = ""
+    GHL_PROFESSIONAL_SNAPSHOT_ID: str = ""
+    GHL_PREMIUM_SNAPSHOT_ID: str = ""
+    GHL_PROVISIONING_WEBHOOK_URL: str = ""
 
     # DigitalOcean AI Gradient (text chat)
     DO_AI_ENDPOINT: str = ""  # e.g. https://cluster-api.do-ai.run/v1
@@ -87,6 +91,7 @@ class Settings(BaseSettings):
     model_config = {
         "env_file": (".env", "../.env"),
         "case_sensitive": True,
+        "extra": "ignore",
     }
 
 

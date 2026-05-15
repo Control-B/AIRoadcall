@@ -36,14 +36,16 @@ def _get_connect_args() -> dict:
     return {}
 
 
-engine = create_async_engine(
-    _ensure_asyncpg_url(settings.DATABASE_URL),
-    echo=False,
-    pool_pre_ping=True,
-    pool_size=10,
-    max_overflow=20,
-    connect_args=_get_connect_args(),
-)
+database_url = _ensure_asyncpg_url(settings.DATABASE_URL)
+engine_kwargs = {
+    "echo": False,
+    "pool_pre_ping": True,
+    "connect_args": _get_connect_args(),
+}
+if not database_url.startswith("sqlite"):
+    engine_kwargs.update({"pool_size": 10, "max_overflow": 20})
+
+engine = create_async_engine(database_url, **engine_kwargs)
 
 async_session_factory = async_sessionmaker(
     engine,

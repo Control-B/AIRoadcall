@@ -7,6 +7,34 @@ Roadcall remains the source of truth for operations. GHL should react to lifecyc
 ## Files
 
 - `ghl/roadcall-ghl-setup.json` — structured setup blueprint for fields, tags, pipelines, workflows, templates, AI receptionist guardrails, Ask AI prompts, and acceptance tests.
+- `ghl/roadcall-plan-snapshots.json` — plan-specific blueprint definitions for the Standard, Professional, and Premium GHL snapshot builds.
+- `backend/scripts/build_ghl_plan_snapshots.py` — dry-run-first generator that writes per-plan build artifacts and can optionally apply supported LeadConnector assets to a location.
+
+## Plan Snapshot Builder
+
+GHL's official agency snapshot is best treated as the final saved copy of a configured source sub-account. Build the plan assets into a clean source location, verify them, then save that location as the official GHL Snapshot in the agency UI.
+
+Generate all three plan build packages without touching GHL:
+
+```bash
+python backend/scripts/build_ghl_plan_snapshots.py
+```
+
+Generate one package:
+
+```bash
+python backend/scripts/build_ghl_plan_snapshots.py --plan professional
+```
+
+Apply supported location assets only after setting secrets in your shell. The script does not print the API key.
+
+```bash
+export GHL_API_KEY="REPLACE_WITH_GHL_KEY"
+export GHL_LOCATION_ID="REPLACE_WITH_SOURCE_LOCATION_ID"
+python backend/scripts/build_ghl_plan_snapshots.py --plan standard --apply
+```
+
+The apply mode is intentionally conservative. It creates supported tags and custom fields, then leaves pipelines, workflows, templates, AI prompts, calendars, and final snapshot saving for the generated build guide / GHL UI because those surfaces vary by account/API capability.
 
 ## Implementation Order
 
@@ -18,6 +46,8 @@ Roadcall remains the source of truth for operations. GHL should react to lifecyc
 6. Add the `emailTemplates` and `smsTemplates` copy.
 7. Connect Roadcall events through the GHL integration page in Roadcall admin.
 8. Test every item in `acceptanceTests` before turning workflows on.
+
+For pricing-plan snapshots, repeat the same order against each generated source-location guide under `ghl/generated/<plan>/`.
 
 ## Required Roadcall Events
 

@@ -32,3 +32,12 @@ from app.models.ghl_integration import (
     GHLRetryQueueItem,
 )
 from app.models.lifecycle_event import LifecycleEvent
+from app.models.tenant_provisioning import (
+    Tenant,
+    TenantPlan,
+    GHLConnection,
+    ProvisioningEvent,
+    FeatureFlag,
+    RoadsideSession,
+    DispatchEvent,
+)

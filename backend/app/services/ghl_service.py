@@ -323,6 +323,52 @@ class GHLService:
 
         raise RuntimeError("; ".join(errors))
 
+    async def trigger_snapshot_assignment_placeholder(
+        self,
+        db: AsyncSession,
+        *,
+        organization_id: str,
+        location_id: str | None,
+        snapshot_id: str | None,
+        plan_id: str,
+        tenant_id: str,
+    ) -> dict[str, Any]:
+        """Send a provisioning webhook for plan snapshot assignment when configured.
+
+        TODO: Replace this placeholder with official GHL agency snapshot assignment
+        or OAuth app install logic when the production agency API contract is available.
+        Keep agency/OAuth tokens server-side only and grant least-privilege scopes.
+        """
+        payload = {
+            "organization_id": organization_id,
+            "tenant_id": tenant_id,
+            "location_id": location_id,
+            "snapshot_id": snapshot_id,
+            "plan_id": plan_id,
+            "source": "roadcall",
+        }
+        webhook_url = self.settings.GHL_PROVISIONING_WEBHOOK_URL.strip()
+        if not webhook_url:
+            await self.audit(db, None, "snapshot.assign.placeholder", "outbound", "skipped", "tenant", tenant_id, payload, "GHL_PROVISIONING_WEBHOOK_URL is not configured")
+            return {
+                "status": "skipped",
+                "message": "GHL_PROVISIONING_WEBHOOK_URL is not configured; assign the snapshot from the generated GHL source-location guide.",
+            }
+        headers = {"Content-Type": "application/json"}
+        api_key = self.settings.GHL_API_KEY.strip()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        try:
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                response = await client.post(webhook_url, headers=headers, json=payload)
+            if response.status_code >= 400:
+                raise RuntimeError(f"GHL provisioning webhook HTTP {response.status_code}: {response.text[:300]}")
+            await self.audit(db, None, "snapshot.assign.placeholder", "outbound", "success", "tenant", tenant_id, payload)
+            return {"status": "sent", "response": response.json() if response.text else {"ok": True}}
+        except Exception as exc:
+            await self.audit(db, None, "snapshot.assign.placeholder", "outbound", "failed", "tenant", tenant_id, payload, str(exc))
+            return {"status": "failed", "message": str(exc)}
+
     async def _post(self, db: AsyncSession, mapping: GHLTenantMapping, endpoint: str, payload: dict[str, Any], action: str) -> dict[str, Any]:
         url = f"{self.base_url}{endpoint}"
         try:

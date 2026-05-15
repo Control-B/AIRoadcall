@@ -17,6 +17,7 @@ import {
   Truck,
   MapPinned,
   Workflow,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, getUsername, logout } from "@/lib/admin-auth";
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/admin/national-vendors", icon: MapPinned, label: "National Vendors" },
   { href: "/admin/leads", icon: Mail, label: "Email List" },
   { href: "/admin/integrations/ghl", icon: Workflow, label: "GHL Integration" },
+  { href: "/admin/provisioning", icon: Crown, label: "Provisioning" },
   { href: "/admin/shops", icon: Store, label: "Shops" },
   { href: "/admin/outreach", icon: Megaphone, label: "Outreach" },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },

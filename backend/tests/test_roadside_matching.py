@@ -472,6 +472,7 @@ async def test_api_error_returns_manual_dispatch_not_hangup(monkeypatch):
     assert response.status == "manual_dispatch_required"
     assert response.fallbackCreated is True
     assert response.fallbackEscalation is True
+    assert "database" not in response.message.lower()
 
 
 # ── Major vendor layer ──────────────────────────────────────────────
