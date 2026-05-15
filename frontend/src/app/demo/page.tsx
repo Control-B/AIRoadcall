@@ -81,7 +81,7 @@ const plans = [
   },
   {
     name: "Professional",
-    price: 299,
+    price: 297,
     description: "Most popular for busy shops",
     popular: true,
     href: STRIPE_PAYMENT_LINKS.professional,
@@ -97,7 +97,7 @@ const plans = [
   },
   {
     name: "Premium",
-    price: 499,
+    price: 497,
     description: "For multi-location operations",
     href: STRIPE_PAYMENT_LINKS.premium,
     features: [

@@ -45,7 +45,7 @@ const PLANS = [
   {
     name: "Standard",
     price: "$197",
-    setup: "$299 one-time AI deployment fee",
+    setup: "$99 AI setup",
     target: "Small mechanics and mobile roadside businesses",
     icon: Headphones,
     accent: "from-sky-400 to-blue-500",
@@ -66,8 +66,8 @@ const PLANS = [
   },
   {
     name: "Professional",
-    price: "$299",
-    setup: "$999 AI onboarding and configuration",
+    price: "$297",
+    setup: "$99 AI setup",
     target: "Growing diesel shops, towing companies, and repair teams",
     icon: Mic2,
     accent: "from-roadcall-orange via-amber-400 to-blue-400",
@@ -92,8 +92,8 @@ const PLANS = [
   },
   {
     name: "Premium",
-    price: "$499",
-    setup: "$2,500 dispatch deployment",
+    price: "$497",
+    setup: "$99 AI setup",
     target: "Roadside service providers ready to operationalize dispatch",
     icon: Radio,
     accent: "from-roadcall-orange to-roadcall-blue",
