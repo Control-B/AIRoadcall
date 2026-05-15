@@ -129,7 +129,12 @@ async def go_dispatch(
             # Mapbox failed but we still have raw coordinates — matching can still proceed
             source = "browser_gps" if not has_manual else "mixed"
 
-    # Build matching request
+    # Build matching request.
+    # If the driver didn't tell us the problem yet, fall back to a generic
+    # "other" classification so the matcher still returns nearby mechanics
+    # ranked by location/trust. The /go UX would otherwise dead-end on
+    # needs_more_info=problemType, which the user reads as a failure.
+    effective_problem = (payload.problem or "other").strip() or "other"
     match_req = RoadsideMatchRequest(
         message=payload.problem or "",
         city=resolved_city,
@@ -137,7 +142,7 @@ async def go_dispatch(
         latitude=payload.latitude,
         longitude=payload.longitude,
         vehicleType=payload.vehicle_type,
-        problemType=payload.problem,
+        problemType=effective_problem,
         callerPhone=_format_e164_us(phone10),
         callbackNumber=_format_e164_us(phone10),
         limit=3,

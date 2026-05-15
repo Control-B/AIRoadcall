@@ -106,7 +106,7 @@ async def list_mechanics_admin(
 async def public_search_mechanics(
     q: str | None = Query(default=None, description="Company name, city, or keyword"),
     city: str | None = Query(default=None),
-    state: str | None = Query(default=None, min_length=2, max_length=2),
+    state: str | None = Query(default=None, max_length=2),
     service_type: str | None = Query(default=None),
     is_24_7: bool | None = Query(default=None),
     mobile_only: bool | None = Query(default=None),
@@ -115,6 +115,14 @@ async def public_search_mechanics(
     db: AsyncSession = Depends(get_session),
 ):
     """Public directory search — returns basic provider info safe for public display."""
+    # Coerce empty-string filters to None so clients that always serialize
+    # form fields (?state=&city=) don't trip validation or zero-result paths.
+    q = (q or "").strip() or None
+    city = (city or "").strip() or None
+    state = (state or "").strip() or None
+    if state and len(state) != 2:
+        state = None
+    service_type = (service_type or "").strip() or None
     await ensure_mechanic_admin_columns(db)
     result = await MechanicDataService.list_admin_mechanics(
         db,
@@ -176,6 +184,15 @@ async def search_marketplace_providers(
     Returns ranked, non-sensitive provider cards with deterministic dispatch fit,
     trust, roadside relevance, response confidence, and score breakdowns.
     """
+    # Defensive coercion: clients (Next.js URLSearchParams) sometimes send
+    # empty strings for missing filters. Treat "" as None.
+    q = (q or "").strip() or None
+    city = (city or "").strip() or None
+    state = (state or "").strip() or None
+    if state and len(state) != 2:
+        state = None
+    issue_type = (issue_type or "").strip()
+    vehicle_type = (vehicle_type or "").strip() or None
     if lat is None and lng is None and not (city and state):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
