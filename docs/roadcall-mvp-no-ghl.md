@@ -46,3 +46,44 @@ Fallback: If GPS is blocked, caller enters nearest address/exit/landmark/city/st
 ```
 
 This keeps location capture inside Roadcall and avoids depending on SMS, GHL, or AI telephony for the MVP.
+
+## Live Call Rule
+
+The agent/dispatcher should not end the call just because a text, link, or case code was given. Stay on the line until:
+
+- A mechanic is confirmed or dispatched by backend status.
+- The caller explicitly says they are done and wants to hang up.
+- The caller hangs up.
+- The caller reports injury, fire, or immediate danger and is told to call 911.
+
+## Location Priority
+
+Use location methods in this order:
+
+1. **Fleet tracker lookup** — if caller is with a fleet and has a company name plus truck/trailer/unit number.
+2. **Website code fallback** — caller opens `https://roadcall.ai/go` and enters the Roadcall case code while staying on the call.
+3. **Direct SMS** — use Twilio/Telnyx only if available; do not depend on it while A2P is pending.
+4. **Manual location** — highway, exit, mile marker, direction, nearest truck stop, landmark, city, and state.
+
+## Twilio Readiness Check
+
+Dry-run config check:
+
+```bash
+cd backend
+.venv/bin/python scripts/check_twilio_sms.py
+```
+
+Dry-run the production local sender without sending:
+
+```bash
+cd backend
+.venv/bin/python scripts/check_twilio_sms.py --from-number +18134524889
+```
+
+Live test, only when you have permission to text the destination number:
+
+```bash
+cd backend
+.venv/bin/python scripts/check_twilio_sms.py --from-number +18134524889 --to +15551234567 --send
+```

@@ -11,7 +11,6 @@ os.environ["RETELL_BACKEND_WEBHOOK_TOKEN"] = "test-token"
 from app.main import app  # noqa: E402
 from app.api.deps import get_session  # noqa: E402
 from app.api.routes import retell_dispatch  # noqa: E402
-from app.services.sms_provider import SmsProviderType  # noqa: E402
 from app.services.sms_service import SMSService  # noqa: E402
 
 
@@ -116,7 +115,7 @@ async def test_request_location_falls_back_to_direct_sms_when_studio_fails(monke
 
 
 @pytest.mark.asyncio
-async def test_request_location_falls_back_to_ghl_sms_when_direct_sms_fails(monkeypatch):
+async def test_request_location_returns_website_fallback_when_direct_sms_fails(monkeypatch):
     app.dependency_overrides[get_session] = _override_session
 
     job = SimpleNamespace(
@@ -132,24 +131,9 @@ async def test_request_location_falls_back_to_ghl_sms_when_direct_sms_fails(monk
     async def fake_send_magic_link(phone_number, magic_link_url, driver_name):
         return False
 
-    class _FakeResult:
-        success = True
-        provider = SmsProviderType.ghl
-        message_id = "ghl-msg-123"
-        error = None
-
-    def fake_ghl_send(self, to, body, from_number=None):
-        assert to == "+14075559999"
-        assert "support/tok_999" in body
-        return _FakeResult()
-
     monkeypatch.setattr(retell_dispatch, "_get_job_or_404", fake_get_job)
     monkeypatch.setattr(SMSService, "send_magic_link", fake_send_magic_link)
-    monkeypatch.setattr(retell_dispatch.settings, "GHL_API_KEY", "ghl-key")
-    monkeypatch.setattr(retell_dispatch.settings, "GHL_LOCATION_ID", "loc_123")
-    monkeypatch.setattr(retell_dispatch.settings, "GHL_FROM_NUMBER", "+18665550101")
     monkeypatch.setattr(retell_dispatch.settings, "TWILIO_STUDIO_FLOW_SID", "")
-    monkeypatch.setattr(retell_dispatch.GhlSmsProvider, "send", fake_ghl_send)
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
@@ -164,8 +148,11 @@ async def test_request_location_falls_back_to_ghl_sms_when_direct_sms_fails(monk
 
     assert resp.status_code == 200, resp.text
     body = resp.json()
-    assert body["ok"] is True
-    assert body["location_status"] == "ghl_sms_sent"
+    assert body["ok"] is False
+    assert body["location_status"] == "sms_failed"
+    assert body["secure_location_token"] == "tok_999"
+    assert body["location_url"].endswith("/support/tok_999")
+    assert "roadcall.ai/go" in body["driver_message"]
 
 
 @pytest.mark.asyncio

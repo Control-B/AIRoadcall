@@ -32,13 +32,15 @@ from app.enums.dispatch_status import DispatchStatus
 from app.enums.job_status import JobStatus
 from app.enums.payment_status import PaymentStatus
 from app.models.dispatch_attempt import DispatchAttempt
+from app.models.integration_connection import IntegrationConnection, IntegrationProvider
 from app.models.job import Job
+from app.models.organization import Organization
+from app.models.vehicle import Vehicle
 from app.schemas.job import JobCreateRequest
 from app.services.dispatch_service import DispatchService
 from app.services.job_service import JobService
 from app.services.lifecycle_service import LifecycleService
 from app.services.payment_service import PaymentService
-from app.services.sms_provider import GhlSmsProvider
 from app.services.sms_service import SMSService
 
 import os
@@ -176,6 +178,28 @@ class LocationStatusOut(BaseModel):
     captured_at: str | None = None
     expires_at: str | None = None
     driver_message: str | None = None
+
+
+class VehicleLocationLookupIn(BaseModel):
+    service_request_id: str | None = None
+    company_name: str | None = None
+    truck_number: str | None = None
+    trailer_number: str | None = None
+    unit_number: str | None = None
+
+
+class VehicleLocationLookupOut(BaseModel):
+    ok: bool
+    lookup_status: str
+    company_found: bool = False
+    vehicle_found: bool = False
+    tracker_available: bool = False
+    tracker_provider: str | None = None
+    vehicle_unit_number: str | None = None
+    vehicle_type: str | None = None
+    lat: float | None = None
+    lng: float | None = None
+    driver_message: str
 
 
 class DispatchStatusOut(BaseModel):
@@ -501,38 +525,13 @@ async def request_location(
     )
 
     if not sms_sent:
-        if settings.GHL_API_KEY and settings.GHL_LOCATION_ID:
-            body = SMSService._with_compliance_footer(
-                (
-                    f"{SMSService.BRAND_NAME}: Hi {job.driver_name or 'Driver'}, tap this secure link to share your "
-                    f"location so we can dispatch the nearest mechanic: {location_url}"
-                )
-            )
-            ghl_result = GhlSmsProvider(
-                api_key=settings.GHL_API_KEY,
-                location_id=settings.GHL_LOCATION_ID,
-                default_from=settings.GHL_FROM_NUMBER or None,
-            ).send(payload.callback_number, body)
-            if ghl_result.success:
-                logger.info(
-                    "request_location: GHL SMS sent to %s for job %s message_id=%s",
-                    payload.callback_number,
-                    job.public_job_id,
-                    ghl_result.message_id,
-                )
-                return RequestLocationOut(
-                    ok=True,
-                    location_status="ghl_sms_sent",
-                    secure_location_token=job.magic_link_token,
-                    location_url=location_url,
-                    expires_at=job.magic_link_expires_at.isoformat() if job.magic_link_expires_at else None,
-                    driver_message="Location link sent by GHL SMS.",
-                )
-
         return RequestLocationOut(
             ok=False,
             location_status="sms_failed",
-            driver_message="Could not send SMS. Please collect location manually.",
+            secure_location_token=job.magic_link_token,
+            location_url=location_url,
+            expires_at=job.magic_link_expires_at.isoformat() if job.magic_link_expires_at else None,
+            driver_message="Could not send SMS. Keep the caller on the line and have them open roadcall.ai/go with their case code, or collect road/exit manually.",
         )
 
     logger.info("request_location: SMS sent to %s for job %s", payload.callback_number, job.public_job_id)
@@ -544,6 +543,133 @@ async def request_location(
         location_url=location_url,
         expires_at=job.magic_link_expires_at.isoformat() if job.magic_link_expires_at else None,
         driver_message="Location link sent by text.",
+    )
+
+
+def _clean_unit(value: str | None) -> str:
+    return (value or "").strip().upper().replace("#", "")
+
+
+@router.post(
+    "/api/location/vehicle-tracker-lookup",
+    response_model=VehicleLocationLookupOut,
+    dependencies=[Depends(require_retell_auth)],
+)
+async def vehicle_tracker_lookup(
+    payload: VehicleLocationLookupIn,
+    db: AsyncSession = Depends(get_session),
+) -> VehicleLocationLookupOut:
+    """Check whether a fleet customer's unit number can be located by tracker.
+
+    MVP behavior is intentionally conservative: it records company/unit hints on
+    the job and confirms whether Roadcall has a matching organization, vehicle,
+    and active tracker integration. It does not invent GPS coordinates when a
+    provider client is not connected yet.
+    """
+    job: Job | None = None
+    if payload.service_request_id:
+        job = await _get_job_or_404(payload.service_request_id, db)
+
+    company_name = (payload.company_name or "").strip()
+    unit_candidates = [
+        _clean_unit(payload.unit_number),
+        _clean_unit(payload.truck_number),
+        _clean_unit(payload.trailer_number),
+    ]
+    unit_candidates = [u for u in unit_candidates if u]
+
+    if job and unit_candidates:
+        units_text = ", ".join(unit_candidates)
+        job.issue_summary = (job.issue_summary or "") + f" | Fleet unit(s): {units_text}"
+
+    if not company_name:
+        if job:
+            await db.commit()
+        return VehicleLocationLookupOut(
+            ok=False,
+            lookup_status="company_required",
+            driver_message="Ask for the company name, then the truck or trailer number.",
+        )
+
+    org_result = await db.execute(
+        select(Organization).where(
+            Organization.is_active == True,
+            Organization.name.ilike(f"%{company_name}%"),
+        )
+    )
+    org = org_result.scalars().first()
+    if not org:
+        if job:
+            await db.commit()
+        return VehicleLocationLookupOut(
+            ok=False,
+            lookup_status="company_not_found",
+            company_found=False,
+            driver_message=(
+                "I do not have that fleet tracker connected yet. Keep the caller on the line and use roadcall.ai/go, GPS, or a manual road/exit location."
+            ),
+        )
+
+    vehicle: Vehicle | None = None
+    if unit_candidates:
+        vehicle_result = await db.execute(
+            select(Vehicle).where(
+                Vehicle.organization_id == org.id,
+                Vehicle.is_active == True,
+                Vehicle.unit_number.in_(unit_candidates),
+            )
+        )
+        vehicle = vehicle_result.scalars().first()
+
+    tracker_result = await db.execute(
+        select(IntegrationConnection).where(
+            IntegrationConnection.organization_id == org.id,
+            IntegrationConnection.is_active == True,
+            IntegrationConnection.provider.in_([IntegrationProvider.samsara, IntegrationProvider.motive]),
+        )
+    )
+    tracker = tracker_result.scalars().first()
+
+    if job:
+        await db.commit()
+
+    if tracker and vehicle:
+        tracker_provider = tracker.provider.value if hasattr(tracker.provider, "value") else str(tracker.provider)
+        return VehicleLocationLookupOut(
+            ok=False,
+            lookup_status="tracker_client_not_implemented",
+            company_found=True,
+            vehicle_found=True,
+            tracker_available=True,
+            tracker_provider=tracker_provider,
+            vehicle_unit_number=vehicle.unit_number,
+            vehicle_type=vehicle.vehicle_type,
+            driver_message=(
+                "Fleet and unit found, but live tracker pull is not connected in this MVP build. Keep the caller on the line and use roadcall.ai/go or manual location."
+            ),
+        )
+
+    if tracker:
+        tracker_provider = tracker.provider.value if hasattr(tracker.provider, "value") else str(tracker.provider)
+        return VehicleLocationLookupOut(
+            ok=False,
+            lookup_status="vehicle_not_found",
+            company_found=True,
+            vehicle_found=False,
+            tracker_available=True,
+            tracker_provider=tracker_provider,
+            driver_message="Fleet tracker exists, but I could not find that unit number. Ask for the exact truck or trailer number, or use roadcall.ai/go.",
+        )
+
+    return VehicleLocationLookupOut(
+        ok=False,
+        lookup_status="tracker_not_connected",
+        company_found=True,
+        vehicle_found=vehicle is not None,
+        tracker_available=False,
+        vehicle_unit_number=vehicle.unit_number if vehicle else None,
+        vehicle_type=vehicle.vehicle_type if vehicle else None,
+        driver_message="This fleet is known, but no tracker is connected. Keep the caller on the line and use roadcall.ai/go, GPS, or manual location.",
     )
 
 
