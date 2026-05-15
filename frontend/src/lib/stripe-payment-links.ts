@@ -1,0 +1,7 @@
+const ROADCALL_SHOPS_PAYMENT_LINK = "https://buy.stripe.com/14AbJ30xG1d44YWe6G1sQ05";
+
+export const STRIPE_PAYMENT_LINKS = {
+  standard: ROADCALL_SHOPS_PAYMENT_LINK,
+  professional: ROADCALL_SHOPS_PAYMENT_LINK,
+  premium: ROADCALL_SHOPS_PAYMENT_LINK,
+} as const;

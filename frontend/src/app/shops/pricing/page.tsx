@@ -31,6 +31,7 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
+import { STRIPE_PAYMENT_LINKS } from "@/lib/stripe-payment-links";
 
 const TRUST = [
   { icon: Clock3, label: "24/7 AI Answering" },
@@ -42,14 +43,14 @@ const TRUST = [
 
 const PLANS = [
   {
-    name: "AI Receptionist",
-    price: "$149",
+    name: "Standard",
+    price: "$197",
     setup: "$299 one-time AI deployment fee",
     target: "Small mechanics and mobile roadside businesses",
     icon: Headphones,
     accent: "from-sky-400 to-blue-500",
-    cta: "Start With AI Receptionist",
-    href: "/shops/onboarding",
+    cta: "Start Standard",
+    href: STRIPE_PAYMENT_LINKS.standard,
     features: [
       "24/7 AI phone answering",
       "Missed call text back",
@@ -64,17 +65,17 @@ const PLANS = [
     ],
   },
   {
-    name: "AI Telephony Pro",
+    name: "Professional",
     price: "$299",
     setup: "$999 AI onboarding and configuration",
     target: "Growing diesel shops, towing companies, and repair teams",
     icon: Mic2,
     accent: "from-roadcall-orange via-amber-400 to-blue-400",
     badge: "Most Popular",
-    cta: "Upgrade To AI Telephony Pro",
-    href: "/shops/onboarding",
+    cta: "Start Professional",
+    href: STRIPE_PAYMENT_LINKS.professional,
     features: [
-      "Everything in AI Receptionist",
+      "Everything in Standard",
       "Advanced AI voice workflows",
       "Appointment scheduling",
       "Smart call routing",
@@ -90,16 +91,16 @@ const PLANS = [
     ],
   },
   {
-    name: "Dispatch Lite",
+    name: "Premium",
     price: "$499",
     setup: "$2,500 dispatch deployment",
     target: "Roadside service providers ready to operationalize dispatch",
     icon: Radio,
     accent: "from-roadcall-orange to-roadcall-blue",
-    cta: "Launch Dispatch Operations",
-    href: "/shops/onboarding",
+    cta: "Start Premium",
+    href: STRIPE_PAYMENT_LINKS.premium,
     features: [
-      "Everything in AI Telephony Pro",
+      "Everything in Professional",
       "AI roadside intake",
       "SMS GPS capture",
       "Dispatch workflows",
@@ -311,12 +312,14 @@ export default function ShopsPricingPage() {
                     <span className="ml-2 text-roadcall-muted">/month</span>
                     <p className="mt-3 text-sm font-medium text-roadcall-orange">Setup: {plan.setup}</p>
                   </div>
-                  <Link
+                  <a
                     href={plan.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-bold transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-300 ${plan.badge ? "bg-white text-slate-950 hover:bg-roadcall-panel/40" : "border border-white/15 bg-roadcall-panel/45 text-white hover:border-blue-300/50 hover:bg-blue-400/10"}`}
                   >
                     {plan.cta} <ChevronRight className="h-4 w-4" />
-                  </Link>
+                  </a>
                   <ul className="mt-7 space-y-3">
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex gap-3 text-sm leading-6 text-roadcall-silver/85">

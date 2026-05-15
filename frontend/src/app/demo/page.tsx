@@ -23,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import { STRIPE_PAYMENT_LINKS } from "@/lib/stripe-payment-links";
 
 const features = [
   {
@@ -65,9 +66,10 @@ const features = [
 
 const plans = [
   {
-    name: "Starter",
-    price: 99,
+    name: "Standard",
+    price: 197,
     description: "Perfect for small shops",
+    href: STRIPE_PAYMENT_LINKS.standard,
     features: [
       "AI phone receptionist",
       "Up to 200 calls/month",
@@ -79,11 +81,12 @@ const plans = [
   },
   {
     name: "Professional",
-    price: 199,
+    price: 299,
     description: "Most popular for busy shops",
     popular: true,
+    href: STRIPE_PAYMENT_LINKS.professional,
     features: [
-      "Everything in Starter",
+      "Everything in Standard",
       "Up to 1,000 calls/month",
       "Text chat support",
       "Appointment scheduling",
@@ -93,9 +96,10 @@ const plans = [
     ],
   },
   {
-    name: "Enterprise",
-    price: 399,
+    name: "Premium",
+    price: 499,
     description: "For multi-location operations",
+    href: STRIPE_PAYMENT_LINKS.premium,
     features: [
       "Everything in Professional",
       "Unlimited calls",
@@ -313,17 +317,19 @@ export default function DemoPage() {
                       </li>
                     ))}
                   </ul>
-                  <Button
-                    className={`w-full ${
-                      plan.popular
-                        ? "bg-blue-600 hover:bg-blue-700"
-                        : "bg-slate-700 hover:bg-slate-600"
-                    }`}
-                    size="lg"
-                  >
-                    Get Started
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
+                  <a href={plan.href} target="_blank" rel="noopener noreferrer">
+                    <Button
+                      className={`w-full ${
+                        plan.popular
+                          ? "bg-blue-600 hover:bg-blue-700"
+                          : "bg-slate-700 hover:bg-slate-600"
+                      }`}
+                      size="lg"
+                    >
+                      Get Started
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </a>
                 </CardContent>
               </Card>
             ))}
