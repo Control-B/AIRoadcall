@@ -17,6 +17,7 @@ from app.services.sms_service import SMSService  # noqa: E402
 @pytest.fixture(autouse=True)
 def clear_dependency_overrides():
     app.dependency_overrides.clear()
+    retell_dispatch.settings.RETELL_BACKEND_WEBHOOK_TOKEN = "test-token"
     yield
     app.dependency_overrides.clear()
 

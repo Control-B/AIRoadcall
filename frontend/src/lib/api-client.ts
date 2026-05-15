@@ -16,8 +16,11 @@ interface ApiErrorBody {
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${getApiBase()}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.headers as Record<string, string> | undefined),
+    },
   });
 
   if (!res.ok) {
@@ -159,6 +162,44 @@ export interface MechanicTrackingView {
   distance_miles?: number | null;
 }
 
+export interface DispatchProviderMatch {
+  id: string;
+  business_name: string;
+  phone?: string | null;
+  email?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  latitude: number;
+  longitude: number;
+  services: string[];
+  distance_miles: number;
+  straight_line_distance: number;
+  drive_distance_miles?: number | null;
+  estimated_drive_minutes?: number | null;
+  rank_score: number;
+}
+
+export interface DispatchMatchResponse {
+  status: "matched" | "no_provider_found" | "geocoding_failed";
+  normalized_location?: string | null;
+  coordinates?: { latitude: number; longitude: number } | null;
+  search_radius_miles?: number | null;
+  providers: DispatchProviderMatch[];
+  map_routes: Array<{
+    provider_id: string;
+    from_latitude: number;
+    from_longitude: number;
+    to_latitude: number;
+    to_longitude: number;
+    drive_distance_miles?: number | null;
+    estimated_drive_minutes?: number | null;
+    geometry?: { type: "LineString"; coordinates: [number, number][] } | null;
+  }>;
+  message: string;
+  follow_up_question?: string | null;
+}
+
 export interface PaymentIntentResponse {
   client_secret: string;
   payment_intent_id: string;
@@ -230,6 +271,23 @@ export async function getMechanicTracking(
   token: string
 ): Promise<MechanicTrackingView> {
   return request<MechanicTrackingView>(`/jobs/mechanic-tracking/${token}`);
+}
+
+export async function matchProvidersByLocation(
+  body: {
+    location_text: string;
+    service_needed: string;
+    vehicle_type?: string;
+    urgency?: "roadside" | "standard" | "emergency";
+    limit?: number;
+  },
+  token?: string
+): Promise<DispatchMatchResponse> {
+  return request<DispatchMatchResponse>("/dispatch/match-by-location", {
+    method: "POST",
+    headers: token ? { "X-Admin-Key": token } : undefined,
+    body: JSON.stringify(body),
+  });
 }
 
 export async function getMechanicOffer(token: string): Promise<MechanicOfferView> {

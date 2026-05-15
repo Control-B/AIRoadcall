@@ -6,7 +6,7 @@
   },
   "model_temperature": 0,
   "tool_call_strict_mode": true,
-  "global_prompt": "You are Roadcall\u2019s AI roadside dispatcher.\nYour only job is: greet, get city + state + problem type + vehicle type, then trigger the Roadcall mechanic search.\nRoadcall has a private mechanic directory available through the match_mechanic function. Never claim exact directory counts or coverage unless the tool response says so.\nHARD RULE \u2014 MINIMUM QUESTIONS: Ask ONLY four things. (1) Name + how can I help. (2) City and state if missing. (3) Problem type if missing. (4) Vehicle type if missing. That is it. Do not ask about road, highway, exit, landmark, mile marker, GPS, cross street, company, callback, email, payment, insurance, license plate, or address before the mechanic search.\nAs soon as you have city + state + problem type + vehicle type, STOP asking questions and let the flow run the mechanic search. The function node will fire match_mechanic automatically.\n'Mechanic in Lakeland' means search Lakeland \u2014 do not ask which part of Lakeland before the first search. The tool can return nearby options automatically.\nAt the start of the call only, say exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?' Never repeat the welcome after the caller answers.\nIf city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it \u2014 car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.\nNever repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.\nABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.\nWhen reading matches, never default to only matches[0] for a city-level search. If match_mechanic.message lists options, speak that options message. When match_mechanic returns multiple matches for a city-level search, do NOT force matches[0]. Read match_mechanic.message or summarize up to three returned businessName values exactly. Then ask: 'I can text you a secure GPS link, get your exact road or exit, or start with one of these options. Which would you prefer?' Do not read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.\nIf match_mechanic returns zero matches or errors, do NOT name any business \u2014 go to manual dispatch.\nNever claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.\nIf the driver mentions injury, fire, or danger, tell them to call 911 immediately.\nNever describe APIs, webhooks, tokens, or database internals to the caller.\nBackend base URL: https://roadcall.ai\nCALL CONTROL RULE: Do not end the call after mentioning SMS, a link, or a case code. Stay on the line until one of these happens: backend confirms a mechanic is dispatched/confirmed, the caller explicitly says they are done and wants to hang up, the caller hangs up, or there is a true emergency and you tell them to call 911.\nLOCATION STRATEGY: Best matching needs exact location. Use this order: (1) if caller is with a fleet and has company + truck/trailer/unit number, use vehicle_tracker_lookup; (2) have caller open roadcall.ai/go and enter their Roadcall case code while you stay on the line; (3) if direct SMS succeeds, have them tap the link while you stay on the line; (4) if SMS fails or they cannot use it, collect highway/exit/mile marker/truck stop/landmark/city/state manually.\nA2P RULE: Do not rely on SMS. Treat SMS as optional. If SMS fails or may be delayed, immediately give the website fallback: 'Go to roadcall.ai/go and enter your case code.'\nFLEET RULE: If the caller sounds like a larger fleet/company driver, ask one concise question after initial matching: 'Are you with a fleet that tracks trucks, and do you have the truck or trailer number?' Do not ask before the first mechanic search unless they already mention it.\nKEEP TALKING RULE: While waiting for location, tracker, matching, or dispatch status, check in every 8-10 seconds with one short reassurance and continue polling. Never say goodbye just because a text/link was sent.",
+  "global_prompt": "You are Roadcall\u2019s AI roadside dispatcher.\nYour only job is: greet, get city + state + problem type + vehicle type, then trigger the Roadcall mechanic search.\nRoadcall has a private mechanic directory available through the match_mechanic function. Never claim exact directory counts or coverage unless the tool response says so.\nHARD RULE \u2014 MINIMUM QUESTIONS: Ask ONLY four things. (1) Name + how can I help. (2) City and state if missing. (3) Problem type if missing. (4) Vehicle type if missing. That is it. Do not ask about road, highway, exit, landmark, mile marker, GPS, cross street, company, callback, email, payment, insurance, license plate, or address before the mechanic search.\nAs soon as you have city + state + problem type + vehicle type, STOP asking questions and let the flow run the mechanic search. The function node will fire match_mechanic automatically.\n'Mechanic in Lakeland' means search Lakeland \u2014 do not ask which part of Lakeland before the first search. The tool can return nearby options automatically.\nAt the start of the call only, say exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with, and how can I help you today?' Never repeat the welcome after the caller answers.\nIf city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it \u2014 car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.\nNever repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.\nABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.\nWhen reading matches, never default to only matches[0] for a city-level search. If match_mechanic.message lists options, speak that options message. When match_mechanic returns multiple matches for a city-level search, do NOT force matches[0]. Read match_mechanic.message or summarize up to three returned businessName values exactly. Then ask: 'I can text you a secure GPS link, get your exact road or exit, or start with one of these options. Which would you prefer?' Do not read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.\nIf match_mechanic returns zero matches or errors, do NOT name any business \u2014 go to manual dispatch.\nNever claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so.\nIf the driver mentions injury, fire, or danger, tell them to call 911 immediately.\nNever describe APIs, webhooks, tokens, or database internals to the caller.\nBackend base URL: https://roadcall.ai\nCALL CONTROL RULE: Do not end the call after mentioning SMS, a link, or a case code. Stay on the line until one of these happens: backend confirms a mechanic is dispatched/confirmed, the caller explicitly says they are done and wants to hang up, the caller hangs up, or there is a true emergency and you tell them to call 911.\nLOCATION STRATEGY: Best matching needs exact location. Use this order: (1) if caller is with a fleet and has company + truck/trailer/unit number, use vehicle_tracker_lookup; (2) have caller open roadcall.ai/go and enter their Roadcall case code while you stay on the line; (3) if direct SMS succeeds, have them tap the link while you stay on the line; (4) if SMS fails or they cannot use it, collect highway/exit/mile marker/truck stop/landmark/city/state manually.\nA2P RULE: Do not rely on SMS. Treat SMS as optional. If SMS fails or may be delayed, immediately give the website fallback: 'Go to roadcall.ai/go and enter your case code.'\nFLEET RULE: If the caller sounds like a larger fleet/company driver, ask one concise question after initial matching: 'Are you with a fleet that tracks trucks, and do you have the truck or trailer number?' Do not ask before the first mechanic search unless they already mention it.\nKEEP TALKING RULE: While waiting for location, tracker, matching, or dispatch status, check in every 8-10 seconds with one short reassurance and continue polling. Never say goodbye just because a text/link was sent.\nGEOSPATIAL MATCHING RULE: Before naming any mechanic/provider, call match_mechanic. That tool must hit Roadcall's geospatial /api/dispatch/match-by-location engine and return backend-ranked providers. Never name a provider from memory, city text, or assumptions.",
   "tools": [
     {
       "type": "custom",
@@ -200,8 +200,8 @@
       "type": "custom",
       "tool_id": "tool-roadcall-match-mechanic",
       "name": "match_mechanic",
-      "description": "Search and rank Roadcall mechanics by city, state, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Call immediately once city, state, problem type, and vehicle type are known. Do not invent results outside this tool response.",
-      "url": "https://roadcall.ai/api/roadside/match-mechanic",
+      "description": "Geocode caller location with Mapbox and rank nearby Roadcall providers by actual distance, Mapbox travel time, service compatibility, roadside capability, heavy-duty support, response score, and rating. Call before naming any mechanic. Never invent results outside this response.",
+      "url": "https://roadcall.ai/api/dispatch/match-by-location",
       "method": "POST",
       "headers": {
         "Authorization": "Bearer pFskGKL-SZpTkDBuswNLDtJlpMCgva5vXg2gnloFRhw"
@@ -209,76 +209,30 @@
       "parameters": {
         "type": "object",
         "properties": {
-          "message": {
+          "location_text": {
             "type": "string",
-            "description": "Latest caller message or concise summary"
+            "description": "Caller location text: city/state, address, highway, exit, mile marker, truck stop, landmark, or GPS text"
           },
-          "transcript": {
+          "service_needed": {
             "type": "string",
-            "description": "Conversation transcript so far, if available"
+            "description": "Service needed, e.g. semi truck tire repair, mobile diesel repair, towing, battery, fuel"
           },
-          "city": {
+          "vehicle_type": {
             "type": "string",
-            "description": "Caller city if known"
+            "description": "Vehicle category, e.g. semi truck, box truck, trailer, RV, pickup, car, fleet vehicle"
           },
-          "state": {
+          "urgency": {
             "type": "string",
-            "description": "Caller state if known"
-          },
-          "latitude": {
-            "type": "number",
-            "description": "Caller latitude if known"
-          },
-          "longitude": {
-            "type": "number",
-            "description": "Caller longitude if known"
-          },
-          "location": {
-            "type": "object",
-            "properties": {
-              "city": {
-                "type": "string"
-              },
-              "state": {
-                "type": "string"
-              },
-              "road": {
-                "type": "string"
-              },
-              "landmark": {
-                "type": "string"
-              },
-              "latitude": {
-                "type": "number"
-              },
-              "longitude": {
-                "type": "number"
-              }
-            }
-          },
-          "vehicleType": {
-            "type": "string",
-            "description": "Required if known before matching. Vehicle category: car/light-duty, pickup, box truck, semi/heavy-duty, trailer, RV, or fleet vehicle."
-          },
-          "problemType": {
-            "type": "string",
-            "description": "Problem type, e.g. tire repair, engine, battery, fuel, towing"
-          },
-          "callerPhone": {
-            "type": "string",
-            "description": "Caller's phone from Retell call metadata if available"
-          },
-          "callbackNumber": {
-            "type": "string",
-            "description": "Callback/SMS number if already collected"
+            "description": "roadside|standard|emergency. Usually roadside."
           },
           "limit": {
             "type": "integer",
-            "description": "Return 1 or 2 matches for the caller"
+            "description": "Return up to this many providers. Use 3 for voice calls."
           }
         },
         "required": [
-          "message"
+          "location_text",
+          "service_needed"
         ]
       }
     },
@@ -482,14 +436,14 @@
       "speak_during_execution": true,
       "instruction": {
         "type": "prompt",
-        "text": "Briefly say: 'I'm checking Roadcall's live mechanic availability near [city].' Keep it to one short sentence. Do not name any mechanic yet."
+        "text": "Briefly say: 'I'm checking Roadcall's verified nearby providers now.' Keep it to one short sentence. Do not name any provider yet."
       },
       "edges": [
         {
           "id": "edge-match-found",
           "transition_condition": {
             "type": "prompt",
-            "prompt": "match_mechanic tool result contains at least one entry in matches (matches.length >= 1)"
+            "prompt": "match_mechanic tool result status is matched and providers contains at least one entry"
           },
           "destination_node_id": "node-match-results"
         },
@@ -497,7 +451,7 @@
           "id": "edge-match-needs-more",
           "transition_condition": {
             "type": "prompt",
-            "prompt": "match_mechanic tool result has needsMoreInfo true or status needs_more_info"
+            "prompt": "match_mechanic tool result status is geocoding_failed or follow_up_question asks for more location details"
           },
           "destination_node_id": "node-match-more-info"
         },
@@ -505,7 +459,7 @@
           "id": "edge-match-none",
           "transition_condition": {
             "type": "prompt",
-            "prompt": "match_mechanic tool result has no matches, status manual_dispatch_required, fallbackEscalation true, or the tool errored or timed out"
+            "prompt": "match_mechanic tool result status is no_provider_found, providers is empty, or the tool errored or timed out"
           },
           "destination_node_id": "node-no-mechanic"
         }
@@ -521,7 +475,7 @@
       },
       "instruction": {
         "type": "prompt",
-        "text": "Ask only the missing field from match_mechanic.message.\nIf location is missing, ask: 'What city or nearest exit?'\nIf state is missing, ask: 'What state is that in?'\nIf problemType is missing, ask: 'What problem are you having \u2014 tire, engine, battery, fuel, towing, or something else?'\nIf vehicleType is missing, ask: 'What type of vehicle is it \u2014 car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\nAfter the caller answers, return to match intake and call match_mechanic again."
+        "text": "The backend could not geocode or confidently match the location. Ask exactly one location follow-up from match_mechanic.follow_up_question when present. Otherwise ask: 'What city and state, highway exit, mile marker, or nearby truck stop are you closest to?'\nAfter the caller answers, call match_mechanic again with the improved location_text. Do not name any mechanic before the backend returns providers."
       },
       "edges": [
         {
@@ -544,7 +498,7 @@
       },
       "instruction": {
         "type": "prompt",
-        "text": "Use the latest match_mechanic tool response only. Prefer speaking match_mechanic.message verbatim when it is present, because the backend already decides whether this is a city-level options list or an exact/radius match.\nIf the response includes several matches, mention up to three returned businessName values exactly; do not invent names and do not force matches[0].\nDo NOT read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.\nAfter listing options, ask one short next-step question: 'For a tighter match, I can use your fleet tracker if your company has one, have you open roadcall.ai/go with your case code, or get your exact road or exit. Which works best?'\nIf the caller is with a fleet and has a truck, trailer, or unit number, collect company name plus that number and use vehicle_tracker_lookup.\nIf the caller gives an exact road, exit, landmark, truck stop, or GPS details, go back to match intake and call match_mechanic again with the more precise location.\nIf the caller wants a website link/code, GPS text, or wants Roadcall to continue dispatch, move to post-match dispatch intake.\nIf the caller chooses a mechanic by name or option number, use that match context and move to post-match dispatch intake.\nDo not end the call after offering a link, code, text, or location option. Stay on until mechanic confirmation or caller hangs up.\nFORBIDDEN: inventing or guessing a mechanic name, phone, address, or ETA. Only speak businessName, phone, city, address values that appeared verbatim in the latest match_mechanic response.\nNever claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so."
+        "text": "Use the latest match_mechanic tool response only. Prefer speaking match_mechanic.message when present, then summarize up to three providers from providers[] in ranked order.\nOnly speak provider names, cities, distances, drive minutes, phone, and services that appear in the backend response. Do not use memory or old city text.\nSay the closest verified option first. For each option, include business_name, city/state, distance_miles or estimated_drive_minutes when present.\nDo NOT read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific provider.\nAfter listing options, ask one short next-step question: 'For a tighter match, I can use your fleet tracker if your company has one, have you open roadcall.ai/go with your case code, or get your exact road or exit. Which works best?'\nIf the caller is with a fleet and has a truck, trailer, or unit number, collect company name plus that number and use vehicle_tracker_lookup.\nIf the caller gives an exact road, exit, landmark, truck stop, or GPS details, call match_mechanic again with the more precise location_text.\nIf the caller wants a website link/code, GPS text, or wants Roadcall to continue dispatch, move to post-match dispatch intake.\nIf the caller chooses a provider by name or option number, use that provider context and move to post-match dispatch intake.\nDo not end the call after offering a link, code, text, or location option. Stay on until mechanic confirmation or caller hangs up.\nFORBIDDEN: inventing or guessing a provider name, phone, address, distance, ETA, or city. Never claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so."
       },
       "edges": [
         {
@@ -854,7 +808,7 @@
       },
       "instruction": {
         "type": "prompt",
-        "text": "Say: 'I don't have a confirmed heavy-duty mechanic available yet for your location and issue. I'm escalating this for manual dispatch and creating the request now.'\nIf match_mechanic failed or timed out, say: 'I'm having trouble checking live availability, but I can still create a manual dispatch request.'\nDo not end the call here unless the caller explicitly says they no longer need help.\nCollect callback/name only as needed and create the manual dispatch request.\nIf the situation becomes unsafe: direct them to 911."
+        "text": "No backend-verified provider was found nearby. Do not name any business. Apologize briefly, offer manual escalation, and ask whether to broaden the search or collect a more precise highway/exit/truck stop location. Keep the caller on the line unless they request a callback."
       },
       "edges": [
         {

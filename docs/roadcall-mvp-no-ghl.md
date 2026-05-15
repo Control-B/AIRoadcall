@@ -65,6 +65,35 @@ Use location methods in this order:
 3. **Direct SMS** — use Twilio/Telnyx only if available; do not depend on it while A2P is pending.
 4. **Manual location** — highway, exit, mile marker, direction, nearest truck stop, landmark, city, and state.
 
+## Geospatial Matching Contract
+
+The AI must never name a mechanic until Roadcall's backend returns provider results from:
+
+```text
+POST /api/dispatch/match-by-location
+```
+
+The endpoint:
+
+- Geocodes caller location text through Mapbox.
+- Converts city/state, highway, exit, landmark, truck stop, or address into coordinates.
+- Starts provider search at 25 miles.
+- Expands to 50, 75, 100, then 150 miles only when needed.
+- Ranks by driving ETA/distance, straight-line distance, service fit, roadside/mobile capability, heavy-duty fit, response score, and rating.
+- Returns `no_provider_found` when no provider is within 150 miles.
+
+Critical behavior:
+
+- Saint Petersburg should surface Tampa Bay providers before Lakeland or Jacksonville.
+- Lakeland should surface Lakeland, Plant City, and Tampa before Jacksonville.
+- Jacksonville should never appear before nearby providers unless no closer provider exists within the expanded radius.
+
+If the location is vague, the agent should ask one precise follow-up:
+
+```text
+What city and state, highway exit, mile marker, or nearby truck stop are you closest to?
+```
+
 ## Twilio Readiness Check
 
 Dry-run config check:

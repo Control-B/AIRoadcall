@@ -1,5 +1,5 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
@@ -18,12 +18,83 @@ from app.schemas.dispatch import (
     MechanicOfferStatusView,
     MechanicOfferRespondRequest,
 )
+from app.schemas.location_dispatch import (
+    DispatchCoordinates,
+    DispatchMapRoute,
+    DispatchMatchByLocationRequest,
+    DispatchMatchByLocationResponse,
+    DispatchProviderMatch,
+)
+from app.services.geocoding_service import GeocodingService
+from app.services.location_matching_service import LocationMatchingService, ProviderCandidate
 from app.schemas.tracking import MechanicTrackingView
 from app.services.dispatch_service import DispatchService
 from app.services.tracking_service import TrackingService
+from app.core.config import get_settings
 from sqlalchemy import select
 
 router = APIRouter(prefix="/dispatch", tags=["dispatch"])
+
+
+async def require_dispatch_match_access(
+    authorization: str | None = Header(default=None),
+    x_admin_key: str | None = Header(default=None),
+) -> None:
+    settings = get_settings()
+    admin_key = settings.ADMIN_API_KEY.strip()
+    if admin_key and x_admin_key and x_admin_key.strip() == admin_key:
+        return
+
+    retell_token = settings.RETELL_BACKEND_WEBHOOK_TOKEN.strip()
+    if retell_token and authorization and authorization.strip() == f"Bearer {retell_token}":
+        return
+
+    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authorized to match providers")
+
+
+def _provider_to_response(provider: ProviderCandidate) -> DispatchProviderMatch:
+    return DispatchProviderMatch(
+        id=provider.id,
+        business_name=provider.business_name,
+        phone=provider.phone,
+        email=provider.email,
+        address=provider.address,
+        city=provider.city,
+        state=provider.state,
+        zip_code=provider.zip_code,
+        latitude=provider.latitude,
+        longitude=provider.longitude,
+        services=provider.services,
+        heavy_duty_support=provider.heavy_duty_support,
+        roadside_support=provider.roadside_support,
+        mobile_mechanic=provider.mobile_mechanic,
+        towing=provider.towing,
+        availability_status=provider.availability_status,
+        rating=provider.rating,
+        response_score=provider.response_score,
+        distance_miles=provider.drive_distance_miles or provider.straight_line_distance,
+        straight_line_distance=provider.straight_line_distance,
+        drive_distance_miles=provider.drive_distance_miles,
+        estimated_drive_minutes=provider.estimated_drive_minutes,
+        rank_score=provider.rank_score,
+        score_reasons=provider.score_reasons,
+    )
+
+
+def _provider_route(latitude: float, longitude: float, provider: ProviderCandidate) -> DispatchMapRoute:
+    return DispatchMapRoute(
+        provider_id=provider.id,
+        from_latitude=latitude,
+        from_longitude=longitude,
+        to_latitude=provider.latitude,
+        to_longitude=provider.longitude,
+        drive_distance_miles=provider.drive_distance_miles,
+        estimated_drive_minutes=provider.estimated_drive_minutes,
+        geometry={
+            "type": "LineString",
+            "coordinates": [[longitude, latitude], [provider.longitude, provider.latitude]],
+        },
+    )
 
 
 def _normalize_mechanic_offer_response(raw: str) -> str:
@@ -35,6 +106,66 @@ def _normalize_mechanic_offer_response(raw: str) -> str:
     if lower in ("no", "decline", "pass", "cant", "can't"):
         return "declined"
     raise ValueError("response must be accepted or declined")
+
+
+@router.post(
+    "/match-by-location",
+    response_model=DispatchMatchByLocationResponse,
+    dependencies=[Depends(require_dispatch_match_access)],
+)
+async def match_by_location(
+    request: DispatchMatchByLocationRequest,
+    db: AsyncSession = Depends(get_session),
+):
+    """Geocode caller location and rank providers by actual proximity.
+
+    The AI agent must call this endpoint before naming any provider. Results are
+    backend-verified and sorted by geospatial proximity/travel-time ranking.
+    """
+    geocoded = await GeocodingService.geocode_location(request.location_text)
+    if not geocoded:
+        return DispatchMatchByLocationResponse(
+            status="geocoding_failed",
+            message="I could not confidently locate that place. Ask for city/state, nearest highway, exit, mile marker, truck stop, or landmark.",
+            follow_up_question="What city and state, highway exit, mile marker, or nearby truck stop are you closest to?",
+        )
+
+    latitude = float(geocoded["latitude"])
+    longitude = float(geocoded["longitude"])
+    providers, radius = await LocationMatchingService.find_nearby_providers(
+        db,
+        latitude=latitude,
+        longitude=longitude,
+        service_needed=request.service_needed,
+        vehicle_type=request.vehicle_type,
+        urgency=request.urgency,
+        limit=request.limit,
+    )
+
+    if not providers:
+        return DispatchMatchByLocationResponse(
+            status="no_provider_found",
+            normalized_location=geocoded["normalized_location"],
+            coordinates=DispatchCoordinates(latitude=latitude, longitude=longitude),
+            confidence=geocoded.get("confidence"),
+            search_radius_miles=150,
+            providers=[],
+            message="No provider found within 150 miles. Offer manual escalation and ask whether to broaden the search.",
+            follow_up_question="I’m not finding a verified nearby provider. Do you want me to escalate this for manual dispatch or broaden the search?",
+            mapbox_metadata=geocoded.get("mapbox_metadata"),
+        )
+
+    return DispatchMatchByLocationResponse(
+        status="matched",
+        normalized_location=geocoded["normalized_location"],
+        coordinates=DispatchCoordinates(latitude=latitude, longitude=longitude),
+        confidence=geocoded.get("confidence"),
+        search_radius_miles=radius,
+        providers=[_provider_to_response(provider) for provider in providers],
+        map_routes=[_provider_route(latitude, longitude, provider) for provider in providers[:3]],
+        message=f"Found {len(providers)} provider option(s) within {radius} miles of {geocoded['normalized_location']}.",
+        mapbox_metadata=geocoded.get("mapbox_metadata"),
+    )
 
 
 @router.get("/mechanic-offer/{token}", response_model=MechanicOfferView)

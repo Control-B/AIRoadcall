@@ -182,6 +182,29 @@ async def ensure_database_schema() -> None:
                 "ADD COLUMN IF NOT EXISTS priority_score INTEGER NOT NULL DEFAULT 50"
             )
         )
+        await conn.execute(text("ALTER TABLE mechanics ALTER COLUMN base_lat DROP NOT NULL"))
+        await conn.execute(text("ALTER TABLE mechanics ALTER COLUMN base_lng DROP NOT NULL"))
+        await conn.execute(
+            text(
+                "ALTER TABLE mechanics "
+                "ADD COLUMN IF NOT EXISTS zip_code VARCHAR(20)"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE mechanics "
+                "ADD COLUMN IF NOT EXISTS availability_status VARCHAR(50) DEFAULT 'unknown'"
+            )
+        )
+        await conn.execute(
+            text(
+                "ALTER TABLE mechanics "
+                "ADD COLUMN IF NOT EXISTS response_score DOUBLE PRECISION"
+            )
+        )
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_mechanics_base_lat_lng ON mechanics (base_lat, base_lng)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_mechanics_zip_code ON mechanics (zip_code)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_mechanics_availability_status ON mechanics (availability_status)"))
     logger.info("Database schema verified")
 
 

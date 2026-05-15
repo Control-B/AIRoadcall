@@ -23,8 +23,8 @@ class Mechanic(Base):
     )
 
     # Location
-    base_lat: Mapped[float] = mapped_column(Float, nullable=False)
-    base_lng: Mapped[float] = mapped_column(Float, nullable=False)
+    base_lat: Mapped[float | None] = mapped_column(Float, nullable=True)
+    base_lng: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Availability
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
@@ -54,8 +54,11 @@ class Mechanic(Base):
     address: Mapped[str | None] = mapped_column(Text, nullable=True)
     city: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
     state: Mapped[str | None] = mapped_column(String(10), nullable=True, index=True)
+    zip_code: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     website: Mapped[str | None] = mapped_column(Text, nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    availability_status: Mapped[str | None] = mapped_column(String(50), nullable=True, default="unknown", index=True)
+    response_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # Enrichment tracking
     last_enriched_at: Mapped[datetime | None] = mapped_column(
