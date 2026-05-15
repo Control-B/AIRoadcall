@@ -91,8 +91,13 @@ async def patch():
         \"ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS verified_listing BOOLEAN NOT NULL DEFAULT false\",
         \"ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS submitted_by_public BOOLEAN NOT NULL DEFAULT false\",
         \"ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS requires_admin_review BOOLEAN NOT NULL DEFAULT false\",
+        \"ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS zip_code VARCHAR(20)\",
+        \"ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS availability_status VARCHAR(50) DEFAULT 'unknown'\",
+        \"ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS response_score DOUBLE PRECISION\",
         \"CREATE INDEX IF NOT EXISTS ix_mechanics_claimed ON mechanics(claimed)\",
         \"CREATE INDEX IF NOT EXISTS ix_mechanics_requires_admin_review ON mechanics(requires_admin_review)\",
+        \"CREATE INDEX IF NOT EXISTS ix_mechanics_zip_code ON mechanics(zip_code)\",
+        \"CREATE INDEX IF NOT EXISTS ix_mechanics_availability_status ON mechanics(availability_status)\",
     ]
     async with eng.begin() as conn:
         for s in stmts:
