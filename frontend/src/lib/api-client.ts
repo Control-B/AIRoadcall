@@ -1,4 +1,13 @@
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+function getApiBase(): string {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host !== "localhost" && host !== "127.0.0.1") {
+      return "/api";
+    }
+  }
+
+  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
+}
 
 interface ApiErrorBody {
   detail?: string | { message?: string } | Array<{ msg?: string }>;
@@ -6,7 +15,7 @@ interface ApiErrorBody {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(`${getApiBase()}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
@@ -71,6 +80,17 @@ export interface LocationUpdateResponse {
   status: string;
   driver_lat: number;
   driver_lng: number;
+}
+
+export interface JobCodeLookupResponse {
+  magic_link_token: string;
+  public_job_id: string;
+}
+
+export interface GeocodeResponse {
+  lat: number;
+  lng: number;
+  display: string;
 }
 
 export interface TrackingView {
@@ -153,6 +173,10 @@ export async function getJobByToken(token: string): Promise<JobDriverView> {
   return request<JobDriverView>(`/jobs/${token}`);
 }
 
+export async function getJobByCode(code: string): Promise<JobCodeLookupResponse> {
+  return request<JobCodeLookupResponse>(`/jobs/by-code/${encodeURIComponent(code)}`);
+}
+
 export async function updateDriverLocation(
   token: string,
   lat: number,
@@ -161,6 +185,17 @@ export async function updateDriverLocation(
   return request<LocationUpdateResponse>(`/jobs/${token}/location`, {
     method: "POST",
     body: JSON.stringify({ lat, lng }),
+  });
+}
+
+export async function geocodeAddress(body: {
+  address?: string;
+  city?: string;
+  state?: string;
+}): Promise<GeocodeResponse> {
+  return request<GeocodeResponse>("/jobs/geocode", {
+    method: "POST",
+    body: JSON.stringify(body),
   });
 }
 

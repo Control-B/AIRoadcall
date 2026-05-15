@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+import { getJobByCode } from "@/lib/api-client";
 
 export default function GoCodePage() {
   const params = useParams();
@@ -17,21 +17,16 @@ export default function GoCodePage() {
 
     async function lookupCode() {
       try {
-        const res = await fetch(`${API_URL}/jobs/by-code/${encodeURIComponent(code)}`);
-        if (!res.ok) {
-          if (res.status === 404) {
-            setError("We couldn't find a case with that code. Please double-check and try again.");
-          } else {
-            setError("Something went wrong. Please try again in a moment.");
-          }
-          setLoading(false);
-          return;
-        }
-        const data = await res.json();
+        const data = await getJobByCode(code);
         // Redirect to the full support page with the magic link token
         router.replace(`/support/${data.magic_link_token}`);
-      } catch {
-        setError("Unable to connect. Please check your internet and try again.");
+      } catch (err: any) {
+        const message = err?.message || "Unable to connect. Please check your internet and try again.";
+        if (message.toLowerCase().includes("not found")) {
+          setError("We couldn't find a case with that code. Please double-check and try again.");
+        } else {
+          setError(message);
+        }
         setLoading(false);
       }
     }
