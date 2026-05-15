@@ -79,22 +79,29 @@ class MechanicDataService:
 
     @staticmethod
     async def get_admin_stats(db: AsyncSession) -> MechanicAdminStats:
+        def non_empty(column):
+            return column.isnot(None), func.length(func.trim(column)) > 0
+
         total = await db.scalar(select(func.count(Mechanic.id))) or 0
         active = await db.scalar(
             select(func.count(Mechanic.id)).where(Mechanic.active == True)  # noqa: E712
         ) or 0
         with_phone = await db.scalar(
-            select(func.count(Mechanic.id)).where(Mechanic.phone.isnot(None), Mechanic.phone != "")
+            select(func.count(Mechanic.id)).where(*non_empty(Mechanic.phone))
         ) or 0
         with_email = await db.scalar(
-            select(func.count(Mechanic.id)).where(Mechanic.email.isnot(None), Mechanic.email != "")
+            select(func.count(Mechanic.id)).where(*non_empty(Mechanic.email))
         ) or 0
         with_website = await db.scalar(
-            select(func.count(Mechanic.id)).where(Mechanic.website.isnot(None), Mechanic.website != "")
+            select(func.count(Mechanic.id)).where(*non_empty(Mechanic.website))
         ) or 0
         roadside = await db.scalar(
             select(func.count(Mechanic.id)).where(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
         ) or 0
+        state_count = await db.scalar(
+            select(func.count(func.distinct(func.upper(func.trim(Mechanic.state))))).where(*non_empty(Mechanic.state))
+        ) or 0
+        last_updated_at = await db.scalar(select(func.max(Mechanic.updated_at)))
 
         source_rows = await db.execute(
             select(Mechanic.source, func.count(Mechanic.id))
@@ -104,9 +111,9 @@ class MechanicDataService:
         sources = {row[0] or "unknown": row[1] for row in source_rows.all()}
 
         state_rows = await db.execute(
-            select(Mechanic.state, func.count(Mechanic.id))
-            .where(Mechanic.state.isnot(None), Mechanic.state != "")
-            .group_by(Mechanic.state)
+            select(func.upper(func.trim(Mechanic.state)).label("state"), func.count(Mechanic.id))
+            .where(*non_empty(Mechanic.state))
+            .group_by(func.upper(func.trim(Mechanic.state)))
             .order_by(desc(func.count(Mechanic.id)))
             .limit(10)
         )
@@ -119,10 +126,12 @@ class MechanicDataService:
         return MechanicAdminStats(
             total_mechanics=total,
             active_mechanics=active,
+            state_count=state_count,
             total_with_phone=with_phone,
             total_with_email=with_email,
             total_with_website=with_website,
             roadside_mechanics=roadside,
+            last_updated_at=last_updated_at,
             sources=sources,
             top_states=top_states,
         )

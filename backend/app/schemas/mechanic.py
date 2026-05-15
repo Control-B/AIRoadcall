@@ -98,10 +98,12 @@ class MechanicAdminListResponse(BaseModel):
 class MechanicAdminStats(BaseModel):
     total_mechanics: int
     active_mechanics: int
+    state_count: int = 0
     total_with_phone: int
     total_with_email: int
     total_with_website: int
     roadside_mechanics: int
+    last_updated_at: Optional[datetime] = None
     sources: dict[str, int]
     top_states: list[dict[str, int | str]]
 

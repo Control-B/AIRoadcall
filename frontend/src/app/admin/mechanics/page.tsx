@@ -34,10 +34,12 @@ import { adminFetch } from "@/lib/admin-auth";
 interface MechanicStats {
   total_mechanics: number;
   active_mechanics: number;
+  state_count: number;
   total_with_phone: number;
   total_with_email: number;
   total_with_website: number;
   roadside_mechanics: number;
+  last_updated_at: string | null;
   sources: Record<string, number>;
   top_states: { state: string; count: number }[];
 }
@@ -99,6 +101,7 @@ interface EnrichmentStatus {
 }
 
 const PAGE_SIZE = 200;
+const STATS_REFRESH_MS = 30_000;
 
 function ProgressBar({ value, max, accent = "bg-blue-500" }: { value: number; max: number; accent?: string }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
@@ -200,6 +203,7 @@ export default function AdminMechanicsPage() {
   const [enrichOpen, setEnrichOpen] = useState(false);
   const [enrichStatus, setEnrichStatus] = useState<EnrichmentStatus | null>(null);
   const [enrichBusy, setEnrichBusy] = useState(false);
+  const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams({
@@ -217,8 +221,8 @@ export default function AdminMechanicsPage() {
     return params.toString();
   }, [city, emergencyOnly, hasEmail, hasWebsite, offset, roadsideOnly, search, serviceType, state]);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
+  const loadData = useCallback(async (options?: { silent?: boolean }) => {
+    if (!options?.silent) setLoading(true);
     setError(null);
     try {
       const [statsData, listData] = await Promise.all([
@@ -227,16 +231,30 @@ export default function AdminMechanicsPage() {
       ]);
       setStats(statsData);
       setRecords(listData);
+      setLastLoadedAt(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load mechanics");
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   }, [queryString]);
 
   useEffect(() => {
     const timeout = window.setTimeout(loadData, 250);
     return () => window.clearTimeout(timeout);
+  }, [loadData]);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      loadData({ silent: true });
+    }, STATS_REFRESH_MS);
+
+    const refreshOnFocus = () => loadData({ silent: true });
+    window.addEventListener("focus", refreshOnFocus);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener("focus", refreshOnFocus);
+    };
   }, [loadData]);
 
   useEffect(() => {
@@ -266,6 +284,7 @@ export default function AdminMechanicsPage() {
         body: JSON.stringify({ kind: "emails", limit: 200, batch: 20, dry_run: false }),
       });
       setEnrichStatus(s);
+      loadData({ silent: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start enrichment");
     } finally {
@@ -312,6 +331,7 @@ export default function AdminMechanicsPage() {
 
   const emailCoverage = stats?.total_mechanics ? Math.round((stats.total_with_email / stats.total_mechanics) * 100) : 0;
   const websiteCoverage = stats?.total_mechanics ? Math.round((stats.total_with_website / stats.total_mechanics) * 100) : 0;
+  const statsUpdatedAt = stats?.last_updated_at ? new Date(stats.last_updated_at) : lastLoadedAt;
 
   return (
     <div className="space-y-6">
@@ -326,12 +346,17 @@ export default function AdminMechanicsPage() {
               Mechanic Database
             </h1>
             <p className="mt-1 text-sm text-slate-400">
-              {stats ? `${stats.total_mechanics.toLocaleString()} records across ${stats.top_states.length}+ states.` : "Loading dispatch network..."}
+              {stats ? `${stats.total_mechanics.toLocaleString()} records across ${stats.state_count.toLocaleString()} states.` : "Loading dispatch network..."}
               {" "}Apify-enriched with phone, email, and dispatch metadata.
             </p>
+            {statsUpdatedAt && (
+              <p className="mt-1 text-xs text-slate-500">
+                Auto-refreshes every {Math.round(STATS_REFRESH_MS / 1000)}s · last synced {statsUpdatedAt.toLocaleTimeString()}
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" size="sm" onClick={loadData} disabled={loading} className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => loadData()} disabled={loading} className="gap-2">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportCsv(records?.items || [])} disabled={!records?.items.length} className="gap-2">
