@@ -5,17 +5,18 @@
  */
 
 function getApiBase(): string {
-  const configuredApiBase = process.env.NEXT_PUBLIC_API_URL?.trim();
-  if (configuredApiBase) {
-    return configuredApiBase.replace(/\/$/, "");
-  }
-
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
     if (host !== "localhost" && host !== "127.0.0.1") {
       return "/api";
     }
   }
+
+  const configuredApiBase = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (configuredApiBase) {
+    return configuredApiBase.replace(/\/$/, "");
+  }
+
   return "http://localhost:8000/api";
 }
 const TOKEN_KEY = "admin_token";
