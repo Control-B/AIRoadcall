@@ -5,6 +5,7 @@ from typing import Iterable
 
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import load_only
 
 from app.models.mechanic import Mechanic
 from app.schemas.roadside_match import (
@@ -23,6 +24,27 @@ from app.core.logging import get_logger
 
 
 logger = get_logger(__name__)
+
+
+MECHANIC_MATCH_LOAD_COLUMNS = (
+    Mechanic.id,
+    Mechanic.company_name,
+    Mechanic.phone,
+    Mechanic.service_types,
+    Mechanic.vehicle_types_supported,
+    Mechanic.base_lat,
+    Mechanic.base_lng,
+    Mechanic.accepts_mobile_roadside,
+    Mechanic.emergency_service,
+    Mechanic.service_radius_miles,
+    Mechanic.priority_score,
+    Mechanic.rating,
+    Mechanic.review_count,
+    Mechanic.hours_of_operation,
+    Mechanic.address,
+    Mechanic.city,
+    Mechanic.state,
+)
 
 
 PROBLEM_ALIASES: list[tuple[list[str], str]] = [
@@ -748,13 +770,18 @@ class RoadsideMatchingService:
             return context.latitude, context.longitude
 
         city_terms = _city_search_terms(context.city)
-        centroid_query = select(Mechanic).where(
-            Mechanic.active == True,  # noqa: E712
-            func.upper(Mechanic.state) == context.state.upper(),
-            Mechanic.base_lat.is_not(None),
-            Mechanic.base_lng.is_not(None),
-            or_(*[func.lower(Mechanic.city) == city_term for city_term in city_terms]),
-        ).limit(50)
+        centroid_query = (
+            select(Mechanic)
+            .options(load_only(*MECHANIC_MATCH_LOAD_COLUMNS))
+            .where(
+                Mechanic.active == True,  # noqa: E712
+                func.upper(Mechanic.state) == context.state.upper(),
+                Mechanic.base_lat.is_not(None),
+                Mechanic.base_lng.is_not(None),
+                or_(*[func.lower(Mechanic.city) == city_term for city_term in city_terms]),
+            )
+            .limit(50)
+        )
         result = await db.execute(centroid_query)
         city_mechanics = list(result.scalars().all())
         if city_mechanics:
@@ -767,7 +794,7 @@ class RoadsideMatchingService:
     async def findExactCityMatches(db: AsyncSession, context: RoadsideCallerContext) -> list[Mechanic]:
         if not context.city or not context.state:
             return []
-        query = select(Mechanic).where(Mechanic.active == True)  # noqa: E712
+        query = select(Mechanic).options(load_only(*MECHANIC_MATCH_LOAD_COLUMNS)).where(Mechanic.active == True)  # noqa: E712
         city_terms = _city_search_terms(context.city)
         query = query.where(
             func.upper(Mechanic.state) == context.state.upper(),
@@ -783,12 +810,17 @@ class RoadsideMatchingService:
     async def findSameStateFallbackMatches(db: AsyncSession, context: RoadsideCallerContext) -> list[Mechanic]:
         if not context.state:
             return []
-        query = select(Mechanic).where(
-            Mechanic.active == True,  # noqa: E712
-            func.upper(Mechanic.state) == context.state.upper(),
-            Mechanic.phone.is_not(None),
-            Mechanic.phone != "",
-        ).limit(1000)
+        query = (
+            select(Mechanic)
+            .options(load_only(*MECHANIC_MATCH_LOAD_COLUMNS))
+            .where(
+                Mechanic.active == True,  # noqa: E712
+                func.upper(Mechanic.state) == context.state.upper(),
+                Mechanic.phone.is_not(None),
+                Mechanic.phone != "",
+            )
+            .limit(1000)
+        )
         result = await db.execute(query)
         return _filter_problem_capable(list(result.scalars().all()), context)
 
@@ -798,16 +830,21 @@ class RoadsideMatchingService:
             return []
         lat_delta = max(radiusMiles / 69.0, 0.5)
         lng_delta = max(radiusMiles / 55.0, 0.5)
-        query = select(Mechanic).where(
-            Mechanic.active == True,  # noqa: E712
-            func.upper(Mechanic.state) == context.state.upper(),
-            Mechanic.phone.is_not(None),
-            Mechanic.phone != "",
-            Mechanic.base_lat >= context.latitude - lat_delta,
-            Mechanic.base_lat <= context.latitude + lat_delta,
-            Mechanic.base_lng >= context.longitude - lng_delta,
-            Mechanic.base_lng <= context.longitude + lng_delta,
-        ).limit(1000)
+        query = (
+            select(Mechanic)
+            .options(load_only(*MECHANIC_MATCH_LOAD_COLUMNS))
+            .where(
+                Mechanic.active == True,  # noqa: E712
+                func.upper(Mechanic.state) == context.state.upper(),
+                Mechanic.phone.is_not(None),
+                Mechanic.phone != "",
+                Mechanic.base_lat >= context.latitude - lat_delta,
+                Mechanic.base_lat <= context.latitude + lat_delta,
+                Mechanic.base_lng >= context.longitude - lng_delta,
+                Mechanic.base_lng <= context.longitude + lng_delta,
+            )
+            .limit(1000)
+        )
         result = await db.execute(query)
         mechanics = []
         for mechanic in result.scalars().all():
