@@ -26,7 +26,9 @@ import { NoCopySurface } from "@/components/privacy/no-copy-surface";
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://airoadcall-i76ba.ondigitalocean.app/api";
+  (typeof window !== "undefined" && window.location.hostname !== "localhost"
+    ? `${window.location.origin.replace(/\/$/, "")}/api`
+    : "http://localhost:8000/api");
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
