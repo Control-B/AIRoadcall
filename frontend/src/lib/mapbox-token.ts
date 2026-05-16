@@ -19,6 +19,22 @@ type MapboxTokenState = {
   loading: boolean;
 };
 
+async function fetchRuntimeMapboxToken(): Promise<string> {
+  for (const path of ["/mapbox-token", "/api/mapbox-token"]) {
+    try {
+      const response = await fetch(path, { cache: "no-store" });
+      if (!response.ok) continue;
+      const body = await response.json();
+      const runtimeToken = typeof body?.token === "string" ? body.token : "";
+      if (isConfiguredMapboxToken(runtimeToken)) return runtimeToken.trim();
+    } catch {
+      // Try the next token endpoint.
+    }
+  }
+
+  return "";
+}
+
 export function useMapboxToken(buildTimeToken?: string): MapboxTokenState {
   const initialToken = useMemo(() => {
     return isConfiguredMapboxToken(buildTimeToken) ? buildTimeToken.trim() : "";
@@ -37,12 +53,10 @@ export function useMapboxToken(buildTimeToken?: string): MapboxTokenState {
     let cancelled = false;
     setLoading(true);
 
-    fetch("/api/mapbox-token", { cache: "no-store" })
-      .then((response) => (response.ok ? response.json() : null))
-      .then((body) => {
+    fetchRuntimeMapboxToken()
+      .then((runtimeToken) => {
         if (cancelled) return;
-        const runtimeToken = typeof body?.token === "string" ? body.token : "";
-        setToken(isConfiguredMapboxToken(runtimeToken) ? runtimeToken.trim() : "");
+        setToken(runtimeToken);
       })
       .catch(() => {
         if (!cancelled) setToken("");
