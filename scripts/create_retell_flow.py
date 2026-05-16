@@ -69,8 +69,9 @@ FLOW = {
         "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.",
         "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
-        "WEBSITE-FIRST LOCATION (PRIMARY FLOW WHILE SMS IS PENDING): After the caller gives their name and describes what they need, collect any truly missing basics: problem/help needed and vehicle type. Then say: 'To get you the best person nearby, please open roadcall.ai/go, enter your telephone number, and tap Submit and share my location. I’ll stay on the line while it comes through.' If they say they submitted it, wait two seconds and call check_go_dispatch using their 10-digit phone number. If they cannot use the website (no smartphone, no signal, refuses), THEN fall back to asking city + state verbally.",
-        "WEBSITE STATUS POLLING: After you direct the caller to roadcall.ai/go, ask what telephone number they entered if you do not already know it, then poll check_go_dispatch every 8 to 10 seconds using that 10-digit phone number. If check_go_dispatch returns 404, say: 'I don’t see it yet — please make sure you entered your telephone number and tapped Submit and share my location.' As soon as the status response includes location.city/state or location.latitude/longitude and matches, say the location was received and read the top three options exactly as worded.",
+        "DURABLE SESSION RULE: Early in the call, call create_dispatch_session with source='retell', retell_call_id when available, caller_phone when available, caller_name if known, problem_description if known, and vehicle_type if known. Use the returned dispatch_session_id and location_url as the source of truth for this call.",
+        "WEBSITE-FIRST LOCATION: Prefer the returned location_url from create_dispatch_session. Say: 'I’m sending you a secure Roadcall location link. Open it and tap Submit and share my location. I’ll stay on the line while it comes through.' If the caller cannot receive/open that link, then use roadcall.ai/go with their telephone number as fallback.",
+        "SESSION STATUS POLLING: If you have dispatch_session_id, poll get_dispatch_session_status every 8 to 10 seconds. Speak only the returned say field and verified best_match fields. If you do not have dispatch_session_id, fall back to check_go_dispatch using the 10-digit phone number.",
         "PACING: Speak like a calm human dispatcher, not a robot. When you read match_mechanic.message, honor the ellipses (\"...\") and periods as real pauses — take a half-second breath at each ellipsis and a full beat at each period. Do not run sentences together. Read each numbered option as its own sentence: \"Number one ... Truck Tire LLC ... \" pause ... \"Number two ... Big Guy Truck ... \" pause ... \"Number three ... Bobby's Truck Shop.\" Then ask the question. Never list more than three local options.",
         "When reading results, ALWAYS prefer to speak match_mechanic.message exactly as returned — it is already worded for voice and may include up to three local options and one major vendor when one is nearby. Never list more than three local options. After reading the message, ask one short next-step question. Do not read phone numbers unless the caller asks or picks one.",
         "The major vendor is provided in match_mechanic.majorVendor with brandName, interstate, and exitNumber. You may speak its brandName, interstate, exit, and city verbatim — but only if majorVendor is present in the latest tool response. Never invent a major vendor.",
@@ -82,6 +83,47 @@ FLOW = {
     ]),
 
     "tools": [
+        {
+            "type": "custom",
+            "tool_id": "tool-roadcall-create-dispatch-session",
+            "name": "create_dispatch_session",
+            "description": "Create or reuse the durable Roadcall dispatch session for this live Retell call. Call early once caller phone or Retell call metadata is available. The response returns dispatch_session_id, public_code, and a secure roadcall.ai/go?t= location_url.",
+            "url": f"{BACKEND_URL}/api/dispatch/create-session",
+            "method": "POST",
+            "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "string", "description": "Always 'retell'"},
+                    "retell_call_id": {"type": "string", "description": "Retell call ID when available"},
+                    "twilio_call_sid": {"type": "string", "description": "Twilio CallSid when available"},
+                    "caller_phone": {"type": "string", "description": "Caller phone from Retell call metadata when available"},
+                    "caller_name": {"type": "string", "description": "Caller name if already provided"},
+                    "problem_description": {"type": "string", "description": "Brief description of the problem if already known"},
+                    "problem_type": {"type": "string", "description": "Normalized problem type if known"},
+                    "vehicle_type": {"type": "string", "description": "Vehicle type if already known"},
+                    "city": {"type": "string", "description": "City if already known"},
+                    "state": {"type": "string", "description": "State if already known"}
+                },
+                "required": ["source"]
+            }
+        },
+        {
+            "type": "custom",
+            "tool_id": "tool-roadcall-dispatch-session-status",
+            "name": "get_dispatch_session_status",
+            "description": "Poll the durable dispatch session created by create_dispatch_session. Use this every 8-10 seconds after giving the secure roadcall.ai/go?t= link. Speak only the returned say field and verified best_match fields.",
+            "url": f"{BACKEND_URL}/api/dispatch/session-status",
+            "method": "POST",
+            "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "dispatch_session_id": {"type": "string", "description": "dispatch_session_id returned by create_dispatch_session"}
+                },
+                "required": ["dispatch_session_id"]
+            }
+        },
         {
             "type": "custom",
             "tool_id": "tool-roadcall-create-sr",
@@ -318,7 +360,7 @@ FLOW = {
                     "- If problem type missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
                     "- If vehicle type missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
                     "Do not ask road, exit, GPS, callback, company, payment, insurance, license plate, or address before matching.\n"
-                    "After problem/help needed and vehicle type are known, tell the caller: 'To get you the best person nearby, please open roadcall.ai/go, enter your telephone number, and tap Submit and share my location. I’ll stay on the line while it comes through.' If they cannot use the website, collect city + state and move to the Roadcall mechanic search."
+                    "After problem/help needed and vehicle type are known, call create_dispatch_session if it has not already been called. Use the returned location_url and tell the caller: 'I’m sending you a secure Roadcall location link. Open it and tap Submit and share my location. I’ll stay on the line while it comes through.' If they cannot use the link, use roadcall.ai/go with their telephone number as fallback or collect city + state manually."
                 )
             },
             "edges": [
@@ -400,7 +442,7 @@ FLOW = {
                     "Use the latest match_mechanic tool response only. Prefer speaking match_mechanic.message verbatim when it is present, because the backend already decides whether this is a city-level options list or an exact/radius match.\n"
                     "If the response includes several matches, mention up to three returned businessName values exactly; do not invent names and do not force matches[0].\n"
                     "Do NOT read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.\n"
-                    "After listing options, ask exactly one short next-step question: 'I can text you a secure GPS link, get your exact road or exit, or start with one of these options. Which would you prefer?'\n"
+                    "After listing options, ask exactly one short next-step question: 'I can send your secure GPS link, get your exact road or exit, or start with one of these options. Which would you prefer?'\n"
                     "If the caller gives an exact road, exit, landmark, or GPS details, go back to match intake and call match_mechanic again with the more precise location.\n"
                     "If the caller wants a GPS text or wants Roadcall to continue dispatch, move to post-match dispatch intake.\n"
                     "If the caller chooses a mechanic by name or option number, use that match context and move to post-match dispatch intake.\n"
@@ -437,7 +479,7 @@ FLOW = {
                 "text": (
                     "Read the phone for the mechanic the caller chose. If they did not choose one, ask which option they want first.\n"
                     "Use only businessName and phone values from the latest match_mechanic response; do not invent or guess.\n"
-                    "Then ask: 'Do you want me to also create a Roadcall dispatch request and text you the GPS location link?'\n"
+                    "Then ask: 'Do you want me to also create a Roadcall dispatch request and send your secure GPS location link?'\n"
                     "Do not end unless the caller explicitly says they are all set or no longer need help."
                 )
             },
@@ -497,9 +539,10 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Call request_location with the service_request_id and the driver's callback number.\n"
-                    "Use call.caller_phone as callback_number when available. If no callback_number is available, ask for the SMS number before calling request_location.\n"
+                    "If create_dispatch_session has not been called, call it now and use its location_url first. Only call request_location when SMS is needed as a fallback or when the legacy service_request flow requires it.\n"
+                    "Use call.caller_phone as callback_number when available. If no callback_number is available and SMS is needed, ask for the SMS number before calling request_location.\n"
                     "After calling the tool:\n"
+                    "- If create_dispatch_session returned location_url: Tell the driver to open that secure Roadcall link, tap Submit, and share location. Then poll get_dispatch_session_status using dispatch_session_id.\n"
                     "- If location_status is 'sms_sent': Tell the driver: 'I just texted you a location link. Tap it and hit Allow so I can find mechanics near you. Takes about 10 seconds.'\n"
                     "- If location_status is 'sms_failed': Say the text couldn't go through and ask for their highway/interstate, mile marker or nearest exit, city and state, and any nearby truck stop or landmark.\n"
                     "  Then call request_location again with manual_location_details filled in.\n"
@@ -525,12 +568,12 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "Tell the driver: 'I'm searching for a qualified heavy-duty mechanic near your location now. Hang tight.'\n"
-                    "Call get_dispatch_status with the service_request_id.\n"
+                    "If dispatch_session_id is available, call get_dispatch_session_status first. If only service_request_id is available, call get_dispatch_status with the service_request_id.\n"
                     "While polling, do not go silent long enough for the call to end. Use brief reassurance every 8-10 seconds — vary the phrasing:\n"
                     "  - 'Still searching. I'm looking for someone who handles your specific issue.'\n"
                     "  - 'I'm checking technician availability in your area.'\n"
                     "  - 'Thanks for your patience. I haven't found a confirmed match yet.'\n\n"
-                    "When get_dispatch_status returns:\n"
+                    "When get_dispatch_session_status returns, speak the say field exactly unless it asks for missing information; use best_match only if present. When get_dispatch_status returns:\n"
                     "- status 'intake_created', 'location_requested', or 'matching': Keep the caller on the line and continue polling with brief reassurance.\n"
                     "- status 'matched' or 'mechanic_confirmed': Announce the mechanic and ETA (only speak confirmed backend data), then move to payment or confirm.\n"
                     "- status 'payment_required': Move to payment node.\n"

@@ -76,6 +76,24 @@ def create_mechanic_dispatch_offer_token(
     )
 
 
+def create_dispatch_location_token(
+    dispatch_session_id: str,
+    public_code: str,
+    location_token_id: str,
+    *,
+    expires_minutes: int = 30,
+) -> str:
+    payload = {
+        "sub": public_code,
+        "dispatch_session_id": str(dispatch_session_id),
+        "location_token_id": str(location_token_id),
+        "role": "dispatch_location",
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=expires_minutes),
+        "iat": datetime.now(timezone.utc),
+    }
+    return jwt.encode(payload, settings.MAGIC_LINK_SECRET, algorithm=ALGORITHM)
+
+
 def decode_signed_token(token: str) -> dict | None:
     """Decode and validate a signed JWT token. Returns claims or None."""
     try:
@@ -108,6 +126,14 @@ def decode_mechanic_dispatch_offer_token(token: str) -> dict | None:
     """Decode and validate a mechanic dispatch offer JWT. Returns claims or None."""
     payload = decode_signed_token(token)
     if not payload or payload.get("role") != "mechanic_dispatch_offer":
+        return None
+    return payload
+
+
+def decode_dispatch_location_token(token: str) -> dict | None:
+    """Decode and validate a dispatch GPS token."""
+    payload = decode_signed_token(token)
+    if not payload or payload.get("role") != "dispatch_location":
         return None
     return payload
 

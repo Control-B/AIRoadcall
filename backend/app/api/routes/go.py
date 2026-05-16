@@ -25,8 +25,14 @@ from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session
-from app.schemas.roadside_match import RoadsideMatchRequest, RoadsideMatchResponse
+from app.schemas.roadside_match import (
+    RoadsideCallerContext,
+    RoadsideMatchRequest,
+    RoadsideMatchResponse,
+    RoadsideMechanicMatch,
+)
 from app.services.geocoding_service import GeocodingService
+from app.services.dispatch_session_service import DispatchSessionService
 from app.services.roadside_matching_service import RoadsideMatchingService
 from app.utils.us_geo import infer_state_from_coordinates
 
@@ -188,6 +194,26 @@ async def go_dispatch(
         match=match_resp,
     )
 
+    try:
+        await DispatchSessionService.persist_go_dispatch(
+            db,
+            caller_phone=_format_e164_us(phone10),
+            caller_name=payload.name,
+            problem_description=payload.problem,
+            problem_type=effective_problem,
+            vehicle_type=payload.vehicle_type or "box truck",
+            latitude=payload.latitude,
+            longitude=payload.longitude,
+            accuracy_m=payload.accuracy_m,
+            city=resolved_city,
+            state=resolved_state,
+            address=resolved_address,
+            location_source=source,
+            match_response=match_resp,
+        )
+    except Exception as exc:
+        logger.warning("go_dispatch_durable_session_persist_failed phone=%s err=%s", phone10, exc)
+
     # Cache for the status endpoint
     _DISPATCH_CACHE[phone10] = (time.monotonic(), response.model_dump(mode="json"))
 
@@ -204,37 +230,83 @@ async def go_dispatch(
     return response
 
 
-def _get_cached_dispatch(phone: str) -> dict:
+async def _get_cached_dispatch(phone: str, db: AsyncSession) -> dict:
     phone10 = _normalize_phone_us(phone)
     if not phone10:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid phone number.")
     cached = _DISPATCH_CACHE.get(phone10)
-    if not cached:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No dispatch found for that number yet.",
-        )
-    ts, data = cached
-    if time.monotonic() - ts > _DISPATCH_CACHE_TTL_SECONDS:
+    if cached:
+        ts, data = cached
+        if time.monotonic() - ts <= _DISPATCH_CACHE_TTL_SECONDS:
+            return data
         _DISPATCH_CACHE.pop(phone10, None)
-        raise HTTPException(
-            status_code=status.HTTP_410_GONE,
-            detail="Dispatch session expired. Please re-submit on roadcall.ai/go.",
-        )
-    return data
+
+    durable = await _get_durable_dispatch(phone10, db)
+    if durable:
+        _DISPATCH_CACHE[phone10] = (time.monotonic(), durable)
+        return durable
+
+    raise HTTPException(
+        status_code=status.HTTP_404_NOT_FOUND,
+        detail="No dispatch found for that number yet.",
+    )
+
+
+async def _get_durable_dispatch(phone10: str, db: AsyncSession) -> dict | None:
+    session = await DispatchSessionService.latest_by_phone(db, _format_e164_us(phone10))
+    if not session:
+        return None
+    latest_match = await DispatchSessionService._latest_match(db, session.id)
+    candidates = latest_match.candidates if latest_match else []
+    matches = [RoadsideMechanicMatch(**item) for item in candidates]
+    caller_context = RoadsideCallerContext(
+        callerPhone=session.caller_phone_encrypted,
+        callbackNumber=session.caller_phone_encrypted,
+        city=session.city,
+        state=session.state,
+        latitude=session.lat,
+        longitude=session.lng,
+        problemType=session.problem_type,
+        vehicleType=session.vehicle_type,
+    )
+    match = RoadsideMatchResponse(
+        status=latest_match.status if latest_match else session.status,
+        searchLevel=latest_match.search_level if latest_match else None,
+        matches=matches,
+        needsMoreInfo=not bool(matches),
+        missingFields=[],
+        callerContext=caller_context,
+        callerLocation=caller_context,
+        message="Location received and mechanic search completed." if matches else "Location received. Mechanic matching is still in progress.",
+    )
+    response = GoDispatchResponse(
+        work_order_id=phone10,
+        status=match.status,
+        location=ResolvedLocation(
+            latitude=session.lat,
+            longitude=session.lng,
+            city=session.city,
+            state=session.state,
+            address=session.address,
+            accuracy_m=session.location_accuracy_m,
+            source=session.location_source or "dispatch_session",
+        ),
+        match=match,
+    )
+    return response.model_dump(mode="json")
 
 
 @router.get("/status/{phone}", response_model=GoDispatchResponse)
-async def go_status(phone: str):
+async def go_status(phone: str, db: AsyncSession = Depends(get_session)):
     """Return the most recent dispatch result for this phone number.
 
     Used by the /go page itself to poll for status changes, and by the Retell
     agent to read location and options aloud once the driver hits Submit.
     """
-    return _get_cached_dispatch(phone)
+    return await _get_cached_dispatch(phone, db)
 
 
 @router.post("/status", response_model=GoDispatchResponse)
-async def go_status_post(payload: GoStatusRequest):
+async def go_status_post(payload: GoStatusRequest, db: AsyncSession = Depends(get_session)):
     """Retell-friendly status endpoint with phone in the JSON body."""
-    return _get_cached_dispatch(payload.phone)
+    return await _get_cached_dispatch(payload.phone, db)

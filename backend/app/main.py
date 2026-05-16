@@ -13,6 +13,7 @@ from app.api.routes import (
     jobs,
     payments,
     dispatch,
+    dispatch_sessions,
     tracking,
     mechanics,
     webhooks_stripe,
@@ -124,6 +125,7 @@ async def unwrap_retell_envelope(request: Request, call_next):
 app.include_router(jobs.router, prefix="/api")
 app.include_router(payments.router, prefix="/api")
 app.include_router(dispatch.router, prefix="/api")
+app.include_router(dispatch_sessions.router, prefix="/api")
 app.include_router(tracking.router, prefix="/api")
 app.include_router(mechanics.router, prefix="/api")
 app.include_router(rag.router, prefix="/api")

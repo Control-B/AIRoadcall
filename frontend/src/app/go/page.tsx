@@ -99,6 +99,31 @@ type DispatchResponse = {
   };
 };
 
+type DispatchSessionStatus = {
+  dispatch_session_id: string;
+  public_code: string;
+  status: string;
+  location_captured: boolean;
+  city?: string | null;
+  state?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  problem_type?: string | null;
+  vehicle_type?: string | null;
+  payment_status: string;
+  match_status?: string | null;
+  best_match?: {
+    company_name?: string;
+    city?: string;
+    state?: string;
+    distance_miles?: number | null;
+    phone_available?: boolean;
+    reason?: string;
+  } | null;
+  missing_fields: string[];
+  say: string;
+};
+
 type Step = "intake" | "locating" | "matching" | "results" | "manual_fallback";
 
 // ───────── component ─────────
@@ -112,12 +137,62 @@ export default function GoPage() {
   const [manualState, setManualState] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DispatchResponse | null>(null);
+  const [sessionResult, setSessionResult] = useState<DispatchSessionStatus | null>(null);
+  const [dispatchToken, setDispatchToken] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [progressMsg, setProgressMsg] = useState<string>("");
   const pollRef = useRef<number | null>(null);
 
   const phoneDigits = useMemo(() => digitsOnly(phone), [phone]);
   const phoneValid = phoneDigits.length === 10;
+  const tokenMode = Boolean(dispatchToken);
+
+  useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get("t");
+    if (token) {
+      setDispatchToken(token);
+      setProgressMsg("This secure Roadcall link will attach your GPS to the live call.");
+    }
+  }, []);
+
+  const submitTokenLocation = useCallback(
+    async (opts: { latitude: number; longitude: number; accuracy_m?: number }) => {
+      if (!dispatchToken) return;
+      setSubmitting(true);
+      setError(null);
+      setStep("matching");
+      setProgressMsg("Sending your exact GPS location to Roadcall…");
+      try {
+        const res = await fetch(`${API_URL}/dispatch/update-location`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: dispatchToken,
+            latitude: opts.latitude,
+            longitude: opts.longitude,
+            accuracy_m: opts.accuracy_m ?? null,
+            source: "browser_gps",
+            problem_description: problem || null,
+            vehicle_type: vehicleType || null,
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.detail || `Location update failed (${res.status})`);
+        }
+        const data: { session: DispatchSessionStatus } = await res.json();
+        setSessionResult(data.session);
+        setResult(null);
+        setStep("results");
+      } catch (err: any) {
+        setError(err?.message || "We could not attach your GPS to this Roadcall session.");
+        setStep("manual_fallback");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [dispatchToken, problem, vehicleType],
+  );
 
   const submitDispatch = useCallback(
     async (opts: {
@@ -169,7 +244,7 @@ export default function GoPage() {
   );
 
   const requestGpsThenDispatch = useCallback(() => {
-    if (!phoneValid) {
+    if (!tokenMode && !phoneValid) {
       setError("Please enter a 10-digit phone number.");
       return;
     }
@@ -183,11 +258,16 @@ export default function GoPage() {
     setProgressMsg("Getting your location… please tap “Allow” if your phone asks.");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        submitDispatch({
+        const coords = {
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           accuracy_m: pos.coords.accuracy,
-        });
+        };
+        if (tokenMode) {
+          submitTokenLocation(coords);
+        } else {
+          submitDispatch(coords);
+        }
       },
       (geoErr) => {
         // Permission denied / timeout → fallback
@@ -202,7 +282,7 @@ export default function GoPage() {
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
-  }, [phoneValid, submitDispatch]);
+  }, [phoneValid, submitDispatch, submitTokenLocation, tokenMode]);
 
   const handleSubmitForm = (e: FormEvent) => {
     e.preventDefault();
@@ -211,6 +291,10 @@ export default function GoPage() {
 
   const handleManualSubmit = (e: FormEvent) => {
     e.preventDefault();
+    if (tokenMode) {
+      setError("This secure call link needs GPS. If GPS will not work, tell the Roadcall dispatcher your city, state, highway, exit, or nearest landmark while staying on the call.");
+      return;
+    }
     if (!manualCity.trim() || !manualState) {
       setError("City and state are required.");
       return;
@@ -242,6 +326,7 @@ export default function GoPage() {
   const reset = () => {
     setStep("intake");
     setResult(null);
+    setSessionResult(null);
     setError(null);
     setProgressMsg("");
   };
@@ -268,7 +353,9 @@ export default function GoPage() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight">I need help now</h1>
           <p className="mt-2 text-sm leading-6 text-slate-300">
-            Enter your phone number and tap submit. We'll find the closest mechanic to your exact GPS location and call them for you.
+            {tokenMode
+              ? "Tap submit and share your GPS. This links your exact location to the live Roadcall dispatch session."
+              : "Enter your phone number and tap submit. We'll find the closest mechanic to your exact GPS location and call them for you."}
           </p>
         </div>
 
@@ -278,6 +365,11 @@ export default function GoPage() {
             onSubmit={handleSubmitForm}
             className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl"
           >
+            {tokenMode ? (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                Secure Roadcall session link detected. You do not need to enter your phone number here.
+              </div>
+            ) : (
             <div>
               <label htmlFor="phone" className="mb-1 block text-sm font-medium text-slate-200">
                 Your phone number <span className="text-orange-400">*</span>
@@ -296,6 +388,7 @@ export default function GoPage() {
                 This is your work order — we'll text you updates and the mechanic will call this number.
               </p>
             </div>
+            )}
 
             <details className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-sm">
               <summary className="cursor-pointer text-slate-300">Optional — helps us match faster</summary>
@@ -338,7 +431,7 @@ export default function GoPage() {
 
             <button
               type="submit"
-              disabled={!phoneValid || submitting}
+              disabled={(!tokenMode && !phoneValid) || submitting}
               className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 text-lg font-bold text-slate-950 shadow-lg transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
             >
               {submitting ? (
@@ -418,7 +511,51 @@ export default function GoPage() {
         )}
 
         {/* RESULTS */}
-        {step === "results" && result && (
+        {step === "results" && sessionResult && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+              <div className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
+                <div>
+                  <div className="font-semibold">Location attached to your live Roadcall case.</div>
+                  <div className="text-emerald-200/90">
+                    {[sessionResult.city, sessionResult.state].filter(Boolean).join(", ") || "GPS location received"}
+                  </div>
+                  <div className="mt-1 text-xs text-emerald-300/80">
+                    Case: <span className="font-mono">{sessionResult.public_code}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {sessionResult.best_match ? (
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow">
+                <div className="text-xs uppercase tracking-wider text-orange-400">Best current match</div>
+                <div className="mt-1 text-base font-semibold text-white">
+                  {sessionResult.best_match.company_name}
+                </div>
+                <div className="mt-0.5 text-xs text-slate-400">
+                  {[sessionResult.best_match.city, sessionResult.best_match.state].filter(Boolean).join(", ")}
+                  {typeof sessionResult.best_match.distance_miles === "number"
+                    ? ` · ${sessionResult.best_match.distance_miles.toFixed(1)} mi away`
+                    : ""}
+                </div>
+                <p className="mt-3 text-sm text-slate-300">{sessionResult.say}</p>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-sm text-slate-300">
+                <Wrench className="mb-2 h-6 w-6 text-slate-500" />
+                {sessionResult.say || "Roadcall has your location and is checking nearby providers."}
+              </div>
+            )}
+
+            <p className="text-center text-xs text-slate-500">
+              Stay on the phone with Roadcall while dispatch confirms availability.
+            </p>
+          </div>
+        )}
+
+        {step === "results" && result && !sessionResult && (
           <div className="space-y-4">
             <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-100">
               <div className="flex items-start gap-2">
