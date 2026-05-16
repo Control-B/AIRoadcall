@@ -1,0 +1,209 @@
+"use client";
+
+import { useEffect, useMemo, useRef } from "react";
+import { MapPin } from "lucide-react";
+
+type CallerPoint = {
+  latitude?: number | null;
+  longitude?: number | null;
+  label?: string | null;
+};
+
+type MechanicPoint = {
+  mechanicId: string;
+  businessName: string;
+  city?: string | null;
+  state?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceMiles?: number | null;
+};
+
+type GoResultsMapProps = {
+  caller: CallerPoint;
+  mechanics?: MechanicPoint[];
+  className?: string;
+};
+
+type CoordinatePoint = { latitude: number; longitude: number };
+type CoordinateMechanicPoint = MechanicPoint & CoordinatePoint;
+
+function hasCallerCoordinates(point: CallerPoint): point is CallerPoint & CoordinatePoint {
+  return typeof point.latitude === "number" && typeof point.longitude === "number";
+}
+
+function hasMechanicCoordinates(point: MechanicPoint): point is CoordinateMechanicPoint {
+  return typeof point.latitude === "number" && typeof point.longitude === "number";
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function popupForMechanic(mechanic: MechanicPoint, index: number): string {
+  const location = [mechanic.city, mechanic.state].filter(Boolean).join(", ");
+  const distance = typeof mechanic.distanceMiles === "number" ? `${mechanic.distanceMiles.toFixed(1)} mi away` : "";
+  return [
+    `<strong>Option ${index + 1}: ${escapeHtml(mechanic.businessName)}</strong>`,
+    escapeHtml(location),
+    escapeHtml(distance),
+  ]
+    .filter(Boolean)
+    .join("<br/>");
+}
+
+export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full" }: GoResultsMapProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const markerRefs = useRef<any[]>([]);
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+
+  const mechanicMarkers = useMemo(
+    () => mechanics.filter(hasMechanicCoordinates),
+    [mechanics],
+  );
+  const callerHasCoordinates = hasCallerCoordinates(caller);
+  const hasAnyCoordinates = callerHasCoordinates || mechanicMarkers.length > 0;
+
+  useEffect(() => {
+    if (!containerRef.current || !mapboxToken || !hasAnyCoordinates) return;
+
+    let disposed = false;
+
+    import("mapbox-gl").then((mapboxgl) => {
+      if (disposed || !containerRef.current) return;
+      (mapboxgl as any).accessToken = mapboxToken;
+
+      const firstPoint = callerHasCoordinates ? caller : mechanicMarkers[0];
+      if (!firstPoint) return;
+      const map = new mapboxgl.Map({
+        container: containerRef.current,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [firstPoint.longitude, firstPoint.latitude],
+        zoom: callerHasCoordinates && mechanicMarkers.length === 0 ? 13 : 10,
+      });
+
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      mapRef.current = map;
+    });
+
+    return () => {
+      disposed = true;
+      markerRefs.current.forEach((marker) => marker.remove());
+      markerRefs.current = [];
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, [caller, hasAnyCoordinates, callerHasCoordinates, mapboxToken, mechanicMarkers]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapboxToken || !hasAnyCoordinates) return;
+
+    let cancelled = false;
+
+    import("mapbox-gl").then((mapboxgl) => {
+      if (cancelled) return;
+
+      const renderMarkers = () => {
+        if (cancelled) return;
+
+        markerRefs.current.forEach((marker) => marker.remove());
+        markerRefs.current = [];
+
+        const bounds = new mapboxgl.LngLatBounds();
+        let hasBounds = false;
+
+        if (callerHasCoordinates) {
+          const callerMarker = new mapboxgl.Marker({ color: "#f97316" })
+            .setLngLat([caller.longitude, caller.latitude])
+            .setPopup(
+              new mapboxgl.Popup().setHTML(
+                `<strong>Your location</strong><br/>${escapeHtml(caller.label || "GPS location")}`,
+              ),
+            )
+            .addTo(map);
+          markerRefs.current.push(callerMarker);
+          bounds.extend([caller.longitude, caller.latitude]);
+          hasBounds = true;
+        }
+
+        mechanicMarkers.forEach((mechanic, index) => {
+          const marker = new mapboxgl.Marker({ color: index === 0 ? "#22c55e" : "#2563eb" })
+            .setLngLat([mechanic.longitude, mechanic.latitude])
+            .setPopup(new mapboxgl.Popup().setHTML(popupForMechanic(mechanic, index)))
+            .addTo(map);
+          markerRefs.current.push(marker);
+          bounds.extend([mechanic.longitude, mechanic.latitude]);
+          hasBounds = true;
+        });
+
+        if (hasBounds) {
+          map.fitBounds(bounds, {
+            padding: { top: 56, bottom: 56, left: 42, right: 42 },
+            maxZoom: mechanicMarkers.length ? 12 : 14,
+            duration: 700,
+          });
+        }
+      };
+
+      if (map.isStyleLoaded()) {
+        renderMarkers();
+      } else {
+        map.once("load", renderMarkers);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [caller, hasAnyCoordinates, callerHasCoordinates, mapboxToken, mechanicMarkers]);
+
+  if (!mapboxToken) {
+    return (
+      <div className={`${className} flex items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-5 text-center text-sm text-slate-400`}>
+        <div>
+          <MapPin className="mx-auto mb-2 h-8 w-8 text-orange-400" />
+          <p className="font-medium text-slate-200">Map is waiting on Mapbox.</p>
+          <p className="mt-1 text-xs">Set `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` to show the live dispatch map.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAnyCoordinates) {
+    return (
+      <div className={`${className} flex items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-5 text-center text-sm text-slate-400`}>
+        <div>
+          <MapPin className="mx-auto mb-2 h-8 w-8 text-orange-400" />
+          <p className="font-medium text-slate-200">Map needs GPS coordinates.</p>
+          <p className="mt-1 text-xs">Roadcall can still dispatch from your city and state.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/60 shadow-xl">
+      <div className="flex items-center justify-between border-b border-slate-800 px-4 py-3">
+        <div>
+          <div className="text-sm font-semibold text-white">Live dispatch map</div>
+          <div className="text-xs text-slate-400">
+            {mechanicMarkers.length > 0
+              ? `${mechanicMarkers.length} nearby option${mechanicMarkers.length === 1 ? "" : "s"} mapped`
+              : "Your GPS location is attached"}
+          </div>
+        </div>
+        <div className="rounded-full bg-orange-500/15 px-3 py-1 text-xs font-semibold text-orange-300 ring-1 ring-orange-400/30">
+          GPS live
+        </div>
+      </div>
+      <div ref={containerRef} className={className} />
+    </div>
+  );
+}

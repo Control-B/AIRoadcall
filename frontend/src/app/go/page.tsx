@@ -21,6 +21,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { getApiBase } from "@/lib/api-client";
+import { GoResultsMap } from "@/components/maps/go-results-map";
 
 const API_URL = getApiBase();
 
@@ -58,6 +59,8 @@ type Mechanic = {
   city?: string;
   state?: string;
   address?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   distanceMiles?: number | null;
   reason?: string;
   mobileService?: boolean;
@@ -345,7 +348,7 @@ export default function GoPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-md px-4 pb-20 pt-6">
+      <main className="mx-auto max-w-lg px-4 pb-20 pt-6">
         {/* Hero */}
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/20 ring-1 ring-orange-400/40">
@@ -528,6 +531,14 @@ export default function GoPage() {
               </div>
             </div>
 
+            <GoResultsMap
+              caller={{
+                latitude: sessionResult.latitude,
+                longitude: sessionResult.longitude,
+                label: [sessionResult.city, sessionResult.state].filter(Boolean).join(", ") || "Roadcall GPS location",
+              }}
+            />
+
             {sessionResult.best_match ? (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow">
                 <div className="text-xs uppercase tracking-wider text-orange-400">Best current match</div>
@@ -576,6 +587,18 @@ export default function GoPage() {
                 </div>
               </div>
             </div>
+
+            <GoResultsMap
+              caller={{
+                latitude: result.location.latitude,
+                longitude: result.location.longitude,
+                label:
+                  result.location.place_name ||
+                  [result.location.city, result.location.state].filter(Boolean).join(", ") ||
+                  "Your GPS location",
+              }}
+              mechanics={result.match.matches}
+            />
 
             {result.match.matches.length > 0 ? (
               <div className="space-y-3">

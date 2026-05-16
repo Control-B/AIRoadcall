@@ -386,6 +386,8 @@ def formatDispatchRecommendation(matches: list[tuple[object, ScoreResult]]) -> l
                 city=getattr(mechanic, "city", None),
                 state=getattr(mechanic, "state", None),
                 address=getattr(mechanic, "address", None),
+                latitude=getattr(mechanic, "base_lat", None),
+                longitude=getattr(mechanic, "base_lng", None),
                 services=getattr(mechanic, "service_types", []) or [],
                 vehicleTypes=getattr(mechanic, "vehicle_types_supported", []) or [],
                 mobileService=bool(getattr(mechanic, "accepts_mobile_roadside", False)),
