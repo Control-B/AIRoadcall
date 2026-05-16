@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
-import { MapPin } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Loader2, MapPin } from "lucide-react";
 
 type CallerPoint = {
   latitude?: number | null;
@@ -61,6 +61,8 @@ export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full"
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRefs = useRef<any[]>([]);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string | null>(null);
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
   const mechanicMarkers = useMemo(
@@ -74,23 +76,99 @@ export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full"
     if (!containerRef.current || !mapboxToken || !hasAnyCoordinates) return;
 
     let disposed = false;
+    setMapLoaded(false);
+    setMapError(null);
+    markerRefs.current.forEach((marker) => marker.remove());
+    markerRefs.current = [];
+    mapRef.current?.remove();
+    mapRef.current = null;
 
-    import("mapbox-gl").then((mapboxgl) => {
-      if (disposed || !containerRef.current) return;
-      (mapboxgl as any).accessToken = mapboxToken;
+    import("mapbox-gl")
+      .then((mapboxModule) => {
+        if (disposed || !containerRef.current) return;
 
-      const firstPoint = callerHasCoordinates ? caller : mechanicMarkers[0];
-      if (!firstPoint) return;
-      const map = new mapboxgl.Map({
-        container: containerRef.current,
-        style: "mapbox://styles/mapbox/streets-v12",
-        center: [firstPoint.longitude, firstPoint.latitude],
-        zoom: callerHasCoordinates && mechanicMarkers.length === 0 ? 13 : 10,
+        const mapboxgl = (mapboxModule as any).default ?? mapboxModule;
+        mapboxgl.accessToken = mapboxToken;
+
+        const firstPoint = callerHasCoordinates ? caller : mechanicMarkers[0];
+        if (!firstPoint) return;
+
+        const map = new mapboxgl.Map({
+          container: containerRef.current,
+          style: "mapbox://styles/mapbox/streets-v12",
+          center: [firstPoint.longitude, firstPoint.latitude],
+          zoom: callerHasCoordinates && mechanicMarkers.length === 0 ? 13 : 10,
+          attributionControl: false,
+        });
+
+        mapRef.current = map;
+        map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+        map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+
+        const renderMarkers = () => {
+          if (disposed) return;
+          markerRefs.current.forEach((marker) => marker.remove());
+          markerRefs.current = [];
+
+          const bounds = new mapboxgl.LngLatBounds();
+          let hasBounds = false;
+
+          if (callerHasCoordinates) {
+            const callerMarker = new mapboxgl.Marker({ color: "#f97316" })
+              .setLngLat([caller.longitude, caller.latitude])
+              .setPopup(
+                new mapboxgl.Popup().setHTML(
+                  `<strong>Your location</strong><br/>${escapeHtml(caller.label || "GPS location")}`,
+                ),
+              )
+              .addTo(map);
+            markerRefs.current.push(callerMarker);
+            bounds.extend([caller.longitude, caller.latitude]);
+            hasBounds = true;
+          }
+
+          mechanicMarkers.forEach((mechanic, index) => {
+            const marker = new mapboxgl.Marker({ color: index === 0 ? "#22c55e" : "#2563eb" })
+              .setLngLat([mechanic.longitude, mechanic.latitude])
+              .setPopup(new mapboxgl.Popup().setHTML(popupForMechanic(mechanic, index)))
+              .addTo(map);
+            markerRefs.current.push(marker);
+            bounds.extend([mechanic.longitude, mechanic.latitude]);
+            hasBounds = true;
+          });
+
+          if (hasBounds) {
+            map.fitBounds(bounds, {
+              padding: { top: 56, bottom: 56, left: 42, right: 42 },
+              maxZoom: mechanicMarkers.length ? 12 : 14,
+              duration: 700,
+            });
+          }
+        };
+
+        map.on("load", () => {
+          if (disposed) return;
+          map.resize();
+          renderMarkers();
+          setMapLoaded(true);
+          window.requestAnimationFrame(() => map.resize());
+        });
+
+        map.on("idle", () => {
+          if (!disposed) setMapLoaded(true);
+        });
+
+        map.on("error", (event: any) => {
+          if (disposed) return;
+          const message = event?.error?.message || "Mapbox could not load the map style or tiles.";
+          setMapError(message);
+        });
+      })
+      .catch((error) => {
+        if (!disposed) {
+          setMapError(error?.message || "Mapbox could not start in this browser.");
+        }
       });
-
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
-      mapRef.current = map;
-    });
 
     return () => {
       disposed = true;
@@ -99,70 +177,7 @@ export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full"
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [caller, hasAnyCoordinates, callerHasCoordinates, mapboxToken, mechanicMarkers]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map || !mapboxToken || !hasAnyCoordinates) return;
-
-    let cancelled = false;
-
-    import("mapbox-gl").then((mapboxgl) => {
-      if (cancelled) return;
-
-      const renderMarkers = () => {
-        if (cancelled) return;
-
-        markerRefs.current.forEach((marker) => marker.remove());
-        markerRefs.current = [];
-
-        const bounds = new mapboxgl.LngLatBounds();
-        let hasBounds = false;
-
-        if (callerHasCoordinates) {
-          const callerMarker = new mapboxgl.Marker({ color: "#f97316" })
-            .setLngLat([caller.longitude, caller.latitude])
-            .setPopup(
-              new mapboxgl.Popup().setHTML(
-                `<strong>Your location</strong><br/>${escapeHtml(caller.label || "GPS location")}`,
-              ),
-            )
-            .addTo(map);
-          markerRefs.current.push(callerMarker);
-          bounds.extend([caller.longitude, caller.latitude]);
-          hasBounds = true;
-        }
-
-        mechanicMarkers.forEach((mechanic, index) => {
-          const marker = new mapboxgl.Marker({ color: index === 0 ? "#22c55e" : "#2563eb" })
-            .setLngLat([mechanic.longitude, mechanic.latitude])
-            .setPopup(new mapboxgl.Popup().setHTML(popupForMechanic(mechanic, index)))
-            .addTo(map);
-          markerRefs.current.push(marker);
-          bounds.extend([mechanic.longitude, mechanic.latitude]);
-          hasBounds = true;
-        });
-
-        if (hasBounds) {
-          map.fitBounds(bounds, {
-            padding: { top: 56, bottom: 56, left: 42, right: 42 },
-            maxZoom: mechanicMarkers.length ? 12 : 14,
-            duration: 700,
-          });
-        }
-      };
-
-      if (map.isStyleLoaded()) {
-        renderMarkers();
-      } else {
-        map.once("load", renderMarkers);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [caller, hasAnyCoordinates, callerHasCoordinates, mapboxToken, mechanicMarkers]);
+  }, [caller, callerHasCoordinates, hasAnyCoordinates, mapboxToken, mechanicMarkers]);
 
   if (!mapboxToken) {
     return (
@@ -203,7 +218,23 @@ export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full"
           GPS live
         </div>
       </div>
-      <div ref={containerRef} className={className} />
+      <div className="relative min-h-72 bg-slate-950">
+        {!mapLoaded && !mapError && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/80 text-sm text-slate-300">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin text-orange-400" /> Loading Mapbox map…
+          </div>
+        )}
+        {mapError && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/90 p-5 text-center text-sm text-slate-300">
+            <div>
+              <MapPin className="mx-auto mb-2 h-8 w-8 text-orange-400" />
+              <p className="font-semibold text-white">Mapbox did not load.</p>
+              <p className="mt-1 text-xs text-slate-400">{mapError}</p>
+            </div>
+          </div>
+        )}
+        <div ref={containerRef} className={`${className} min-h-72`} />
+      </div>
     </div>
   );
 }
