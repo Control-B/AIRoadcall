@@ -175,7 +175,7 @@ export default function GoPage() {
     }
     if (!("geolocation" in navigator)) {
       setStep("manual_fallback");
-      setError("Your browser does not support GPS. Please enter your city and state.");
+      setError("Your browser can’t share GPS here. Enter your city and state and we’ll still find help.");
       return;
     }
     setError(null);
@@ -191,11 +191,11 @@ export default function GoPage() {
       },
       (geoErr) => {
         // Permission denied / timeout → fallback
-        let msg = "We couldn't get your GPS location.";
+        let msg = "GPS didn’t come through. Enter your city and state and we’ll still find help.";
         if (geoErr.code === geoErr.PERMISSION_DENIED) {
-          msg = "Location permission was blocked. Enter your city and state below and we'll still find help.";
+          msg = "Location permission was blocked. You can enter city/state below, or allow Location in your browser and tap Try GPS again.";
         } else if (geoErr.code === geoErr.TIMEOUT) {
-          msg = "GPS timed out. Enter your city and state below.";
+          msg = "GPS timed out. Enter city/state below, or tap Try GPS again if you’re outside or have better signal.";
         }
         setError(msg);
         setStep("manual_fallback");
@@ -378,8 +378,11 @@ export default function GoPage() {
           >
             <div className="flex items-start gap-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{error || "GPS unavailable — tell us where you are and we'll still find help."}</span>
+              <span>{error || "GPS didn’t come through — enter city/state and we’ll still find help."}</span>
             </div>
+            <p className="text-xs leading-5 text-slate-400">
+              This keeps your work order moving even if your browser blocks location. If you prefer GPS, allow Location for roadcall.ai and tap Try GPS again.
+            </p>
             <input
               type="text"
               value={manualCity}
