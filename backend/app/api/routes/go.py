@@ -145,7 +145,7 @@ async def go_dispatch(
         state=resolved_state,
         latitude=payload.latitude,
         longitude=payload.longitude,
-        vehicleType=payload.vehicle_type,
+        vehicleType=payload.vehicle_type or "box truck",
         problemType=effective_problem,
         callerPhone=_format_e164_us(phone10),
         callbackNumber=_format_e164_us(phone10),
