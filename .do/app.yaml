@@ -155,10 +155,10 @@ services:
         scope: BUILD_TIME
         value: REPLACE_WITH_STRIPE_PUBLISHABLE_KEY
       - key: MAPBOX_ACCESS_TOKEN
-        scope: BUILD_TIME
+        scope: RUN_AND_BUILD_TIME
         value: REPLACE_WITH_MAPBOX_ACCESS_TOKEN
       - key: NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-        scope: BUILD_TIME
+        scope: RUN_AND_BUILD_TIME
         value: REPLACE_WITH_MAPBOX_ACCESS_TOKEN
       - key: NEXT_PUBLIC_HELP_PHONE
         scope: BUILD_TIME

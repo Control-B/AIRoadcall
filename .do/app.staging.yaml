@@ -169,10 +169,10 @@ services:
     scope: BUILD_TIME
     value: pk_test_placeholder
   - key: MAPBOX_ACCESS_TOKEN
-    scope: BUILD_TIME
+    scope: RUN_AND_BUILD_TIME
     value: pk_placeholder
   - key: NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
-    scope: BUILD_TIME
+    scope: RUN_AND_BUILD_TIME
     value: pk_placeholder
   - key: NEXT_PUBLIC_DEMO_PHONE
     scope: BUILD_TIME

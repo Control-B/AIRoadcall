@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, MapPin } from "lucide-react";
+import { useMapboxToken } from "@/lib/mapbox-token";
 
 type CallerPoint = {
   latitude?: number | null;
@@ -57,25 +58,15 @@ function popupForMechanic(mechanic: MechanicPoint, index: number): string {
     .join("<br/>");
 }
 
-function isConfiguredMapboxToken(token?: string): token is string {
-  if (!token) return false;
-  const normalized = token.trim().toLowerCase();
-  return (
-    normalized.startsWith("pk.") &&
-    !normalized.includes("placeholder") &&
-    !normalized.includes("replace_with") &&
-    normalized !== "pk.xxx"
-  );
-}
-
 export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full" }: GoResultsMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markerRefs = useRef<any[]>([]);
   const [mapLoaded, setMapLoaded] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-  const hasConfiguredMapboxToken = isConfiguredMapboxToken(mapboxToken);
+  const { token: mapboxToken, configured: hasConfiguredMapboxToken, loading: tokenLoading } = useMapboxToken(
+    process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN,
+  );
 
   const mechanicMarkers = useMemo(
     () => mechanics.filter(hasMechanicCoordinates),
@@ -195,9 +186,15 @@ export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full"
     return (
       <div className={`${className} flex items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-slate-900/60 p-5 text-center text-sm text-slate-400`}>
         <div>
-          <MapPin className="mx-auto mb-2 h-8 w-8 text-orange-400" />
-          <p className="font-medium text-slate-200">Mapbox token is not configured.</p>
-          <p className="mt-1 text-xs">Set a real `MAPBOX_ACCESS_TOKEN` build-time env var and redeploy.</p>
+          {tokenLoading ? (
+            <Loader2 className="mx-auto mb-2 h-8 w-8 animate-spin text-orange-400" />
+          ) : (
+            <MapPin className="mx-auto mb-2 h-8 w-8 text-orange-400" />
+          )}
+          <p className="font-medium text-slate-200">
+            {tokenLoading ? "Loading Mapbox configuration…" : "Mapbox token is not configured."}
+          </p>
+          <p className="mt-1 text-xs">Set a real `MAPBOX_ACCESS_TOKEN` env var and redeploy.</p>
         </div>
       </div>
     );

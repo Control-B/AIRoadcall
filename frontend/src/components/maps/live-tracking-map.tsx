@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
+import { useMapboxToken } from "@/lib/mapbox-token";
 
 type MarkerPoint = {
   lat?: number | null;
@@ -34,17 +35,6 @@ const EMPTY_ROUTE: GeoJsonFeatureCollection = {
   features: [],
 };
 
-function isConfiguredMapboxToken(token?: string): token is string {
-  if (!token) return false;
-  const normalized = token.trim().toLowerCase();
-  return (
-    normalized.startsWith("pk.") &&
-    !normalized.includes("placeholder") &&
-    !normalized.includes("replace_with") &&
-    normalized !== "pk.xxx"
-  );
-}
-
 export function LiveTrackingMap({
   driver,
   mechanic,
@@ -56,8 +46,9 @@ export function LiveTrackingMap({
   const mechanicMarkerRef = useRef<any>(null);
   const [routeGeoJson, setRouteGeoJson] = useState<GeoJsonFeatureCollection>(EMPTY_ROUTE);
 
-  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-  const hasConfiguredMapboxToken = isConfiguredMapboxToken(mapboxToken);
+  const { token: mapboxToken, configured: hasConfiguredMapboxToken, loading: tokenLoading } = useMapboxToken(
+    process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN,
+  );
   const hasDriverCoords = driver.lat != null && driver.lng != null;
   const hasMechanicCoords = mechanic.lat != null && mechanic.lng != null;
   const routeKey = useMemo(() => {
@@ -257,7 +248,7 @@ export function LiveTrackingMap({
       <div className={`${className} flex items-center justify-center bg-muted`}>
         <div className="text-center text-sm text-muted-foreground">
           <MapPin className="mx-auto mb-2 h-8 w-8" />
-          <p>Mapbox token is not configured</p>
+          <p>{tokenLoading ? "Loading Mapbox configuration…" : "Mapbox token is not configured"}</p>
           {hasDriverCoords && (
             <p className="mt-2">
               {driver.label}: {driver.lat!.toFixed(4)}, {driver.lng!.toFixed(4)}
