@@ -134,7 +134,7 @@ async def go_dispatch(
     # "other" classification so the matcher still returns nearby mechanics
     # ranked by location/trust. The /go UX would otherwise dead-end on
     # needs_more_info=problemType, which the user reads as a failure.
-    effective_problem = (payload.problem or "other").strip() or "other"
+    effective_problem = (payload.problem or "tow_needed").strip() or "tow_needed"
     match_req = RoadsideMatchRequest(
         message=payload.problem or "",
         city=resolved_city,

@@ -23,12 +23,9 @@ import {
 import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
+import { getApiBase } from "@/lib/api-client";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" && window.location.hostname !== "localhost"
-    ? `${window.location.origin.replace(/\/$/, "")}/api`
-    : "http://localhost:8000/api");
+const API_URL = getApiBase();
 
 const US_STATES = [
   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",

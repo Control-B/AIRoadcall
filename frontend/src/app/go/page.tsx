@@ -20,12 +20,9 @@ import {
   Wrench,
   AlertTriangle,
 } from "lucide-react";
+import { getApiBase } from "@/lib/api-client";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" && window.location.hostname !== "localhost"
-    ? `${window.location.origin.replace(/\/$/, "")}/api`
-    : "http://localhost:8000/api");
+const API_URL = getApiBase();
 
 // ───────── helpers ─────────
 function formatPhonePretty(raw: string): string {

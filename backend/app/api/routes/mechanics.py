@@ -24,13 +24,14 @@ router = APIRouter(prefix="/mechanics", tags=["mechanics"])
 
 
 async def ensure_mechanic_admin_columns(db: AsyncSession) -> None:
-    """Self-heal admin columns that older production DBs may not have yet."""
+    """Self-heal mechanic columns that older production DBs may not have yet."""
     statements = [
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS email VARCHAR(255)",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS website TEXT",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS address TEXT",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS city VARCHAR(120)",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS state VARCHAR(10)",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS zip_code VARCHAR(20)",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS rating NUMERIC(3, 2)",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS review_count INTEGER",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS source VARCHAR(50)",
@@ -41,6 +42,20 @@ async def ensure_mechanic_admin_columns(db: AsyncSession) -> None:
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS emergency_service BOOLEAN NOT NULL DEFAULT false",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS service_radius_miles INTEGER NOT NULL DEFAULT 50",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS priority_score INTEGER NOT NULL DEFAULT 50",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS availability_status VARCHAR(50) DEFAULT 'unknown'",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS response_score DOUBLE PRECISION",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS claimed BOOLEAN NOT NULL DEFAULT false",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS claimed_at TIMESTAMPTZ",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS claimed_by_organization_id UUID",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS claimed_by_phone VARCHAR(30)",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS subscription_product VARCHAR(60)",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS verified_listing BOOLEAN NOT NULL DEFAULT false",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS submitted_by_public BOOLEAN NOT NULL DEFAULT false",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS requires_admin_review BOOLEAN NOT NULL DEFAULT false",
+        "CREATE INDEX IF NOT EXISTS ix_mechanics_claimed ON mechanics(claimed)",
+        "CREATE INDEX IF NOT EXISTS ix_mechanics_requires_admin_review ON mechanics(requires_admin_review)",
+        "CREATE INDEX IF NOT EXISTS ix_mechanics_zip_code ON mechanics(zip_code)",
+        "CREATE INDEX IF NOT EXISTS ix_mechanics_availability_status ON mechanics(availability_status)",
     ]
     for statement in statements:
         await db.execute(text(statement))
@@ -193,6 +208,7 @@ async def search_marketplace_providers(
         state = None
     issue_type = (issue_type or "").strip()
     vehicle_type = (vehicle_type or "").strip() or None
+    await ensure_mechanic_admin_columns(db)
     if lat is None and lng is None and not (city and state):
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

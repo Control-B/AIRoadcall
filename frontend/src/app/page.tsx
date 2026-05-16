@@ -29,6 +29,7 @@ import { GlobeShowcaseSection } from "@/components/marketing/globe-showcase-sect
 import { ScrollingMarqueeSection } from "@/components/marketing/scrolling-marquee-section";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { mediaUrl } from "@/lib/media";
+import { getApiBase } from "@/lib/api-client";
 
 const shopsFeatures = [
   { icon: Phone,        title: "AI Call Answering",      description: "Sandy answers every call instantly — day or night — and captures lead details." },
@@ -48,11 +49,7 @@ const integrations = [
   "Samsara", "Geotab", "Motive", "ELD", "Fleetio", "Zenduit", "Google Maps", "Custom API",
 ];
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" && window.location.hostname !== "localhost"
-    ? `${window.location.origin.replace(/\/$/, "")}/api`
-    : "http://localhost:8000/api");
+const API_URL = getApiBase();
 
 function LeadMagnetForm({ vertical }: { vertical?: "shops" | "fleet" | "general" }) {
   const [email, setEmail] = useState("");

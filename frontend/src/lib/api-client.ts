@@ -1,4 +1,11 @@
-function getApiBase(): string {
+export function normalizeApiBase(value: string): string {
+  return value
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/api\/api$/i, "/api");
+}
+
+export function getApiBase(): string {
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
     if (host !== "localhost" && host !== "127.0.0.1") {
@@ -6,7 +13,7 @@ function getApiBase(): string {
     }
   }
 
-  return (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api").replace(/\/$/, "");
+  return normalizeApiBase(process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api");
 }
 
 interface ApiErrorBody {

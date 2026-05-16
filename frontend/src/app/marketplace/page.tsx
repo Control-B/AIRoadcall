@@ -22,12 +22,9 @@ import {
   Zap,
 } from "lucide-react";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
+import { getApiBase } from "@/lib/api-client";
 
-const API_URL =
-  process.env.NEXT_PUBLIC_API_URL ||
-  (typeof window !== "undefined" && window.location.hostname !== "localhost"
-    ? `${window.location.origin.replace(/\/$/, "")}/api`
-    : "https://airoadcall-i76ba.ondigitalocean.app/api");
+const API_URL = getApiBase();
 
 type Provider = {
   id: string;
