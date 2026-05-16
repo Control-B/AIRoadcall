@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
   ArrowLeft,
-  MapPin,
   User,
   Wrench,
 } from "lucide-react";
@@ -19,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { LiveTrackingMap } from "@/components/maps/live-tracking-map";
 import {
   getAdminMechanicTracking,
   isAuthenticated,
@@ -31,74 +31,18 @@ export default function AdminDispatchTrackingPage() {
   const [tracking, setTracking] = useState<AdminMechanicTrackingView | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<any>(null);
-  const driverMarkerRef = useRef<any>(null);
-  const mechanicMarkerRef = useRef<any>(null);
-
-  const updateMap = useCallback((data: AdminMechanicTrackingView) => {
-    if (!mapRef.current) return;
-
-    import("mapbox-gl").then((mapboxgl) => {
-      const map = mapRef.current;
-
-      if (data.driver_lat && data.driver_lng) {
-        if (driverMarkerRef.current) {
-          driverMarkerRef.current.setLngLat([data.driver_lng, data.driver_lat]);
-        } else {
-          const el = document.createElement("div");
-          el.innerHTML = `<div style="background:#ef4444;width:22px;height:22px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`;
-          driverMarkerRef.current = new mapboxgl.Marker(el)
-            .setLngLat([data.driver_lng, data.driver_lat])
-            .setPopup(
-              new mapboxgl.Popup().setHTML(
-                `<strong>Driver</strong><br/>${data.driver_name || "Unknown"}`
-              )
-            )
-            .addTo(map);
-        }
-      }
-
-      if (data.mechanic_lat && data.mechanic_lng) {
-        if (mechanicMarkerRef.current) {
-          mechanicMarkerRef.current.setLngLat([data.mechanic_lng, data.mechanic_lat]);
-        } else {
-          const el = document.createElement("div");
-          el.innerHTML = `<div style="background:#2563eb;width:22px;height:22px;border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.3)"></div>`;
-          mechanicMarkerRef.current = new mapboxgl.Marker(el)
-            .setLngLat([data.mechanic_lng, data.mechanic_lat])
-            .setPopup(
-              new mapboxgl.Popup().setHTML(
-                `<strong>${data.mechanic_company || "Mechanic"}</strong><br/>${data.mechanic_contact || ""}`
-              )
-            )
-            .addTo(map);
-        }
-      }
-
-      if (data.driver_lat && data.driver_lng && data.mechanic_lat && data.mechanic_lng) {
-        const bounds = new mapboxgl.LngLatBounds();
-        bounds.extend([data.driver_lng, data.driver_lat]);
-        bounds.extend([data.mechanic_lng, data.mechanic_lat]);
-        map.fitBounds(bounds, { padding: 70, maxZoom: 14 });
-      } else if (data.driver_lat && data.driver_lng) {
-        map.flyTo({ center: [data.driver_lng, data.driver_lat], zoom: 14 });
-      }
-    });
-  }, []);
 
   const loadTracking = useCallback(async () => {
     try {
       const data = await getAdminMechanicTracking(jobId);
       setTracking(data);
       setError("");
-      updateMap(data);
     } catch (err: any) {
       setError(err.message || "Failed to load mechanic tracking");
     } finally {
       setLoading(false);
     }
-  }, [jobId, updateMap]);
+  }, [jobId]);
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -109,30 +53,6 @@ export default function AdminDispatchTrackingPage() {
     const interval = setInterval(loadTracking, 5000);
     return () => clearInterval(interval);
   }, [loadTracking]);
-
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-    if (!token) return;
-
-    let map: any;
-    import("mapbox-gl").then((mapboxgl) => {
-      (mapboxgl as any).accessToken = token;
-      map = new mapboxgl.Map({
-        container: mapContainerRef.current!,
-        style: "mapbox://styles/mapbox/streets-v12",
-        center: [-96, 37.8],
-        zoom: 3,
-      });
-      map.addControl(new mapboxgl.NavigationControl(), "top-right");
-      mapRef.current = map;
-      if (tracking) updateMap(tracking);
-    });
-
-    return () => {
-      if (map) map.remove();
-    };
-  }, [tracking, updateMap]);
 
   async function copyDriverCoords() {
     if (!tracking?.driver_lat || !tracking?.driver_lng) return;
@@ -182,22 +102,23 @@ export default function AdminDispatchTrackingPage() {
       <div className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr]">
         <Card className="overflow-hidden">
           <CardContent className="p-0">
-            <div ref={mapContainerRef} className="h-[480px] w-full bg-muted">
-              {!process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN && (
-                <div className="flex h-full items-center justify-center text-center text-sm text-muted-foreground">
-                  <div>
-                    <MapPin className="mx-auto mb-2 h-8 w-8" />
-                    <p>Mapbox token missing</p>
-                    {tracking?.driver_lat && tracking?.driver_lng && (
-                      <p className="mt-2">Driver: {tracking.driver_lat.toFixed(5)}, {tracking.driver_lng.toFixed(5)}</p>
-                    )}
-                    {tracking?.mechanic_lat && tracking?.mechanic_lng && (
-                      <p>Mechanic: {tracking.mechanic_lat.toFixed(5)}, {tracking.mechanic_lng.toFixed(5)}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <LiveTrackingMap
+              className="h-[480px] w-full"
+              driver={{
+                lat: tracking?.driver_lat,
+                lng: tracking?.driver_lng,
+                label: "Caller",
+                popupHtml: `<strong>Caller</strong><br/>${tracking?.driver_name || "Unknown"}`,
+                color: "#ef4444",
+              }}
+              mechanic={{
+                lat: tracking?.mechanic_lat,
+                lng: tracking?.mechanic_lng,
+                label: tracking?.mechanic_company || "Mechanic",
+                popupHtml: `<strong>${tracking?.mechanic_company || "Mechanic"}</strong><br/>${tracking?.mechanic_contact || ""}`,
+                color: "#2563eb",
+              }}
+            />
           </CardContent>
         </Card>
 

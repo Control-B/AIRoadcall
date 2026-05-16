@@ -34,6 +34,17 @@ const EMPTY_ROUTE: GeoJsonFeatureCollection = {
   features: [],
 };
 
+function isConfiguredMapboxToken(token?: string): token is string {
+  if (!token) return false;
+  const normalized = token.trim().toLowerCase();
+  return (
+    normalized.startsWith("pk.") &&
+    !normalized.includes("placeholder") &&
+    !normalized.includes("replace_with") &&
+    normalized !== "pk.xxx"
+  );
+}
+
 export function LiveTrackingMap({
   driver,
   mechanic,
@@ -46,6 +57,7 @@ export function LiveTrackingMap({
   const [routeGeoJson, setRouteGeoJson] = useState<GeoJsonFeatureCollection>(EMPTY_ROUTE);
 
   const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  const hasConfiguredMapboxToken = isConfiguredMapboxToken(mapboxToken);
   const hasDriverCoords = driver.lat != null && driver.lng != null;
   const hasMechanicCoords = mechanic.lat != null && mechanic.lng != null;
   const routeKey = useMemo(() => {
@@ -56,14 +68,15 @@ export function LiveTrackingMap({
   }, [driver.lat, driver.lng, mechanic.lat, mechanic.lng, hasDriverCoords, hasMechanicCoords]);
 
   useEffect(() => {
-    if (!mapContainerRef.current || !mapboxToken) return;
+    if (!mapContainerRef.current || !hasConfiguredMapboxToken) return;
 
     let mapInstance: any;
     let mounted = true;
 
-    import("mapbox-gl").then((mapboxgl) => {
+    import("mapbox-gl").then((mapboxModule) => {
       if (!mounted || !mapContainerRef.current) return;
-      (mapboxgl as any).accessToken = mapboxToken;
+      const mapboxgl = (mapboxModule as any).default ?? mapboxModule;
+      mapboxgl.accessToken = mapboxToken;
 
       mapInstance = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -85,10 +98,10 @@ export function LiveTrackingMap({
       driverMarkerRef.current = null;
       mechanicMarkerRef.current = null;
     };
-  }, [mapboxToken]);
+  }, [hasConfiguredMapboxToken, mapboxToken]);
 
   useEffect(() => {
-    if (!routeKey || !mapboxToken) {
+    if (!routeKey || !hasConfiguredMapboxToken) {
       setRouteGeoJson(EMPTY_ROUTE);
       return;
     }
@@ -132,10 +145,10 @@ export function LiveTrackingMap({
     return () => {
       cancelled = true;
     };
-  }, [routeKey, mapboxToken]);
+  }, [routeKey, hasConfiguredMapboxToken, mapboxToken]);
 
   useEffect(() => {
-    if (!mapboxToken) return;
+    if (!hasConfiguredMapboxToken) return;
 
     let cancelled = false;
 
@@ -143,8 +156,9 @@ export function LiveTrackingMap({
       const map = mapRef.current;
       if (!map) return;
 
-      const mapboxgl = await import("mapbox-gl");
+      const mapboxModule = await import("mapbox-gl");
       if (cancelled) return;
+      const mapboxgl = (mapboxModule as any).default ?? mapboxModule;
 
       const render = () => {
         if (!map.getSource("live-route-source")) {
@@ -236,14 +250,14 @@ export function LiveTrackingMap({
     return () => {
       cancelled = true;
     };
-  }, [driver, mechanic, routeGeoJson, mapboxToken, hasDriverCoords, hasMechanicCoords]);
+  }, [driver, mechanic, routeGeoJson, hasConfiguredMapboxToken, hasDriverCoords, hasMechanicCoords]);
 
-  if (!mapboxToken) {
+  if (!hasConfiguredMapboxToken) {
     return (
       <div className={`${className} flex items-center justify-center bg-muted`}>
         <div className="text-center text-sm text-muted-foreground">
           <MapPin className="mx-auto mb-2 h-8 w-8" />
-          <p>Map requires Mapbox access token</p>
+          <p>Mapbox token is not configured</p>
           {hasDriverCoords && (
             <p className="mt-2">
               {driver.label}: {driver.lat!.toFixed(4)}, {driver.lng!.toFixed(4)}

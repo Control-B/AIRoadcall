@@ -137,7 +137,7 @@ services:
   - key: LIVEKIT_AGENT_NAME
     scope: RUN_AND_BUILD_TIME
     value: roadcall-agent-staging
-  - key: NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+  - key: MAPBOX_ACCESS_TOKEN
     scope: RUN_AND_BUILD_TIME
     type: SECRET
     value: EV[1:eIGC6ZrVybBqsMREKmJQP1XWLtm+RyoS:nii1iEtUVHz/av0bqQt9IsB8EwHoKSX6bjARaeY5qVoV0niP6hNWrkAjB0IR95mQeYdIIjMDUrqbAzRv9uQQNRgfihGYoETH6vruZ6hTYWu92UqnT6+l/RFlWqo6HpqQpAha5qGXZvk=]
@@ -168,6 +168,9 @@ services:
   - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
     scope: BUILD_TIME
     value: pk_test_placeholder
+  - key: MAPBOX_ACCESS_TOKEN
+    scope: BUILD_TIME
+    value: pk_placeholder
   - key: NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
     scope: BUILD_TIME
     value: pk_placeholder
