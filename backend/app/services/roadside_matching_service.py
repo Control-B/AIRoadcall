@@ -19,6 +19,7 @@ from app.schemas.roadside_match import (
 from app.services.geocoding_service import GeocodingService
 from app.services.major_vendor_service import MajorVendorService
 from app.utils.geo import haversine_distance_km
+from app.utils.us_geo import infer_state_from_coordinates
 from app.utils.location import STATE_NAME_TO_CODE, normalize_city, normalize_state
 from app.core.logging import get_logger
 
@@ -492,6 +493,11 @@ class RoadsideMatchingService:
             parsed_location["latitude"] = request.latitude
         if request.longitude is not None:
             parsed_location["longitude"] = request.longitude
+        if not parsed_location.get("state"):
+            parsed_location["state"] = infer_state_from_coordinates(
+                parsed_location.get("latitude"),
+                parsed_location.get("longitude"),
+            )
         problem = classifyProblem(request.problemType or "") or classifyProblem(text)
         vehicle = normalizeVehicleType(request.vehicleType) or normalizeVehicleType(text)
         return RoadsideCallerContext(

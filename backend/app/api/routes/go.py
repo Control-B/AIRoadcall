@@ -28,6 +28,7 @@ from app.api.deps import get_session
 from app.schemas.roadside_match import RoadsideMatchRequest, RoadsideMatchResponse
 from app.services.geocoding_service import GeocodingService
 from app.services.roadside_matching_service import RoadsideMatchingService
+from app.utils.us_geo import infer_state_from_coordinates
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/go", tags=["go"])
@@ -129,6 +130,9 @@ async def go_dispatch(
             # Mapbox failed but we still have raw coordinates — matching can still proceed
             source = "browser_gps" if not has_manual else "mixed"
 
+    if has_gps and not resolved_state:
+        resolved_state = infer_state_from_coordinates(payload.latitude, payload.longitude)
+
     # Build matching request.
     # If the driver didn't tell us the problem yet, fall back to a generic
     # "other" classification so the matcher still returns nearby mechanics
@@ -156,6 +160,11 @@ async def go_dispatch(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="We could not run the mechanic search right now. Please call us back.",
         ) from exc
+
+    if not resolved_city and match_resp.matches:
+        resolved_city = match_resp.matches[0].city
+    if not resolved_state and match_resp.matches:
+        resolved_state = match_resp.matches[0].state
 
     location = ResolvedLocation(
         latitude=payload.latitude,
