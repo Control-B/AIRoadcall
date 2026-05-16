@@ -87,6 +87,10 @@ class GoDispatchResponse(BaseModel):
     match: RoadsideMatchResponse
 
 
+class GoStatusRequest(BaseModel):
+    phone: str = Field(..., description="Phone number submitted on roadcall.ai/go")
+
+
 # ──────────────────────────────────────────────────────────
 # Endpoints
 # ──────────────────────────────────────────────────────────
@@ -200,14 +204,7 @@ async def go_dispatch(
     return response
 
 
-@router.get("/status/{phone}", response_model=GoDispatchResponse)
-async def go_status(phone: str):
-    """Return the most recent dispatch result for this phone number.
-
-    Used by the /go page itself to poll for status changes, and by the Retell
-    agent (via existing get_dispatch_status tool) to read options aloud once
-    the driver hits Submit.
-    """
+def _get_cached_dispatch(phone: str) -> dict:
     phone10 = _normalize_phone_us(phone)
     if not phone10:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid phone number.")
@@ -225,3 +222,19 @@ async def go_status(phone: str):
             detail="Dispatch session expired. Please re-submit on roadcall.ai/go.",
         )
     return data
+
+
+@router.get("/status/{phone}", response_model=GoDispatchResponse)
+async def go_status(phone: str):
+    """Return the most recent dispatch result for this phone number.
+
+    Used by the /go page itself to poll for status changes, and by the Retell
+    agent to read location and options aloud once the driver hits Submit.
+    """
+    return _get_cached_dispatch(phone)
+
+
+@router.post("/status", response_model=GoDispatchResponse)
+async def go_status_post(payload: GoStatusRequest):
+    """Retell-friendly status endpoint with phone in the JSON body."""
+    return _get_cached_dispatch(payload.phone)
