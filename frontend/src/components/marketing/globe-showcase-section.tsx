@@ -26,57 +26,72 @@ type AudienceCard = {
 
 const audienceCards: AudienceCard[] = [
   {
-    href: "/shops",
-    eyebrow: "Roadcall Shops",
-    eyebrowClass: "text-roadcall-orange",
-    title: "AI Phones + CRM",
-    audience: "for Truck Mechanics",
-    audienceClass: "text-roadcall-orange",
-    bullets: ["AI Call Answering", "Missed-Call Text Back", "Appointment Booking", "CRM & Follow-Up"],
-    ctaLabel: "For Mechanics",
-    ctaClass: "bg-roadcall-orange text-white group-hover:brightness-110",
-    border: "border-orange-500/30",
-    hoverBorder: "hover:border-orange-500/60",
-    accentGradient: "from-roadcall-orange/15 via-transparent to-transparent",
-    glow: "shadow-[0_24px_80px_rgba(234,88,12,0.22)]",
-    iconClass: "text-roadcall-orange",
-    desktopPosition: "left-[2%] top-[6%]",
-  },
-  {
-    href: "/fleet",
-    eyebrow: "Roadcall Fleet",
+    href: "/fleet/features",
+    eyebrow: "Lane 1 · AI Dispatch",
     eyebrowClass: "text-blue-400",
-    title: "AI Roadside Support",
-    audience: "for Fleets",
+    title: "Roadside Matching",
+    audience: "for Fleets & Drivers",
     audienceClass: "text-blue-300",
-    bullets: ["AI Roadside Intake", "GPS & Tracker Integration", "Mechanic Matching", "Dispatch & Tracking"],
-    ctaLabel: "For Fleets",
+    bullets: ["Location-First Intake", "Problem Classification", "Mechanic Matching", "Dispatch & Tracking"],
+    ctaLabel: "Explore Dispatch",
     ctaClass: "bg-blue-600 text-white group-hover:bg-blue-500",
     border: "border-blue-500/30",
     hoverBorder: "hover:border-blue-500/60",
     accentGradient: "from-blue-500/15 via-transparent to-transparent",
     glow: "shadow-[0_24px_80px_rgba(59,130,246,0.22)]",
     iconClass: "text-blue-400",
+    desktopPosition: "left-[2%] top-[6%]",
+  },
+  {
+    href: "/ai-telephony",
+    eyebrow: "Lane 2 · AI Telephony",
+    eyebrowClass: "text-roadcall-orange",
+    title: "AI Service Advisor",
+    audience: "for Mechanic Shops",
+    audienceClass: "text-roadcall-orange",
+    bullets: ["Retell AI Phone", "Missed-Call Text Back", "Appointment Booking", "Call Summaries"],
+    ctaLabel: "Explore AI Phone",
+    ctaClass: "bg-roadcall-orange text-white group-hover:brightness-110",
+    border: "border-orange-500/30",
+    hoverBorder: "hover:border-orange-500/60",
+    accentGradient: "from-roadcall-orange/15 via-transparent to-transparent",
+    glow: "shadow-[0_24px_80px_rgba(234,88,12,0.22)]",
+    iconClass: "text-roadcall-orange",
     desktopPosition: "right-[2%] top-[6%]",
   },
   {
-    href: "/marketplace",
-    eyebrow: "Roadcall Marketplace",
+    href: "/lead-generation",
+    eyebrow: "Lane 3 · AI Lead Gen",
+    eyebrowClass: "text-emerald-300",
+    title: "Provider Growth",
+    audience: "for Shops & Roadside Operators",
+    audienceClass: "text-emerald-200",
+    bullets: ["Inbound Lead Capture", "Email Enrichment", "Campaign Follow-Up", "Plan-Based Quotas"],
+    ctaLabel: "Explore Leads",
+    ctaClass: "bg-emerald-400 text-slate-950 group-hover:bg-emerald-300",
+    border: "border-emerald-400/30",
+    hoverBorder: "hover:border-emerald-400/60",
+    accentGradient: "from-emerald-400/15 via-transparent to-transparent",
+    glow: "shadow-[0_24px_80px_rgba(52,211,153,0.2)]",
+    iconClass: "text-emerald-300",
+    desktopPosition: "left-[2%] bottom-[6%]",
+  },
+  {
+    href: "/search",
+    eyebrow: "Lane 4 · Search",
     eyebrowClass: "text-cyan-300",
-    title: "Find Roadside Help",
+    title: "Truck Service Directory",
     audience: "for Drivers & Dispatchers",
     audienceClass: "text-cyan-200",
-    bullets: ["Verified Provider Network", "Search by Location", "Roadside & Towing", "Fast Contact Options"],
-    ctaLabel: "Explore Marketplace",
+    bullets: ["Find Truck Service", "Search by Location", "Roadside & Towing", "Protected Contact Data"],
+    ctaLabel: "Search Providers",
     ctaClass: "bg-cyan-500 text-slate-950 group-hover:bg-cyan-300",
     border: "border-cyan-400/30",
     hoverBorder: "hover:border-cyan-400/60",
     accentGradient: "from-cyan-400/15 via-transparent to-transparent",
     glow: "shadow-[0_24px_80px_rgba(34,211,238,0.22)]",
     iconClass: "text-cyan-300",
-    // NOTE: do not use Tailwind -translate-x-1/2 here — framer-motion's animate y writes
-    // to `transform` and would override the translate, pushing the card off-center.
-    desktopPosition: "left-[calc(50%-9.5rem)] bottom-[2%]",
+    desktopPosition: "right-[2%] bottom-[6%]",
   },
 ];
 
@@ -105,11 +120,11 @@ export function GlobeShowcaseSection() {
             Choose your Roadcall path
           </div>
           <h2 className="mt-4 bg-gradient-to-b from-white via-cyan-50 to-cyan-200 bg-clip-text text-3xl font-bold tracking-tight text-transparent drop-shadow-[0_4px_24px_rgba(8,12,28,0.85)] lg:text-4xl">
-            One platform. Three ways to win on the road.
+            One platform. Four clear lanes for truck service.
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-cyan-100/90 drop-shadow-[0_2px_12px_rgba(8,12,28,0.85)] lg:text-base">
-            Whether you run a shop, manage a fleet, or need help right now —
-            Roadcall puts the right AI specialist in your corner, 24/7.
+            Choose AI dispatch, AI telephony, AI lead generation, or general
+            truck service search — each lane has its own job.
           </p>
         </motion.div>
 

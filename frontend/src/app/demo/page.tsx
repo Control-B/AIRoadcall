@@ -23,7 +23,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { HELP_PHONE, telHref } from "@/lib/phone";
-import { STRIPE_PAYMENT_LINKS } from "@/lib/stripe-payment-links";
 
 const features = [
   {
@@ -66,13 +65,13 @@ const features = [
 
 const plans = [
   {
-    name: "Standard",
-    price: 197,
+    name: "Starter",
+    price: 149,
     description: "Perfect for small shops",
-    href: STRIPE_PAYMENT_LINKS.standard,
+    href: "/mechanic/checkout?plan=starter",
     features: [
       "AI phone receptionist",
-      "Up to 200 calls/month",
+      "10 included leads/month",
       "Lead capture & scoring",
       "Call log dashboard",
       "Business hours routing",
@@ -80,14 +79,14 @@ const plans = [
     ],
   },
   {
-    name: "Professional",
-    price: 297,
+    name: "Growth",
+    price: 299,
     description: "Most popular for busy shops",
     popular: true,
-    href: STRIPE_PAYMENT_LINKS.professional,
+    href: "/mechanic/checkout?plan=growth",
     features: [
-      "Everything in Standard",
-      "Up to 1,000 calls/month",
+      "Everything in Starter",
+      "35 included leads/month",
       "Text chat support",
       "Appointment scheduling",
       "Custom AI voice",
@@ -96,13 +95,13 @@ const plans = [
     ],
   },
   {
-    name: "Premium",
-    price: 497,
+    name: "Pro",
+    price: 499,
     description: "For multi-location operations",
-    href: STRIPE_PAYMENT_LINKS.premium,
+    href: "/mechanic/checkout?plan=pro",
     features: [
-      "Everything in Professional",
-      "Unlimited calls",
+      "Everything in Growth",
+      "100 included leads/month",
       "Multi-location support",
       "Custom integrations",
       "Dedicated account manager",

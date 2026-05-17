@@ -25,42 +25,42 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    label: "Features",
-    href: "/shops",
+    label: "AI Services",
+    href: "/solutions",
     children: [
       {
-        label: "Roadcall Shops",
-        description: "AI phones + CRM for truck mechanic shops",
-        href: "/shops",
-      },
-      {
-        label: "Roadcall Fleet",
-        description: "AI roadside support for trucking companies & fleets",
-        href: "/fleet",
-      },
-      {
-        label: "Fleet Features",
-        description: "Incident intake, GPS capture, mechanic matching & dispatch",
+        label: "AI Roadside Dispatch",
+        description: "Location-first roadside matching, dispatch, and tracking",
         href: "/fleet/features",
       },
       {
-        label: "Security & Data",
-        description: "Private tenant isolation, RBAC, audit logs",
-        href: "/fleet/security",
+        label: "AI Telephony",
+        description: "Retell-powered AI service advisor for mechanic shops",
+        href: "/ai-telephony",
       },
       {
-        label: "Integrations",
-        description: "Connect fleet trackers, telematics & existing tools",
-        href: "/fleet/integrations",
+        label: "AI Lead Generation",
+        description: "Lead capture, missed-call recovery, enrichment, and campaigns",
+        href: "/lead-generation",
+      },
+      {
+        label: "General Search Directory",
+        description: "Find Truck Service-style public search for providers",
+        href: "/search",
+      },
+      {
+        label: "Security & Data",
+        description: "Private tenant isolation, RBAC, and audit logs",
+        href: "/fleet/security",
       },
     ],
   },
   {
-    label: "Solutions",
+    label: "Directory",
     href: "/search",
     children: [
       {
-        label: "Find Service",
+        label: "Search Truck Service",
         description: "Browse 35,000+ mechanics, tow trucks & repair shops",
         href: "/search",
       },
@@ -97,8 +97,12 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    label: "AI Shop",
-    href: "/shops/features",
+    label: "AI Dispatch",
+    href: "/fleet/features",
+  },
+  {
+    label: "AI Phone",
+    href: "/ai-telephony",
   },
   {
     label: "Resources",

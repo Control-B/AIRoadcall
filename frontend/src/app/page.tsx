@@ -21,6 +21,7 @@ import {
   GitBranch,
   Radio,
   Mail,
+  Search,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
@@ -47,6 +48,41 @@ const fleetFeatures = [
 
 const integrations = [
   "Samsara", "Geotab", "Motive", "ELD", "Fleetio", "Zenduit", "Google Maps", "Custom API",
+];
+
+const productLanes = [
+  {
+    icon: Truck,
+    label: "Lane 1",
+    title: "AI Roadside Matching & Dispatch",
+    description: "Capture location, classify the problem, match the right mechanic, and track roadside jobs.",
+    href: "/fleet/features",
+    cta: "Explore dispatch",
+  },
+  {
+    icon: Phone,
+    label: "Lane 2",
+    title: "AI Telephony",
+    description: "Retell-powered AI service advisor for mechanic shops, towing operators, and roadside providers.",
+    href: "/ai-telephony",
+    cta: "Explore AI phone",
+  },
+  {
+    icon: TrendingUp,
+    label: "Lane 3",
+    title: "AI Lead Generation",
+    description: "Capture, enrich, qualify, and route high-intent provider leads with plan-based quotas.",
+    href: "/lead-generation",
+    cta: "Explore leads",
+  },
+  {
+    icon: Search,
+    label: "Lane 4",
+    title: "General Search Directory",
+    description: "Find Truck Service-style public search for truck repair, towing, and national vendors.",
+    href: "/search",
+    cta: "Search providers",
+  },
 ];
 
 const API_URL = getApiBase();
@@ -132,7 +168,7 @@ const marketingMessages: { text: string; accent: string; iconColor: string; bord
   { text: "Less Downtime. More Jobs Booked.", accent: "from-emerald-400/20", iconColor: "text-emerald-300", border: "border-emerald-400/30" },
   { text: "Smart Dispatch for Fleets Nationwide", accent: "from-blue-400/20", iconColor: "text-blue-300", border: "border-blue-400/30" },
   { text: "Verified Mechanic Network in All 50 States", accent: "from-purple-400/20", iconColor: "text-purple-300", border: "border-purple-400/30" },
-  { text: "One Platform. Two Powerful Solutions.", accent: "from-amber-400/20", iconColor: "text-amber-300", border: "border-amber-400/30" },
+  { text: "One Platform. Four Clear Service Lanes.", accent: "from-amber-400/20", iconColor: "text-amber-300", border: "border-amber-400/30" },
 ];
 
 function RotatingMarketingBadge() {
@@ -251,6 +287,32 @@ export default function HomePage() {
 
       {/* ── Roadcall Orbit (globe + AI specialists) ─────────────────── */}
       <GlobeShowcaseSection />
+
+      {/* ── Four product lanes ─────────────────────────────────────── */}
+      <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/15 px-4 py-20 sm:px-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto mb-12 max-w-3xl text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.28em] text-roadcall-cyan">Roadcall product map</p>
+            <h2 className="mt-4 text-4xl font-black tracking-tight text-white md:text-5xl">Four lanes. No more mixed messaging.</h2>
+            <p className="mt-4 text-roadcall-muted">Roadcall serves drivers, fleets, mechanic shops, and provider growth — but each lane has a different workflow and CTA.</p>
+          </div>
+          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {productLanes.map((lane) => (
+              <Link key={lane.title} href={lane.href} className="group rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-6 transition hover:-translate-y-1 hover:border-roadcall-cyan/40 hover:bg-white/[0.07]">
+                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-roadcall-cyan/10 text-roadcall-cyan">
+                  <lane.icon className="h-6 w-6" />
+                </div>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-roadcall-orange">{lane.label}</p>
+                <h3 className="mt-3 text-xl font-bold text-white">{lane.title}</h3>
+                <p className="mt-3 min-h-24 text-sm leading-7 text-roadcall-muted">{lane.description}</p>
+                <div className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-roadcall-cyan">
+                  {lane.cta} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* ── Marketing message marquee ───────────────────────────────── */}
       <ScrollingMarqueeSection />

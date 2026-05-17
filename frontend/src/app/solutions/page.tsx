@@ -17,7 +17,8 @@ import {
   BarChart3,
   MessageSquare,
   Cog,
-  Building2,
+  Search,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
@@ -29,8 +30,8 @@ import { HELP_PHONE, telHref } from "@/lib/phone";
 const solutionBlocks = [
   {
     id: "roadside",
-    eyebrow: "Roadside Assistance",
-    title: "AI-powered dispatch for stranded drivers",
+    eyebrow: "Lane 1 · AI Roadside Dispatch",
+    title: "AI-powered matching and dispatch for roadside incidents",
     description:
       "Replace your call center with an AI dispatcher that picks up every call instantly, collects the right information, and dispatches the closest qualified mechanic — all in under 5 minutes.",
     icon: Car,
@@ -51,8 +52,8 @@ const solutionBlocks = [
   },
   {
     id: "shops",
-    eyebrow: "Mechanic Shops",
-    title: "Never miss another after-hours call",
+    eyebrow: "Lane 2 · AI Telephony",
+    title: "Never miss another shop call",
     description:
       "Your AI receptionist answers every call to your shop phone — day or night. It qualifies leads, captures vehicle info, books appointments, and sends you a text with the details. Wake up to a pipeline of qualified leads.",
     icon: Wrench,
@@ -73,46 +74,46 @@ const solutionBlocks = [
   },
   {
     id: "fleet",
-    eyebrow: "Fleet Management",
-    title: "Centralized dispatch for fleet breakdowns",
+    eyebrow: "Lane 3 · AI Lead Generation",
+    title: "Capture and route qualified provider leads",
     description:
-      "When one of your vehicles breaks down, your driver calls one number. The AI handles triage, finds the nearest qualified mechanic, and dispatches — with full visibility in your fleet dashboard.",
-    icon: Truck,
+      "Roadcall turns inbound demand, directory activity, missed calls, and enrichment into qualified opportunities for subscribed providers.",
+    icon: TrendingUp,
     accent: "from-emerald-500 to-green-500",
     iconBg: "from-emerald-500/20 to-green-500/20",
     benefits: [
-      "Single dispatch number for all fleet vehicles",
-      "Vehicle-type-aware mechanic matching (Class 7-8, diesel, etc.)",
-      "Priority dispatch based on load urgency",
-      "Centralized dashboard with all active breakdowns",
-      "Integration-ready API for fleet management systems",
+      "Inbound and missed-call lead capture",
+      "Provider data enrichment and email discovery workflows",
+      "Campaign follow-up for mechanics and roadside operators",
+      "Plan-based lead quotas for subscribed providers",
+      "Call summaries and lead outcomes tracked in Roadcall",
     ],
     stats: [
-      { value: "50", label: "States covered" },
-      { value: "35K+", label: "Mechanic network" },
-      { value: "24/7", label: "Dispatch availability" },
+      { value: "24/7", label: "Lead capture" },
+      { value: "Plan", label: "Quota routing" },
+      { value: "AI", label: "Qualification" },
     ],
   },
   {
-    id: "heavy-duty",
-    eyebrow: "Heavy Duty & Trucking",
-    title: "Specialized support for big rigs",
+    id: "directory",
+    eyebrow: "Lane 4 · General Search",
+    title: "Find Truck Service-style provider search",
     description:
-      "Class 7-8 breakdowns need specialized mechanics. Our network includes heavy-duty specialists across all major corridors, and our AI knows the difference between a Peterbilt DEF issue and a Freightliner air brake problem.",
-    icon: Building2,
+      "A public search lane for truck repair, towing, national vendors, and marketplace discovery — separate from private dispatch and lead routing.",
+    icon: Search,
     accent: "from-violet-500 to-purple-500",
     iconBg: "from-violet-500/20 to-purple-500/20",
     benefits: [
-      "Heavy-duty specialist matching by vehicle make and issue",
-      "Coverage on all major interstate corridors",
-      "Understands CDL, HOS, and DOT inspection urgency",
-      "Diesel, electric, and alternative fuel support",
-      "24/7 dispatch — breakdowns don't wait for business hours",
+      "Search by city, state, service category, and provider type",
+      "Public-friendly listings with protected contact details",
+      "Separate from secured mechanic admin database access",
+      "Supports national vendors and trucking directories",
+      "Routes urgent users into AI dispatch when needed",
     ],
     stats: [
-      { value: "5,000+", label: "Heavy duty shops" },
-      { value: "< 10 min", label: "Avg dispatch time" },
-      { value: "All", label: "Major corridors" },
+      { value: "35K+", label: "Provider records" },
+      { value: "50", label: "States indexed" },
+      { value: "Safe", label: "Protected data" },
     ],
   },
 ];
@@ -178,19 +179,19 @@ export default function SolutionsPage() {
 
           <FadeIn delay={0.1}>
             <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-[1.1] mb-6">
-              AI dispatch for
+              Four lanes for
               <br />
               <span className="bg-gradient-to-r from-roadcall-orange via-amber-400 to-yellow-400 bg-clip-text text-transparent">
-                every use case
+                truck service
               </span>
             </h1>
           </FadeIn>
 
           <FadeIn delay={0.2}>
             <p className="text-xl md:text-2xl text-roadcall-silver/85 max-w-3xl mx-auto leading-relaxed">
-              Whether you&apos;re rescuing stranded drivers, answering shop
-              calls, or managing a fleet — Roadcall.ai has a solution
-              built for you.
+              Roadcall is AI dispatch, AI telephony, AI lead generation, and
+              a general truck service search directory — one platform with
+              four clearly separated workflows.
             </p>
           </FadeIn>
         </div>

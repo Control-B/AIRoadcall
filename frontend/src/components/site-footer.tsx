@@ -4,18 +4,22 @@ import { COMPANY_PHONE, HELP_PHONE, telHref } from "@/lib/phone";
 import { BrandMark } from "@/components/BrandMark";
 
 const footerLinks = {
-  "Find Service": [
-    { label: "Search Providers", href: "/search" },
+  "Four Lanes": [
+    { label: "AI Roadside Dispatch", href: "/fleet/features" },
+    { label: "AI Telephony", href: "/ai-telephony" },
+    { label: "AI Lead Generation", href: "/lead-generation" },
+    { label: "General Search Directory", href: "/search" },
+  ],
+  Directory: [
+    { label: "Search Truck Service", href: "/search" },
     { label: "Trucking Companies", href: "/directories/trucking-companies" },
     { label: "National Vendors", href: "/directories/national-vendors" },
     { label: "Driver Help", href: "/driver" },
-    { label: "AI Marketplace", href: "/marketplace" },
-    { label: "All 50 States", href: "/search" },
   ],
   Providers: [
     { label: "List Your Shop", href: "/provider" },
     { label: "Get Verified", href: "/provider#verified" },
-    { label: "AI Phone (Shops)", href: "/shops" },
+    { label: "AI Phone Plans", href: "/pricing" },
     { label: "Fleet Solutions", href: "/fleet" },
   ],
   Platform: [
@@ -47,9 +51,9 @@ export function SiteFooter() {
               <BrandMark width={250} height={82} />
             </Link>
             <p className="text-sm text-roadcall-muted max-w-sm leading-relaxed mb-6">
-              AI-powered roadside dispatch and mechanic shop phone system.
-              Built by Omniweb, LLC — AI voice agents, chat assistants, and
-              workflow automation for service businesses.
+              Four connected lanes for trucking service: AI roadside dispatch,
+              AI telephony, AI lead generation, and a protected truck service
+              search directory.
             </p>
             <div className="space-y-3">
               <a
