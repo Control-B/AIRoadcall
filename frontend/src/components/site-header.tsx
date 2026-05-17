@@ -29,19 +29,19 @@ const navItems: NavItem[] = [
     href: "/solutions",
     children: [
       {
-        label: "AI Roadside Dispatch",
-        description: "Location-first roadside matching, dispatch, and tracking",
-        href: "/fleet/features",
+        label: "AI Roadside Support",
+        description: "Driver-side agent for breakdown intake and help routing",
+        href: "/driver",
       },
       {
-        label: "AI Telephony",
-        description: "Roadcall AI service advisor for mechanic shops",
+        label: "AI Telephony for Mechanics",
+        description: "Attach a shop number and configure an AI service advisor",
         href: "/ai-telephony",
       },
       {
-        label: "AI Lead Generation",
-        description: "Lead capture, missed-call recovery, enrichment, and campaigns",
-        href: "/lead-generation",
+        label: "AI Fleet Roadside",
+        description: "AI roadside department connected to fleet assets and vendors",
+        href: "/fleet",
       },
       {
         label: "General Search Directory",

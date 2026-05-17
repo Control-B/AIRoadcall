@@ -30,19 +30,19 @@ import { HELP_PHONE, telHref } from "@/lib/phone";
 const solutionBlocks = [
   {
     id: "roadside",
-    eyebrow: "Lane 1 · AI Roadside Dispatch",
-    title: "AI-powered matching and dispatch for roadside incidents",
+    eyebrow: "Lane 1 · AI Roadside Support",
+    title: "Driver-side AI agent for breakdowns on the road",
     description:
-      "Replace your call center with an AI dispatcher that picks up every call instantly, collects the right information, and dispatches the closest qualified mechanic — all in under 5 minutes.",
+      "A stranded driver calls Roadcall, the agent captures the problem type, location, vehicle details, and urgency, then routes the incident to the right roadside workflow.",
     icon: Car,
     accent: "from-roadcall-orange to-roadcall-blue",
     iconBg: "from-roadcall-orange/20 to-roadcall-blue/20",
     benefits: [
       "Zero hold time — AI answers every call instantly",
+      "Problem classification for tires, towing, no-starts, electrical, air leaks, reefer, and trailer issues",
       "SMS magic link for GPS sharing and payment authorization",
       "Automatic mechanic matching from 35,000+ providers",
       "Live tracking for drivers, mechanics, and operators",
-      "Works 24/7/365 — no staffing, no overtime, no sick days",
     ],
     stats: [
       { value: "< 90s", label: "Avg call time" },
@@ -52,19 +52,20 @@ const solutionBlocks = [
   },
   {
     id: "shops",
-    eyebrow: "Lane 2 · AI Telephony",
-    title: "Never miss another shop call",
+    eyebrow: "Lane 2 · AI Telephony for Mechanics",
+    title: "Each mechanic gets their own configurable AI phone agent",
     description:
-      "Your AI receptionist answers every call to your shop phone — day or night. It qualifies leads, captures vehicle info, books appointments, and sends you a text with the details. Wake up to a pipeline of qualified leads.",
+      "Mechanics attach an existing shop number or request a Roadcall number, then configure services, hours, calendar rules, after-hours fallback, and emergency routing from the dashboard.",
     icon: Wrench,
     accent: "from-cyan-500 to-blue-500",
     iconBg: "from-cyan-500/20 to-blue-500/20",
     benefits: [
       "AI trained on your shop's services, hours, and pricing",
+      "Attach your existing phone number or request a Roadcall number",
+      "Configure the AI agent per mechanic, shop, or service area",
       "Lead scoring — see which callers are most valuable",
       "Appointment booking with confirmation SMS",
-      "Call forwarding for urgent requests",
-      "Full call log with transcripts and recordings",
+      "Urgent calls can escalate to owner, dispatcher, or roadside workflow",
     ],
     stats: [
       { value: "40%", label: "More leads captured" },
@@ -74,24 +75,24 @@ const solutionBlocks = [
   },
   {
     id: "fleet",
-    eyebrow: "Lane 3 · AI Lead Generation",
-    title: "Capture and route qualified provider leads",
+    eyebrow: "Lane 3 · AI Fleet Roadside",
+    title: "An AI roadside department connected to fleet data",
     description:
-      "Roadcall turns inbound demand, directory activity, missed calls, and enrichment into qualified opportunities for subscribed providers.",
-    icon: TrendingUp,
+      "Trucking companies already track trucks, trailers, drivers, preferred vendors, and repair history. Roadcall links to those databases so the AI can handle roadside calls with the same context a human department would use.",
+    icon: Truck,
     accent: "from-emerald-500 to-green-500",
     iconBg: "from-emerald-500/20 to-green-500/20",
     benefits: [
-      "Inbound and missed-call lead capture",
-      "Provider data enrichment and email discovery workflows",
-      "Campaign follow-up for mechanics and roadside operators",
-      "Plan-based lead quotas for subscribed providers",
-      "Call summaries and lead outcomes tracked in Roadcall",
+      "Connect truck, trailer, driver, VIN, unit number, and maintenance data",
+      "Respect approved vendor networks and internal roadside policies",
+      "Use telematics, driver GPS link, or dispatch records for location",
+      "Escalate exceptions to human dispatch while logging every step",
+      "Give fleet managers an incident board, transcripts, ETAs, and audit trail",
     ],
     stats: [
-      { value: "24/7", label: "Lead capture" },
-      { value: "Plan", label: "Quota routing" },
-      { value: "AI", label: "Qualification" },
+      { value: "24/7", label: "Roadside desk" },
+      { value: "Assets", label: "Truck + trailer DB" },
+      { value: "Policy", label: "Vendor rules" },
     ],
   },
   {
@@ -189,9 +190,9 @@ export default function SolutionsPage() {
 
           <FadeIn delay={0.2}>
             <p className="text-xl md:text-2xl text-roadcall-silver/85 max-w-3xl mx-auto leading-relaxed">
-              Roadcall is AI dispatch, AI telephony, AI lead generation, and
-              a general truck service search directory — one platform with
-              four clearly separated workflows.
+              Roadcall has three AI service lanes — roadside support for
+              drivers, AI telephony for mechanics, and AI fleet roadside — plus
+              a public truck service search directory.
             </p>
           </FadeIn>
         </div>

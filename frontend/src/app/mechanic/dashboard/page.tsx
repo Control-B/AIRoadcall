@@ -64,7 +64,11 @@ function MechanicDashboardContent() {
       const response = await fetch(`${dashboardPath}/profile?token=${encodeURIComponent(token)}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, services_offered: String(form.services_text || "").split(",").map((item) => item.trim()).filter(Boolean) }),
+        body: JSON.stringify({
+          ...form,
+          service_radius_miles: Number(form.service_radius_miles || 50),
+          services_offered: String(form.services_text || "").split(",").map((item) => item.trim()).filter(Boolean),
+        }),
       });
       const body = await response.json();
       if (!response.ok) throw new Error(body.detail || "Could not save profile");
@@ -140,11 +144,39 @@ function MechanicDashboardContent() {
           <form onSubmit={saveProfile} className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6">
             <h2 className="text-xl font-bold">Shop Profile</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
-              {[["business_name", "Business name"], ["phone", "Shop phone"], ["email", "Email"], ["website", "Website"], ["city", "City"], ["state", "State"], ["hourly_rate", "Hourly rate"], ["fallback_phone", "Fallback phone"], ["calcom_calendar_url", "Calendar booking URL"]].map(([key, label]) => (
+              {([
+                ["business_name", "Business name"],
+                ["phone", "Shop phone / forwarded number"],
+                ["email", "Email"],
+                ["website", "Website"],
+                ["city", "City"],
+                ["state", "State"],
+                ["service_area", "Service area"],
+                ["service_radius_miles", "Service radius miles"],
+                ["hourly_rate", "Hourly rate"],
+                ["fallback_phone", "Emergency fallback phone"],
+                ["calcom_calendar_url", "Calendar booking URL"],
+              ] as [string, string][]).map(([key, label]) => (
                 <label key={key} className="space-y-2 text-sm text-slate-300">{label}<input value={form[key] || ""} onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
               ))}
               <label className="space-y-2 text-sm text-slate-300 sm:col-span-2">Address<input value={form.address || ""} onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
               <label className="space-y-2 text-sm text-slate-300 sm:col-span-2">Services offered, comma-separated<input value={form.services_text ?? (form.services_offered || []).join(", ")} onChange={(event) => setForm((current) => ({ ...current, services_text: event.target.value }))} placeholder="tires, no-start, DPF derate, air leak" className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {[
+                ["offers_mobile_service", "This shop offers mobile roadside service"],
+                ["offers_247_service", "This shop can receive 24/7 emergency calls"],
+              ].map(([key, label]) => (
+                <label key={key} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(form[key])}
+                    onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.checked }))}
+                    className="h-4 w-4 rounded border-white/20 bg-slate-950 text-orange-400"
+                  />
+                  {label}
+                </label>
+              ))}
             </div>
             <button disabled={saving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950"><Save className="h-4 w-4" /> Save profile</button>
           </form>
@@ -157,8 +189,9 @@ function MechanicDashboardContent() {
               <p className="mt-4 text-sm text-slate-300">Lead quota: {dashboard?.usage?.leads_allocated || 0} / {dashboard?.usage?.included_leads || 0}</p>
             </div>
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-              <div className="flex items-center gap-2"><Bot className="h-5 w-5 text-orange-300" /><h2 className="text-xl font-bold">Roadcall AI Advisor</h2></div>
-              <p className="mt-4 text-sm text-slate-300">Status: {dashboard?.ai_agent?.activation_status || "not_subscribed"}</p>
+              <div className="flex items-center gap-2"><Bot className="h-5 w-5 text-orange-300" /><h2 className="text-xl font-bold">Phone & AI Advisor</h2></div>
+              <p className="mt-4 text-sm text-slate-300">Attach the shop phone, set fallback rules, then create the AI advisor for this mechanic account.</p>
+              <p className="mt-3 text-sm text-slate-300">Status: {dashboard?.ai_agent?.activation_status || "not_subscribed"}</p>
               {dashboard?.ai_agent?.[AI_AGENT_ID_KEY] && <p className="mt-2 break-all text-xs text-slate-500">Agent: {dashboard.ai_agent[AI_AGENT_ID_KEY]}</p>}
               <button onClick={activateAi} disabled={saving} className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-400 px-5 py-3 text-sm font-bold text-slate-950"><PhoneForwarded className="h-4 w-4" /> Create AI advisor</button>
               {!dashboard?.profile_complete && <p className="mt-3 flex gap-2 text-xs text-amber-200"><ShieldAlert className="h-4 w-4" /> Complete profile before activation.</p>}

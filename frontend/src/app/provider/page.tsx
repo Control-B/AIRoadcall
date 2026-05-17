@@ -50,8 +50,8 @@ const benefits = [
   },
   {
     icon: MessageSquare,
-    title: "AI Phone Answering",
-    description: "Add Roadcall Shops to your listing and let Sandy answer every call, book appointments, and follow up on leads 24/7.",
+    title: "Attach Your Phone Agent",
+    description: "Connect your shop number or request a Roadcall number, then configure the AI agent that answers, books, and escalates calls for your business.",
     accent: "text-emerald-400",
   },
   {
@@ -118,10 +118,10 @@ const tiers = [
 ];
 
 const howItWorks = [
-  { step: "01", title: "Claim or Create Your Profile", description: "Search for your business or add it in minutes. Set your services, coverage area, hours, and contact info." },
-  { step: "02", title: "Get Verified", description: "Our team phone-verifies your listing and reviews your services. Verified providers get priority AI dispatch routing." },
-  { step: "03", title: "Receive Dispatch Alerts", description: "When a driver needs your services nearby, Sandy notifies you by SMS. One tap to accept the job." },
-  { step: "04", title: "Grow Your Reputation", description: "After each job, the driver automatically receives a review request. 5-star reviews increase your dispatch score." },
+  { step: "01", title: "Claim or Create Your Profile", description: "Search for your business or add it in minutes. Set services, coverage area, emergency availability, and contact info." },
+  { step: "02", title: "Attach Your Phone Number", description: "Forward your existing shop line or request a Roadcall number so the AI agent can answer calls for your business." },
+  { step: "03", title: "Configure the AI Agent", description: "Set services, hours, booking rules, escalation contacts, and which calls should become roadside dispatch jobs." },
+  { step: "04", title: "Get Verified & Dispatched", description: "After verification, Roadcall can route qualified drivers and fleet jobs to your shop based on service match and location." },
 ];
 
 export default function ProviderPage() {
@@ -146,7 +146,7 @@ export default function ProviderPage() {
           </FadeIn>
           <FadeIn delay={0.2}>
             <p className="text-lg md:text-xl text-roadcall-silver/80 max-w-2xl mx-auto mb-10 leading-relaxed">
-              List your shop free and get found by thousands of stranded drivers and fleet dispatchers every day. Upgrade to receive AI-dispatched jobs and automate your phone.
+              List your shop free, attach your phone number, configure your AI service advisor, and get found by drivers and fleet dispatchers who need your exact services.
             </p>
           </FadeIn>
           <FadeIn delay={0.3}>
@@ -156,8 +156,13 @@ export default function ProviderPage() {
                   <Wrench className="h-5 w-5" /> List My Shop — Free
                 </button>
               </a>
-              <a href={telHref(HELP_PHONE)}>
+              <Link href="/ai-telephony#setup">
                 <button className="inline-flex items-center justify-center gap-2 border border-roadcall-cyan/25 bg-roadcall-panel/40 backdrop-blur-sm text-white hover:bg-roadcall-panel/60 font-semibold px-8 py-5 rounded-2xl transition-all">
+                  <Phone className="h-5 w-5" /> Configure AI Phone
+                </button>
+              </Link>
+              <a href={telHref(HELP_PHONE)}>
+                <button className="inline-flex items-center justify-center gap-2 border border-roadcall-cyan/25 bg-roadcall-panel/20 backdrop-blur-sm text-roadcall-silver hover:bg-roadcall-panel/50 hover:text-white font-semibold px-8 py-5 rounded-2xl transition-all">
                   <Phone className="h-5 w-5" /> Talk to Our Team
                 </button>
               </a>

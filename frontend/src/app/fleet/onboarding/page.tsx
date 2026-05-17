@@ -12,6 +12,10 @@ interface FleetFormData {
   phone: string;
   fleet_size: string;
   vehicle_count: string;
+  trailer_count: string;
+  asset_database_status: string;
+  unit_id_format: string;
+  driver_roster_status: string;
   current_roadside_process: string;
   tracker_provider: string;
   maintenance_system: string;
@@ -28,6 +32,10 @@ const INITIAL: FleetFormData = {
   phone: "",
   fleet_size: "",
   vehicle_count: "",
+  trailer_count: "",
+  asset_database_status: "",
+  unit_id_format: "",
+  driver_roster_status: "",
   current_roadside_process: "",
   tracker_provider: "",
   maintenance_system: "",
@@ -38,9 +46,9 @@ const INITIAL: FleetFormData = {
 };
 
 const DATA_MODE_OPTIONS: { value: DataMode; label: string; desc: string }[] = [
-  { value: "hosted", label: "Hosted Multi-Tenant", desc: "Fastest setup. Shared infrastructure, isolated data." },
-  { value: "private_tenant", label: "Private Tenant", desc: "Dedicated infrastructure. Your namespace only." },
-  { value: "hybrid_in_house", label: "Hybrid In-House", desc: "Roadcall handles AI calls; your DB stores outcomes." },
+  { value: "hosted", label: "Hosted Roadcall Database", desc: "Fastest setup. Upload CSVs or imports; Roadcall hosts isolated truck, trailer, driver, vendor, and incident data." },
+  { value: "private_tenant", label: "Private Fleet Tenant", desc: "Dedicated namespace for larger fleets with stricter data boundaries, RBAC, and audit requirements." },
+  { value: "hybrid_in_house", label: "Hybrid / Linked Database", desc: "Roadcall handles AI roadside calls while linking to your internal asset, dispatch, or maintenance database." },
 ];
 
 export default function FleetOnboardingPage() {
@@ -89,7 +97,7 @@ export default function FleetOnboardingPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-3">Fleet setup request received!</h1>
           <p className="text-gray-600 mb-6">
-            A Roadcall Fleet engineer will reach out within one business day to plan your integration and data mode.
+            A Roadcall Fleet engineer will reach out within one business day to map your truck, trailer, driver, vendor, and roadside workflow data.
           </p>
           <a
             href="/fleet"
@@ -109,8 +117,8 @@ export default function FleetOnboardingPage() {
           <span className="inline-block bg-blue-100 text-blue-700 text-sm font-medium px-4 py-1 rounded-full mb-4">
             Roadcall Fleet Onboarding
           </span>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Start fleet setup</h1>
-          <p className="text-gray-600">Tell us about your fleet so we can plan the right integration.</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Set up AI fleet roadside</h1>
+          <p className="text-gray-600">Connect the truck, trailer, driver, vendor, and roadside data your human department already uses.</p>
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
@@ -180,6 +188,24 @@ export default function FleetOnboardingPage() {
                 />
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Trailer count</label>
+                <input
+                  type="number" min="0" value={form.trailer_count}
+                  onChange={(e) => set("trailer_count", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  placeholder="85"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Unit ID format</label>
+                <input
+                  type="text" value={form.unit_id_format}
+                  onChange={(e) => set("unit_id_format", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  placeholder="Truck #, trailer #, VIN, plate, or internal asset ID"
+                />
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">GPS / telematics provider</label>
                 <input
                   type="text" value={form.tracker_provider}
@@ -204,6 +230,24 @@ export default function FleetOnboardingPage() {
                   onChange={(e) => set("tms_or_dispatch_system", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
                   placeholder="Current TMS, internal dispatch system, none..."
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Truck / trailer database status</label>
+                <textarea
+                  rows={3} value={form.asset_database_status}
+                  onChange={(e) => set("asset_database_status", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  placeholder="CSV export, Fleetio, Samsara, internal SQL DB, spreadsheets, API access, maintenance software..."
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Driver roster / hotline process</label>
+                <textarea
+                  rows={3} value={form.driver_roster_status}
+                  onChange={(e) => set("driver_roster_status", e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
+                  placeholder="How drivers identify themselves, what number they call today, dispatcher handoff rules, after-hours process..."
                 />
               </div>
               <div className="sm:col-span-2">
@@ -254,7 +298,7 @@ export default function FleetOnboardingPage() {
                 onChange={(e) => set("approved_vendor_network", e.target.checked)}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded"
               />
-              <span className="text-sm text-gray-700">We have an approved vendor network — only dispatch to pre-approved shops</span>
+              <span className="text-sm text-gray-700">We have an approved vendor network — use our preferred vendors first before Roadcall marketplace matching</span>
             </label>
           </div>
 
@@ -265,7 +309,7 @@ export default function FleetOnboardingPage() {
               rows={3} value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-              placeholder="Compliance requirements, special integration needs, timeline..."
+              placeholder="Roadside policy, human escalation rules, vendor approval process, billing requirements, integration timeline..."
             />
           </div>
 
