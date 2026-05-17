@@ -21,7 +21,7 @@ class PlanConfigView(BaseModel):
 
 
 class ProvisionTenantIn(BaseModel):
-    plan_id: str = Field(pattern="^(standard|professional|premium)$")
+    plan_id: str = Field(pattern="^(starter|growth|pro|standard|professional|premium)$")
     organization_id: str | None = None
     organization_name: str
     organization_slug: str | None = None
@@ -101,7 +101,7 @@ class TenantListResponse(BaseModel):
 
 
 class TenantPlanUpdateIn(BaseModel):
-    plan_id: str = Field(pattern="^(standard|professional|premium)$")
+    plan_id: str = Field(pattern="^(starter|growth|pro|standard|professional|premium)$")
     subscription_status: str | None = None
     setup_fee_status: str | None = None
     onboarding_status: str | None = None

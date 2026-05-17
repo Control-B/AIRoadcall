@@ -10,11 +10,13 @@ from app.core.config import get_settings
 from app.core.logging import get_logger
 from app.models.organization import Organization
 from app.services.lifecycle_service import LifecycleService
+from app.services.subscription_billing_service import SubscriptionBillingService
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 settings = get_settings()
 logger = get_logger(__name__)
 lifecycle_service = LifecycleService()
+billing_service = SubscriptionBillingService()
 
 
 STRIPE_LIFECYCLE_EVENT_MAP = {
@@ -106,6 +108,14 @@ async def stripe_webhook(
         await PaymentService.handle_stripe_event(db, event_type, data_object)
         logger.info(f"Stripe webhook handled: {event_type}")
     if lifecycle_handled:
+        if event_type == "checkout.session.completed":
+            await billing_service.sync_checkout_completed(db, _stripe_object_to_dict(data_object))
+        elif event_type in {
+            "customer.subscription.created",
+            "customer.subscription.updated",
+            "customer.subscription.deleted",
+        }:
+            await billing_service.sync_subscription(db, _stripe_object_to_dict(data_object))
         organization_id = await _resolve_organization_id(db, data_object)
         await lifecycle_service.emit_event(
             db,
@@ -121,6 +131,7 @@ async def stripe_webhook(
             },
             idempotency_key=f"stripe:{event.get('id')}",
         )
+        await db.commit()
         logger.info(f"Stripe lifecycle event recorded: {event_type}")
     if not payment_handled and not lifecycle_handled:
         logger.info(f"Stripe webhook ignored: {event_type}")

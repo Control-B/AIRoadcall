@@ -7,9 +7,9 @@ from app.core.config import get_settings
 
 
 class PlanTier(StrEnum):
-    standard = "standard"
-    professional = "professional"
-    premium = "premium"
+    starter = "starter"
+    growth = "growth"
+    pro = "pro"
 
 
 class PlanFeature(StrEnum):
@@ -44,6 +44,13 @@ class PlanFeature(StrEnum):
     api_ready_infrastructure = "api_ready_infrastructure"
 
 
+PLAN_ALIASES = {
+    "standard": PlanTier.starter,
+    "professional": PlanTier.growth,
+    "premium": PlanTier.pro,
+}
+
+
 @dataclass(frozen=True)
 class PlanConfig:
     id: PlanTier
@@ -59,7 +66,7 @@ class PlanConfig:
     ai_feature_permissions: tuple[str, ...]
 
 
-STANDARD_FEATURES = (
+STARTER_FEATURES = (
     PlanFeature.ai_answering,
     PlanFeature.missed_call_text_back,
     PlanFeature.basic_crm_sync,
@@ -69,7 +76,7 @@ STANDARD_FEATURES = (
     PlanFeature.website_widget,
 )
 
-PROFESSIONAL_FEATURES = STANDARD_FEATURES + (
+GROWTH_FEATURES = STARTER_FEATURES + (
     PlanFeature.advanced_ai_workflows,
     PlanFeature.appointment_scheduling,
     PlanFeature.smart_routing,
@@ -83,7 +90,7 @@ PROFESSIONAL_FEATURES = STANDARD_FEATURES + (
     PlanFeature.multi_location_support,
 )
 
-PREMIUM_FEATURES = PROFESSIONAL_FEATURES + (
+PRO_FEATURES = GROWTH_FEATURES + (
     PlanFeature.gps_capture,
     PlanFeature.roadside_intake,
     PlanFeature.dispatch_workflow,
@@ -101,12 +108,12 @@ PREMIUM_FEATURES = PROFESSIONAL_FEATURES + (
 def get_plan_configs() -> dict[PlanTier, PlanConfig]:
     settings = get_settings()
     return {
-        PlanTier.standard: PlanConfig(
-            id=PlanTier.standard,
-            name="Standard",
-            price_monthly=197,
+        PlanTier.starter: PlanConfig(
+            id=PlanTier.starter,
+            name="Starter",
+            price_monthly=149,
             setup_fee=99,
-            features=STANDARD_FEATURES,
+            features=STARTER_FEATURES,
             snapshot_id=settings.GHL_STANDARD_SNAPSHOT_ID or "TODO_GHL_STANDARD_SNAPSHOT_ID",
             allowed_modules=("ai_phone", "crm", "leads", "sms", "widget"),
             webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "call.summary"),
@@ -114,12 +121,12 @@ def get_plan_configs() -> dict[PlanTier, PlanConfig]:
             dispatch_permissions=(),
             ai_feature_permissions=("ai.answering", "ai.summary", "ai.widget"),
         ),
-        PlanTier.professional: PlanConfig(
-            id=PlanTier.professional,
-            name="Professional",
-            price_monthly=297,
+        PlanTier.growth: PlanConfig(
+            id=PlanTier.growth,
+            name="Growth",
+            price_monthly=299,
             setup_fee=99,
-            features=PROFESSIONAL_FEATURES,
+            features=GROWTH_FEATURES,
             snapshot_id=settings.GHL_PROFESSIONAL_SNAPSHOT_ID or "TODO_GHL_PROFESSIONAL_SNAPSHOT_ID",
             allowed_modules=("ai_phone", "crm", "leads", "sms", "widget", "appointments", "analytics", "team"),
             webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "ghl.appointment", "call.summary"),
@@ -127,12 +134,12 @@ def get_plan_configs() -> dict[PlanTier, PlanConfig]:
             dispatch_permissions=(),
             ai_feature_permissions=("ai.answering", "ai.summary", "ai.qualification", "ai.routing", "ai.voice_assistant"),
         ),
-        PlanTier.premium: PlanConfig(
-            id=PlanTier.premium,
-            name="Premium",
-            price_monthly=497,
+        PlanTier.pro: PlanConfig(
+            id=PlanTier.pro,
+            name="Pro",
+            price_monthly=499,
             setup_fee=99,
-            features=PREMIUM_FEATURES,
+            features=PRO_FEATURES,
             snapshot_id=settings.GHL_PREMIUM_SNAPSHOT_ID or "TODO_GHL_PREMIUM_SNAPSHOT_ID",
             allowed_modules=(
                 "ai_phone",
@@ -175,10 +182,24 @@ def get_plan_configs() -> dict[PlanTier, PlanConfig]:
 
 def get_plan_config(plan_id: str | PlanTier) -> PlanConfig:
     try:
-        tier = PlanTier(str(plan_id).lower())
+        plan_key = str(plan_id).lower()
+        tier = PLAN_ALIASES.get(plan_key) or PlanTier(plan_key)
     except ValueError as exc:
         raise KeyError(f"Unknown Roadcall plan: {plan_id}") from exc
     return get_plan_configs()[tier]
+
+
+def canonical_plan_id(plan_id: str | PlanTier) -> str:
+    return get_plan_config(plan_id).id.value
+
+
+def included_leads_for(plan_id: str | PlanTier) -> int:
+    tier = get_plan_config(plan_id).id
+    return {
+        PlanTier.starter: 10,
+        PlanTier.growth: 35,
+        PlanTier.pro: 100,
+    }[tier]
 
 
 def feature_in_plan(plan_id: str | PlanTier, feature: str | PlanFeature) -> bool:

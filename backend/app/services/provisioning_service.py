@@ -123,6 +123,7 @@ class ProvisioningService:
             .where(TenantPlan.tenant_id == tenant.id, TenantPlan.is_active == True)  # noqa: E712
             .values(is_active=False, ends_at=datetime.now(timezone.utc))
         )
+        tenant.current_plan = config.id.value
         tenant.enabled_features = [feature.value for feature in config.features]
         plan = TenantPlan(
             tenant_id=tenant.id,

@@ -150,7 +150,7 @@ export default function ProvisioningPage() {
     organization_name: "",
     contact_email: "",
     contact_phone: "",
-    plan_id: "professional",
+    plan_id: "growth",
     service_radius_miles: "50",
     supported_services: "tire, no_start, air_leak, dpf_derate, electrical, trailer_repair, overheating, towing, pm_service",
   });
@@ -159,7 +159,7 @@ export default function ProvisioningPage() {
 
   const selectedTenant = useMemo(() => tenants.find((tenant) => tenant.id === selectedTenantId) || tenants[0], [selectedTenantId, tenants]);
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedTenant?.current_plan), [plans, selectedTenant]);
-  const premiumTenants = tenants.filter((tenant) => tenant.current_plan === "premium").length;
+  const proTenants = tenants.filter((tenant) => tenant.current_plan === "pro").length;
   const activeRetell = tenants.filter((tenant) => tenant.retell_connection?.provisioning_status === "active").length;
 
   const load = useCallback(async () => {
@@ -292,7 +292,7 @@ export default function ProvisioningPage() {
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-5"><div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-cyan-300" /><div><p className="text-2xl font-bold text-white">{loading ? "—" : tenants.length}</p><p className="text-xs text-slate-400">Tenants</p></div></div></Card>
         <Card className="p-5"><div className="flex items-center gap-3"><Workflow className="h-5 w-5 text-blue-300" /><div><p className="text-2xl font-bold text-white">{activeRetell}</p><p className="text-xs text-slate-400">Retell active</p></div></div></Card>
-        <Card className="p-5"><div className="flex items-center gap-3"><Truck className="h-5 w-5 text-orange-300" /><div><p className="text-2xl font-bold text-white">{premiumTenants}</p><p className="text-xs text-slate-400">Premium dispatch</p></div></div></Card>
+        <Card className="p-5"><div className="flex items-center gap-3"><Truck className="h-5 w-5 text-orange-300" /><div><p className="text-2xl font-bold text-white">{proTenants}</p><p className="text-xs text-slate-400">Pro dispatch</p></div></div></Card>
         <Card className="p-5"><div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-300" /><div><p className="text-2xl font-bold text-white">Healthy</p><p className="text-xs text-slate-400">Backend status</p></div></div></Card>
       </div>
 
@@ -314,7 +314,7 @@ export default function ProvisioningPage() {
                   {tenants.map((tenant) => (
                     <tr key={tenant.id} onClick={() => setSelectedTenantId(tenant.id)} className={`cursor-pointer hover:bg-white/[0.03] ${selectedTenant?.id === tenant.id ? "bg-blue-500/5" : ""}`}>
                       <td className="px-4 py-3"><p className="font-medium text-slate-200">{tenant.name}</p><p className="font-mono text-xs text-slate-500">{tenant.organization_id}</p></td>
-                      <td className="px-4 py-3"><Badge tone={tenant.current_plan === "premium" ? "orange" : tenant.current_plan === "professional" ? "blue" : "slate"}>{tenant.current_plan}</Badge></td>
+                      <td className="px-4 py-3"><Badge tone={tenant.current_plan === "pro" ? "orange" : tenant.current_plan === "growth" ? "blue" : "slate"}>{tenant.current_plan}</Badge></td>
                       <td className="px-4 py-3"><Badge tone={statusTone(tenant.setup_fee_status)}>{tenant.setup_fee_status}</Badge></td>
                       <td className="px-4 py-3"><Badge tone={statusTone(tenant.retell_connection?.provisioning_status)}>{tenant.retell_connection?.provisioning_status || "not_provisioned"}</Badge></td>
                       <td className="px-4 py-3"><span className="font-mono text-xs text-slate-400">{tenant.retell_connection?.agent_id || "—"}</span></td>
@@ -378,7 +378,7 @@ export default function ProvisioningPage() {
                 {selectedTenant.retell_connection?.last_error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-200">{selectedTenant.retell_connection.last_error}</p>}
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Onboarding checklist</p>
-                  {["Setup fee paid", "Retell agent created", "Phone routing configured", "Service advisor prompt ready", "Cal.com scheduling pending", selectedTenant.current_plan === "premium" ? "Dispatch enabled" : "Dispatch locked until Premium"].map((item) => (
+                  {["Setup fee paid", "Retell agent created", "Phone routing configured", "Service advisor prompt ready", "Cal.com scheduling pending", selectedTenant.current_plan === "pro" ? "Dispatch enabled" : "Dispatch locked until Pro"].map((item) => (
                     <div key={item} className="mb-2 flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
                   ))}
                 </div>
@@ -391,7 +391,7 @@ export default function ProvisioningPage() {
             <div className="mt-4 grid gap-2 text-sm">
               <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-400"><PhoneCall className="h-4 w-4" /> AI phone</span><Badge tone={selectedTenant?.enabled_features.includes("ai_answering") ? "emerald" : "red"}>{selectedTenant?.enabled_features.includes("ai_answering") ? "enabled" : "locked"}</Badge></div>
               <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-400"><Zap className="h-4 w-4" /> Widget</span><Badge tone={selectedTenant?.enabled_features.includes("website_widget") ? "emerald" : "red"}>{selectedTenant?.enabled_features.includes("website_widget") ? "enabled" : "locked"}</Badge></div>
-              <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-400"><Truck className="h-4 w-4" /> Dispatch</span><Badge tone={selectedTenant?.current_plan === "premium" ? "emerald" : "amber"}>{selectedTenant?.current_plan === "premium" ? "premium enabled" : "upgrade required"}</Badge></div>
+              <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-400"><Truck className="h-4 w-4" /> Dispatch</span><Badge tone={selectedTenant?.current_plan === "pro" ? "emerald" : "amber"}>{selectedTenant?.current_plan === "pro" ? "pro enabled" : "upgrade required"}</Badge></div>
             </div>
           </Card>
         </div>
@@ -412,7 +412,7 @@ export default function ProvisioningPage() {
       )}
 
       <Card>
-        <div className="border-b border-white/5 px-6 py-4"><h2 className="font-semibold text-white">Premium Dispatch Activity</h2><p className="text-xs text-slate-500">Visible for Premium tenants and admin operations.</p></div>
+        <div className="border-b border-white/5 px-6 py-4"><h2 className="font-semibold text-white">Pro Dispatch Activity</h2><p className="text-xs text-slate-500">Visible for Pro tenants and admin operations.</p></div>
         {dispatchEvents.length === 0 ? <div className="py-8 text-center text-sm text-slate-500"><AlertTriangle className="mx-auto mb-2 h-5 w-5" />No dispatch events recorded yet.</div> : (
           <div className="divide-y divide-white/5">
             {dispatchEvents.map((event) => <div key={event.id} className="flex items-center justify-between gap-3 px-6 py-3 text-sm"><div><p className="font-medium text-slate-200">{event.event_type}</p><p className="text-xs text-slate-500">{new Date(event.created_at).toLocaleString()}</p></div><Badge tone={statusTone(event.status)}>{event.status}</Badge></div>)}

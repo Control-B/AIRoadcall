@@ -50,3 +50,16 @@ from app.models.tenant_provisioning import (
     RoadsideSession,
     DispatchEvent,
 )
+from app.models.mechanic_subscription import (
+    AIAgent,
+    CallTranscript,
+    LeadAllocation,
+    MechanicAccount,
+    PlanUsage,
+    RetellNumber,
+    ShopCall,
+    ShopCallSummary,
+    ShopProfile,
+    SipTrunk,
+    StripeSubscription,
+)

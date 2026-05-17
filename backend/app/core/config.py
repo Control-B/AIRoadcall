@@ -9,6 +9,9 @@ class Settings(BaseSettings):
     # Stripe
     STRIPE_SECRET_KEY: str = ""
     STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_STARTER_PRICE_ID: str = ""
+    STRIPE_GROWTH_PRICE_ID: str = ""
+    STRIPE_PRO_PRICE_ID: str = ""
 
     # Twilio
     TWILIO_ACCOUNT_SID: str = ""
@@ -87,6 +90,13 @@ class Settings(BaseSettings):
         if frontend_url:
             return frontend_url
         return app_base_url or "http://localhost:3000"
+
+    def stripe_price_id_for_plan(self, plan_id: str) -> str:
+        return {
+            "starter": self.STRIPE_STARTER_PRICE_ID,
+            "growth": self.STRIPE_GROWTH_PRICE_ID,
+            "pro": self.STRIPE_PRO_PRICE_ID,
+        }.get(plan_id, "")
 
     model_config = {
         "env_file": (".env", "../.env"),

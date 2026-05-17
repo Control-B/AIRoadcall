@@ -37,6 +37,7 @@ from app.api.routes import (
     lifecycle,
     public_directories,
     provisioning,
+    billing,
     go,
 )
 
@@ -149,6 +150,7 @@ app.include_router(ghl.router, prefix="/api")
 app.include_router(lifecycle.router, prefix="/api")
 app.include_router(public_directories.router, prefix="/api")
 app.include_router(provisioning.router, prefix="/api")
+app.include_router(billing.router, prefix="/api")
 app.include_router(go.router, prefix="/api")
 
 

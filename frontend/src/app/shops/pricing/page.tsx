@@ -31,7 +31,6 @@ import {
   Wrench,
   Zap,
 } from "lucide-react";
-import { STRIPE_PAYMENT_LINKS } from "@/lib/stripe-payment-links";
 
 const TRUST = [
   { icon: Clock3, label: "24/7 AI Answering" },
@@ -43,14 +42,14 @@ const TRUST = [
 
 const PLANS = [
   {
-    name: "Standard",
-    price: "$197",
+    name: "Starter",
+    price: "$149",
     setup: "$99 AI setup",
     target: "Small mechanics and mobile roadside businesses",
     icon: Headphones,
     accent: "from-sky-400 to-blue-500",
-    cta: "Start Standard",
-    href: STRIPE_PAYMENT_LINKS.standard,
+    cta: "Start Starter Plan",
+    href: "/mechanic/checkout?plan=starter",
     features: [
       "24/7 AI phone answering",
       "Missed call text back",
@@ -65,17 +64,17 @@ const PLANS = [
     ],
   },
   {
-    name: "Professional",
-    price: "$297",
+    name: "Growth",
+    price: "$299",
     setup: "$99 AI setup",
     target: "Growing diesel shops, towing companies, and repair teams",
     icon: Mic2,
     accent: "from-roadcall-orange via-amber-400 to-blue-400",
     badge: "Most Popular",
-    cta: "Start Professional",
-    href: STRIPE_PAYMENT_LINKS.professional,
+    cta: "Start Growth Plan",
+    href: "/mechanic/checkout?plan=growth",
     features: [
-      "Everything in Standard",
+      "Everything in Starter",
       "Advanced AI voice workflows",
       "Appointment scheduling",
       "Smart call routing",
@@ -91,16 +90,16 @@ const PLANS = [
     ],
   },
   {
-    name: "Premium",
-    price: "$497",
+    name: "Pro",
+    price: "$499",
     setup: "$99 AI setup",
     target: "Roadside service providers ready to operationalize dispatch",
     icon: Radio,
     accent: "from-roadcall-orange to-roadcall-blue",
-    cta: "Start Premium",
-    href: STRIPE_PAYMENT_LINKS.premium,
+    cta: "Start Pro Plan",
+    href: "/mechanic/checkout?plan=pro",
     features: [
-      "Everything in Professional",
+      "Everything in Growth",
       "AI roadside intake",
       "SMS GPS capture",
       "Dispatch workflows",
