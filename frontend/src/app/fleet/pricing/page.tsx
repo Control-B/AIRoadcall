@@ -75,7 +75,7 @@ const DIMENSIONS = [
 
 const FAQS = [
   { q: "Do we need to move our data into Roadcall?", a: "No. Roadcall Fleet supports a hybrid in-house mode where only the AI call layer and dispatch actions touch Roadcall infrastructure. Your core fleet data stays in your own database." },
-  { q: "Can Roadcall use our tracker data?", a: "Yes. We integrate with Samsara, Geotab, Motive, and others to pull vehicle location into incidents automatically when a driver calls." },
+  { q: "Can Roadcall use our tracker data?", a: "Yes. Roadcall can integrate with fleet tracking systems to pull vehicle location into incidents automatically when a driver calls." },
   { q: "Can we keep our internal roadside process?", a: "Yes. Roadcall Fleet is designed to augment your existing process — not replace your dispatcher. The AI handles first contact and data capture; your team takes over at any point." },
   { q: "Can this work with approved vendors only?", a: "Yes. Enterprise plans support an approved vendor list. The geo-match engine will only surface and dispatch to vendors you have pre-approved." },
 ];

@@ -67,7 +67,7 @@ const TABS = [
   { id: "dispatch", label: "📡 Dispatch", color: "bg-purple-500" },
   { id: "tracking", label: "📍 Tracking", color: "bg-roadcall-orange" },
   { id: "mechanics", label: "🔧 Mechanics", color: "bg-red-500" },
-  { id: "livekit", label: "📞 LiveKit", color: "bg-indigo-500" },
+  { id: "livekit", label: "📞 Voice AI", color: "bg-indigo-500" },
   { id: "pipeline", label: "🔄 Pipeline", color: "bg-cyan-500" },
   { id: "health", label: "❤️ Health", color: "bg-emerald-500" },
 ] as const;
@@ -536,7 +536,7 @@ function PaymentsPanel({
       <EndpointCard
         method="POST"
         path="/jobs/{token}/payment-intent"
-        description="Create a Stripe PaymentIntent with manual capture (authorization hold). Requires Stripe keys configured."
+        description="Create a secure payment authorization hold. Requires payment keys configured."
         onSubmit={() =>
           fire("create-pi", "POST", `/jobs/${token}/payment-intent`, {
             amount: amount ? parseFloat(amount) : null,
@@ -1057,8 +1057,8 @@ function LiveKitPanel({
   return (
     <div className="space-y-6">
       <div className="rounded-lg bg-indigo-50 p-3 text-sm text-indigo-700">
-        💡 <strong>LiveKit Cloud</strong> handles AI telephony for this system.
-        These simulate webhook payloads that LiveKit would send to{" "}
+        💡 <strong>Voice AI</strong> handles AI telephony for this system.
+        These simulate webhook payloads that the voice system would send to{" "}
         <code className="rounded bg-indigo-100 px-1">/webhooks/livekit</code>
         {" "}after call events.
       </div>
@@ -1307,15 +1307,15 @@ function PipelinePanel({
     <div className="space-y-6">
       <div className="rounded-lg bg-cyan-50 p-3 text-sm text-cyan-800">
         💡 <strong>Mechanic Data Pipeline</strong> — Seed your database with
-        Apify (Google Maps scraping), then enrich with Tavily (real-time
-        verification). View stats to monitor data quality.
+        directory imports, then enrich with real-time verification. View stats
+        to monitor data quality.
       </div>
 
       {/* Scrape */}
       <EndpointCard
         method="POST"
         path="/pipeline/scrape"
-        description="Start Apify scrape — trigger a Google Maps search for mechanics in an area"
+        description="Start directory import — search for mechanics in an area"
         onSubmit={() =>
           fire("scrape", "POST", "/pipeline/scrape", {
             location: scrapeLocation,
@@ -1591,7 +1591,7 @@ export default function ApiTesterPage() {
                 <li>4. POST Location</li>
                 <li>5. Create 💳 Payment</li>
                 <li>6. Start 📡 Dispatch</li>
-                <li>7. Sim 📞 LiveKit call</li>
+                <li>7. Sim 📞 Voice AI call</li>
                 <li>8. 🔄 Seed DB via Pipeline</li>
                 <li>8. Watch 📍 Tracking</li>
               </ol>

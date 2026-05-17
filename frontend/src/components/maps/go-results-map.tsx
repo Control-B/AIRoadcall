@@ -163,13 +163,13 @@ export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full"
 
         map.on("error", (event: any) => {
           if (disposed) return;
-          const message = event?.error?.message || "Mapbox could not load the map style or tiles.";
+          const message = event?.error?.message || "The map could not load the style or tiles.";
           setMapError(message);
         });
       })
       .catch((error) => {
         if (!disposed) {
-          setMapError(error?.message || "Mapbox could not start in this browser.");
+          setMapError(error?.message || "The map could not start in this browser.");
         }
       });
 
@@ -192,9 +192,9 @@ export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full"
             <MapPin className="mx-auto mb-2 h-8 w-8 text-orange-400" />
           )}
           <p className="font-medium text-slate-200">
-            {tokenLoading ? "Loading Mapbox configuration…" : "Mapbox token is not configured."}
+            {tokenLoading ? "Loading map configuration…" : "Map configuration is not ready."}
           </p>
-          <p className="mt-1 text-xs">Set a real `MAPBOX_ACCESS_TOKEN` env var and redeploy.</p>
+          <p className="mt-1 text-xs">Set a real map access token and redeploy.</p>
         </div>
       </div>
     );
@@ -230,14 +230,14 @@ export function GoResultsMap({ caller, mechanics = [], className = "h-72 w-full"
       <div className="relative min-h-72 bg-slate-950">
         {!mapLoaded && !mapError && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/80 text-sm text-slate-300">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin text-orange-400" /> Loading Mapbox map…
+            <Loader2 className="mr-2 h-4 w-4 animate-spin text-orange-400" /> Loading map…
           </div>
         )}
         {mapError && (
           <div className="absolute inset-0 z-10 flex items-center justify-center bg-slate-950/90 p-5 text-center text-sm text-slate-300">
             <div>
               <MapPin className="mx-auto mb-2 h-8 w-8 text-orange-400" />
-              <p className="font-semibold text-white">Mapbox did not load.</p>
+              <p className="font-semibold text-white">Map did not load.</p>
               <p className="mt-1 text-xs text-slate-400">{mapError}</p>
             </div>
           </div>

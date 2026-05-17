@@ -51,7 +51,7 @@ const sections = [
     title: "8. Privacy and Data Use",
     body: [
       "Information collected through SMS interactions may be used to provide support, operate roadside dispatch, verify requests, improve system quality, and maintain communication history. SMS data is also subject to our Privacy Policy.",
-      "We do not sell your SMS consent or phone number as part of a consumer marketing list. We may use service providers, such as Twilio or similar communications platforms, to deliver messages on our behalf.",
+      "We do not sell your SMS consent or phone number as part of a consumer marketing list. We may use authorized communications providers to deliver messages on our behalf.",
     ],
   },
   {

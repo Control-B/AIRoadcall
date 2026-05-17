@@ -97,7 +97,7 @@ const solutionBlocks = [
   {
     id: "directory",
     eyebrow: "Lane 4 · General Search",
-    title: "Find Truck Service-style provider search",
+    title: "Search Truck Service provider directory",
     description:
       "A public search lane for truck repair, towing, national vendors, and marketplace discovery — separate from private dispatch and lead routing.",
     icon: Search,
@@ -143,7 +143,7 @@ const whyBlocks = [
     icon: Shield,
     title: "Secure Payments",
     description:
-      "Stripe-powered authorization holds protect drivers and guarantee mechanic payment.",
+      "Secure payment authorization protects drivers and helps guarantee mechanic payment.",
   },
   {
     icon: BarChart3,

@@ -36,7 +36,7 @@ const shopsFeatures = [
   { icon: Phone,        title: "AI Call Answering",      description: "Sandy answers every call instantly — day or night — and captures lead details." },
   { icon: MessageSquare,title: "Missed-Call Text-Back",  description: "Texts back missed callers within seconds so they don't dial a competitor." },
   { icon: Building2,    title: "Appointment Booking",    description: "Books directly into your calendar during the call. Zero back-and-forth." },
-  { icon: TrendingUp,   title: "CRM & Follow-Up",        description: "Full pipeline automation with follow-ups and review requests via GoHighLevel." },
+  { icon: TrendingUp,   title: "CRM & Follow-Up",        description: "Full pipeline automation with follow-ups and review requests inside Roadcall." },
 ];
 
 const fleetFeatures = [
@@ -47,7 +47,7 @@ const fleetFeatures = [
 ];
 
 const integrations = [
-  "Samsara", "Geotab", "Motive", "ELD", "Fleetio", "Zenduit", "Google Maps", "Custom API",
+  "GPS telematics", "ELD systems", "Fleet maintenance", "Dispatch tools", "Maps", "Messaging", "Custom API", "CSV import",
 ];
 
 const productLanes = [
@@ -63,7 +63,7 @@ const productLanes = [
     icon: Phone,
     label: "Lane 2",
     title: "AI Telephony",
-    description: "Retell-powered AI service advisor for mechanic shops, towing operators, and roadside providers.",
+    description: "Roadcall AI service advisor for mechanic shops, towing operators, and roadside providers.",
     href: "/ai-telephony",
     cta: "Explore AI phone",
   },
@@ -79,7 +79,7 @@ const productLanes = [
     icon: Search,
     label: "Lane 4",
     title: "General Search Directory",
-    description: "Find Truck Service-style public search for truck repair, towing, and national vendors.",
+    description: "Search Truck Service public directory for truck repair, towing, and national vendors.",
     href: "/search",
     cta: "Search providers",
   },
@@ -402,7 +402,7 @@ export default function HomePage() {
                 Fast intake. Accurate data. The right mechanic dispatched — faster. Your fleet data stays in your control.
               </p>
               <ul className="space-y-3 mb-10">
-                {["AI driver intake in under 90 seconds","GPS location via one-tap SMS link","Matches nearest qualified mechanic instantly","Real-time dispatch board for your team","Your data never touches a third-party CRM"].map((item) => (
+                {["AI driver intake in under 90 seconds","GPS location via one-tap SMS link","Matches nearest qualified mechanic instantly","Real-time dispatch board for your team","Your data stays inside Roadcall's protected workflow"].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-roadcall-silver/85">
                     <CheckCircle2 className="h-4 w-4 text-blue-400 shrink-0" /> {item}
                   </li>

@@ -196,7 +196,7 @@ function SearchPageInner() {
               <Shield className="h-3.5 w-3.5 text-roadcall-cyan" />
               <span className="text-xs font-medium text-roadcall-silver/85 tracking-wide">35,000+ Verified Providers · All 50 States</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">Find Truck Service Near You</h1>
+            <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">Search Truck Service Near You</h1>
             <p className="text-roadcall-muted text-sm">Search mechanics, repair shops, towing, and roadside providers nationwide.</p>
           </div>
 
@@ -384,7 +384,7 @@ function SearchPageInner() {
         )}
       </section>
 
-      {/* AI Dispatch CTA banner */}
+      {/* AI Roadside Dispatch CTA banner */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-roadcall-orange/20 via-roadcall-panel/60 to-blue-900/30 border border-roadcall-orange/20 p-8 md:p-12 flex flex-col md:flex-row items-center gap-8">
           <div className="flex-1">

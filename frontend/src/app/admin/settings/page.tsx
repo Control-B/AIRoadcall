@@ -127,7 +127,7 @@ export default function SettingsPage() {
 
       <Section
         icon={Phone}
-        title="Twilio (SMS)"
+        title="SMS Messaging"
         description="SMS delivery for outreach campaigns"
       >
         <Field label="Account SID">
@@ -184,14 +184,14 @@ export default function SettingsPage() {
 
       <Section
         icon={Phone}
-        title="LiveKit (Voice AI)"
+        title="Voice AI"
         description="Voice agent and SIP trunking"
       >
-        <Field label="LiveKit URL">
+        <Field label="Voice AI URL">
           <Input
             value={settings.livekitUrl}
             onChange={(e) => updateField("livekitUrl", e.target.value)}
-            placeholder="wss://your-project.livekit.cloud"
+            placeholder="wss://your-voice-project.example"
             className={inputCls}
           />
         </Field>

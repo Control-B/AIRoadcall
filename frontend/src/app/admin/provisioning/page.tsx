@@ -107,8 +107,6 @@ const FEATURE_LABELS: Record<string, string> = {
   external_dispatch_api: "External dispatch API",
 };
 
-const RETELL_DASHBOARD_URL = "https://dashboard.retellai.com/agents";
-
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/85 to-slate-950 shadow-lg ${className}`}>{children}</div>;
 }
@@ -182,10 +180,6 @@ export default function ProvisioningPage() {
   }, [selectedTenantId]);
 
   useEffect(() => {
-    window.location.replace(RETELL_DASHBOARD_URL);
-  }, []);
-
-  useEffect(() => {
     load();
   }, [load]);
 
@@ -198,7 +192,7 @@ export default function ProvisioningPage() {
         method: "PATCH",
         body: JSON.stringify({ plan_id: planId, subscription_status: "active" }),
       });
-      setMessage("Subscriber plan updated. Sync the Retell agent to apply telephony changes.");
+      setMessage("Subscriber plan updated. Sync the AI phone agent to apply telephony changes.");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update plan");
@@ -237,7 +231,7 @@ export default function ProvisioningPage() {
           metadata,
         }),
       });
-      setMessage(result.warnings?.length ? `Subscriber created. ${result.warnings.join(" ")}` : "Subscriber created and Retell provisioning started.");
+      setMessage(result.warnings?.length ? `Subscriber created. ${result.warnings.join(" ")}` : "Subscriber created and AI phone provisioning started.");
       setSelectedTenantId(result.tenant.id);
       setNewSubscriber((current) => ({ ...current, organization_name: "", contact_email: "", contact_phone: "" }));
       await load();
@@ -260,10 +254,10 @@ export default function ProvisioningPage() {
           metadata: selectedTenant.retell_connection?.dynamic_variables || {},
         }),
       });
-      setMessage("Retell agent provisioned. The subscriber should now appear in Retell.");
+      setMessage("AI phone agent provisioned. The subscriber should now appear in the voice dashboard.");
       await load();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not provision Retell agent");
+      setError(err instanceof Error ? err.message : "Could not provision AI phone agent");
     } finally {
       setProvisioningRetell(null);
     }
@@ -275,7 +269,7 @@ export default function ProvisioningPage() {
         <div>
           <h1 className="flex items-center gap-3 text-2xl font-bold text-white"><Crown className="h-7 w-7 text-orange-300" /> SaaS Provisioning</h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-400">
-            Provision mechanic subscribers in Roadcall and mirror their AI telephony agent into Retell. Roadcall stays the operating system; Retell is the phone engine.
+            Provision mechanic subscribers in Roadcall and mirror their AI telephony agent into the voice system. Roadcall stays the operating system for profiles, quotas, leads, and dispatch.
           </p>
         </div>
         <button onClick={load} disabled={loading} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-50">
@@ -291,7 +285,7 @@ export default function ProvisioningPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-5"><div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-cyan-300" /><div><p className="text-2xl font-bold text-white">{loading ? "—" : tenants.length}</p><p className="text-xs text-slate-400">Tenants</p></div></div></Card>
-        <Card className="p-5"><div className="flex items-center gap-3"><Workflow className="h-5 w-5 text-blue-300" /><div><p className="text-2xl font-bold text-white">{activeRetell}</p><p className="text-xs text-slate-400">Retell active</p></div></div></Card>
+        <Card className="p-5"><div className="flex items-center gap-3"><Workflow className="h-5 w-5 text-blue-300" /><div><p className="text-2xl font-bold text-white">{activeRetell}</p><p className="text-xs text-slate-400">AI phone active</p></div></div></Card>
         <Card className="p-5"><div className="flex items-center gap-3"><Truck className="h-5 w-5 text-orange-300" /><div><p className="text-2xl font-bold text-white">{proTenants}</p><p className="text-xs text-slate-400">Pro dispatch</p></div></div></Card>
         <Card className="p-5"><div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-300" /><div><p className="text-2xl font-bold text-white">Healthy</p><p className="text-xs text-slate-400">Backend status</p></div></div></Card>
       </div>
@@ -300,7 +294,7 @@ export default function ProvisioningPage() {
         <Card>
           <div className="border-b border-white/5 px-6 py-4">
             <h2 className="font-semibold text-white">Tenant Plans</h2>
-            <p className="mt-1 text-xs text-slate-500">Upgrade/downgrade subscribers and verify Retell telephony provisioning state.</p>
+            <p className="mt-1 text-xs text-slate-500">Upgrade/downgrade subscribers and verify AI telephony provisioning state.</p>
           </div>
           {loading ? (
             <div className="flex items-center justify-center py-12 text-slate-400"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading tenants…</div>
@@ -309,7 +303,7 @@ export default function ProvisioningPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="border-b border-white/5 text-left text-xs uppercase tracking-wide text-slate-500"><th className="px-4 py-3">Subscriber</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Setup</th><th className="px-4 py-3">Retell</th><th className="px-4 py-3">Agent</th><th className="px-4 py-3">Change Plan</th></tr></thead>
+                <thead><tr className="border-b border-white/5 text-left text-xs uppercase tracking-wide text-slate-500"><th className="px-4 py-3">Subscriber</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Setup</th><th className="px-4 py-3">AI Phone</th><th className="px-4 py-3">Agent</th><th className="px-4 py-3">Change Plan</th></tr></thead>
                 <tbody className="divide-y divide-white/5">
                   {tenants.map((tenant) => (
                     <tr key={tenant.id} onClick={() => setSelectedTenantId(tenant.id)} className={`cursor-pointer hover:bg-white/[0.03] ${selectedTenant?.id === tenant.id ? "bg-blue-500/5" : ""}`}>
@@ -340,7 +334,7 @@ export default function ProvisioningPage() {
         <div className="space-y-6">
           <Card className="p-6">
             <h2 className="font-semibold text-white">Provision Subscriber</h2>
-            <p className="mt-1 text-xs text-slate-500">Creates the Roadcall tenant and provisions a Retell service-desk agent.</p>
+            <p className="mt-1 text-xs text-slate-500">Creates the Roadcall tenant and provisions an AI service-desk agent.</p>
             <div className="mt-4 grid gap-3">
               <input value={newSubscriber.organization_name} onChange={(event) => setNewSubscriber((current) => ({ ...current, organization_name: event.target.value }))} placeholder="Shop / subscriber name" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
               <input value={newSubscriber.contact_email} onChange={(event) => setNewSubscriber((current) => ({ ...current, contact_email: event.target.value }))} placeholder="Contact email" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
@@ -353,7 +347,7 @@ export default function ProvisioningPage() {
               </div>
               <textarea value={newSubscriber.supported_services} onChange={(event) => setNewSubscriber((current) => ({ ...current, supported_services: event.target.value }))} rows={3} placeholder="Supported services" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
               <button onClick={createSubscriber} disabled={creatingSubscriber || loading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400 disabled:opacity-50">
-                {creatingSubscriber && <Loader2 className="h-4 w-4 animate-spin" />} Provision in Retell
+                {creatingSubscriber && <Loader2 className="h-4 w-4 animate-spin" />} Provision AI Phone
               </button>
             </div>
           </Card>
@@ -368,17 +362,17 @@ export default function ProvisioningPage() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <Badge tone={statusTone(selectedTenant.onboarding_status)}>Onboarding: {selectedTenant.onboarding_status}</Badge>
                   <Badge tone={statusTone(selectedTenant.setup_fee_status)}>Setup: {selectedTenant.setup_fee_status}</Badge>
-                  <Badge tone={statusTone(selectedTenant.retell_connection?.provisioning_status)}>Retell: {selectedTenant.retell_connection?.provisioning_status || "not_provisioned"}</Badge>
+                  <Badge tone={statusTone(selectedTenant.retell_connection?.provisioning_status)}>AI Phone: {selectedTenant.retell_connection?.provisioning_status || "not_provisioned"}</Badge>
                   <Badge tone={selectedTenant.retell_connection?.agent_id ? "emerald" : "amber"}>Agent: {selectedTenant.retell_connection?.agent_id ? "created" : "missing"}</Badge>
                 </div>
                 <button onClick={provisionSelectedRetell} disabled={provisioningRetell === selectedTenant.id} className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/20 disabled:opacity-50">
-                  {provisioningRetell === selectedTenant.id && <Loader2 className="h-4 w-4 animate-spin" />} Sync / Provision Retell Agent
+                  {provisioningRetell === selectedTenant.id && <Loader2 className="h-4 w-4 animate-spin" />} Sync / Provision AI Agent
                 </button>
                 {selectedTenant.retell_connection?.agent_id && <p className="font-mono text-xs text-slate-500">{selectedTenant.retell_connection.agent_id}</p>}
                 {selectedTenant.retell_connection?.last_error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-200">{selectedTenant.retell_connection.last_error}</p>}
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Onboarding checklist</p>
-                  {["Setup fee paid", "Retell agent created", "Phone routing configured", "Service advisor prompt ready", "Cal.com scheduling pending", selectedTenant.current_plan === "pro" ? "Dispatch enabled" : "Dispatch locked until Pro"].map((item) => (
+                  {["Setup fee paid", "AI agent created", "Phone routing configured", "Service advisor prompt ready", "Calendar scheduling pending", selectedTenant.current_plan === "pro" ? "Dispatch enabled" : "Dispatch locked until Pro"].map((item) => (
                     <div key={item} className="mb-2 flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
                   ))}
                 </div>

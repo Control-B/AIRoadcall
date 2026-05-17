@@ -248,7 +248,7 @@ export function LiveTrackingMap({
       <div className={`${className} flex items-center justify-center bg-muted`}>
         <div className="text-center text-sm text-muted-foreground">
           <MapPin className="mx-auto mb-2 h-8 w-8" />
-          <p>{tokenLoading ? "Loading Mapbox configuration…" : "Mapbox token is not configured"}</p>
+          <p>{tokenLoading ? "Loading map configuration…" : "Map configuration is not ready"}</p>
           {hasDriverCoords && (
             <p className="mt-2">
               {driver.label}: {driver.lat!.toFixed(4)}, {driver.lng!.toFixed(4)}

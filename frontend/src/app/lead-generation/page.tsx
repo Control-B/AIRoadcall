@@ -121,8 +121,8 @@ export default function LeadGenerationPage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {[
-              ["AI Dispatch", "Handles urgent roadside incidents and mechanic matching."],
-              ["AI Telephony", "Answers provider phones as a Retell service advisor."],
+              ["AI Roadside Dispatch", "Handles urgent roadside incidents and mechanic matching."],
+              ["AI Telephony", "Answers provider phones as a Roadcall service advisor."],
               ["Lead Generation", "Creates and routes qualified opportunities for providers."],
               ["Search Directory", "Lets users discover truck service providers safely."],
             ].map(([title, copy]) => (

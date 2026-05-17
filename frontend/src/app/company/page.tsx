@@ -40,7 +40,7 @@ const timeline = [
     year: "2025",
     title: "Nationwide Launch",
     description:
-      "Scaled to 35,000+ mechanics across all 50 US states. Added SMS magic links, Stripe payments, live tracking, and a full admin dashboard.",
+      "Scaled to 35,000+ mechanics across all 50 US states. Added SMS magic links, secure payments, live tracking, and a full admin dashboard.",
   },
   {
     year: "2025",

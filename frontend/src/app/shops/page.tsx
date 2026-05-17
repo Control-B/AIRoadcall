@@ -41,7 +41,7 @@ const features = [
   {
     icon: Users,
     title: "CRM Contact Management",
-    description: "Every caller becomes a contact in your GoHighLevel CRM — with call notes, vehicle info, and job history auto-populated.",
+    description: "Every caller becomes a Roadcall contact — with call notes, vehicle info, and job history auto-populated.",
   },
   {
     icon: TrendingUp,
@@ -66,7 +66,7 @@ const features = [
 ];
 
 const howItWorks = [
-  { step: "01", title: "Connect Your Shop", description: "Link your GoHighLevel subaccount (or we create one). Takes under 5 minutes.", accent: "from-roadcall-orange to-roadcall-blue" },
+  { step: "01", title: "Connect Your Shop", description: "Set up your Roadcall shop workspace. Takes under 5 minutes.", accent: "from-roadcall-orange to-roadcall-blue" },
   { step: "02", title: "Configure Sandy", description: "Set your services, hours, and escalation rules. Sandy learns your shop.", accent: "from-red-500 to-pink-500" },
   { step: "03", title: "Go Live", description: "Forward your business number to Sandy. Every call answered from minute one.", accent: "from-pink-500 to-purple-500" },
   { step: "04", title: "Watch Leads Flow", description: "Calls become contacts, contacts become jobs, jobs become revenue.", accent: "from-purple-500 to-blue-500" },
@@ -159,7 +159,7 @@ export default function ShopsPage() {
       {/* Social proof strip */}
       <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/20 py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm text-roadcall-muted">
-          {["Powered by GoHighLevel CRM", "LC Phone AI calling", "No extra staff needed", "Works with your existing number"].map((t) => (
+          {["Roadcall CRM included", "Roadcall AI calling", "No extra staff needed", "Works with your existing number"].map((t) => (
             <div key={t} className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-roadcall-orange" /><span>{t}</span>
             </div>
@@ -173,7 +173,7 @@ export default function ShopsPage() {
           <SectionHeading
             eyebrow="Everything You Need"
             title="Your shop's AI-powered front desk"
-            description="Roadcall Shops is built on GoHighLevel and LC Phone — giving you enterprise-grade CRM and AI calling without the enterprise price tag."
+            description="Roadcall Shops gives you enterprise-grade CRM and AI calling without the enterprise price tag."
           />
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
             {features.map((f, i) => (

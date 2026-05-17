@@ -16,25 +16,25 @@ const CATEGORIES = [
     icon: Map,
     title: "GPS / Telematics",
     desc: "Pull real-time vehicle location into incidents automatically when a driver calls.",
-    providers: ["Samsara", "Geotab", "Motive", "Custom API"],
+    providers: ["Major GPS platforms", "Vehicle location feeds", "Custom API"],
   },
   {
     icon: Radio,
     title: "ELD Systems",
     desc: "Cross-reference HOS data when logging incidents for compliance documentation.",
-    providers: ["Motive (KeepTruckin)", "Geotab Drive", "Custom ELD"],
+    providers: ["ELD data sync", "Driver logs", "Custom ELD"],
   },
   {
     icon: Wrench,
     title: "Maintenance Systems",
     desc: "Create work orders automatically from roadside incidents.",
-    providers: ["Fleetio", "RTA", "Dossier", "Custom API"],
+    providers: ["Work orders", "Maintenance records", "Custom API"],
   },
   {
     icon: Network,
     title: "Dispatch / TMS",
     desc: "Notify your TMS when a load is delayed due to a breakdown and trigger re-routing.",
-    providers: ["McLeod", "TMW", "Custom TMS"],
+    providers: ["TMS updates", "Load delay alerts", "Custom TMS"],
   },
   {
     icon: Plug,
@@ -46,7 +46,7 @@ const CATEGORIES = [
     icon: MessageSquare,
     title: "SMS / Voice Providers",
     desc: "Route driver and vendor communications through your preferred telecom layer.",
-    providers: ["Twilio", "Telnyx", "Retell AI"],
+    providers: ["Voice routing", "SMS messaging", "AI call answering"],
   },
 ];
 
@@ -54,7 +54,7 @@ const STEPS = [
   { step: "01", title: "Connect your fleet data source", desc: "Link your vehicle database, GPS provider, or upload a CSV to seed unit and driver records." },
   { step: "02", title: "Map vehicle and unit fields", desc: "Tell Roadcall which field is your unit number, which is your VIN, and what vehicle types you run." },
   { step: "03", title: "Configure roadside rules", desc: "Set approved vendor networks, dispatch radius, after-hours escalation paths, and data-mode preference." },
-  { step: "04", title: "Activate AI support", desc: "Go live. The Retell AI agent answers roadside calls and creates structured incidents automatically." },
+  { step: "04", title: "Activate AI support", desc: "Go live. The Roadcall AI agent answers roadside calls and creates structured incidents automatically." },
   { step: "05", title: "Sync incident outcomes", desc: "Resolved incidents push back to your maintenance system, TMS, or webhook endpoint of choice." },
 ];
 

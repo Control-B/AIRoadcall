@@ -275,11 +275,11 @@ export default function ShopDetailPage() {
             <div>
               <span className="text-muted-foreground">Phone Setup:</span>{" "}
               <span className="font-medium">
-                {shop.phone_onboarding_mode === "roadcall_twilio_number" ? "Roadcall/Twilio number" : "Existing number"}
+                {shop.phone_onboarding_mode === "roadcall_twilio_number" ? "Roadcall number" : "Existing number"}
               </span>
             </div>
             <div>
-              <span className="text-muted-foreground">Twilio Status:</span>{" "}
+              <span className="text-muted-foreground">Phone Status:</span>{" "}
               <span className="font-medium">{shop.twilio_number_status || "not_requested"}</span>
             </div>
             {shop.requested_area_code && (
@@ -306,7 +306,7 @@ export default function ShopDetailPage() {
             </div>
             {shop.calcom_calendar_url && (
               <div>
-                <span className="text-muted-foreground">Cal.com:</span>{" "}
+                <span className="text-muted-foreground">Calendar:</span>{" "}
                 <a href={shop.calcom_calendar_url} target="_blank" rel="noreferrer" className="font-medium text-blue-400 hover:underline">
                   Open calendar
                 </a>
@@ -322,9 +322,9 @@ export default function ShopDetailPage() {
             </div>
             {(shop.retell_agent_id || shop.retell_flow_id || shop.retell_phone_number_id) && (
               <div className="rounded-lg bg-white/5 border border-white/10 p-2 text-xs text-slate-400">
-                {shop.retell_agent_id && <div>Retell agent: <span className="text-slate-200">{shop.retell_agent_id}</span></div>}
-                {shop.retell_flow_id && <div>Retell flow: <span className="text-slate-200">{shop.retell_flow_id}</span></div>}
-                {shop.retell_phone_number_id && <div>Retell phone: <span className="text-slate-200">{shop.retell_phone_number_id}</span></div>}
+                {shop.retell_agent_id && <div>AI agent: <span className="text-slate-200">{shop.retell_agent_id}</span></div>}
+                {shop.retell_flow_id && <div>AI flow: <span className="text-slate-200">{shop.retell_flow_id}</span></div>}
+                {shop.retell_phone_number_id && <div>AI phone: <span className="text-slate-200">{shop.retell_phone_number_id}</span></div>}
               </div>
             )}
             {shop.services_offered && shop.services_offered.length > 0 && (

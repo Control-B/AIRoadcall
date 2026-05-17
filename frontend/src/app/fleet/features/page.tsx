@@ -34,7 +34,7 @@ const features = [
     icon: MapPin,
     title: "GPS & Tracker Integration",
     description:
-      "A signed one-time SMS link is sent to the driver mid-call. One tap shares exact GPS from their phone — no app download, no account. Connects to Samsara, Motive, and Geotab for automatic location pull.",
+      "A signed one-time SMS link is sent to the driver mid-call. One tap shares exact GPS from their phone — no app download, no account. Roadcall can also connect to fleet location feeds for automatic location pull.",
     accent: "from-cyan-500 to-teal-500",
   },
   {
@@ -62,7 +62,7 @@ const features = [
     icon: GitBranch,
     title: "Fleet System Integrations",
     description:
-      "Connect your existing telematics, ELD, and maintenance systems. Samsara, Verizon Connect, Motive, Geotab, Fleetio, and custom integrations via open API. Data flows to Roadcall — not the other way around.",
+      "Connect your existing telematics, ELD, and maintenance systems through standard integrations or custom API. Data flows to Roadcall only when needed for roadside support.",
     accent: "from-blue-500 to-indigo-500",
   },
   {
@@ -124,7 +124,7 @@ const differentiators = [
   "Class 8 and specialty vehicle matching (reefer, flatbed, tanker, lowboy)",
   "Fault code capture routed to correct specialty mechanic automatically",
   "Loaded status affects dispatch priority — Sandy knows to ask",
-  "No third-party CRM — your fleet data never leaves your environment",
+  "No outside CRM — your fleet data never leaves your environment",
   "Private tenant mode for enterprise: dedicated DB, isolated credentials",
   "Open API for custom integrations with your existing dispatch stack",
   "Audit logs on every incident change for DOT and insurance compliance",
@@ -240,7 +240,7 @@ export default function FleetFeaturesPage() {
             </h2>
             <p className="text-roadcall-silver/85 text-lg mb-6 max-w-2xl mx-auto">
               Fleet incident data — driver locations, breakdown history, vendor relationships —
-              never flows into a shared third-party CRM. Private tenant and hybrid in-house modes
+              never flows into a shared outside CRM. Private tenant and hybrid in-house modes
               give you full database isolation and credential ownership.
             </p>
             <div className="flex flex-wrap gap-3 justify-center mb-8">

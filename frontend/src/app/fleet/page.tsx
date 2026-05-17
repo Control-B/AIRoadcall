@@ -33,9 +33,9 @@ const features = [
   { icon: AlertTriangle, title: "Incident Management", description: "Every breakdown becomes a tracked incident with full timeline: intake, location, dispatch, ETA, resolution, and audit trail." },
   { icon: Radio, title: "Dispatch Status Board", description: "Your team sees every active incident in real time — driver GPS, mechanic ETA, status updates, and escalations." },
   { icon: Users, title: "Driver & Vehicle Database", description: "Maintain a database of your drivers, vehicles, VINs, and unit numbers. Sandy can look up vehicle info during the call." },
-  { icon: GitBranch, title: "Fleet Tracker Integrations", description: "Connect Samsara, Verizon Connect, Motive, or your existing telematics. Pull live GPS and alert data automatically." },
+  { icon: GitBranch, title: "Fleet Tracker Integrations", description: "Connect your existing telematics and fleet systems. Pull live GPS and alert data automatically." },
   { icon: BarChart3, title: "Incident Analytics", description: "Track breakdown frequency, resolution time, cost per incident, mechanic performance, and driver patterns over time." },
-  { icon: Lock, title: "Private Data Mode", description: "Your fleet incident data never touches a third-party CRM. Full tenant isolation, RBAC, and audit logs for compliance." },
+  { icon: Lock, title: "Private Data Mode", description: "Your fleet incident data stays inside Roadcall's protected workflow. Full tenant isolation, RBAC, and audit logs for compliance." },
   { icon: Shield, title: "Enterprise Security", description: "Role-based access control, encrypted credentials, one-time location tokens, organization scoping on every API call." },
 ];
 
@@ -88,7 +88,7 @@ export default function FleetPage() {
           </FadeIn>
           <FadeIn delay={0.2}>
             <p className="text-lg md:text-xl text-roadcall-silver/85 max-w-2xl mx-auto mb-12 leading-relaxed">
-              Every driver breakdown automated — from AI intake to mechanic dispatch. Without forcing your fleet&apos;s sensitive data into a third-party CRM.
+              Every driver breakdown automated — from AI intake to mechanic dispatch. Without forcing your fleet&apos;s sensitive data into an outside CRM.
             </p>
           </FadeIn>
           <FadeIn delay={0.3}>
@@ -112,7 +112,7 @@ export default function FleetPage() {
       {/* Social proof strip */}
       <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/20 py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm text-roadcall-muted">
-          {["Your data — not in GHL", "Private tenant isolation", "35,000+ mechanics nationwide", "Samsara & Motive integrations"].map((t) => (
+          {["Your data stays controlled", "Private tenant isolation", "35,000+ mechanics nationwide", "Fleet system integrations"].map((t) => (
             <div key={t} className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-blue-400" /><span>{t}</span>
             </div>
@@ -126,7 +126,7 @@ export default function FleetPage() {
           <SectionHeading
             eyebrow="Platform Capabilities"
             title="End-to-end roadside automation"
-            description="Roadcall Fleet is built on our own backend — not GoHighLevel. Your incident data, driver records, and dispatch history stay in a fully isolated, RBAC-controlled environment."
+            description="Roadcall Fleet is built on our own backend. Your incident data, driver records, and dispatch history stay in a fully isolated, RBAC-controlled environment."
           />
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f, i) => (
@@ -175,7 +175,7 @@ export default function FleetPage() {
                 <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">yours. Full stop.</span>
               </h2>
               <p className="text-roadcall-muted text-lg mb-8 leading-relaxed">
-                Unlike solutions that route incident data through third-party CRMs, Roadcall Fleet keeps every driver call, location record, dispatch event, and audit trail in your own isolated environment.
+                Unlike solutions that route incident data through outside CRMs, Roadcall Fleet keeps every driver call, location record, dispatch event, and audit trail in your own isolated environment.
               </p>
               <ul className="space-y-3 mb-8">
                 {securityPoints.map((point) => (
@@ -200,7 +200,7 @@ export default function FleetPage() {
                   { label: "Dispatch History", owner: "Your DB", color: "bg-blue-500" },
                   { label: "Audit Logs", owner: "Your DB", color: "bg-cyan-500" },
                   { label: "AI Call Transcripts", owner: "Your DB", color: "bg-blue-500" },
-                  { label: "GHL CRM Data", owner: "NOT used in Fleet", color: "bg-red-500/50" },
+                  { label: "External CRM Data", owner: "Not required", color: "bg-red-500/50" },
                 ].map((item) => (
                   <div key={item.label} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
                     <span className="text-sm text-roadcall-silver/85">{item.label}</span>

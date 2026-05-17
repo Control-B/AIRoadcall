@@ -185,7 +185,7 @@ export default function FleetOnboardingPage() {
                   type="text" value={form.tracker_provider}
                   onChange={(e) => set("tracker_provider", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  placeholder="Samsara, Geotab, Motive, None..."
+                  placeholder="Current telematics provider, internal system, none..."
                 />
               </div>
               <div>
@@ -194,7 +194,7 @@ export default function FleetOnboardingPage() {
                   type="text" value={form.maintenance_system}
                   onChange={(e) => set("maintenance_system", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  placeholder="Fleetio, RTA, None..."
+                  placeholder="Current maintenance system, internal system, none..."
                 />
               </div>
               <div className="sm:col-span-2">
@@ -203,7 +203,7 @@ export default function FleetOnboardingPage() {
                   type="text" value={form.tms_or_dispatch_system}
                   onChange={(e) => set("tms_or_dispatch_system", e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-300"
-                  placeholder="McLeod, TMW, internal, None..."
+                  placeholder="Current TMS, internal dispatch system, none..."
                 />
               </div>
               <div className="sm:col-span-2">

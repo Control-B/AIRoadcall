@@ -52,12 +52,12 @@ const deepFeatures = [
     eyebrow: "SMS Magic Link",
     title: "One tap to share location & pay",
     description:
-      "After the AI call, drivers get an SMS with a secure magic link. One tap opens a mobile-optimized page where they share GPS location and authorize a small Stripe payment hold — no app download required.",
+      "After the AI call, drivers get an SMS with a secure magic link. One tap opens a mobile-optimized page where they share GPS location and authorize a small secure payment hold — no app download required.",
     bullets: [
       "SMS delivered within seconds of call completion",
       "Mobile-optimized web page — works on any phone",
       "GPS sharing with one-tap browser geolocation",
-      "Stripe-powered secure payment authorization",
+      "Secure payment authorization",
       "Real-time status updates via the same link",
     ],
     icon: MessageSquare,
@@ -106,9 +106,9 @@ const deepFeatures = [
     eyebrow: "Secure Payments",
     title: "Authorization holds that protect everyone",
     description:
-      "Drivers authorize a small hold via Stripe before dispatch. This ensures mechanics get paid and drivers aren't charged until service is rendered. The hold converts to a charge only after job completion.",
+      "Drivers authorize a small hold before dispatch. This ensures mechanics get paid and drivers aren't charged until service is rendered. The hold converts to a charge only after job completion.",
     bullets: [
-      "Stripe-powered PCI-compliant payment processing",
+      "PCI-compliant payment processing",
       "Authorization hold — no charge until mechanic arrives",
       "Automatic charge on job completion",
       "Refund and dispute handling built in",

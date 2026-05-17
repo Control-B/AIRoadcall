@@ -28,7 +28,7 @@ export default function GetStartedPage() {
         <p className="text-roadcall-muted max-w-xl mb-10 leading-relaxed">
           {external
             ? "Redirecting you to Roadcall onboarding…"
-            : "Choose the best starting point for your team. We will route signups through GHL once your onboarding link is configured."}
+            : "Choose the best starting point for your team. We will route signups through Roadcall onboarding once your link is configured."}
         </p>
         {external ? (
           <div className="text-sm text-roadcall-muted">Redirecting…</div>

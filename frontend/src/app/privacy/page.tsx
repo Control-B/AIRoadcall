@@ -33,13 +33,13 @@ const sections = [
   {
     title: "5. SMS and Messaging",
     body: [
-      "We may send text messages such as magic links, dispatch updates, ETA notifications, or other service-related messages. Standard carrier messaging and data rates may apply. We use third-party messaging providers, including Twilio or similar providers, to deliver messages.",
+      "We may send text messages such as magic links, dispatch updates, ETA notifications, or other service-related messages. Standard carrier messaging and data rates may apply. We use authorized messaging providers to deliver messages.",
     ],
   },
   {
     title: "6. Payment Information",
     body: [
-      "Roadcall.ai may facilitate payment holds, payment authorizations, or related checkout workflows. Payment card details are processed by our payment providers, such as Stripe, and are not stored by us except for limited metadata, tokens, status information, or transaction references necessary to support the service.",
+      "Roadcall.ai may facilitate payment holds, payment authorizations, or related checkout workflows. Payment card details are processed by authorized payment providers and are not stored by us except for limited metadata, tokens, status information, or transaction references necessary to support the service.",
     ],
   },
   {

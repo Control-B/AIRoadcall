@@ -27,7 +27,7 @@ type AudienceCard = {
 const audienceCards: AudienceCard[] = [
   {
     href: "/fleet/features",
-    eyebrow: "Lane 1 · AI Dispatch",
+    eyebrow: "Lane 1 · AI Roadside Dispatch",
     eyebrowClass: "text-blue-400",
     title: "Roadside Matching",
     audience: "for Fleets & Drivers",
@@ -49,7 +49,7 @@ const audienceCards: AudienceCard[] = [
     title: "AI Service Advisor",
     audience: "for Mechanic Shops",
     audienceClass: "text-roadcall-orange",
-    bullets: ["Retell AI Phone", "Missed-Call Text Back", "Appointment Booking", "Call Summaries"],
+    bullets: ["Roadcall AI Phone", "Missed-Call Text Back", "Appointment Booking", "Call Summaries"],
     ctaLabel: "Explore AI Phone",
     ctaClass: "bg-roadcall-orange text-white group-hover:brightness-110",
     border: "border-orange-500/30",
@@ -83,7 +83,7 @@ const audienceCards: AudienceCard[] = [
     title: "Truck Service Directory",
     audience: "for Drivers & Dispatchers",
     audienceClass: "text-cyan-200",
-    bullets: ["Find Truck Service", "Search by Location", "Roadside & Towing", "Protected Contact Data"],
+    bullets: ["Search Truck Service", "Search by Location", "Roadside & Towing", "Protected Contact Data"],
     ctaLabel: "Search Providers",
     ctaClass: "bg-cyan-500 text-slate-950 group-hover:bg-cyan-300",
     border: "border-cyan-400/30",

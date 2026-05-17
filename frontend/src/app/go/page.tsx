@@ -3,7 +3,7 @@
 /**
  * roadcall.ai/go — website-first dispatch flow.
  *
- * Replaces SMS magic-link while Twilio A2P is pending.
+ * Replaces SMS magic-link while carrier registration is pending.
  * Driver enters phone number, taps Submit, browser captures GPS,
  * backend reverse-geocodes via Mapbox and returns top 3 mechanics.
  */

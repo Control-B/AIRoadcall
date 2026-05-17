@@ -35,7 +35,7 @@ const navItems: NavItem[] = [
       },
       {
         label: "AI Telephony",
-        description: "Retell-powered AI service advisor for mechanic shops",
+        description: "Roadcall AI service advisor for mechanic shops",
         href: "/ai-telephony",
       },
       {
@@ -45,7 +45,7 @@ const navItems: NavItem[] = [
       },
       {
         label: "General Search Directory",
-        description: "Find Truck Service-style public search for providers",
+        description: "Search Truck Service public directory for providers",
         href: "/search",
       },
       {
@@ -95,10 +95,6 @@ const navItems: NavItem[] = [
         href: "/provider#verified",
       },
     ],
-  },
-  {
-    label: "AI Dispatch",
-    href: "/fleet/features",
   },
   {
     label: "Resources",

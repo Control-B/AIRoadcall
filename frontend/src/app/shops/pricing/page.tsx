@@ -35,7 +35,7 @@ import {
 const TRUST = [
   { icon: Clock3, label: "24/7 AI Answering" },
   { icon: Globe2, label: "Multilingual AI" },
-  { icon: Route, label: "AI Dispatch Workflows" },
+  { icon: Route, label: "AI Roadside Dispatch Workflows" },
   { icon: MessageSquare, label: "Missed Call Text Back" },
   { icon: Wrench, label: "Built for Roadside Operations" },
 ];

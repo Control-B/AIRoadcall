@@ -21,7 +21,6 @@ import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 
-// GHL form link — swap this for your real GHL calendar/form embed URL
 const GHL_PROVIDER_SIGNUP = process.env.NEXT_PUBLIC_GHL_PROVIDER_SIGNUP || "/provider/register";
 
 const benefits = [
@@ -110,7 +109,7 @@ const tiers = [
       "Appointment booking to calendar",
       "CRM contact pipeline",
       "Review request automation",
-      "GoHighLevel subaccount included",
+      "Roadcall shop workspace included",
     ],
     cta: "Start Free Trial",
     href: "/shops/onboarding",
@@ -163,7 +162,7 @@ export default function ProviderPage() {
                 </button>
               </a>
             </div>
-            <p className="text-sm text-roadcall-muted">No credit card required for free listing · Sign in via GoHighLevel · Full profile control</p>
+            <p className="text-sm text-roadcall-muted">No credit card required for free listing · Roadcall profile access · Full profile control</p>
           </FadeIn>
         </div>
       </section>
@@ -284,7 +283,7 @@ export default function ProviderPage() {
                 <Wrench className="h-5 w-5" /> List My Shop Free
               </button>
             </a>
-            <p className="mt-4 text-xs text-roadcall-muted">Sign in with GoHighLevel — your profile, your data, your clients.</p>
+            <p className="mt-4 text-xs text-roadcall-muted">Sign in to Roadcall — your profile, your data, your clients.</p>
           </div>
         </div>
       </section>

@@ -20,9 +20,9 @@ import { PageLayout } from "@/components/page-layout";
 import { FadeIn, GlassCard, SectionHeading } from "@/components/motion";
 
 const capabilities = [
-  "Retell AI answers calls 24/7 as your shop's service advisor",
-  "Connect your existing number with call forwarding or request a Roadcall/Twilio number",
-  "Books appointments into Cal.com event types and captures vehicle/job details",
+  "Roadcall AI answers calls 24/7 as your shop's service advisor",
+  "Connect your existing number with call forwarding or request a Roadcall number",
+  "Books appointments into your calendar and captures vehicle/job details",
   "Routes emergencies, after-hours calls, and roadside jobs to the right contact",
   "Shows missed calls recovered, appointments booked, and revenue opportunities captured",
 ];
@@ -41,6 +41,8 @@ const metrics = [
   { icon: CalendarClock, label: "Appointments captured", value: "Auto" },
   { icon: BarChart3, label: "Revenue opportunities", value: "Tracked" },
 ];
+
+const NEW_ROADCALL_NUMBER_MODE = "roadcall_number";
 
 const initialForm = {
   business_name: "",
@@ -75,8 +77,8 @@ type BooleanField = {
 };
 
 const booleanFields: BooleanField[] = [
-  { field: "wants_ai_answering", label: "AI phone answering", description: "Retell answers and qualifies every inbound call." },
-  { field: "wants_booking", label: "Calendar booking", description: "Book shop appointments through Cal.com during the call." },
+  { field: "wants_ai_answering", label: "AI phone answering", description: "Roadcall answers and qualifies every inbound call." },
+  { field: "wants_booking", label: "Calendar booking", description: "Book shop appointments during the call." },
   { field: "wants_after_hours", label: "After-hours coverage", description: "Capture jobs after closing instead of sending callers to voicemail." },
   { field: "wants_emergency_dispatch", label: "Roadside dispatch", description: "Escalate mobile/urgent jobs to a human or dispatch workflow." },
 ];
@@ -98,8 +100,8 @@ export default function AiTelephonyPage() {
       setError("Please add the shop name, owner name, email, and phone number.");
       return;
     }
-    if (form.phone_onboarding_mode === "roadcall_twilio_number" && !form.requested_area_code) {
-      setError("Please add the preferred area code for the new Roadcall/Twilio number.");
+    if (form.phone_onboarding_mode === NEW_ROADCALL_NUMBER_MODE && !form.requested_area_code) {
+      setError("Please add the preferred area code for the new Roadcall number.");
       return;
     }
     setLoading(true);
@@ -134,7 +136,7 @@ export default function AiTelephonyPage() {
               AI service advisor for truck repair shops.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-roadcall-silver/85">
-              Add Retell-powered phone answering and Cal.com appointment booking to your shop without changing Roadcall&apos;s existing dispatch, fleet, or marketplace flows.
+              Add Roadcall AI phone answering and appointment booking to your shop without changing Roadcall&apos;s existing dispatch, fleet, or marketplace flows.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a href="#setup">
@@ -168,7 +170,7 @@ export default function AiTelephonyPage() {
                   </div>
                   <div>
                     <p className="text-sm uppercase tracking-[0.2em] text-roadcall-muted">Live call flow</p>
-                    <h2 className="text-xl font-bold text-white">Retell service advisor</h2>
+                    <h2 className="text-xl font-bold text-white">Roadcall service advisor</h2>
                   </div>
                 </div>
                 <div className="mt-6 space-y-3">
@@ -190,12 +192,12 @@ export default function AiTelephonyPage() {
           <SectionHeading
             eyebrow="Built for mechanic shops"
             title="Answer, qualify, book, and escalate from one call"
-            description="The new module is additive: it stores shop-specific Retell, Twilio, and Cal.com metadata on shop customers while keeping existing Roadcall dispatch and admin systems intact."
+            description="The new module is additive: it stores shop-specific phone, calendar, and AI advisor settings while keeping existing Roadcall dispatch and admin systems intact."
           />
           <div className="grid gap-5 md:grid-cols-3">
             {[
-              { icon: PhoneCall, title: "Bring or buy a number", copy: "Forward your current shop line, or request a Roadcall-provisioned Twilio number with your preferred area code." },
-              { icon: CalendarClock, title: "Calendar-aware booking", copy: "Use Cal.com event types for repair estimates, DOT inspections, fleet service, and emergency callbacks." },
+              { icon: PhoneCall, title: "Bring or request a number", copy: "Forward your current shop line, or request a Roadcall-provisioned number with your preferred area code." },
+              { icon: CalendarClock, title: "Calendar-aware booking", copy: "Use your calendar for repair estimates, DOT inspections, fleet service, and emergency callbacks." },
               { icon: ShieldCheck, title: "Human fallback rules", copy: "Route VIP customers, after-hours jobs, and roadside emergencies to the owner or dispatcher." },
             ].map((feature, index) => (
               <FadeIn key={feature.title} delay={index * 0.05}>
@@ -214,7 +216,7 @@ export default function AiTelephonyPage() {
 
       <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/20 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
-          <SectionHeading eyebrow="Retell tool layer" title="Service advisor actions we can wire in" />
+          <SectionHeading eyebrow="AI tool layer" title="Service advisor actions we can wire in" />
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {tools.map((tool) => (
               <div key={tool.name} className="rounded-2xl border border-white/5 bg-slate-950/60 p-5">
@@ -234,16 +236,16 @@ export default function AiTelephonyPage() {
             </div>
             <h2 className="mt-6 text-4xl font-black text-white">Tell us how to connect your phones and calendar.</h2>
             <p className="mt-4 text-roadcall-muted">
-              Submit this once. We&apos;ll create the shop AI telephony profile, confirm Retell voice settings, provision or forward the phone number, and connect Cal.com booking.
+              Submit this once. We&apos;ll create the shop AI telephony profile, confirm voice settings, provision or forward the phone number, and connect calendar booking.
             </p>
             <div className="mt-6 rounded-2xl border border-white/5 bg-white/[0.03] p-5 text-sm text-roadcall-silver/80">
               <div className="flex items-center gap-2 font-semibold text-white">
                 <Clock3 className="h-4 w-4 text-roadcall-cyan" /> Setup path
               </div>
               <ol className="mt-4 space-y-3 text-roadcall-muted">
-                <li>1. Choose existing number forwarding or a new Roadcall/Twilio number.</li>
+                <li>1. Choose existing number forwarding or a new Roadcall number.</li>
                 <li>2. Add services, hours, and calendar details.</li>
-                <li>3. Roadcall configures Retell, Twilio routing, and Cal.com booking.</li>
+                <li>3. Roadcall configures AI voice routing and calendar booking.</li>
               </ol>
             </div>
           </div>
@@ -256,7 +258,7 @@ export default function AiTelephonyPage() {
                 </div>
                 <h3 className="mt-6 text-2xl font-bold text-white">AI telephony request received.</h3>
                 <p className="mx-auto mt-3 max-w-md text-roadcall-muted">
-                  We&apos;ll review your number choice, calendar setup, and Retell configuration details before activating the shop profile.
+                  We&apos;ll review your number choice, calendar setup, and AI phone configuration details before activating the shop profile.
                 </p>
                 <Link href="/shops" className="mt-6 inline-flex items-center gap-2 text-roadcall-cyan hover:underline">
                   Back to Roadcall Shops <ArrowRight className="h-4 w-4" />
@@ -279,11 +281,11 @@ export default function AiTelephonyPage() {
                     <label className={`rounded-xl border p-4 ${form.phone_onboarding_mode === "existing_number" ? "border-roadcall-cyan bg-roadcall-cyan/10" : "border-white/10 bg-black/20"}`}>
                       <input type="radio" name="phone_mode" className="sr-only" checked={form.phone_onboarding_mode === "existing_number"} onChange={() => setField("phone_onboarding_mode", "existing_number")} />
                       <span className="font-semibold text-white">Use my existing number</span>
-                      <span className="mt-1 block text-xs text-roadcall-muted">Forward your shop line to the Retell agent.</span>
+                      <span className="mt-1 block text-xs text-roadcall-muted">Forward your shop line to the Roadcall AI advisor.</span>
                     </label>
-                    <label className={`rounded-xl border p-4 ${form.phone_onboarding_mode === "roadcall_twilio_number" ? "border-roadcall-orange bg-roadcall-orange/10" : "border-white/10 bg-black/20"}`}>
-                      <input type="radio" name="phone_mode" className="sr-only" checked={form.phone_onboarding_mode === "roadcall_twilio_number"} onChange={() => setField("phone_onboarding_mode", "roadcall_twilio_number")} />
-                      <span className="font-semibold text-white">Buy a Roadcall/Twilio number</span>
+                    <label className={`rounded-xl border p-4 ${form.phone_onboarding_mode === NEW_ROADCALL_NUMBER_MODE ? "border-roadcall-orange bg-roadcall-orange/10" : "border-white/10 bg-black/20"}`}>
+                      <input type="radio" name="phone_mode" className="sr-only" checked={form.phone_onboarding_mode === NEW_ROADCALL_NUMBER_MODE} onChange={() => setField("phone_onboarding_mode", NEW_ROADCALL_NUMBER_MODE)} />
+                      <span className="font-semibold text-white">Request a Roadcall number</span>
                       <span className="mt-1 block text-xs text-roadcall-muted">Roadcall provisions and routes the new number.</span>
                     </label>
                   </div>
@@ -295,7 +297,7 @@ export default function AiTelephonyPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <Field label="Current calendar" value={form.current_calendar} onChange={(value) => setField("current_calendar", value)} placeholder="Google Calendar, Outlook, shop software..." />
-                  <Field label="Cal.com link" type="url" value={form.calcom_calendar_url} onChange={(value) => setField("calcom_calendar_url", value)} placeholder="https://cal.com/your-shop/service" />
+                  <Field label="Calendar booking link" type="url" value={form.calcom_calendar_url} onChange={(value) => setField("calcom_calendar_url", value)} placeholder="https://your-booking-link.com/service" />
                   <Textarea label="Services offered" value={form.services_offered} onChange={(value) => setField("services_offered", value)} placeholder="Diagnostics, DOT inspection, tires, mobile repair..." />
                   <Textarea label="Business hours" value={form.business_hours} onChange={(value) => setField("business_hours", value)} placeholder="Mon–Fri 7am–6pm, after-hours emergency coverage..." />
                 </div>

@@ -28,7 +28,7 @@ export default function SignInPage() {
         <p className="text-roadcall-muted max-w-xl mb-10 leading-relaxed">
           {external
             ? "Redirecting you to the Roadcall customer portal…"
-            : "Customer and provider sign-in will route through GHL once the portal link is configured. Internal Roadcall admins can use the admin dashboard."}
+            : "Customer and provider sign-in will route through the Roadcall portal once the portal link is configured. Internal Roadcall admins can use the admin dashboard."}
         </p>
         {external ? (
           <div className="text-sm text-roadcall-muted">Redirecting…</div>

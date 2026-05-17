@@ -80,7 +80,7 @@ export default function FleetSecurityPage() {
             <span className="bg-gradient-to-r from-blue-400 to-cyan-300 bg-clip-text text-transparent">with controlled data access</span>
           </h1>
           <p className="text-lg text-roadcall-silver/85 max-w-2xl mx-auto mb-10 leading-relaxed">
-            Enterprise roadside support without forcing fleet data into a third-party CRM.
+            Enterprise roadside support without forcing fleet data into an outside CRM.
             Your data architecture. Your rules.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

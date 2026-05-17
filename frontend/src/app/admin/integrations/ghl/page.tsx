@@ -113,7 +113,7 @@ export default function GHLIntegrationPage() {
       setMappings(mappingData.mappings);
       setRetry(retryData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load GHL integration status");
+      setError(err instanceof Error ? err.message : "Could not load CRM integration status");
     } finally {
       setLoading(false);
     }
@@ -147,7 +147,7 @@ export default function GHLIntegrationPage() {
         body: JSON.stringify(payload),
       });
       setForm(initialForm);
-      setMessage("GHL tenant mapping saved. Secrets were encrypted before storage.");
+      setMessage("CRM tenant mapping saved. Secrets were encrypted before storage.");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not save mapping");
@@ -178,9 +178,9 @@ export default function GHLIntegrationPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">GoHighLevel Integration</h1>
+          <h1 className="text-2xl font-bold text-white">CRM Integration</h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-400">
-            Configure GHL as the CRM/workflow layer only. Roadcall remains source of truth for dispatch, matching, billing, status, mechanics, fleets, vendors, geolocation, and analytics.
+            Configure the CRM/workflow layer only. Roadcall remains source of truth for dispatch, matching, billing, status, mechanics, fleets, vendors, geolocation, and analytics.
           </p>
         </div>
         <button onClick={load} disabled={loading} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-50">
@@ -232,7 +232,7 @@ export default function GHLIntegrationPage() {
             </div>
             <div>
               <h2 className="font-semibold text-white">Tenant Mapping</h2>
-              <p className="text-xs text-slate-400">Map a Roadcall organization to a GHL location/subaccount.</p>
+              <p className="text-xs text-slate-400">Map a Roadcall organization to a CRM location/subaccount.</p>
             </div>
           </div>
 
@@ -240,7 +240,7 @@ export default function GHLIntegrationPage() {
             <Field label="Roadcall Organization ID" note="The Roadcall tenant/account UUID.">
               <Input value={form.organization_id} onChange={(e) => updateField("organization_id", e.target.value)} required className={inputCls} />
             </Field>
-            <Field label="GHL Location ID" note="The GoHighLevel location/subaccount ID.">
+            <Field label="CRM Location ID" note="The CRM location/subaccount ID.">
               <Input value={form.location_id} onChange={(e) => updateField("location_id", e.target.value)} required className={inputCls} />
             </Field>
             <Field label="Subaccount Name">
@@ -252,7 +252,7 @@ export default function GHLIntegrationPage() {
             <Field label="Default Workflow ID">
               <Input value={form.default_workflow_id} onChange={(e) => updateField("default_workflow_id", e.target.value)} className={inputCls} />
             </Field>
-            <Field label="Webhook Secret" note="Stored encrypted; used to verify inbound GHL webhook signatures.">
+            <Field label="Webhook Secret" note="Stored encrypted; used to verify inbound CRM webhook signatures.">
               <Input type="password" value={form.webhook_secret} onChange={(e) => updateField("webhook_secret", e.target.value)} className={inputCls} />
             </Field>
             <Field label="Access Token" note="Stored encrypted; used for outbound contact/workflow/pipeline sync.">
@@ -272,7 +272,7 @@ export default function GHLIntegrationPage() {
         <div className="space-y-6">
           <Card className="p-6">
             <h2 className="font-semibold text-white">Webhook URLs</h2>
-            <p className="mt-1 text-xs text-slate-400">Add these signed endpoints in GHL. Each payload must include a mapped location ID.</p>
+            <p className="mt-1 text-xs text-slate-400">Add these signed endpoints in the CRM. Each payload must include a mapped location ID.</p>
             <div className="mt-4 space-y-2">
               <EndpointRow label="Form submissions" path={`${webhookBase}/forms`} />
               <EndpointRow label="Contact updates" path={`${webhookBase}/contact-updates`} />
@@ -307,7 +307,7 @@ export default function GHLIntegrationPage() {
         {loading ? (
           <div className="flex items-center justify-center py-12 text-slate-400"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading mappings…</div>
         ) : mappings.length === 0 ? (
-          <div className="py-12 text-center text-sm text-slate-500">No GHL tenant mappings configured yet.</div>
+          <div className="py-12 text-center text-sm text-slate-500">No CRM tenant mappings configured yet.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -315,7 +315,7 @@ export default function GHLIntegrationPage() {
                 <tr className="border-b border-white/5 text-left text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-4 py-3">Subaccount</th>
                   <th className="px-4 py-3">Roadcall Org</th>
-                  <th className="px-4 py-3">GHL Location</th>
+                  <th className="px-4 py-3">CRM Location</th>
                   <th className="px-4 py-3">Pipeline</th>
                   <th className="px-4 py-3">Workflow</th>
                   <th className="px-4 py-3">Status</th>
