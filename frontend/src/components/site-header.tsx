@@ -101,10 +101,6 @@ const navItems: NavItem[] = [
     href: "/fleet/features",
   },
   {
-    label: "AI Phone",
-    href: "/ai-telephony",
-  },
-  {
     label: "Resources",
     href: "/privacy",
     children: [
