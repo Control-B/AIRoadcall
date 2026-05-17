@@ -1,5 +1,6 @@
 """Placeholder test structure for backend tests."""
 import pytest
+from sqlalchemy.dialects import postgresql
 
 from app.services.mechanic_data_service import MechanicDataService
 from app.api.routes.public_directories import _public_trucking_row, _public_vendor_row, _split_public_tags
@@ -16,6 +17,21 @@ class TestMechanicAdminSearch:
         assert "Fort Lauderdale" in fort_terms
         assert "Ft Lauderdale" in fort_terms
         assert "Ft. Lauderdale" in fort_terms
+
+    def test_service_filter_uses_safe_alias_text_matching(self):
+        condition = MechanicDataService._service_filter_condition("heavy_duty")
+        sql = str(
+            condition.compile(
+                dialect=postgresql.dialect(),
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+        assert "@>" not in sql
+        assert "service_types" in sql
+        assert "vehicle_types_supported" in sql
+        assert "engine_trouble" in sql
+        assert "tow_needed" in sql
 
 
 class TestPublicDirectories:

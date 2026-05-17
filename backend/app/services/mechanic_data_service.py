@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 import math
 import re
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, desc, asc
+from sqlalchemy import String, cast, select, func, or_, desc, asc
 
 from app.models.mechanic import Mechanic
 from app.schemas.mechanic import (
@@ -75,6 +75,24 @@ class MechanicDataService:
         "truck": "truck",
         "mechanic": "engine_trouble",
         "repair": "engine_trouble",
+    }
+
+    _SERVICE_FILTER_ALIASES = {
+        "tire_repair": ("flat_tire", "tire", "flat"),
+        "flat_tire": ("flat_tire", "tire", "flat"),
+        "towing": ("tow_needed", "tow", "towing", "wrecker"),
+        "tow_needed": ("tow_needed", "tow", "towing", "wrecker"),
+        "battery_jump": ("dead_battery", "battery", "jump"),
+        "dead_battery": ("dead_battery", "battery", "jump"),
+        "engine_diesel": ("engine_trouble", "engine", "diesel", "mechanic", "repair"),
+        "engine_trouble": ("engine_trouble", "engine", "diesel", "mechanic", "repair"),
+        "fuel_delivery": ("fuel_delivery", "fuel", "gas", "def"),
+        "lockout": ("lockout", "lock", "key"),
+        "trailer_repair": ("trailer_repair", "trailer", "reefer", "brake"),
+        "reefer": ("trailer_repair", "reefer", "refrigeration", "trailer"),
+        "preventive_maintenance": ("preventive_maintenance", "maintenance", "repair"),
+        "mobile_repair": ("engine_trouble", "mobile", "roadside", "repair"),
+        "heavy_duty": ("heavy_duty", "heavy duty", "diesel", "truck", "engine_trouble", "tow_needed", "trailer_repair"),
     }
 
     @staticmethod
@@ -180,8 +198,7 @@ class MechanicDataService:
         if source:
             filters.append(Mechanic.source == source)
         if service_type:
-            service_term = service_type.strip().lower().replace(" ", "_")
-            filters.append(Mechanic.service_types.contains([service_term]))
+            filters.append(MechanicDataService._service_filter_condition(service_type))
         if has_email is True:
             filters.append(Mechanic.email.isnot(None))
             filters.append(Mechanic.email != "")
@@ -332,6 +349,37 @@ class MechanicDataService:
         value = re.sub(r"^www\.", "", value)
         value = value.split("/")[0].split(":")[0].strip()
         return value or None
+
+    @staticmethod
+    def _service_filter_condition(service_type: str):
+        service_term = service_type.strip().lower().replace(" ", "_").replace("-", "_")
+        aliases = MechanicDataService._SERVICE_FILTER_ALIASES.get(service_term, (service_term,))
+        service_text = cast(Mechanic.service_types, String)
+        vehicle_text = cast(Mechanic.vehicle_types_supported, String)
+        conditions = []
+        for alias in aliases:
+            token = alias.strip().lower()
+            if not token:
+                continue
+            pattern = f"%{token}%"
+            conditions.extend(
+                [
+                    service_text.ilike(pattern),
+                    vehicle_text.ilike(pattern),
+                    Mechanic.company_name.ilike(pattern),
+                ]
+            )
+        if service_term == "mobile_repair":
+            conditions.append(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
+        if service_term == "heavy_duty":
+            conditions.extend(
+                [
+                    Mechanic.company_name.ilike("%diesel%"),
+                    Mechanic.company_name.ilike("%truck%"),
+                    Mechanic.company_name.ilike("%heavy%"),
+                ]
+            )
+        return or_(*conditions) if conditions else service_text.ilike(f"%{service_term}%")
 
     @staticmethod
     def _city_search_terms(city: str) -> list[str]:
