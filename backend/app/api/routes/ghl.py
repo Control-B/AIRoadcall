@@ -10,7 +10,8 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, require_admin_api_key
+from app.api.deps import get_db
+from app.api.routes.admin_auth import verify_admin
 from app.models.ghl_integration import GHLRetryQueueItem, GHLTenantMapping
 from app.models.job import Job
 from app.models.lead_capture import LeadCapture
@@ -173,7 +174,7 @@ def _lead_from_form_payload(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-@router.post("/admin/tenant-mappings", response_model=TenantMappingOut, dependencies=[Depends(require_admin_api_key)])
+@router.post("/admin/tenant-mappings", response_model=TenantMappingOut, dependencies=[Depends(verify_admin)])
 async def upsert_tenant_mapping(payload: TenantMappingIn, db: AsyncSession = Depends(get_db)):
     mapping = await service.upsert_mapping(db, **payload.model_dump())
     await db.commit()
@@ -189,7 +190,7 @@ async def upsert_tenant_mapping(payload: TenantMappingIn, db: AsyncSession = Dep
     )
 
 
-@router.post("/admin/onboarding/setup", response_model=OnboardingSetupOut, dependencies=[Depends(require_admin_api_key)])
+@router.post("/admin/onboarding/setup", response_model=OnboardingSetupOut, dependencies=[Depends(verify_admin)])
 async def setup_onboarding_with_api_key(payload: OnboardingSetupIn, db: AsyncSession = Depends(get_db)):
     api_key = payload.ghl_api_key or service.settings.GHL_API_KEY
     if not api_key:
@@ -253,7 +254,7 @@ async def setup_onboarding_with_api_key(payload: OnboardingSetupIn, db: AsyncSes
     )
 
 
-@router.get("/admin/tenant-mappings", response_model=TenantMappingListResponse, dependencies=[Depends(require_admin_api_key)])
+@router.get("/admin/tenant-mappings", response_model=TenantMappingListResponse, dependencies=[Depends(verify_admin)])
 async def list_tenant_mappings(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(GHLTenantMapping).order_by(GHLTenantMapping.created_at.desc()))
     mappings = result.scalars().all()
@@ -273,7 +274,7 @@ async def list_tenant_mappings(db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.get("/retry/overview", response_model=RetryOverviewResponse, dependencies=[Depends(require_admin_api_key)])
+@router.get("/retry/overview", response_model=RetryOverviewResponse, dependencies=[Depends(verify_admin)])
 async def get_retry_overview(db: AsyncSession = Depends(get_db)):
     result = await db.execute(select(GHLRetryQueueItem.status, func.count()).group_by(GHLRetryQueueItem.status))
     counts = {status: count for status, count in result.all()}
@@ -284,7 +285,7 @@ async def get_retry_overview(db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.post("/leads/{lead_id}/sync", response_model=GenericResponse, dependencies=[Depends(require_admin_api_key)])
+@router.post("/leads/{lead_id}/sync", response_model=GenericResponse, dependencies=[Depends(verify_admin)])
 async def sync_roadcall_lead_to_ghl(lead_id: str, payload: OrganizationScopedIn, db: AsyncSession = Depends(get_db)):
     mapping = await _mapping_or_404(db, payload.organization_id)
     try:
@@ -300,7 +301,7 @@ async def sync_roadcall_lead_to_ghl(lead_id: str, payload: OrganizationScopedIn,
     return GenericResponse(result=sync_result)
 
 
-@router.post("/contacts/sync", response_model=GenericResponse, dependencies=[Depends(require_admin_api_key)])
+@router.post("/contacts/sync", response_model=GenericResponse, dependencies=[Depends(verify_admin)])
 async def sync_contact_to_ghl(payload: ContactSyncIn, db: AsyncSession = Depends(get_db)):
     mapping = await _mapping_or_404(db, payload.organization_id)
     contact = payload.model_dump(exclude={"organization_id", "entity_type", "entity_id"}, exclude_none=True)
@@ -310,7 +311,7 @@ async def sync_contact_to_ghl(payload: ContactSyncIn, db: AsyncSession = Depends
     return GenericResponse(result=result)
 
 
-@router.post("/dispatch/{job_id}/status", response_model=GenericResponse, dependencies=[Depends(require_admin_api_key)])
+@router.post("/dispatch/{job_id}/status", response_model=GenericResponse, dependencies=[Depends(verify_admin)])
 async def push_dispatch_status_to_ghl(job_id: str, payload: DispatchStatusIn, db: AsyncSession = Depends(get_db)):
     mapping = await _mapping_or_404(db, payload.organization_id)
     try:
@@ -339,7 +340,7 @@ async def push_dispatch_status_to_ghl(job_id: str, payload: DispatchStatusIn, db
     return GenericResponse(result=sync_result)
 
 
-@router.post("/workflows/trigger", response_model=GenericResponse, dependencies=[Depends(require_admin_api_key)])
+@router.post("/workflows/trigger", response_model=GenericResponse, dependencies=[Depends(verify_admin)])
 async def trigger_ghl_workflow(payload: WorkflowTriggerIn, db: AsyncSession = Depends(get_db)):
     mapping = await _mapping_or_404(db, payload.organization_id)
     workflow_payload = dict(payload.payload)
@@ -350,7 +351,7 @@ async def trigger_ghl_workflow(payload: WorkflowTriggerIn, db: AsyncSession = De
     return GenericResponse(result=result)
 
 
-@router.post("/retry/process", response_model=GenericResponse, dependencies=[Depends(require_admin_api_key)])
+@router.post("/retry/process", response_model=GenericResponse, dependencies=[Depends(verify_admin)])
 async def process_ghl_retry_queue(payload: RetryProcessIn, db: AsyncSession = Depends(get_db)):
     result = await service.process_retry_queue(db, payload.limit)
     await db.commit()

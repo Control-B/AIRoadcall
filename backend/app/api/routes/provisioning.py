@@ -6,7 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, require_admin_api_key
+from app.api.deps import get_db
+from app.api.routes.admin_auth import verify_admin
 from app.core.plan_config import get_plan_config, get_plan_configs, plan_payload
 from app.models.tenant_provisioning import DispatchEvent, GHLConnection, ProvisioningEvent, Tenant
 from app.schemas.provisioning import (
@@ -80,7 +81,7 @@ async def list_plans():
     return [PlanConfigView(**plan_payload(config)) for config in get_plan_configs().values()]
 
 
-@router.post("/tenants", response_model=ProvisionTenantOut, dependencies=[Depends(require_admin_api_key)])
+@router.post("/tenants", response_model=ProvisionTenantOut, dependencies=[Depends(verify_admin)])
 async def provision_tenant(payload: ProvisionTenantIn, db: AsyncSession = Depends(get_db)):
     try:
         tenant, plan, event, ghl_result, warnings = await service.provision_tenant(db, payload)
@@ -102,7 +103,7 @@ async def provision_tenant(payload: ProvisionTenantIn, db: AsyncSession = Depend
         raise HTTPException(status_code=500, detail=f"Provisioning failed: {exc}") from exc
 
 
-@router.get("/admin/tenants", response_model=TenantListResponse, dependencies=[Depends(require_admin_api_key)])
+@router.get("/admin/tenants", response_model=TenantListResponse, dependencies=[Depends(verify_admin)])
 async def list_tenants(db: AsyncSession = Depends(get_db)):
     pairs = await service.list_tenants(db)
     return TenantListResponse(
@@ -111,7 +112,7 @@ async def list_tenants(db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.patch("/admin/tenants/{tenant_id}/plan", response_model=TenantView, dependencies=[Depends(require_admin_api_key)])
+@router.patch("/admin/tenants/{tenant_id}/plan", response_model=TenantView, dependencies=[Depends(verify_admin)])
 async def update_tenant_plan(tenant_id: str, payload: TenantPlanUpdateIn, db: AsyncSession = Depends(get_db)):
     tenant = await db.get(Tenant, uuid.UUID(tenant_id))
     if not tenant:
@@ -137,7 +138,7 @@ async def update_tenant_plan(tenant_id: str, payload: TenantPlanUpdateIn, db: As
     return _tenant_view(tenant, connection)
 
 
-@router.patch("/admin/tenants/{tenant_id}/ghl", response_model=TenantView, dependencies=[Depends(require_admin_api_key)])
+@router.patch("/admin/tenants/{tenant_id}/ghl", response_model=TenantView, dependencies=[Depends(verify_admin)])
 async def repair_tenant_ghl(tenant_id: str, payload: TenantGHLRepairIn, db: AsyncSession = Depends(get_db)):
     tenant = await db.get(Tenant, uuid.UUID(tenant_id))
     if not tenant:
@@ -156,7 +157,7 @@ async def repair_tenant_ghl(tenant_id: str, payload: TenantGHLRepairIn, db: Asyn
     return _tenant_view(tenant, connection)
 
 
-@router.patch("/admin/tenants/{tenant_id}/features", response_model=PlanAccessView, dependencies=[Depends(require_admin_api_key)])
+@router.patch("/admin/tenants/{tenant_id}/features", response_model=PlanAccessView, dependencies=[Depends(verify_admin)])
 async def update_feature_flag(tenant_id: str, payload: FeatureFlagUpdateIn, db: AsyncSession = Depends(get_db)):
     tenant = await db.get(Tenant, uuid.UUID(tenant_id))
     if not tenant:
@@ -166,7 +167,7 @@ async def update_feature_flag(tenant_id: str, payload: FeatureFlagUpdateIn, db: 
     return PlanAccessView(allowed=payload.enabled, tenant_id=str(tenant.id), plan_id=tenant.current_plan, feature=payload.feature, detail="Feature flag updated")
 
 
-@router.post("/admin/provisioning-events/{event_id}/retry", response_model=ProvisioningEventView, dependencies=[Depends(require_admin_api_key)])
+@router.post("/admin/provisioning-events/{event_id}/retry", response_model=ProvisioningEventView, dependencies=[Depends(verify_admin)])
 async def retry_provisioning_event(event_id: str, db: AsyncSession = Depends(get_db)):
     try:
         event = await service.retry_failed_provisioning(db, uuid.UUID(event_id))
@@ -176,13 +177,13 @@ async def retry_provisioning_event(event_id: str, db: AsyncSession = Depends(get
     return _event_view(event)
 
 
-@router.get("/admin/provisioning-events", response_model=list[ProvisioningEventView], dependencies=[Depends(require_admin_api_key)])
+@router.get("/admin/provisioning-events", response_model=list[ProvisioningEventView], dependencies=[Depends(verify_admin)])
 async def list_provisioning_events(db: AsyncSession = Depends(get_db), limit: int = 50):
     result = await db.execute(select(ProvisioningEvent).order_by(ProvisioningEvent.created_at.desc()).limit(min(limit, 200)))
     return [_event_view(event) for event in result.scalars().all()]
 
 
-@router.get("/admin/dispatch-events", response_model=list[DispatchEventView], dependencies=[Depends(require_admin_api_key)])
+@router.get("/admin/dispatch-events", response_model=list[DispatchEventView], dependencies=[Depends(verify_admin)])
 async def list_dispatch_events(db: AsyncSession = Depends(get_db), tenant_id: str | None = None, limit: int = 50):
     events = await service.latest_dispatch_events(db, uuid.UUID(tenant_id) if tenant_id else None, min(limit, 200))
     return [
