@@ -56,10 +56,6 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    label: "AI Shop",
-    href: "/shops/features",
-  },
-  {
     label: "Solutions",
     href: "/search",
     children: [
@@ -99,6 +95,10 @@ const navItems: NavItem[] = [
         href: "/provider#verified",
       },
     ],
+  },
+  {
+    label: "AI Shop",
+    href: "/shops/features",
   },
   {
     label: "Resources",
