@@ -71,7 +71,7 @@ const STEPS = [
 
 export default function ShopsFeaturesPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-roadcall-void text-white">
       {/* Hero */}
       <section className="relative min-h-[65vh] flex flex-col justify-end overflow-hidden">
         <Image
@@ -115,13 +115,13 @@ export default function ShopsFeaturesPage() {
       </section>
 
       {/* Feature Grid */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="border-t border-roadcall-cyan/10 bg-roadcall-void px-4 py-20">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
               Everything your front desk should be doing
             </h2>
-            <p className="text-gray-600 max-w-2xl mx-auto text-lg">
+            <p className="text-roadcall-muted max-w-2xl mx-auto text-lg">
               Eight core capabilities designed for truck repair shops — running around the clock.
             </p>
           </div>
@@ -129,12 +129,12 @@ export default function ShopsFeaturesPage() {
             {FEATURES.map((f) => {
               const Icon = f.icon;
               return (
-                <div key={f.title} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                  <div className="w-10 h-10 bg-roadcall-orange/10 rounded-lg flex items-center justify-center mb-4">
+                <div key={f.title} className="rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/35 p-6 shadow-xl shadow-black/10 transition-colors hover:border-roadcall-cyan/25 hover:bg-roadcall-panel/45">
+                  <div className="w-10 h-10 bg-roadcall-orange/10 border border-roadcall-orange/20 rounded-lg flex items-center justify-center mb-4">
                     <Icon className="w-5 h-5 text-roadcall-orange" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{f.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{f.desc}</p>
+                  <h3 className="font-semibold text-white mb-2">{f.title}</h3>
+                  <p className="text-sm text-roadcall-muted leading-relaxed">{f.desc}</p>
                 </div>
               );
             })}
@@ -143,21 +143,21 @@ export default function ShopsFeaturesPage() {
       </section>
 
       {/* Workflow */}
-      <section className="py-20 px-4">
+      <section className="border-t border-roadcall-cyan/10 px-4 py-20">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">From ring to booked job — automated</h2>
-            <p className="text-gray-600">Five steps, fully automated after a 30-minute setup.</p>
+            <h2 className="text-3xl font-bold text-white mb-4">From ring to booked job — automated</h2>
+            <p className="text-roadcall-muted">Five steps, fully automated after a 30-minute setup.</p>
           </div>
           <div className="space-y-6">
             {STEPS.map((s, i) => (
-              <div key={s.title} className="flex gap-6 items-start p-6 bg-gray-50 rounded-xl border border-gray-100">
+              <div key={s.title} className="flex gap-6 items-start p-6 bg-roadcall-panel/35 rounded-xl border border-roadcall-cyan/10">
                 <div className="flex-shrink-0 w-12 h-12 bg-roadcall-orange text-white rounded-full flex items-center justify-center font-bold text-lg">
                   {i + 1}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 text-lg mb-1">{s.title}</h3>
-                  <p className="text-gray-600">{s.desc}</p>
+                  <h3 className="font-semibold text-white text-lg mb-1">{s.title}</h3>
+                  <p className="text-roadcall-muted">{s.desc}</p>
                 </div>
               </div>
             ))}
@@ -166,9 +166,9 @@ export default function ShopsFeaturesPage() {
       </section>
 
       {/* Value */}
-      <section className="py-20 px-4 bg-roadcall-panel/40">
+      <section className="border-t border-roadcall-cyan/10 bg-roadcall-panel/20 px-4 py-20">
         <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">Why it matters</h2>
+          <h2 className="text-3xl font-bold text-white mb-12 text-center">Why it matters</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
               { icon: TrendingUp, title: "For the Industry", body: "Truck mechanics are often one- or two-person shops running on a single cell number. Roadcall gives them the phone infrastructure franchise shops pay tens of thousands for." },
@@ -177,12 +177,12 @@ export default function ShopsFeaturesPage() {
             ].map((v) => {
               const Icon = v.icon;
               return (
-                <div key={v.title} className="bg-white rounded-xl p-8 shadow-sm border border-orange-100 text-center">
-                  <div className="w-12 h-12 bg-roadcall-orange/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div key={v.title} className="rounded-xl border border-roadcall-orange/15 bg-roadcall-panel/35 p-8 text-center shadow-xl shadow-black/10">
+                  <div className="w-12 h-12 bg-roadcall-orange/10 border border-roadcall-orange/20 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Icon className="w-6 h-6 text-roadcall-orange" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 text-lg mb-3">{v.title}</h3>
-                  <p className="text-gray-600 text-sm leading-relaxed">{v.body}</p>
+                  <h3 className="font-semibold text-white text-lg mb-3">{v.title}</h3>
+                  <p className="text-roadcall-muted text-sm leading-relaxed">{v.body}</p>
                 </div>
               );
             })}
@@ -194,10 +194,10 @@ export default function ShopsFeaturesPage() {
       <section className="py-20 px-4 bg-gradient-to-r from-roadcall-orange to-roadcall-blue text-white text-center">
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold mb-4">Ready to start AI Phones for your shop?</h2>
-          <p className="text-roadcall-orange mb-8 text-lg">Setup takes under 30 minutes. No long-term contracts on entry plans.</p>
+          <p className="text-white/85 mb-8 text-lg">Setup takes under 30 minutes. No long-term contracts on entry plans.</p>
           <Link
             href="/shops/onboarding"
-            className="bg-white text-roadcall-orange font-semibold px-10 py-4 rounded-lg hover:bg-roadcall-panel/40 transition-colors inline-flex items-center gap-2 text-lg"
+            className="bg-white text-roadcall-orange font-semibold px-10 py-4 rounded-lg hover:bg-roadcall-silver transition-colors inline-flex items-center gap-2 text-lg"
           >
             Start AI Phones for Your Shop <ArrowRight className="w-5 h-5" />
           </Link>

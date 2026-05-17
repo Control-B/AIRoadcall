@@ -76,13 +76,13 @@ export default function ShopsOnboardingPage() {
 
   if (success) {
     return (
-      <main className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-        <div className="max-w-md w-full text-center bg-white rounded-2xl shadow-sm border border-gray-100 p-12">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="w-8 h-8 text-green-600" />
+      <main className="min-h-screen bg-roadcall-void flex items-center justify-center px-4 text-white">
+        <div className="max-w-md w-full text-center bg-roadcall-panel/40 rounded-2xl shadow-2xl shadow-black/30 border border-roadcall-cyan/10 p-12">
+          <div className="w-16 h-16 bg-emerald-500/15 border border-emerald-400/25 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-8 h-8 text-emerald-300" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-3">Shop profile received!</h1>
-          <p className="text-gray-600 mb-6">
+          <h1 className="text-2xl font-bold text-white mb-3">Shop profile received!</h1>
+          <p className="text-roadcall-muted mb-6">
             A Roadcall Shops specialist will reach out within one business day to complete setup and port your number.
           </p>
           <a
@@ -97,73 +97,73 @@ export default function ShopsOnboardingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 py-16 px-4">
+    <main className="min-h-screen bg-roadcall-void py-16 px-4 text-white">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">
-          <span className="inline-block bg-roadcall-orange/10 text-roadcall-orange text-sm font-medium px-4 py-1 rounded-full mb-4">
+          <span className="inline-block bg-roadcall-orange/10 text-roadcall-orange border border-roadcall-orange/20 text-sm font-medium px-4 py-1 rounded-full mb-4">
             Roadcall Shops Onboarding
           </span>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Create your shop profile</h1>
-          <p className="text-gray-600">Takes about 3 minutes. We&apos;ll handle the rest during setup.</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Create your shop profile</h1>
+          <p className="text-roadcall-muted">Takes about 3 minutes. We&apos;ll handle the rest during setup.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-roadcall-panel/40 rounded-2xl shadow-2xl shadow-black/30 border border-roadcall-cyan/10 p-8 space-y-6">
           {/* Business Info */}
           <div>
-            <h2 className="font-semibold text-gray-900 text-lg mb-4 pb-2 border-b border-gray-100">Shop information</h2>
+            <h2 className="font-semibold text-white text-lg mb-4 pb-2 border-b border-roadcall-cyan/10">Shop information</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Business name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-roadcall-silver mb-1">Business name <span className="text-roadcall-orange">*</span></label>
                 <input
                   type="text" required value={form.business_name}
                   onChange={(e) => set("business_name", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+                  className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
                   placeholder="Big Rig Repair Co."
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Owner name <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-roadcall-silver mb-1">Owner name <span className="text-roadcall-orange">*</span></label>
                 <input
                   type="text" required value={form.owner_name}
                   onChange={(e) => set("owner_name", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+                  className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
                   placeholder="John Smith"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-roadcall-silver mb-1">Email <span className="text-roadcall-orange">*</span></label>
                 <input
                   type="email" required value={form.email}
                   onChange={(e) => set("email", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+                  className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
                   placeholder="john@bigrigrepair.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Phone <span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-roadcall-silver mb-1">Phone <span className="text-roadcall-orange">*</span></label>
                 <input
                   type="tel" required value={form.phone}
                   onChange={(e) => set("phone", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+                  className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
                   placeholder="(813) 555-0100"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                <label className="block text-sm font-medium text-roadcall-silver mb-1">Website</label>
                 <input
                   type="url" value={form.website}
                   onChange={(e) => set("website", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+                  className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
                   placeholder="https://bigrigrepair.com"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Current phone number to port/forward</label>
+                <label className="block text-sm font-medium text-roadcall-silver mb-1">Current phone number to port/forward</label>
                 <input
                   type="tel" value={form.current_phone_number}
                   onChange={(e) => set("current_phone_number", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+                  className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
                   placeholder="(813) 555-0199"
                 />
               </div>
@@ -172,32 +172,32 @@ export default function ShopsOnboardingPage() {
 
           {/* Operations */}
           <div>
-            <h2 className="font-semibold text-gray-900 text-lg mb-4 pb-2 border-b border-gray-100">Operations</h2>
+            <h2 className="font-semibold text-white text-lg mb-4 pb-2 border-b border-roadcall-cyan/10">Operations</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Service area (city/state or region)</label>
+                <label className="block text-sm font-medium text-roadcall-silver mb-1">Service area (city/state or region)</label>
                 <input
                   type="text" value={form.service_area}
                   onChange={(e) => set("service_area", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+                  className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
                   placeholder="Tampa, FL — 50 mile radius"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Business hours</label>
+                <label className="block text-sm font-medium text-roadcall-silver mb-1">Business hours</label>
                 <input
                   type="text" value={form.business_hours}
                   onChange={(e) => set("business_hours", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+                  className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
                   placeholder="Mon–Fri 7am–6pm, Sat 8am–2pm"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Services offered</label>
+                <label className="block text-sm font-medium text-roadcall-silver mb-1">Services offered</label>
                 <textarea
                   rows={2} value={form.services_offered}
                   onChange={(e) => set("services_offered", e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+                  className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
                   placeholder="Engine repair, brakes, tires, DOT inspections, mobile service..."
                 />
               </div>
@@ -206,21 +206,21 @@ export default function ShopsOnboardingPage() {
 
           {/* Feature flags */}
           <div>
-            <h2 className="font-semibold text-gray-900 text-lg mb-4 pb-2 border-b border-gray-100">Features wanted</h2>
+            <h2 className="font-semibold text-white text-lg mb-4 pb-2 border-b border-roadcall-cyan/10">Features wanted</h2>
             <div className="space-y-3">
               {([
                 { field: "wants_ai_answering" as keyof ShopsFormData, label: "AI call answering (answer every call automatically)" },
                 { field: "wants_booking" as keyof ShopsFormData, label: "Appointment booking via AI" },
                 { field: "wants_reviews" as keyof ShopsFormData, label: "Automated review requests after completed jobs" },
               ] as { field: keyof ShopsFormData; label: string }[]).map(({ field, label }) => (
-                <label key={field} className="flex items-center gap-3 cursor-pointer">
+                <label key={field} className="flex items-center gap-3 cursor-pointer rounded-lg border border-roadcall-cyan/10 bg-roadcall-ink/35 p-3">
                   <input
                     type="checkbox"
                     checked={form[field] as boolean}
                     onChange={(e) => set(field, e.target.checked)}
-                    className="w-4 h-4 text-roadcall-orange border-gray-300 rounded"
+                    className="w-4 h-4 text-roadcall-orange border-roadcall-cyan/20 rounded"
                   />
-                  <span className="text-sm text-gray-700">{label}</span>
+                  <span className="text-sm text-roadcall-silver">{label}</span>
                 </label>
               ))}
             </div>
@@ -228,16 +228,16 @@ export default function ShopsOnboardingPage() {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Anything else we should know?</label>
+            <label className="block text-sm font-medium text-roadcall-silver mb-1">Anything else we should know?</label>
             <textarea
               rows={3} value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-roadcall-cyan"
+              className="w-full border border-roadcall-cyan/15 bg-roadcall-ink/70 rounded-lg px-3 py-2 text-sm text-white placeholder:text-roadcall-muted/55 focus:outline-none focus:ring-2 focus:ring-roadcall-cyan/60"
               placeholder="Special setup requests, existing software, questions..."
             />
           </div>
 
-          {error && <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3">{error}</p>}
+          {error && <p className="text-red-200 text-sm bg-red-500/10 border border-red-500/25 rounded-lg p-3">{error}</p>}
 
           <button
             type="submit"
@@ -246,7 +246,7 @@ export default function ShopsOnboardingPage() {
           >
             {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><ArrowRight className="w-4 h-4" /> Create Shop Profile</>}
           </button>
-          <p className="text-center text-xs text-gray-400">No payment required. A specialist will contact you within 1 business day.</p>
+          <p className="text-center text-xs text-roadcall-muted">No payment required. A specialist will contact you within 1 business day.</p>
         </form>
       </div>
     </main>
