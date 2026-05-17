@@ -80,6 +80,15 @@ services:
       - key: RETELL_API_KEY
         scope: RUN_TIME
         type: SECRET
+      - key: RETELL_CONVERSATION_FLOW_ID
+        scope: RUN_TIME
+        value: conversation_flow_9830b2d0fa37
+      - key: RETELL_BACKEND_WEBHOOK_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+      - key: RETELL_BACKEND_URL
+        scope: RUN_TIME
+        value: ${APP_URL}
       - key: APIFY_API_TOKEN
         scope: RUN_TIME
         type: SECRET

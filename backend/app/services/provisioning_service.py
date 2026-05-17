@@ -16,12 +16,14 @@ from app.models.tenant_provisioning import (
     FeatureFlag,
     GHLConnection,
     ProvisioningEvent,
+    RetellConnection,
     RoadsideSession,
     Tenant,
     TenantPlan,
 )
 from app.schemas.provisioning import ProvisionTenantIn
 from app.services.ghl_service import GHLService
+from app.services.retell_provisioning_service import RetellProvisioningService
 
 logger = get_logger(__name__)
 
@@ -35,6 +37,8 @@ SUPPORTED_PROVISIONING_EVENTS = {
     "ghl.snapshot.installed",
     "ghl.contact.created",
     "ghl.opportunity.updated",
+    "retell.agent.provisioned",
+    "retell.agent.provision_failed",
     "roadside.location.received",
     "roadside.mechanic.assigned",
     "roadside.dispatch.completed",
@@ -49,6 +53,7 @@ def slugify(value: str) -> str:
 class ProvisioningService:
     def __init__(self) -> None:
         self.ghl = GHLService()
+        self.retell = RetellProvisioningService()
 
     def plan_views(self) -> list[dict[str, Any]]:
         return [plan_payload(config) for config in get_plan_configs().values()]
@@ -180,6 +185,93 @@ class ProvisioningService:
             )
         return connection
 
+    async def _get_or_create_retell_connection(self, db, tenant: Tenant, org: Organization, payload: ProvisionTenantIn) -> RetellConnection:
+        result = await db.execute(select(RetellConnection).where(RetellConnection.tenant_id == tenant.id))
+        connection = result.scalar_one_or_none()
+        if connection is None:
+            connection = RetellConnection(tenant_id=tenant.id, organization_id=org.id)
+            db.add(connection)
+        connection.agent_id = payload.retell_agent_id or connection.agent_id
+        connection.conversation_flow_id = payload.retell_conversation_flow_id or connection.conversation_flow_id
+        connection.phone_number_id = payload.retell_phone_number_id or connection.phone_number_id
+        connection.metadata_json = {**(connection.metadata_json or {}), **payload.metadata}
+        connection.updated_at = datetime.now(timezone.utc)
+        await db.flush()
+        return connection
+
+    async def provision_retell_for_tenant(
+        self,
+        db,
+        tenant: Tenant,
+        *,
+        metadata: dict[str, Any] | None = None,
+        agent_id: str | None = None,
+        conversation_flow_id: str | None = None,
+        phone_number_id: str | None = None,
+        voice_id: str = "11labs-Lily",
+    ) -> tuple[RetellConnection, dict[str, Any]]:
+        org = await db.get(Organization, tenant.organization_id)
+        if not org:
+            raise ValueError("Tenant organization not found")
+        result = await db.execute(select(RetellConnection).where(RetellConnection.tenant_id == tenant.id))
+        connection = result.scalar_one_or_none()
+        if connection is None:
+            connection = RetellConnection(tenant_id=tenant.id, organization_id=tenant.organization_id)
+            db.add(connection)
+            await db.flush()
+        if agent_id:
+            connection.agent_id = agent_id
+        if conversation_flow_id:
+            connection.conversation_flow_id = conversation_flow_id
+        if phone_number_id:
+            connection.phone_number_id = phone_number_id
+        connection.provisioning_status = "provisioning"
+        connection.last_error = None
+        connection.metadata_json = {**(connection.metadata_json or {}), **(metadata or {})}
+        await db.flush()
+        try:
+            result_payload = await self.retell.provision_agent(
+                tenant,
+                connection,
+                metadata=connection.metadata_json or {},
+                conversation_flow_id=conversation_flow_id,
+                voice_id=voice_id,
+            )
+            connection.agent_id = result_payload["agent_id"]
+            connection.conversation_flow_id = result_payload["conversation_flow_id"]
+            connection.agent_name = result_payload["agent_name"]
+            connection.provisioning_status = "active"
+            connection.last_synced_at = datetime.now(timezone.utc)
+            connection.metadata_json = {
+                **(connection.metadata_json or {}),
+                "dynamic_variables": result_payload.get("dynamic_variables", {}),
+                "service_advisor_prompt": result_payload.get("service_advisor_prompt"),
+            }
+            await self.record_event(
+                db,
+                event_type="retell.agent.provisioned",
+                source="retell",
+                status="completed",
+                tenant_id=tenant.id,
+                organization_id=tenant.organization_id,
+                payload={"agent_id": connection.agent_id, "conversation_flow_id": connection.conversation_flow_id},
+            )
+            return connection, result_payload
+        except Exception as exc:
+            connection.provisioning_status = "failed"
+            connection.last_error = str(exc)
+            await self.record_event(
+                db,
+                event_type="retell.agent.provision_failed",
+                source="retell",
+                status="failed",
+                tenant_id=tenant.id,
+                organization_id=tenant.organization_id,
+                payload={"agent_id": connection.agent_id, "conversation_flow_id": connection.conversation_flow_id},
+                error=str(exc),
+            )
+            raise
+
     async def record_event(
         self,
         db,
@@ -205,12 +297,12 @@ class ProvisioningService:
         await db.flush()
         return event
 
-    async def provision_tenant(self, db, payload: ProvisionTenantIn) -> tuple[Tenant, dict[str, Any], ProvisioningEvent, dict[str, Any], list[str]]:
+    async def provision_tenant(self, db, payload: ProvisionTenantIn) -> tuple[Tenant, dict[str, Any], ProvisioningEvent, dict[str, Any], dict[str, Any] | None, list[str]]:
         warnings: list[str] = []
         org = await self._get_or_create_org(db, payload)
         tenant = await self._get_or_create_tenant(db, org, payload)
         tenant_plan, plan_view = await self._activate_plan(db, tenant, payload)
-        connection = await self._upsert_ghl(db, tenant, org, payload, tenant_plan.snapshot_id)
+        retell_connection = await self._get_or_create_retell_connection(db, tenant, org, payload)
         event = await self.record_event(
             db,
             event_type="subscription.created" if payload.subscription_status == "active" else "subscription.updated",
@@ -219,26 +311,28 @@ class ProvisioningService:
             status="provisioning_started",
             payload={
                 "plan_id": tenant.current_plan,
-                "snapshot_id": tenant_plan.snapshot_id,
-                "ghl_location_id": connection.location_id,
+                "retell_agent_id": retell_connection.agent_id,
+                "retell_conversation_flow_id": retell_connection.conversation_flow_id,
                 "enabled_features": tenant.enabled_features,
             },
         )
-
-        ghl_result = await self.ghl.trigger_snapshot_assignment_placeholder(
-            db,
-            organization_id=str(org.id),
-            location_id=connection.location_id,
-            snapshot_id=tenant_plan.snapshot_id,
-            plan_id=tenant.current_plan,
-            tenant_id=str(tenant.id),
-        )
-        if ghl_result.get("status") != "sent":
-            warnings.append(str(ghl_result.get("message") or "GHL snapshot assignment is pending/manual."))
-        if str(tenant_plan.snapshot_id or "").startswith("TODO_"):
-            warnings.append("GHL snapshot ID is a placeholder; set the plan snapshot ID environment variable before production provisioning.")
+        ghl_result = None
+        retell_result: dict[str, Any] | None = None
+        if payload.provision_retell:
+            try:
+                retell_connection, retell_result = await self.provision_retell_for_tenant(
+                    db,
+                    tenant,
+                    metadata=payload.metadata,
+                    agent_id=payload.retell_agent_id or retell_connection.agent_id,
+                    conversation_flow_id=payload.retell_conversation_flow_id or retell_connection.conversation_flow_id,
+                    phone_number_id=payload.retell_phone_number_id or retell_connection.phone_number_id,
+                    voice_id=payload.retell_voice_id,
+                )
+            except Exception as exc:
+                warnings.append(f"Retell provisioning did not complete: {exc}")
         await db.flush()
-        return tenant, plan_view, event, ghl_result, warnings
+        return tenant, plan_view, event, ghl_result, retell_result, warnings
 
     async def tenant_has_feature(self, db, tenant_id: uuid.UUID, feature: str) -> tuple[bool, Tenant | None]:
         tenant = await db.get(Tenant, tenant_id)
@@ -250,14 +344,17 @@ class ProvisioningService:
             return flag.enabled, tenant
         return feature in (tenant.enabled_features or []), tenant
 
-    async def list_tenants(self, db) -> list[tuple[Tenant, GHLConnection | None]]:
+    async def list_tenants(self, db) -> list[tuple[Tenant, GHLConnection | None, RetellConnection | None]]:
         result = await db.execute(select(Tenant).order_by(Tenant.created_at.desc()))
         tenants = list(result.scalars().all())
         connections: dict[uuid.UUID, GHLConnection] = {}
+        retell_connections: dict[uuid.UUID, RetellConnection] = {}
         if tenants:
             connection_result = await db.execute(select(GHLConnection).where(GHLConnection.tenant_id.in_([t.id for t in tenants])))
             connections = {connection.tenant_id: connection for connection in connection_result.scalars().all()}
-        return [(tenant, connections.get(tenant.id)) for tenant in tenants]
+            retell_result = await db.execute(select(RetellConnection).where(RetellConnection.tenant_id.in_([t.id for t in tenants])))
+            retell_connections = {connection.tenant_id: connection for connection in retell_result.scalars().all()}
+        return [(tenant, connections.get(tenant.id), retell_connections.get(tenant.id)) for tenant in tenants]
 
     async def retry_failed_provisioning(self, db, event_id: uuid.UUID) -> ProvisioningEvent:
         event = await db.get(ProvisioningEvent, event_id)

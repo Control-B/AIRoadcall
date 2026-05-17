@@ -73,6 +73,25 @@ class GHLConnection(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
+class RetellConnection(Base):
+    __tablename__ = "retell_connections"
+    __table_args__ = (UniqueConstraint("tenant_id", name="uq_retell_connections_tenant"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    agent_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    conversation_flow_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    phone_number_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    agent_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    provisioning_status: Mapped[str] = mapped_column(String(40), default="not_provisioned", nullable=False, index=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_synced_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+
 class ProvisioningEvent(Base):
     __tablename__ = "provisioning_events"
 

@@ -6,10 +6,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_db, require_admin_api_key
 from app.api.routes.admin_auth import verify_admin
 from app.core.plan_config import get_plan_config, get_plan_configs, plan_payload
-from app.models.tenant_provisioning import DispatchEvent, GHLConnection, ProvisioningEvent, Tenant
+from app.models.tenant_provisioning import DispatchEvent, GHLConnection, ProvisioningEvent, RetellConnection, Tenant
 from app.schemas.provisioning import (
     DispatchEventView,
     FeatureFlagUpdateIn,
@@ -19,9 +19,11 @@ from app.schemas.provisioning import (
     ProvisionTenantIn,
     ProvisionTenantOut,
     ProvisioningEventView,
+    RetellConnectionView,
     TenantGHLRepairIn,
     TenantListResponse,
     TenantPlanUpdateIn,
+    TenantRetellProvisionIn,
     TenantView,
 )
 from app.services.provisioning_service import ProvisioningService, all_feature_values, locked_features_for
@@ -43,7 +45,23 @@ def _connection_view(connection: GHLConnection | None) -> GHLConnectionView | No
     )
 
 
-def _tenant_view(tenant: Tenant, connection: GHLConnection | None = None) -> TenantView:
+def _retell_connection_view(connection: RetellConnection | None) -> RetellConnectionView | None:
+    if not connection:
+        return None
+    metadata = connection.metadata_json or {}
+    return RetellConnectionView(
+        agent_id=connection.agent_id,
+        conversation_flow_id=connection.conversation_flow_id,
+        phone_number_id=connection.phone_number_id,
+        agent_name=connection.agent_name,
+        provisioning_status=connection.provisioning_status,
+        last_error=connection.last_error,
+        last_synced_at=connection.last_synced_at,
+        dynamic_variables=metadata.get("dynamic_variables") or {},
+    )
+
+
+def _tenant_view(tenant: Tenant, connection: GHLConnection | None = None, retell_connection: RetellConnection | None = None) -> TenantView:
     return TenantView(
         id=str(tenant.id),
         organization_id=str(tenant.organization_id),
@@ -56,6 +74,7 @@ def _tenant_view(tenant: Tenant, connection: GHLConnection | None = None) -> Ten
         enabled_features=tenant.enabled_features or [],
         locked_features=locked_features_for(tenant.current_plan, tenant.enabled_features or []),
         ghl_connection=_connection_view(connection),
+        retell_connection=_retell_connection_view(retell_connection),
         is_active=tenant.is_active,
         created_at=tenant.created_at,
         updated_at=tenant.updated_at,
@@ -84,16 +103,24 @@ async def list_plans():
 @router.post("/tenants", response_model=ProvisionTenantOut, dependencies=[Depends(verify_admin)])
 async def provision_tenant(payload: ProvisionTenantIn, db: AsyncSession = Depends(get_db)):
     try:
-        tenant, plan, event, ghl_result, warnings = await service.provision_tenant(db, payload)
+        provisioned = await service.provision_tenant(db, payload)
+        if len(provisioned) == 5:
+            tenant, plan, event, ghl_result, warnings = provisioned
+            retell_result = None
+        else:
+            tenant, plan, event, ghl_result, retell_result, warnings = provisioned
         result = await db.execute(select(GHLConnection).where(GHLConnection.tenant_id == tenant.id))
         connection = result.scalar_one_or_none()
+        retell_lookup = await db.execute(select(RetellConnection).where(RetellConnection.tenant_id == tenant.id))
+        retell_connection = retell_lookup.scalar_one_or_none()
         await db.commit()
         await db.refresh(tenant)
         return ProvisionTenantOut(
-            tenant=_tenant_view(tenant, connection),
+            tenant=_tenant_view(tenant, connection, retell_connection),
             plan=PlanConfigView(**plan),
             provisioning_event_id=str(event.id),
             ghl_result=ghl_result,
+            retell_result=retell_result,
             warnings=warnings,
         )
     except KeyError as exc:
@@ -107,7 +134,7 @@ async def provision_tenant(payload: ProvisionTenantIn, db: AsyncSession = Depend
 async def list_tenants(db: AsyncSession = Depends(get_db)):
     pairs = await service.list_tenants(db)
     return TenantListResponse(
-        tenants=[_tenant_view(tenant, connection) for tenant, connection in pairs],
+        tenants=[_tenant_view(tenant, connection, retell_connection) for tenant, connection, retell_connection in pairs],
         plans=[PlanConfigView(**plan_payload(config)) for config in get_plan_configs().values()],
     )
 
@@ -130,12 +157,14 @@ async def update_tenant_plan(tenant_id: str, payload: TenantPlanUpdateIn, db: As
         await service.set_feature_flag(db, tenant.id, feature, True, "plan_change")
     result = await db.execute(select(GHLConnection).where(GHLConnection.tenant_id == tenant.id))
     connection = result.scalar_one_or_none()
+    retell_result = await db.execute(select(RetellConnection).where(RetellConnection.tenant_id == tenant.id))
+    retell_connection = retell_result.scalar_one_or_none()
     if connection:
         connection.snapshot_id = payload.ghl_snapshot_id or plan_config.snapshot_id
         connection.snapshot_status = "pending"
     await service.record_event(db, event_type="subscription.updated", tenant_id=tenant.id, organization_id=tenant.organization_id, status="plan_updated", payload={"plan_id": tenant.current_plan})
     await db.commit()
-    return _tenant_view(tenant, connection)
+    return _tenant_view(tenant, connection, retell_connection)
 
 
 @router.patch("/admin/tenants/{tenant_id}/ghl", response_model=TenantView, dependencies=[Depends(verify_admin)])
@@ -155,6 +184,30 @@ async def repair_tenant_ghl(tenant_id: str, payload: TenantGHLRepairIn, db: Asyn
     await service.record_event(db, event_type="ghl.location.created", tenant_id=tenant.id, organization_id=tenant.organization_id, status="manual_repair", payload=payload.model_dump(exclude_none=True))
     await db.commit()
     return _tenant_view(tenant, connection)
+
+
+@router.post("/admin/tenants/{tenant_id}/retell/provision", response_model=TenantView, dependencies=[Depends(verify_admin)])
+async def provision_tenant_retell(tenant_id: str, payload: TenantRetellProvisionIn, db: AsyncSession = Depends(get_db)):
+    tenant = await db.get(Tenant, uuid.UUID(tenant_id))
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    try:
+        retell_connection, result = await service.provision_retell_for_tenant(
+            db,
+            tenant,
+            metadata=payload.metadata,
+            agent_id=payload.agent_id,
+            conversation_flow_id=payload.conversation_flow_id,
+            phone_number_id=payload.phone_number_id,
+            voice_id=payload.voice_id,
+        )
+        ghl_result = await db.execute(select(GHLConnection).where(GHLConnection.tenant_id == tenant.id))
+        ghl_connection = ghl_result.scalar_one_or_none()
+        await db.commit()
+        return _tenant_view(tenant, ghl_connection, retell_connection)
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(status_code=502, detail=f"Retell provisioning failed: {exc}") from exc
 
 
 @router.patch("/admin/tenants/{tenant_id}/features", response_model=PlanAccessView, dependencies=[Depends(verify_admin)])

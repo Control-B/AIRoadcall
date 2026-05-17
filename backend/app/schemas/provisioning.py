@@ -35,6 +35,11 @@ class ProvisionTenantIn(BaseModel):
     ghl_location_id: str | None = None
     ghl_subaccount_name: str | None = None
     ghl_snapshot_id: str | None = None
+    provision_retell: bool = True
+    retell_agent_id: str | None = None
+    retell_conversation_flow_id: str | None = None
+    retell_phone_number_id: str | None = None
+    retell_voice_id: str = "11labs-Lily"
     access_token: str | None = Field(default=None, repr=False)
     refresh_token: str | None = Field(default=None, repr=False)
     webhook_secret: str | None = Field(default=None, repr=False)
@@ -51,6 +56,17 @@ class GHLConnectionView(BaseModel):
     last_synced_at: datetime | None = None
 
 
+class RetellConnectionView(BaseModel):
+    agent_id: str | None = None
+    conversation_flow_id: str | None = None
+    phone_number_id: str | None = None
+    agent_name: str | None = None
+    provisioning_status: str
+    last_error: str | None = None
+    last_synced_at: datetime | None = None
+    dynamic_variables: dict[str, Any] = Field(default_factory=dict)
+
+
 class TenantView(BaseModel):
     id: str
     organization_id: str
@@ -63,6 +79,7 @@ class TenantView(BaseModel):
     enabled_features: list[str]
     locked_features: list[str] = Field(default_factory=list)
     ghl_connection: GHLConnectionView | None = None
+    retell_connection: RetellConnectionView | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -74,6 +91,7 @@ class ProvisionTenantOut(BaseModel):
     plan: PlanConfigView
     provisioning_event_id: str | None = None
     ghl_result: dict[str, Any] | None = None
+    retell_result: dict[str, Any] | None = None
     warnings: list[str] = Field(default_factory=list)
 
 
@@ -96,6 +114,14 @@ class TenantGHLRepairIn(BaseModel):
     snapshot_id: str | None = None
     snapshot_status: str | None = None
     connection_status: str | None = None
+
+
+class TenantRetellProvisionIn(BaseModel):
+    agent_id: str | None = None
+    conversation_flow_id: str | None = None
+    phone_number_id: str | None = None
+    voice_id: str = "11labs-Lily"
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class FeatureFlagUpdateIn(BaseModel):

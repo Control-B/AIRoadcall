@@ -39,6 +39,17 @@ interface GHLConnectionView {
   last_synced_at?: string | null;
 }
 
+interface RetellConnectionView {
+  agent_id?: string | null;
+  conversation_flow_id?: string | null;
+  phone_number_id?: string | null;
+  agent_name?: string | null;
+  provisioning_status: string;
+  last_error?: string | null;
+  last_synced_at?: string | null;
+  dynamic_variables: Record<string, unknown>;
+}
+
 interface TenantView {
   id: string;
   organization_id: string;
@@ -51,6 +62,7 @@ interface TenantView {
   enabled_features: string[];
   locked_features: string[];
   ghl_connection?: GHLConnectionView | null;
+  retell_connection?: RetellConnectionView | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -130,13 +142,23 @@ export default function ProvisioningPage() {
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingPlan, setSavingPlan] = useState<string | null>(null);
+  const [provisioningRetell, setProvisioningRetell] = useState<string | null>(null);
+  const [creatingSubscriber, setCreatingSubscriber] = useState(false);
+  const [newSubscriber, setNewSubscriber] = useState({
+    organization_name: "",
+    contact_email: "",
+    contact_phone: "",
+    plan_id: "professional",
+    service_radius_miles: "50",
+    supported_services: "tire, no_start, air_leak, dpf_derate, electrical, trailer_repair, overheating, towing, pm_service",
+  });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const selectedTenant = useMemo(() => tenants.find((tenant) => tenant.id === selectedTenantId) || tenants[0], [selectedTenantId, tenants]);
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedTenant?.current_plan), [plans, selectedTenant]);
   const premiumTenants = tenants.filter((tenant) => tenant.current_plan === "premium").length;
-  const connectedGhl = tenants.filter((tenant) => tenant.ghl_connection?.connection_status === "connected").length;
+  const activeRetell = tenants.filter((tenant) => tenant.retell_connection?.provisioning_status === "active").length;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -170,12 +192,74 @@ export default function ProvisioningPage() {
         method: "PATCH",
         body: JSON.stringify({ plan_id: planId, subscription_status: "active" }),
       });
-      setMessage("Tenant plan updated. Snapshot assignment is pending/verified by GHL status.");
+      setMessage("Subscriber plan updated. Sync the Retell agent to apply telephony changes.");
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not update plan");
     } finally {
       setSavingPlan(null);
+    }
+  }
+
+  async function createSubscriber() {
+    if (!newSubscriber.organization_name.trim()) {
+      setError("Business name is required");
+      return;
+    }
+    setCreatingSubscriber(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const metadata = {
+        service_radius_miles: Number(newSubscriber.service_radius_miles) || 50,
+        supported_services: newSubscriber.supported_services.split(",").map((item) => item.trim()).filter(Boolean),
+        mobile_service_available: true,
+        after_hours_mode: "capture_and_escalate",
+        dispatch_phone: newSubscriber.contact_phone || undefined,
+      };
+      const result = await adminFetch<{ tenant: TenantView; warnings?: string[] }>("/provisioning/tenants", {
+        method: "POST",
+        body: JSON.stringify({
+          plan_id: newSubscriber.plan_id,
+          organization_name: newSubscriber.organization_name,
+          contact_email: newSubscriber.contact_email || null,
+          contact_phone: newSubscriber.contact_phone || null,
+          subscription_status: "active",
+          setup_fee_status: "paid",
+          onboarding_status: "in_progress",
+          provision_retell: true,
+          metadata,
+        }),
+      });
+      setMessage(result.warnings?.length ? `Subscriber created. ${result.warnings.join(" ")}` : "Subscriber created and Retell provisioning started.");
+      setSelectedTenantId(result.tenant.id);
+      setNewSubscriber((current) => ({ ...current, organization_name: "", contact_email: "", contact_phone: "" }));
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not create subscriber");
+    } finally {
+      setCreatingSubscriber(false);
+    }
+  }
+
+  async function provisionSelectedRetell() {
+    if (!selectedTenant) return;
+    setProvisioningRetell(selectedTenant.id);
+    setError(null);
+    setMessage(null);
+    try {
+      await adminFetch(`/provisioning/admin/tenants/${selectedTenant.id}/retell/provision`, {
+        method: "POST",
+        body: JSON.stringify({
+          metadata: selectedTenant.retell_connection?.dynamic_variables || {},
+        }),
+      });
+      setMessage("Retell agent provisioned. The subscriber should now appear in Retell.");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not provision Retell agent");
+    } finally {
+      setProvisioningRetell(null);
     }
   }
 
@@ -185,7 +269,7 @@ export default function ProvisioningPage() {
         <div>
           <h1 className="flex items-center gap-3 text-2xl font-bold text-white"><Crown className="h-7 w-7 text-orange-300" /> SaaS Provisioning</h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-400">
-            Plan-aware tenant provisioning for Roadcall Standard, Professional, and Premium with GHL snapshot status, feature gating, onboarding, and Premium dispatch readiness.
+            Provision mechanic subscribers in Roadcall and mirror their AI telephony agent into Retell. Roadcall stays the operating system; Retell is the phone engine.
           </p>
         </div>
         <button onClick={load} disabled={loading} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-50">
@@ -201,7 +285,7 @@ export default function ProvisioningPage() {
 
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-5"><div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-cyan-300" /><div><p className="text-2xl font-bold text-white">{loading ? "—" : tenants.length}</p><p className="text-xs text-slate-400">Tenants</p></div></div></Card>
-        <Card className="p-5"><div className="flex items-center gap-3"><Workflow className="h-5 w-5 text-blue-300" /><div><p className="text-2xl font-bold text-white">{connectedGhl}</p><p className="text-xs text-slate-400">GHL connected</p></div></div></Card>
+        <Card className="p-5"><div className="flex items-center gap-3"><Workflow className="h-5 w-5 text-blue-300" /><div><p className="text-2xl font-bold text-white">{activeRetell}</p><p className="text-xs text-slate-400">Retell active</p></div></div></Card>
         <Card className="p-5"><div className="flex items-center gap-3"><Truck className="h-5 w-5 text-orange-300" /><div><p className="text-2xl font-bold text-white">{premiumTenants}</p><p className="text-xs text-slate-400">Premium dispatch</p></div></div></Card>
         <Card className="p-5"><div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-300" /><div><p className="text-2xl font-bold text-white">Healthy</p><p className="text-xs text-slate-400">Backend status</p></div></div></Card>
       </div>
@@ -210,7 +294,7 @@ export default function ProvisioningPage() {
         <Card>
           <div className="border-b border-white/5 px-6 py-4">
             <h2 className="font-semibold text-white">Tenant Plans</h2>
-            <p className="mt-1 text-xs text-slate-500">Upgrade/downgrade tenants and verify GHL provisioning state.</p>
+            <p className="mt-1 text-xs text-slate-500">Upgrade/downgrade subscribers and verify Retell telephony provisioning state.</p>
           </div>
           {loading ? (
             <div className="flex items-center justify-center py-12 text-slate-400"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading tenants…</div>
@@ -219,15 +303,15 @@ export default function ProvisioningPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="border-b border-white/5 text-left text-xs uppercase tracking-wide text-slate-500"><th className="px-4 py-3">Tenant</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Setup</th><th className="px-4 py-3">GHL</th><th className="px-4 py-3">Snapshot</th><th className="px-4 py-3">Change Plan</th></tr></thead>
+                <thead><tr className="border-b border-white/5 text-left text-xs uppercase tracking-wide text-slate-500"><th className="px-4 py-3">Subscriber</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Setup</th><th className="px-4 py-3">Retell</th><th className="px-4 py-3">Agent</th><th className="px-4 py-3">Change Plan</th></tr></thead>
                 <tbody className="divide-y divide-white/5">
                   {tenants.map((tenant) => (
                     <tr key={tenant.id} onClick={() => setSelectedTenantId(tenant.id)} className={`cursor-pointer hover:bg-white/[0.03] ${selectedTenant?.id === tenant.id ? "bg-blue-500/5" : ""}`}>
                       <td className="px-4 py-3"><p className="font-medium text-slate-200">{tenant.name}</p><p className="font-mono text-xs text-slate-500">{tenant.organization_id}</p></td>
                       <td className="px-4 py-3"><Badge tone={tenant.current_plan === "premium" ? "orange" : tenant.current_plan === "professional" ? "blue" : "slate"}>{tenant.current_plan}</Badge></td>
                       <td className="px-4 py-3"><Badge tone={statusTone(tenant.setup_fee_status)}>{tenant.setup_fee_status}</Badge></td>
-                      <td className="px-4 py-3"><Badge tone={statusTone(tenant.ghl_connection?.connection_status)}>{tenant.ghl_connection?.connection_status || "not_connected"}</Badge></td>
-                      <td className="px-4 py-3"><Badge tone={statusTone(tenant.ghl_connection?.snapshot_status)}>{tenant.ghl_connection?.snapshot_status || "pending"}</Badge></td>
+                      <td className="px-4 py-3"><Badge tone={statusTone(tenant.retell_connection?.provisioning_status)}>{tenant.retell_connection?.provisioning_status || "not_provisioned"}</Badge></td>
+                      <td className="px-4 py-3"><span className="font-mono text-xs text-slate-400">{tenant.retell_connection?.agent_id || "—"}</span></td>
                       <td className="px-4 py-3">
                         <select
                           value={tenant.current_plan}
@@ -249,6 +333,26 @@ export default function ProvisioningPage() {
 
         <div className="space-y-6">
           <Card className="p-6">
+            <h2 className="font-semibold text-white">Provision Subscriber</h2>
+            <p className="mt-1 text-xs text-slate-500">Creates the Roadcall tenant and provisions a Retell service-desk agent.</p>
+            <div className="mt-4 grid gap-3">
+              <input value={newSubscriber.organization_name} onChange={(event) => setNewSubscriber((current) => ({ ...current, organization_name: event.target.value }))} placeholder="Shop / subscriber name" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
+              <input value={newSubscriber.contact_email} onChange={(event) => setNewSubscriber((current) => ({ ...current, contact_email: event.target.value }))} placeholder="Contact email" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
+              <input value={newSubscriber.contact_phone} onChange={(event) => setNewSubscriber((current) => ({ ...current, contact_phone: event.target.value }))} placeholder="Dispatch phone" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
+              <div className="grid grid-cols-2 gap-3">
+                <select value={newSubscriber.plan_id} onChange={(event) => setNewSubscriber((current) => ({ ...current, plan_id: event.target.value }))} className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200">
+                  {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
+                </select>
+                <input value={newSubscriber.service_radius_miles} onChange={(event) => setNewSubscriber((current) => ({ ...current, service_radius_miles: event.target.value }))} placeholder="Radius miles" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
+              </div>
+              <textarea value={newSubscriber.supported_services} onChange={(event) => setNewSubscriber((current) => ({ ...current, supported_services: event.target.value }))} rows={3} placeholder="Supported services" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
+              <button onClick={createSubscriber} disabled={creatingSubscriber || loading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400 disabled:opacity-50">
+                {creatingSubscriber && <Loader2 className="h-4 w-4 animate-spin" />} Provision in Retell
+              </button>
+            </div>
+          </Card>
+
+          <Card className="p-6">
             <h2 className="font-semibold text-white">Current Plan</h2>
             {selectedTenant && selectedPlan ? (
               <div className="mt-4 space-y-4">
@@ -258,12 +362,17 @@ export default function ProvisioningPage() {
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <Badge tone={statusTone(selectedTenant.onboarding_status)}>Onboarding: {selectedTenant.onboarding_status}</Badge>
                   <Badge tone={statusTone(selectedTenant.setup_fee_status)}>Setup: {selectedTenant.setup_fee_status}</Badge>
-                  <Badge tone={statusTone(selectedTenant.ghl_connection?.connection_status)}>GHL: {selectedTenant.ghl_connection?.connection_status || "not_connected"}</Badge>
-                  <Badge tone={statusTone(selectedTenant.ghl_connection?.snapshot_status)}>Snapshot: {selectedTenant.ghl_connection?.snapshot_status || "pending"}</Badge>
+                  <Badge tone={statusTone(selectedTenant.retell_connection?.provisioning_status)}>Retell: {selectedTenant.retell_connection?.provisioning_status || "not_provisioned"}</Badge>
+                  <Badge tone={selectedTenant.retell_connection?.agent_id ? "emerald" : "amber"}>Agent: {selectedTenant.retell_connection?.agent_id ? "created" : "missing"}</Badge>
                 </div>
+                <button onClick={provisionSelectedRetell} disabled={provisioningRetell === selectedTenant.id} className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/20 disabled:opacity-50">
+                  {provisioningRetell === selectedTenant.id && <Loader2 className="h-4 w-4 animate-spin" />} Sync / Provision Retell Agent
+                </button>
+                {selectedTenant.retell_connection?.agent_id && <p className="font-mono text-xs text-slate-500">{selectedTenant.retell_connection.agent_id}</p>}
+                {selectedTenant.retell_connection?.last_error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-200">{selectedTenant.retell_connection.last_error}</p>}
                 <div>
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Onboarding checklist</p>
-                  {["Setup fee paid", "GHL location connected", "Snapshot installed", "AI phone configured", "Widget active", selectedTenant.current_plan === "premium" ? "Dispatch enabled" : "Dispatch locked until Premium"].map((item) => (
+                  {["Setup fee paid", "Retell agent created", "Phone routing configured", "Service advisor prompt ready", "Cal.com scheduling pending", selectedTenant.current_plan === "premium" ? "Dispatch enabled" : "Dispatch locked until Premium"].map((item) => (
                     <div key={item} className="mb-2 flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
                   ))}
                 </div>

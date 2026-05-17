@@ -225,6 +225,29 @@ async def ensure_database_schema() -> None:
         await conn.execute(text("ALTER TABLE shop_customers ADD COLUMN IF NOT EXISTS appointments_booked INTEGER NOT NULL DEFAULT 0"))
         await conn.execute(text("ALTER TABLE shop_customers ADD COLUMN IF NOT EXISTS after_hours_jobs_captured INTEGER NOT NULL DEFAULT 0"))
         await conn.execute(text("ALTER TABLE shop_customers ADD COLUMN IF NOT EXISTS revenue_opportunities_cents INTEGER NOT NULL DEFAULT 0"))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS retell_connections (
+                id UUID PRIMARY KEY,
+                tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+                organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+                agent_id VARCHAR(120),
+                conversation_flow_id VARCHAR(120),
+                phone_number_id VARCHAR(120),
+                agent_name VARCHAR(255),
+                provisioning_status VARCHAR(40) NOT NULL DEFAULT 'not_provisioned',
+                last_error TEXT,
+                last_synced_at TIMESTAMPTZ,
+                metadata_json JSONB,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                CONSTRAINT uq_retell_connections_tenant UNIQUE (tenant_id)
+            )
+        """))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_retell_connections_tenant_id ON retell_connections (tenant_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_retell_connections_organization_id ON retell_connections (organization_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_retell_connections_agent_id ON retell_connections (agent_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_retell_connections_conversation_flow_id ON retell_connections (conversation_flow_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_retell_connections_provisioning_status ON retell_connections (provisioning_status)"))
     logger.info("Database schema verified")
 
 

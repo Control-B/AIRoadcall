@@ -44,6 +44,7 @@ from app.models.tenant_provisioning import (
     Tenant,
     TenantPlan,
     GHLConnection,
+    RetellConnection,
     ProvisioningEvent,
     FeatureFlag,
     RoadsideSession,
