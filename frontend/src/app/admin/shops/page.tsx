@@ -30,11 +30,17 @@ interface Shop {
   business_address: string | null;
   agent_greeting: string;
   sip_phone_number: string | null;
+  phone_onboarding_mode: string;
+  twilio_number_status: string;
+  appointment_booking_enabled: boolean;
+  calcom_calendar_url: string | null;
   active: boolean;
   plan: string;
   total_calls_handled: number;
   total_leads_captured: number;
   total_chats_handled: number;
+  appointments_booked: number;
+  revenue_opportunities_cents: number;
   created_at: string;
 }
 
@@ -151,13 +157,16 @@ export default function ShopsPage() {
                         {shop.business_address && (
                           <span className="truncate max-w-xs">{shop.business_address}</span>
                         )}
+                        {shop.appointment_booking_enabled && (
+                          <span className="text-blue-300">Calendar enabled</span>
+                        )}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="text-right hidden md:block">
                       <div className="text-sm font-medium text-slate-200">{shop.total_calls_handled} calls</div>
-                      <div className="text-xs text-slate-500">{shop.total_leads_captured} leads</div>
+                      <div className="text-xs text-slate-500">{shop.total_leads_captured} leads · {shop.appointments_booked || 0} appts</div>
                     </div>
                     <ChevronRight className="h-5 w-5 text-slate-500" />
                   </div>

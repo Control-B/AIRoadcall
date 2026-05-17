@@ -38,12 +38,27 @@ interface Shop {
   offers_roadside: boolean;
   sip_phone_number: string | null;
   fallback_phone: string | null;
+  phone_onboarding_mode: string;
+  requested_area_code: string | null;
+  twilio_number_status: string;
+  retell_agent_id: string | null;
+  retell_phone_number_id: string | null;
+  retell_flow_id: string | null;
+  appointment_booking_enabled: boolean;
+  calcom_calendar_url: string | null;
+  calcom_event_type_id: string | null;
+  after_hours_enabled: boolean;
+  emergency_dispatch_enabled: boolean;
   active: boolean;
   plan: string;
   total_calls_handled: number;
   total_leads_captured: number;
   total_chats_handled: number;
   total_calls_forwarded: number;
+  missed_calls_recovered: number;
+  appointments_booked: number;
+  after_hours_jobs_captured: number;
+  revenue_opportunities_cents: number;
   created_at: string;
   updated_at: string;
 }
@@ -209,6 +224,33 @@ export default function ShopDetailPage() {
         </Card>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-2xl font-bold">{shop.missed_calls_recovered || 0}</p>
+            <p className="text-xs text-muted-foreground">Missed Calls Recovered</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-2xl font-bold">{shop.appointments_booked || 0}</p>
+            <p className="text-xs text-muted-foreground">Appointments Booked</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-2xl font-bold">{shop.after_hours_jobs_captured || 0}</p>
+            <p className="text-xs text-muted-foreground">After-Hours Jobs</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4 pb-4">
+            <p className="text-2xl font-bold">${Math.round((shop.revenue_opportunities_cents || 0) / 100).toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground">Revenue Opportunities</p>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Shop Config */}
         <Card>
@@ -231,6 +273,22 @@ export default function ShopDetailPage() {
               </span>
             </div>
             <div>
+              <span className="text-muted-foreground">Phone Setup:</span>{" "}
+              <span className="font-medium">
+                {shop.phone_onboarding_mode === "roadcall_twilio_number" ? "Roadcall/Twilio number" : "Existing number"}
+              </span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Twilio Status:</span>{" "}
+              <span className="font-medium">{shop.twilio_number_status || "not_requested"}</span>
+            </div>
+            {shop.requested_area_code && (
+              <div>
+                <span className="text-muted-foreground">Requested Area Code:</span>{" "}
+                <span className="font-medium">{shop.requested_area_code}</span>
+              </div>
+            )}
+            <div>
               <span className="text-muted-foreground">Fallback:</span>{" "}
               <span className="font-medium">
                 {shop.fallback_phone || shop.business_phone}
@@ -242,6 +300,33 @@ export default function ShopDetailPage() {
                 {shop.offers_roadside ? "Yes" : "No"}
               </span>
             </div>
+            <div>
+              <span className="text-muted-foreground">Calendar Booking:</span>{" "}
+              <span className="font-medium">{shop.appointment_booking_enabled ? "Enabled" : "Disabled"}</span>
+            </div>
+            {shop.calcom_calendar_url && (
+              <div>
+                <span className="text-muted-foreground">Cal.com:</span>{" "}
+                <a href={shop.calcom_calendar_url} target="_blank" rel="noreferrer" className="font-medium text-blue-400 hover:underline">
+                  Open calendar
+                </a>
+              </div>
+            )}
+            <div>
+              <span className="text-muted-foreground">After Hours:</span>{" "}
+              <span className="font-medium">{shop.after_hours_enabled ? "Enabled" : "Disabled"}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Emergency Dispatch:</span>{" "}
+              <span className="font-medium">{shop.emergency_dispatch_enabled ? "Enabled" : "Disabled"}</span>
+            </div>
+            {(shop.retell_agent_id || shop.retell_flow_id || shop.retell_phone_number_id) && (
+              <div className="rounded-lg bg-white/5 border border-white/10 p-2 text-xs text-slate-400">
+                {shop.retell_agent_id && <div>Retell agent: <span className="text-slate-200">{shop.retell_agent_id}</span></div>}
+                {shop.retell_flow_id && <div>Retell flow: <span className="text-slate-200">{shop.retell_flow_id}</span></div>}
+                {shop.retell_phone_number_id && <div>Retell phone: <span className="text-slate-200">{shop.retell_phone_number_id}</span></div>}
+              </div>
+            )}
             {shop.services_offered && shop.services_offered.length > 0 && (
               <div>
                 <span className="text-muted-foreground">Services:</span>

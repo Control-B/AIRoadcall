@@ -65,6 +65,28 @@ class ShopCustomer(Base):
     # Forward calls to this number if agent can't handle
     fallback_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
 
+    # ── AI Telephony & Calendar Extension ──────────────────
+    phone_onboarding_mode: Mapped[str] = mapped_column(
+        String(50), default="existing_number", nullable=False
+    )
+    requested_area_code: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    twilio_number_sid: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    twilio_number_status: Mapped[str] = mapped_column(
+        String(50), default="not_requested", nullable=False
+    )
+    retell_agent_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    retell_phone_number_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    retell_flow_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    appointment_booking_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    calcom_calendar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    calcom_event_type_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    after_hours_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    emergency_dispatch_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    missed_calls_recovered: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    appointments_booked: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    after_hours_jobs_captured: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    revenue_opportunities_cents: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
     # ── Subscription & Status ──────────────────────────────
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     plan: Mapped[str] = mapped_column(

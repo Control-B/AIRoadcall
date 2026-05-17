@@ -36,6 +36,20 @@ class ShopCustomerCreate(BaseModel):
     sip_trunk_id: Optional[str] = None
     fallback_phone: Optional[str] = None
 
+    # AI telephony/calendar extension
+    phone_onboarding_mode: str = "existing_number"
+    requested_area_code: Optional[str] = None
+    twilio_number_sid: Optional[str] = None
+    twilio_number_status: str = "not_requested"
+    retell_agent_id: Optional[str] = None
+    retell_phone_number_id: Optional[str] = None
+    retell_flow_id: Optional[str] = None
+    appointment_booking_enabled: bool = True
+    calcom_calendar_url: Optional[str] = None
+    calcom_event_type_id: Optional[str] = None
+    after_hours_enabled: bool = True
+    emergency_dispatch_enabled: bool = False
+
     plan: str = "starter"
 
 
@@ -63,6 +77,19 @@ class ShopCustomerUpdate(BaseModel):
     sip_trunk_id: Optional[str] = None
     fallback_phone: Optional[str] = None
 
+    phone_onboarding_mode: Optional[str] = None
+    requested_area_code: Optional[str] = None
+    twilio_number_sid: Optional[str] = None
+    twilio_number_status: Optional[str] = None
+    retell_agent_id: Optional[str] = None
+    retell_phone_number_id: Optional[str] = None
+    retell_flow_id: Optional[str] = None
+    appointment_booking_enabled: Optional[bool] = None
+    calcom_calendar_url: Optional[str] = None
+    calcom_event_type_id: Optional[str] = None
+    after_hours_enabled: Optional[bool] = None
+    emergency_dispatch_enabled: Optional[bool] = None
+
     active: Optional[bool] = None
     plan: Optional[str] = None
 
@@ -89,6 +116,18 @@ class ShopCustomerResponse(BaseModel):
     sip_phone_number: Optional[str]
     fallback_phone: Optional[str]
 
+    phone_onboarding_mode: str
+    requested_area_code: Optional[str]
+    twilio_number_status: str
+    retell_agent_id: Optional[str]
+    retell_phone_number_id: Optional[str]
+    retell_flow_id: Optional[str]
+    appointment_booking_enabled: bool
+    calcom_calendar_url: Optional[str]
+    calcom_event_type_id: Optional[str]
+    after_hours_enabled: bool
+    emergency_dispatch_enabled: bool
+
     active: bool
     plan: str
 
@@ -96,6 +135,10 @@ class ShopCustomerResponse(BaseModel):
     total_leads_captured: int
     total_chats_handled: int
     total_calls_forwarded: int
+    missed_calls_recovered: int
+    appointments_booked: int
+    after_hours_jobs_captured: int
+    revenue_opportunities_cents: int
 
     created_at: datetime
     updated_at: datetime

@@ -102,6 +102,18 @@ class ShopTelephonyService:
             sip_phone_number=data.sip_phone_number,
             sip_trunk_id=data.sip_trunk_id,
             fallback_phone=data.fallback_phone,
+            phone_onboarding_mode=data.phone_onboarding_mode,
+            requested_area_code=data.requested_area_code,
+            twilio_number_sid=data.twilio_number_sid,
+            twilio_number_status=data.twilio_number_status,
+            retell_agent_id=data.retell_agent_id,
+            retell_phone_number_id=data.retell_phone_number_id,
+            retell_flow_id=data.retell_flow_id,
+            appointment_booking_enabled=data.appointment_booking_enabled,
+            calcom_calendar_url=data.calcom_calendar_url,
+            calcom_event_type_id=data.calcom_event_type_id,
+            after_hours_enabled=data.after_hours_enabled,
+            emergency_dispatch_enabled=data.emergency_dispatch_enabled,
             plan=data.plan,
             active=True,
         )
@@ -222,6 +234,16 @@ class ShopTelephonyService:
             "hours_of_operation": shop.hours_of_operation,
             "offers_roadside": shop.offers_roadside,
             "knowledge_base": shop.knowledge_base,
+            "phone_onboarding_mode": shop.phone_onboarding_mode,
+            "twilio_number_status": shop.twilio_number_status,
+            "retell_agent_id": shop.retell_agent_id,
+            "retell_phone_number_id": shop.retell_phone_number_id,
+            "retell_flow_id": shop.retell_flow_id,
+            "appointment_booking_enabled": shop.appointment_booking_enabled,
+            "calcom_calendar_url": shop.calcom_calendar_url,
+            "calcom_event_type_id": shop.calcom_event_type_id,
+            "after_hours_enabled": shop.after_hours_enabled,
+            "emergency_dispatch_enabled": shop.emergency_dispatch_enabled,
         }
 
         logger.info(
@@ -251,6 +273,16 @@ class ShopTelephonyService:
             "hours_of_operation": shop.hours_of_operation,
             "offers_roadside": shop.offers_roadside,
             "knowledge_base": shop.knowledge_base,
+            "phone_onboarding_mode": shop.phone_onboarding_mode,
+            "twilio_number_status": shop.twilio_number_status,
+            "retell_agent_id": shop.retell_agent_id,
+            "retell_phone_number_id": shop.retell_phone_number_id,
+            "retell_flow_id": shop.retell_flow_id,
+            "appointment_booking_enabled": shop.appointment_booking_enabled,
+            "calcom_calendar_url": shop.calcom_calendar_url,
+            "calcom_event_type_id": shop.calcom_event_type_id,
+            "after_hours_enabled": shop.after_hours_enabled,
+            "emergency_dispatch_enabled": shop.emergency_dispatch_enabled,
         }
 
     # ── Call Logging ─────────────────────────────────────────

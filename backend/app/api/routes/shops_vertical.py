@@ -213,6 +213,12 @@ class ShopsOnboardingRequest(BaseModel):
     wants_ai_answering: Optional[bool] = None
     wants_booking: Optional[bool] = None
     wants_reviews: Optional[bool] = None
+    phone_onboarding_mode: Optional[str] = None
+    requested_area_code: Optional[str] = None
+    wants_after_hours: Optional[bool] = None
+    wants_emergency_dispatch: Optional[bool] = None
+    calcom_calendar_url: Optional[str] = None
+    current_calendar: Optional[str] = None
     notes: Optional[str] = None
 
 
