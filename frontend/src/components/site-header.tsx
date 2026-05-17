@@ -34,11 +34,6 @@ const navItems: NavItem[] = [
         href: "/shops",
       },
       {
-        label: "Shops Features",
-        description: "AI answering, missed-call text-back, booking & pipeline",
-        href: "/shops/features",
-      },
-      {
         label: "Roadcall Fleet",
         description: "AI roadside support for trucking companies & fleets",
         href: "/fleet",
@@ -59,6 +54,10 @@ const navItems: NavItem[] = [
         href: "/fleet/integrations",
       },
     ],
+  },
+  {
+    label: "AI Shop",
+    href: "/shops/features",
   },
   {
     label: "Solutions",
