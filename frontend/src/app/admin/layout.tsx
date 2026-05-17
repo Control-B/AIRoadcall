@@ -18,10 +18,14 @@ import {
   MapPinned,
   Workflow,
   Crown,
+  ExternalLink,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, getUsername, logout } from "@/lib/admin-auth";
 import { BrandMark } from "@/components/BrandMark";
+
+const GHL_DASHBOARD_URL = "https://app.roadcall.ai/v2/location/ZRZKlNyMxEmu0yppEcE3/dashboard";
+const RETELL_DASHBOARD_URL = "https://dashboard.retellai.com/agents";
 
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
@@ -29,8 +33,8 @@ const navItems = [
   { href: "/admin/trucking-companies", icon: Truck, label: "Trucking Companies" },
   { href: "/admin/national-vendors", icon: MapPinned, label: "National Vendors" },
   { href: "/admin/leads", icon: Mail, label: "Email List" },
-  { href: "/admin/integrations/ghl", icon: Workflow, label: "GHL Integration" },
-  { href: "/admin/provisioning", icon: Crown, label: "Provisioning" },
+  { href: GHL_DASHBOARD_URL, icon: Workflow, label: "GHL Dashboard", external: true },
+  { href: RETELL_DASHBOARD_URL, icon: Crown, label: "Retell Dashboard", external: true },
   { href: "/admin/shops", icon: Store, label: "Shops" },
   { href: "/admin/outreach", icon: Megaphone, label: "Outreach" },
   { href: "/admin/analytics", icon: BarChart3, label: "Analytics" },
@@ -95,21 +99,39 @@ export default function AdminLayout({
         <nav className="flex-1 p-4 space-y-1">
           {navItems.map((item) => {
             const isActive =
-              pathname === item.href ||
-              (item.href !== "/admin" && pathname.startsWith(item.href));
-            return (
+              !item.external &&
+              (pathname === item.href ||
+                (item.href !== "/admin" && pathname.startsWith(item.href)));
+            const content = (
+              <>
+                <item.icon className="h-5 w-5" />
+                <span className="flex-1">{item.label}</span>
+                {item.external && <ExternalLink className="h-3.5 w-3.5 opacity-70" />}
+              </>
+            );
+            const className = cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              isActive
+                ? "bg-roadcall-blue text-white shadow-lg shadow-roadcall-blue/20"
+                : "text-roadcall-muted hover:bg-roadcall-cyan/10 hover:text-white"
+            );
+            return item.external ? (
+              <a
+                key={item.href}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={className}
+              >
+                {content}
+              </a>
+            ) : (
               <Link
                 key={item.href}
                 href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  isActive
-                    ? "bg-roadcall-blue text-white shadow-lg shadow-roadcall-blue/20"
-                    : "text-roadcall-muted hover:bg-roadcall-cyan/10 hover:text-white"
-                )}
+                className={className}
               >
-                <item.icon className="h-5 w-5" />
-                {item.label}
+                {content}
               </Link>
             );
           })}

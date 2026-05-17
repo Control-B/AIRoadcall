@@ -107,6 +107,8 @@ const FEATURE_LABELS: Record<string, string> = {
   external_dispatch_api: "External dispatch API",
 };
 
+const RETELL_DASHBOARD_URL = "https://dashboard.retellai.com/agents";
+
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/85 to-slate-950 shadow-lg ${className}`}>{children}</div>;
 }
@@ -178,6 +180,10 @@ export default function ProvisioningPage() {
       setLoading(false);
     }
   }, [selectedTenantId]);
+
+  useEffect(() => {
+    window.location.replace(RETELL_DASHBOARD_URL);
+  }, []);
 
   useEffect(() => {
     load();

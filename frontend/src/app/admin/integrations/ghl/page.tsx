@@ -47,6 +47,8 @@ const initialForm: FormState = {
   default_workflow_id: "",
 };
 
+const GHL_DASHBOARD_URL = "https://app.roadcall.ai/v2/location/ZRZKlNyMxEmu0yppEcE3/dashboard";
+
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 shadow-lg ${className}`}>
@@ -115,6 +117,10 @@ export default function GHLIntegrationPage() {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    window.location.replace(GHL_DASHBOARD_URL);
   }, []);
 
   useEffect(() => {
