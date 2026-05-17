@@ -25,7 +25,7 @@ from app.models.mechanic import Mechanic
 logger = get_logger(__name__)
 router = APIRouter(prefix="/admin/enrichment", tags=["admin-enrichment"])
 
-JobKind = Literal["emails", "mechanics"]
+JobKind = Literal["emails", "email_sync", "mechanics"]
 
 # Last-run state, in-memory. Acceptable for a single-process admin SaaS dashboard.
 _last_run: dict[str, dict] = {}
@@ -36,6 +36,7 @@ class EnrichmentStartRequest(BaseModel):
     kind: JobKind = "emails"
     limit: int = 200
     batch: int = 20
+    runs: int = 100
     dry_run: bool = False
 
 
@@ -52,6 +53,8 @@ class EnrichmentStatus(BaseModel):
 
 def _script_for(kind: JobKind) -> Path:
     backend_root = Path(__file__).resolve().parents[3]
+    if kind == "email_sync":
+        return backend_root / "scripts" / "sync_apify_email_datasets.py"
     if kind == "emails":
         return backend_root / "scripts" / "enrich_emails.py"
     return backend_root / "scripts" / "import_mechanics.py"
@@ -147,6 +150,9 @@ async def start_enrichment(
         args = ["--limit", str(payload.limit), "--batch", str(payload.batch)]
         if payload.dry_run:
             args.append("--dry-run")
+    elif payload.kind == "email_sync":
+        args = ["--runs", str(payload.runs)]
+        args.append("--dry-run" if payload.dry_run else "--apply")
 
     _running.add(payload.kind)
     background.add_task(_run_enrichment_subprocess, payload.kind, args)

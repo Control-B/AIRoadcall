@@ -90,7 +90,7 @@ interface StateMechanicGroup {
 }
 
 interface EnrichmentStatus {
-  kind: "emails" | "mechanics";
+  kind: "emails" | "email_sync" | "mechanics";
   running: boolean;
   started_at: string | null;
   finished_at: string | null;
@@ -202,6 +202,7 @@ export default function AdminMechanicsPage() {
   const [error, setError] = useState<string | null>(null);
   const [enrichOpen, setEnrichOpen] = useState(false);
   const [enrichStatus, setEnrichStatus] = useState<EnrichmentStatus | null>(null);
+  const [enrichStatusKind, setEnrichStatusKind] = useState<EnrichmentStatus["kind"]>("emails");
   const [enrichBusy, setEnrichBusy] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
 
@@ -262,7 +263,7 @@ export default function AdminMechanicsPage() {
     let cancelled = false;
     const poll = async () => {
       try {
-        const s = await adminFetch<EnrichmentStatus>("/admin/enrichment/status?kind=emails");
+        const s = await adminFetch<EnrichmentStatus>(`/admin/enrichment/status?kind=${enrichStatusKind}`);
         if (!cancelled) setEnrichStatus(s);
       } catch {
         /* ignore */
@@ -274,9 +275,10 @@ export default function AdminMechanicsPage() {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [enrichOpen]);
+  }, [enrichOpen, enrichStatusKind]);
 
   async function startEnrichment() {
+    setEnrichStatusKind("emails");
     setEnrichBusy(true);
     try {
       const s = await adminFetch<EnrichmentStatus>("/admin/enrichment/start", {
@@ -287,6 +289,23 @@ export default function AdminMechanicsPage() {
       loadData({ silent: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to start enrichment");
+    } finally {
+      setEnrichBusy(false);
+    }
+  }
+
+  async function syncApifyDatasets() {
+    setEnrichStatusKind("email_sync");
+    setEnrichBusy(true);
+    try {
+      const s = await adminFetch<EnrichmentStatus>("/admin/enrichment/start", {
+        method: "POST",
+        body: JSON.stringify({ kind: "email_sync", runs: 100, dry_run: false }),
+      });
+      setEnrichStatus(s);
+      loadData({ silent: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to sync Apify email datasets");
     } finally {
       setEnrichBusy(false);
     }
@@ -347,7 +366,7 @@ export default function AdminMechanicsPage() {
             </h1>
             <p className="mt-1 text-sm text-slate-400">
               {stats ? `${stats.total_mechanics.toLocaleString()} records across ${stats.state_count.toLocaleString()} states.` : "Loading dispatch network..."}
-              {" "}Apify-enriched with phone, email, and dispatch metadata.
+              {" "}Google Maps records power dispatch; website-crawler enrichment fills email data.
             </p>
             {statsUpdatedAt && (
               <p className="mt-1 text-xs text-slate-500">
@@ -363,7 +382,7 @@ export default function AdminMechanicsPage() {
               <Download className="h-4 w-4" /> Export CSV
             </Button>
             <Button size="sm" onClick={() => setEnrichOpen(true)} className="gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110">
-              <Sparkles className="h-4 w-4" /> Enrich from Apify
+              <Sparkles className="h-4 w-4" /> Email enrichment
             </Button>
           </div>
         </div>
@@ -611,8 +630,8 @@ export default function AdminMechanicsPage() {
                   <Sparkles className="h-4 w-4" />
                 </span>
                 <div>
-                  <h2 className="text-lg font-semibold text-white">Apify enrichment</h2>
-                  <p className="text-xs text-slate-400">Scrape mechanic websites and pull contact emails.</p>
+                  <h2 className="text-lg font-semibold text-white">Apify email enrichment</h2>
+                  <p className="text-xs text-slate-400">Run website crawls or sync completed Apify crawler datasets into the dashboard email list.</p>
                 </div>
               </div>
               <button onClick={() => setEnrichOpen(false)} className="rounded-md p-1 text-slate-400 hover:bg-white/5 hover:text-white">
@@ -659,12 +678,21 @@ export default function AdminMechanicsPage() {
               <div className="flex items-center justify-end gap-2">
                 <Button variant="outline" onClick={() => setEnrichOpen(false)}>Close</Button>
                 <Button
+                  variant="outline"
+                  onClick={syncApifyDatasets}
+                  disabled={enrichBusy || enrichStatus?.running}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Sync Apify datasets
+                </Button>
+                <Button
                   onClick={startEnrichment}
                   disabled={enrichBusy || enrichStatus?.running}
                   className="gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110"
                 >
                   <PlayCircle className="h-4 w-4" />
-                  {enrichStatus?.running ? "Running..." : "Run email enrichment (200)"}
+                  {enrichStatus?.running ? "Running..." : "Run website crawl (200)"}
                 </Button>
               </div>
             </div>

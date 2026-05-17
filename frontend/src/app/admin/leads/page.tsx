@@ -29,7 +29,7 @@ interface MechanicItem {
 interface MechanicListResponse { total: number; limit: number; offset: number; items: MechanicItem[]; }
 interface MechanicStats { total_mechanics: number; total_with_email: number; }
 interface EnrichmentStatus {
-  kind: "emails" | "mechanics";
+  kind: "emails" | "email_sync" | "mechanics";
   running: boolean;
   started_at: string | null;
   finished_at: string | null;
@@ -117,7 +117,7 @@ export default function LeadsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Email List</h1>
-        <p className="text-slate-400 text-sm mt-1">Website sign-ups and enriched mechanic contacts.</p>
+        <p className="text-slate-400 text-sm mt-1">Website sign-ups and enriched mechanic contacts. Outreach stays separate from live driver-to-mechanic dispatch matching.</p>
       </div>
       <div className="flex gap-1 rounded-xl border border-white/5 bg-slate-900/60 p-1 w-fit">
         {([["signups", Mail, "Sign-ups"], ["mechanics", Wrench, "Mechanic Emails"]] as const).map(([id, Icon, label]) => (
@@ -196,7 +196,7 @@ function SignupsTab() {
             className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-40">
             <Download className="h-4 w-4"/>Export CSV
           </button>
-          <button onClick={load} disabled={loading}
+          <button onClick={() => load()} disabled={loading}
             className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-40">
             <RefreshCw className={`h-4 w-4 ${loading?"animate-spin":""}`}/>
           </button>
@@ -243,6 +243,7 @@ function MechanicEmailsTab() {
   const [data, setData] = useState<MechanicListResponse | null>(null);
   const [stats, setStats] = useState<MechanicStats | null>(null);
   const [enrichStatus, setEnrichStatus] = useState<EnrichmentStatus | null>(null);
+  const [enrichStatusKind, setEnrichStatusKind] = useState<EnrichmentStatus["kind"]>("emails");
   const [loading, setLoading] = useState(true);
   const [enrichBusy, setEnrichBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -251,7 +252,7 @@ function MechanicEmailsTab() {
   const [offset, setOffset] = useState(0);
   const PAGE_SIZE = 50;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (statusKind: EnrichmentStatus["kind"] = enrichStatusKind) => {
     setLoading(true);
     setError(null);
     try {
@@ -267,7 +268,7 @@ function MechanicEmailsTab() {
       const [listData, statsData, statusData] = await Promise.all([
         adminFetch<MechanicListResponse>(`/mechanics/admin/list?${params}`),
         adminFetch<MechanicStats>("/mechanics/admin/stats"),
-        adminFetch<EnrichmentStatus>("/admin/enrichment/status?kind=emails"),
+        adminFetch<EnrichmentStatus>(`/admin/enrichment/status?kind=${statusKind}`),
       ]);
       setData(listData);
       setStats(statsData);
@@ -276,7 +277,7 @@ function MechanicEmailsTab() {
       console.error(e);
       setError(e instanceof Error ? e.message : "Failed to load mechanic emails");
     } finally { setLoading(false); }
-  }, [offset, search, stateFilter]);
+  }, [offset, search, stateFilter, enrichStatusKind]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setOffset(0); }, [search, stateFilter]);
@@ -287,6 +288,7 @@ function MechanicEmailsTab() {
   }, [enrichStatus?.running, load]);
 
   async function startEmailEnrichment() {
+    setEnrichStatusKind("emails");
     setEnrichBusy(true);
     setError(null);
     try {
@@ -295,10 +297,29 @@ function MechanicEmailsTab() {
         body: JSON.stringify({ kind: "emails", limit: 200, batch: 20, dry_run: false }),
       });
       setEnrichStatus(status);
-      await load();
+      await load("emails");
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : "Failed to start Apify email enrichment");
+    } finally {
+      setEnrichBusy(false);
+    }
+  }
+
+  async function syncApifyDatasets() {
+    setEnrichStatusKind("email_sync");
+    setEnrichBusy(true);
+    setError(null);
+    try {
+      const status = await adminFetch<EnrichmentStatus>("/admin/enrichment/start", {
+        method: "POST",
+        body: JSON.stringify({ kind: "email_sync", runs: 100, dry_run: false }),
+      });
+      setEnrichStatus(status);
+      await load("email_sync");
+    } catch (e) {
+      console.error(e);
+      setError(e instanceof Error ? e.message : "Failed to sync Apify email datasets");
     } finally {
       setEnrichBusy(false);
     }
@@ -323,7 +344,7 @@ function MechanicEmailsTab() {
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <StatCard icon={Wrench} color="text-orange-400"  value={enriched || "—"} label="Mechanics with Email" />
-        <StatCard icon={Mail}   color="text-blue-400"    value={pending || "—"} label="Still Enriching" />
+        <StatCard icon={Mail}   color="text-blue-400"    value={pending || "—"} label="Websites Pending" />
         <StatCard icon={Users}  color="text-emerald-400" value={coverage} label="Coverage" />
       </div>
       <DarkCard className="p-4">
@@ -337,18 +358,22 @@ function MechanicEmailsTab() {
             className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-40">
             <Download className="h-4 w-4"/>Export CSV
           </button>
-          <button onClick={load} disabled={loading}
+          <button onClick={() => load()} disabled={loading}
             className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-40">
             <RefreshCw className={`h-4 w-4 ${loading?"animate-spin":""}`}/>
           </button>
           <button onClick={startEmailEnrichment} disabled={enrichBusy || enrichStatus?.running}
             className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-200 hover:bg-blue-500/20 disabled:opacity-40">
-            <RefreshCw className={`h-4 w-4 ${enrichStatus?.running?"animate-spin":""}`}/>{enrichStatus?.running ? "Apify running" : "Run Apify (200)"}
+            <RefreshCw className={`h-4 w-4 ${enrichStatus?.running?"animate-spin":""}`}/>{enrichStatus?.running ? "Apify running" : "Run crawl (200)"}
+          </button>
+          <button onClick={syncApifyDatasets} disabled={enrichBusy || enrichStatus?.running}
+            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-40">
+            <RefreshCw className={`h-4 w-4 ${enrichStatus?.running?"animate-spin":""}`}/>Sync Apify datasets
           </button>
         </div>
         <div className="mt-3 rounded-lg border border-white/5 bg-black/30 p-3 text-xs text-slate-400">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>Apify email enrichment: {enrichStatus?.running ? "running" : enrichStatus?.exit_code === 0 ? "last run completed" : enrichStatus?.exit_code != null ? `last run error (${enrichStatus.exit_code})` : "idle"}</span>
+            <span>Apify email enrichment ({enrichStatus?.kind ?? enrichStatusKind}): {enrichStatus?.running ? "running" : enrichStatus?.exit_code === 0 ? "last run completed" : enrichStatus?.exit_code != null ? `last run error (${enrichStatus.exit_code})` : "idle"}</span>
             {enrichStatus?.finished_at && <span>Finished {new Date(enrichStatus.finished_at).toLocaleString()}</span>}
           </div>
           {enrichStatus?.log_tail?.length ? <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap text-slate-500">{enrichStatus.log_tail.slice(-6).join("\n")}</pre> : null}
