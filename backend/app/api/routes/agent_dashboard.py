@@ -22,10 +22,27 @@ class AgentTestCallIn(BaseModel):
     instructions: str | None = None
 
 
+class AgentWebCallIn(BaseModel):
+    agent_type: str = "mechanic"
+    agent_name: str | None = None
+    business_name: str | None = None
+    company_phone: str | None = None
+    forward_phone: str | None = None
+    welcome_message: str | None = None
+    instructions: str | None = None
+
+
 class AgentTestCallOut(BaseModel):
     ok: bool
     call_id: str | None = None
     call_status: str
+    message: str
+
+
+class AgentWebCallOut(BaseModel):
+    ok: bool
+    call_id: str | None = None
+    access_token: str
     message: str
 
 
@@ -45,6 +62,8 @@ def _normalize_phone(value: str) -> str:
 async def start_agent_test_call(payload: AgentTestCallIn) -> AgentTestCallOut:
     to_number = _normalize_phone(payload.to_number)
     normalized_agent_type = payload.agent_type.strip().lower()
+    if normalized_agent_type != "fleet":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Outbound phone test calls are available for fleet agents only. Use Preview agent for browser voice testing.")
     agent_label = {
         "fleet": "fleet dispatcher",
         "roadside": "roadside dispatch agent",
@@ -70,4 +89,41 @@ async def start_agent_test_call(payload: AgentTestCallIn) -> AgentTestCallOut:
         call_id=result.get("call_id"),
         call_status=result.get("call_status") or "started",
         message=f"Roadcall test call started. Answer your phone to speak with the {agent_label}.",
+    )
+
+
+@router.post("/web-call", response_model=AgentWebCallOut)
+async def start_agent_web_call(payload: AgentWebCallIn) -> AgentWebCallOut:
+    normalized_agent_type = payload.agent_type.strip().lower()
+    agent_label = {
+        "fleet": "fleet dispatcher",
+        "roadside": "roadside dispatch agent",
+    }.get(normalized_agent_type, "mechanic service advisor")
+    try:
+        result = await service.create_agent_web_call(
+            agent_name=payload.agent_name,
+            business_name=payload.business_name,
+            company_phone=payload.company_phone,
+            forward_phone=payload.forward_phone,
+            welcome_message=payload.welcome_message,
+            instructions=payload.instructions,
+            agent_type=payload.agent_type,
+        )
+    except RuntimeError as exc:
+        logger.warning("Roadcall web preview could not start: %s", exc)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Roadcall browser preview is not ready yet. Please contact support to finish Retell activation.") from exc
+    except Exception as exc:
+        logger.exception("Roadcall web preview failed")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Roadcall could not start the browser preview. Please try again shortly.") from exc
+
+    access_token = result.get("access_token")
+    if not access_token:
+        logger.warning("Retell web preview returned no access token")
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Roadcall could not start the browser preview. Please try again shortly.")
+
+    return AgentWebCallOut(
+        ok=True,
+        call_id=result.get("call_id"),
+        access_token=access_token,
+        message=f"Browser preview started. Speak with the {agent_label} from this page.",
     )

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -32,6 +32,11 @@ import { getApiBase } from "@/lib/api-client";
 
 type AgentType = "mechanic" | "fleet" | "roadside";
 type AgentTab = "conversation" | "voice" | "telephony" | "advanced";
+
+type RetellWebClientLike = {
+  startCall: (config: { accessToken: string }) => Promise<void>;
+  stopCall: () => void;
+};
 
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-roadcall-cyan/70 focus:ring-2 focus:ring-roadcall-cyan/20";
@@ -118,11 +123,14 @@ export default function AgentDashboard() {
   const [voiceCloneEnabled, setVoiceCloneEnabled] = useState(false);
   const [voiceCloneName, setVoiceCloneName] = useState("Owner voice");
   const [sampleName, setSampleName] = useState("");
-  const [outboundEnabled, setOutboundEnabled] = useState(agentType !== "mechanic");
+  const [outboundEnabled, setOutboundEnabled] = useState(agentType === "fleet");
   const [testNumber, setTestNumber] = useState("+1 ");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
+  const [previewing, setPreviewing] = useState(false);
+  const [previewActive, setPreviewActive] = useState(false);
+  const retellClientRef = useRef<RetellWebClientLike | null>(null);
 
   const activeRoles = useMemo(
     () => roleOptions.filter((role) => agentType !== "mechanic" || role !== "Vendor coordination"),
@@ -136,20 +144,41 @@ export default function AgentDashboard() {
     }
   }, []);
 
+  useEffect(() => {
+    return () => {
+      retellClientRef.current?.stopCall();
+    };
+  }, []);
+
   function switchAgentType(nextType: AgentType) {
+    stopPreviewCall();
     setAgentType(nextType);
     setAgentName(agentProfiles[nextType].agentName);
     setBusinessName(agentProfiles[nextType].businessName);
     setWelcomeMessage(agentProfiles[nextType].welcome);
     setInstructions(agentProfiles[nextType].instructions);
-    setOutboundEnabled(nextType !== "mechanic");
+    setOutboundEnabled(nextType === "fleet");
     setMessage(null);
     setError(null);
   }
 
   function saveSettings() {
     setError(null);
-    setMessage("Settings saved locally for preview. Live phone activation will connect after Roadcall provisioning.");
+    setMessage("Settings saved locally. Use Preview agent to talk to this agent in your browser before checkout.");
+  }
+
+  function hasPhoneValue(value: string) {
+    return value.replace(/\D/g, "").length > 1;
+  }
+
+  function updateTestNumber(value: string) {
+    setTestNumber(value);
+    if (!hasPhoneValue(phone)) {
+      setPhone(value);
+    }
+    if (!hasPhoneValue(handoffPhone)) {
+      setHandoffPhone(value);
+    }
   }
 
   async function copyInstallSnippet() {
@@ -178,6 +207,11 @@ export default function AgentDashboard() {
   }
 
   async function startTestCall() {
+    if (agentType !== "fleet") {
+      setActiveTab("telephony");
+      setError("Outbound phone test calls are only available for Fleet agents. Use Preview agent for browser voice testing.");
+      return;
+    }
     setTesting(true);
     setMessage(null);
     setError(null);
@@ -198,7 +232,7 @@ export default function AgentDashboard() {
       if (!response.ok) {
         throw new Error(body?.detail || body?.message || "Roadcall could not start the test call.");
       }
-      setMessage(body?.message || "Roadcall test call started. Answer your phone to speak with the shop agent.");
+      setMessage(body?.message || "Roadcall fleet test call started. Answer your phone to speak with the fleet dispatcher.");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Roadcall could not start the test call.");
     } finally {
@@ -206,10 +240,58 @@ export default function AgentDashboard() {
     }
   }
 
+  async function startPreviewCall() {
+    setPreviewing(true);
+    setMessage(null);
+    setError(null);
+    try {
+      stopPreviewCall();
+      const response = await fetch(`${getApiBase()}/agent-dashboard/web-call`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agent_type: agentType,
+          agent_name: agentName,
+          business_name: businessName,
+          company_phone: phone,
+          forward_phone: handoffPhone,
+          welcome_message: welcomeMessage,
+          instructions,
+        }),
+      });
+      const body = await response.json().catch(() => null) as { access_token?: string; message?: string; detail?: string } | null;
+      if (!response.ok || !body?.access_token) {
+        throw new Error(body?.detail || body?.message || "Roadcall could not start the browser preview.");
+      }
+      const { RetellWebClient } = await import("retell-client-js-sdk");
+      const client = new RetellWebClient() as RetellWebClientLike;
+      retellClientRef.current = client;
+      await client.startCall({ accessToken: body.access_token });
+      setPreviewActive(true);
+      setMessage(body.message || "Browser preview started. Speak naturally to test your agent.");
+    } catch (err) {
+      retellClientRef.current = null;
+      setPreviewActive(false);
+      setError(err instanceof Error ? err.message : "Roadcall could not start the browser preview.");
+    } finally {
+      setPreviewing(false);
+    }
+  }
+
+  function stopPreviewCall() {
+    if (retellClientRef.current) {
+      retellClientRef.current.stopCall();
+      retellClientRef.current = null;
+    }
+    setPreviewActive(false);
+  }
+
   function previewAgent() {
     setActiveTab("telephony");
-    void startTestCall();
+    void startPreviewCall();
   }
+
+  const previewPhone = hasPhoneValue(phone) ? phone : hasPhoneValue(handoffPhone) ? handoffPhone : hasPhoneValue(testNumber) ? testNumber : "Not assigned";
 
   return (
     <PageLayout>
@@ -465,10 +547,10 @@ export default function AgentDashboard() {
 
                   {activeTab === "telephony" ? (
                     <div className="mt-6 grid gap-5 lg:grid-cols-2">
-                      <Field label="Roadcall phone number" helper="Use an assigned number or the number you will forward into Roadcall.">
+                      <Field label="Company Number" helper="The subscriber's public business number. Twilio number purchase can replace this later.">
                         <input value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClass} />
                       </Field>
-                      <Field label="Human handoff phone" helper="Where calls go when the AI must escalate.">
+                      <Field label="Forward Number" helper="Where the AI sends human handoffs, escalations, and missed-call follow-up.">
                         <input value={handoffPhone} onChange={(event) => setHandoffPhone(event.target.value)} className={inputClass} />
                       </Field>
 
@@ -477,25 +559,25 @@ export default function AgentDashboard() {
                           <div>
                             <p className="font-bold text-white">Outbound calls</p>
                             <p className="mt-1 text-sm text-roadcall-muted">
-                              Fleet and roadside agents can call approved vendors and dispatch contacts. Mechanic agents stay inbound only.
+                              Fleet agents can place outbound Retell phone calls to vendors and dispatch contacts. Mechanic and roadside previews stay browser-based.
                             </p>
                           </div>
                           <button
                             type="button"
-                            disabled={agentType === "mechanic"}
+                            disabled={agentType !== "fleet"}
                             onClick={() => setOutboundEnabled((current) => !current)}
                             className={`rounded-full px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                              outboundEnabled && agentType !== "mechanic" ? "bg-emerald-400 text-slate-950" : "bg-white/10 text-slate-200 ring-1 ring-white/15"
+                              outboundEnabled && agentType === "fleet" ? "bg-emerald-400 text-slate-950" : "bg-white/10 text-slate-200 ring-1 ring-white/15"
                             }`}
                           >
-                            {agentType === "mechanic" ? "Locked" : outboundEnabled ? "Enabled" : "Disabled"}
+                            {agentType !== "fleet" ? "Locked" : outboundEnabled ? "Enabled" : "Disabled"}
                           </button>
                         </div>
 
                         <div className="mt-5 grid gap-3 md:grid-cols-3">
                           {[
                             { title: "Inbound", body: "Answer calls and qualify the request", active: true },
-                            { title: "Outbound", body: "Call vendors and dispatch contacts", active: agentType !== "mechanic" && outboundEnabled },
+                            { title: "Outbound", body: "Call vendors and dispatch contacts", active: agentType === "fleet" && outboundEnabled },
                             { title: "Provisioning", body: "Roadcall activates the phone agent and routing", active: false },
                           ].map((item) => (
                             <div key={item.title} className={`rounded-xl border p-4 ${item.active ? "border-emerald-300/25 bg-emerald-400/10" : "border-white/10 bg-slate-950/60"}`}>
@@ -506,16 +588,22 @@ export default function AgentDashboard() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 lg:col-span-2">
-                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                          <Field label="Your phone number" helper="Roadcall will call this number so you can test the shop agent." className="flex-1">
-                            <input value={testNumber} onChange={(event) => setTestNumber(event.target.value)} className={inputClass} />
-                          </Field>
-                          <Button onClick={startTestCall} disabled={testing} className="h-12 rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:opacity-70">
-                            {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PhoneCall className="mr-2 h-4 w-4" />} Start test call
-                          </Button>
+                      {agentType === "fleet" ? (
+                        <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 lg:col-span-2">
+                          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                            <Field label="Your phone number" helper="Fleet preview will call this number through Retell for an outbound phone test." className="flex-1">
+                              <input value={testNumber} onChange={(event) => updateTestNumber(event.target.value)} className={inputClass} />
+                            </Field>
+                            <Button onClick={startTestCall} disabled={testing} className="h-12 rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:opacity-70">
+                              {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PhoneCall className="mr-2 h-4 w-4" />} Start test call
+                            </Button>
+                          </div>
                         </div>
-                      </div>
+                      ) : (
+                        <div className="rounded-2xl border border-roadcall-cyan/20 bg-roadcall-cyan/10 p-5 text-sm leading-6 text-roadcall-silver lg:col-span-2">
+                          Use <strong>Preview agent</strong> to start a live browser voice call for this agent. Outbound phone test calls are reserved for Fleet agents.
+                        </div>
+                      )}
                     </div>
                   ) : null}
 
@@ -579,13 +667,15 @@ export default function AgentDashboard() {
 
                 <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-left text-sm">
                   <PreviewRow label="Business" value={businessName || "Not set"} />
-                  <PreviewRow label="Phone" value={phone.trim() === "+1" ? "Not assigned" : phone} />
+                  <PreviewRow label="Company Number" value={previewPhone} />
+                  <PreviewRow label="Forward Number" value={hasPhoneValue(handoffPhone) ? handoffPhone : "Not assigned"} />
                   <PreviewRow label="Voice" value={voice === "clone" ? voiceCloneName || "Cloned voice" : voice === "female" ? "Female voice" : "Male voice"} />
-                  <PreviewRow label="Outbound" value={agentType !== "mechanic" && outboundEnabled ? "Enabled" : "Off"} />
+                  <PreviewRow label="Outbound" value={agentType === "fleet" && outboundEnabled ? "Enabled" : "Off"} />
                 </div>
 
-                <Button onClick={previewAgent} className="mt-5 w-full rounded-xl">
-                  <TestTube2 className="mr-2 h-4 w-4" /> Preview agent
+                <Button onClick={previewActive ? stopPreviewCall : previewAgent} disabled={previewing} className="mt-5 w-full rounded-xl">
+                  {previewing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <TestTube2 className="mr-2 h-4 w-4" />}
+                  {previewActive ? "End preview call" : previewing ? "Starting preview" : "Preview agent"}
                 </Button>
               </section>
 

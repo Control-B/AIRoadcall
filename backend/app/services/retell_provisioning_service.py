@@ -106,6 +106,14 @@ class RetellProvisioningService:
         except urllib.error.URLError as exc:
             raise RuntimeError(f"Retell API network error: {exc}") from exc
 
+    def _agent_id_for_type(self, agent_type: str | None) -> tuple[str, str, str]:
+        normalized_agent_type = (agent_type or "mechanic").strip().lower()
+        if normalized_agent_type == "fleet":
+            return normalized_agent_type, (self.settings.RETELL_FLEET_AGENT_ID or self.settings.RETELL_AGENT_ID).strip(), "Roadcall fleet voice agent is not configured"
+        if normalized_agent_type == "roadside":
+            return normalized_agent_type, self.settings.RETELL_AGENT_ID.strip(), "Roadcall roadside dispatch voice agent is not configured"
+        return "mechanic", self.settings.RETELL_SHOP_AGENT_ID.strip(), "Roadcall shop voice agent is not configured"
+
     async def provision_agent(
         self,
         tenant: Tenant,
@@ -193,16 +201,7 @@ class RetellProvisioningService:
         instructions: str | None = None,
         agent_type: str | None = None,
     ) -> dict[str, Any]:
-        normalized_agent_type = (agent_type or "mechanic").strip().lower()
-        if normalized_agent_type == "fleet":
-            agent_id = (self.settings.RETELL_FLEET_AGENT_ID or self.settings.RETELL_AGENT_ID).strip()
-            missing_message = "Roadcall fleet voice agent is not configured"
-        elif normalized_agent_type == "roadside":
-            agent_id = self.settings.RETELL_AGENT_ID.strip()
-            missing_message = "Roadcall roadside dispatch voice agent is not configured"
-        else:
-            agent_id = self.settings.RETELL_SHOP_AGENT_ID.strip()
-            missing_message = "Roadcall shop voice agent is not configured"
+        normalized_agent_type, agent_id, missing_message = self._agent_id_for_type(agent_type)
         if not agent_id:
             raise RuntimeError(missing_message)
 
@@ -230,5 +229,44 @@ class RetellProvisioningService:
         return {
             "call_id": response.get("call_id"),
             "call_status": response.get("call_status") or response.get("status") or "started",
+            "provider_response": response,
+        }
+
+    async def create_agent_web_call(
+        self,
+        *,
+        agent_name: str | None = None,
+        business_name: str | None = None,
+        company_phone: str | None = None,
+        forward_phone: str | None = None,
+        welcome_message: str | None = None,
+        instructions: str | None = None,
+        agent_type: str | None = None,
+    ) -> dict[str, Any]:
+        normalized_agent_type, agent_id, missing_message = self._agent_id_for_type(agent_type)
+        if not agent_id:
+            raise RuntimeError(missing_message)
+
+        body = {
+            "agent_id": agent_id,
+            "metadata": {
+                "source": "roadcall_agent_dashboard_preview",
+                "agent_type": normalized_agent_type,
+            },
+            "retell_llm_dynamic_variables": {
+                "agent_name": agent_name or "Roadcall Service Advisor",
+                "shop_name": business_name or "Roadcall shop",
+                "business_name": business_name or "Roadcall shop",
+                "company_phone": company_phone or "Not provided",
+                "forward_phone": forward_phone or "Not provided",
+                "dispatch_phone": forward_phone or company_phone or "Not provided",
+                "welcome_message": welcome_message or "Thanks for calling Roadcall.",
+                "dashboard_instructions": instructions or "Use Roadcall service advisor call handling rules.",
+            },
+        }
+        response = await asyncio.to_thread(self._request, "POST", "/v2/create-web-call", body)
+        return {
+            "call_id": response.get("call_id"),
+            "access_token": response.get("access_token"),
             "provider_response": response,
         }
