@@ -121,7 +121,13 @@ TOOLS = [
         "type": "custom",
         "tool_id": "tool-shopai-check-availability",
         "name": "check_availability",
-        "description": "Check whether the shop publishes a self-serve booking link. Returns the link if available.",
+        "description": (
+            "Check whether the shop publishes live booking slots via Cal.com. "
+            "If the response includes a 'slots' array with one or more entries, offer up to three "
+            "to the caller verbatim from the 'human' field and remember the matching 'start' ISO so "
+            "book_appointment can be called with slot_start_iso. If 'slots' is empty but booking_url "
+            "is set, offer to text them the link via send_sms_followup. Otherwise take a message."
+        ),
         "url": f"{BACKEND_URL}/api/shop-ai/check-availability",
         "method": "POST",
         "headers": AUTH_HEADERS,
@@ -130,6 +136,8 @@ TOOLS = [
             "properties": {
                 "tenant_id": {"type": "string"},
                 "requested_window": {"type": "string", "description": "Caller phrase like 'tomorrow morning'"},
+                "timezone": {"type": "string", "description": "IANA timezone of the caller if known"},
+                "days_ahead": {"type": "integer", "description": "Look-ahead window, default 7"},
             },
             "required": ["tenant_id"],
         },
@@ -138,7 +146,11 @@ TOOLS = [
         "type": "custom",
         "tool_id": "tool-shopai-book-appointment",
         "name": "book_appointment",
-        "description": "Record an appointment request. If the shop has a Cal.com link the response includes booking_url to be texted via send_sms_followup.",
+        "description": (
+            "Book an appointment. If check_availability returned live Cal.com slots, pass the chosen "
+            "slot's ISO string in slot_start_iso to create a real booking. Otherwise omit slot_start_iso "
+            "and the team will follow up to confirm."
+        ),
         "url": f"{BACKEND_URL}/api/shop-ai/book-appointment",
         "method": "POST",
         "headers": AUTH_HEADERS,
@@ -149,9 +161,15 @@ TOOLS = [
                 "retell_call_id": {"type": "string"},
                 "caller_name": {"type": "string"},
                 "caller_phone": {"type": "string"},
+                "caller_email": {"type": "string", "description": "Caller email if provided"},
                 "service_type": {"type": "string"},
                 "vehicle": {"type": "string"},
-                "requested_slot": {"type": "string", "description": "Free-form preferred time"},
+                "slot_start_iso": {
+                    "type": "string",
+                    "description": "Exact ISO start time from check_availability.slots[*].start. Required for live booking.",
+                },
+                "requested_slot": {"type": "string", "description": "Free-form preferred time when no slot_start_iso"},
+                "timezone": {"type": "string", "description": "IANA timezone, e.g. America/New_York"},
                 "notes": {"type": "string"},
             },
             "required": ["tenant_id", "caller_name", "caller_phone"],
@@ -306,14 +324,16 @@ NODES = [
             "type": "prompt",
             "text": (
                 "Call book_appointment with tenant_id={{tenant_id}}, retell_call_id, caller_name, caller_phone, "
-                "service_type, vehicle, requested_slot."
+                "service_type, vehicle. If check_availability returned a 'slots' array and the caller picked one, "
+                "pass slot_start_iso equal to that slot's 'start' value verbatim. Otherwise omit slot_start_iso and "
+                "pass requested_slot as free text. If the response source is 'calcom_api', the appointment is confirmed."
             ),
         },
         "edges": [
             {
                 "id": "edge-book-to-lead",
                 "destination_node_id": "save-lead",
-                "transition_condition": {"type": "prompt", "prompt": "Appointment booked."},
+                "transition_condition": {"type": "prompt", "prompt": "Appointment booked or requested."},
             }
         ],
     },

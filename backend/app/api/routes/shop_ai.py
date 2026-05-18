@@ -33,6 +33,7 @@ from app.api.deps import get_session
 from app.core.config import get_settings
 from app.models.mechanic_subscription import ShopProfile
 from app.models.tenant_provisioning import Tenant
+from app.services.calcom_service import CalComError, service_from_profile
 from app.services.lifecycle_service import LifecycleService
 from app.services.sms_service import SMSService
 
@@ -160,11 +161,20 @@ class CheckAvailabilityIn(BaseModel):
         default=None,
         description="Caller phrase like 'tomorrow morning' or 'next Tuesday'",
     )
+    timezone: str | None = Field(default=None, description="IANA tz of the caller if known")
+    days_ahead: int = Field(default=7, ge=1, le=30)
+
+
+class AvailabilitySlot(BaseModel):
+    start: str
+    human: str
 
 
 class CheckAvailabilityOut(BaseModel):
     ok: bool
     booking_url: str | None = None
+    slots: list[AvailabilitySlot] = Field(default_factory=list)
+    source: Literal["calcom_api", "calcom_url", "manual"] = "manual"
     driver_message: str
 
 
@@ -181,15 +191,52 @@ async def check_availability(
         await db.execute(select(ShopProfile).where(ShopProfile.tenant_id == tenant.id))
     ).scalar_one_or_none()
     booking_url = profile.calcom_calendar_url if profile else None
+
+    calcom = service_from_profile(profile) if profile else None
+    if calcom is not None:
+        from datetime import timedelta as _td
+
+        start_dt = datetime.now(timezone.utc)
+        end_dt = start_dt + _td(days=payload.days_ahead)
+        try:
+            raw_slots = await calcom.get_available_slots(
+                start=start_dt,
+                end=end_dt,
+                timezone_name=payload.timezone,
+                limit=5,
+            )
+        except CalComError as exc:
+            logger.warning("calcom slots failed tenant=%s: %s", tenant.id, exc)
+            raw_slots = []
+        if raw_slots:
+            slot_models = [AvailabilitySlot(start=s["start"], human=s["human"]) for s in raw_slots]
+            spoken = ", ".join(s.human for s in slot_models[:3])
+            return CheckAvailabilityOut(
+                ok=True,
+                booking_url=booking_url,
+                slots=slot_models,
+                source="calcom_api",
+                driver_message=(
+                    f"I have a few openings: {spoken}. Which one works for you?"
+                ),
+            )
+
     if booking_url:
-        message = (
-            "I can text you our live booking link — pick any open slot and you're confirmed."
+        return CheckAvailabilityOut(
+            ok=True,
+            booking_url=booking_url,
+            source="calcom_url",
+            driver_message=(
+                "I can text you our live booking link — pick any open slot and you're confirmed."
+            ),
         )
-    else:
-        message = (
+    return CheckAvailabilityOut(
+        ok=True,
+        source="manual",
+        driver_message=(
             "I'll capture your preferred time and have a team member confirm the slot by text."
-        )
-    return CheckAvailabilityOut(ok=True, booking_url=booking_url, driver_message=message)
+        ),
+    )
 
 
 # ── Book Appointment ────────────────────────────────────────────────────────
@@ -199,9 +246,19 @@ class BookAppointmentIn(BaseModel):
     retell_call_id: str | None = None
     caller_name: str
     caller_phone: str
+    caller_email: str | None = None
     service_type: str | None = None
     vehicle: str | None = None
-    requested_slot: str | None = None
+    requested_slot: str | None = Field(
+        default=None,
+        description="Caller's preferred time as free text (e.g. 'tomorrow at 9'). "
+        "Used when no slot_start_iso is provided.",
+    )
+    slot_start_iso: str | None = Field(
+        default=None,
+        description="Exact ISO start time returned by check_availability. Required for live Cal.com booking.",
+    )
+    timezone: str | None = None
     notes: str | None = None
 
 
@@ -209,6 +266,9 @@ class BookAppointmentOut(BaseModel):
     ok: bool
     event_id: str
     booking_url: str | None = None
+    booking_uid: str | None = None
+    booking_status: Literal["confirmed", "requested", "pending"] = "requested"
+    source: Literal["calcom_api", "calcom_url", "manual"] = "manual"
     driver_message: str
 
 
@@ -225,6 +285,49 @@ async def book_appointment(
         await db.execute(select(ShopProfile).where(ShopProfile.tenant_id == tenant.id))
     ).scalar_one_or_none()
     booking_url = profile.calcom_calendar_url if profile else None
+
+    booking_uid: str | None = None
+    booking_status: Literal["confirmed", "requested", "pending"] = "requested"
+    source: Literal["calcom_api", "calcom_url", "manual"] = (
+        "calcom_url" if booking_url else "manual"
+    )
+    booking_payload: dict[str, object] = {}
+
+    calcom = service_from_profile(profile) if profile else None
+    if calcom is not None and payload.slot_start_iso:
+        try:
+            result = await calcom.create_booking(
+                start_iso=payload.slot_start_iso,
+                attendee_name=payload.caller_name,
+                attendee_phone=payload.caller_phone,
+                attendee_email=payload.caller_email,
+                timezone_name=payload.timezone,
+                notes=payload.notes,
+                metadata={
+                    "tenant_id": str(tenant.id),
+                    "retell_call_id": payload.retell_call_id,
+                    "service_type": payload.service_type,
+                    "vehicle": payload.vehicle,
+                },
+            )
+            booking_data = (result.get("data") if isinstance(result, dict) else None) or result or {}
+            booking_uid = (
+                booking_data.get("uid")
+                or booking_data.get("bookingUid")
+                or booking_data.get("id")
+            )
+            booking_status = "confirmed"
+            source = "calcom_api"
+            booking_payload = {"calcom_response": booking_data}
+        except CalComError as exc:
+            logger.warning(
+                "calcom create_booking failed tenant=%s slot=%s: %s",
+                tenant.id,
+                payload.slot_start_iso,
+                exc,
+            )
+            booking_payload = {"calcom_error": str(exc)}
+
     event = await lifecycle_service.emit_event(
         db,
         event_type="shop_ai.appointment_requested",
@@ -232,16 +335,35 @@ async def book_appointment(
         organization_id=tenant.organization_id,
         entity_type="tenant",
         entity_id=str(tenant.id),
-        payload={**payload.model_dump(exclude_none=True), "booking_url": booking_url},
+        payload={
+            **payload.model_dump(exclude_none=True),
+            "booking_url": booking_url,
+            "booking_uid": booking_uid,
+            "booking_status": booking_status,
+            "source": source,
+            **booking_payload,
+        },
         idempotency_key=f"shop_ai_appt:{payload.retell_call_id or uuid.uuid4().hex}",
     )
     await db.commit()
-    if booking_url:
+
+    if source == "calcom_api":
+        message = (
+            f"You're booked. I'll text {payload.caller_phone[-4:] if payload.caller_phone else 'you'} a confirmation."
+        )
+    elif source == "calcom_url":
         message = "I just texted you our booking link. Tap it to confirm your slot."
     else:
         message = "Your request is in. A team member will confirm your appointment by text shortly."
+
     return BookAppointmentOut(
-        ok=True, event_id=str(event.id), booking_url=booking_url, driver_message=message
+        ok=True,
+        event_id=str(event.id),
+        booking_url=booking_url,
+        booking_uid=booking_uid,
+        booking_status=booking_status,
+        source=source,
+        driver_message=message,
     )
 
 

@@ -57,6 +57,10 @@ class ShopProfileUpdateIn(BaseModel):
     hourly_rate: str | None = Field(default=None, max_length=80)
     fallback_phone: str | None = Field(default=None, max_length=30)
     calcom_calendar_url: str | None = None
+    calcom_api_key: str | None = None
+    calcom_event_type_id: str | None = Field(default=None, max_length=120)
+    calcom_base_url: str | None = Field(default=None, max_length=255)
+    calcom_default_timezone: str | None = Field(default=None, max_length=80)
 
 
 class SubscriptionView(BaseModel):

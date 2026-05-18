@@ -52,6 +52,11 @@ class ShopProfile(Base):
     hourly_rate: Mapped[str | None] = mapped_column(String(80), nullable=True)
     fallback_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
     calcom_calendar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Cal.com OSS / SaaS API integration so the Retell shop agent can book in real time.
+    calcom_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
+    calcom_event_type_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    calcom_base_url: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    calcom_default_timezone: Mapped[str | None] = mapped_column(String(80), nullable=True)
     profile_status: Mapped[str] = mapped_column(String(40), default="incomplete", nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
