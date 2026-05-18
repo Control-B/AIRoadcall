@@ -105,13 +105,13 @@ PRO_FEATURES = GROWTH_FEATURES + (
 )
 
 
-def get_plan_configs() -> dict[PlanTier, PlanConfig]:
+def get_plan_configs() -> dict[str, PlanConfig]:
     settings = get_settings()
     return {
-        PlanTier.starter: PlanConfig(
+        "standard": PlanConfig(
             id=PlanTier.starter,
-            name="Starter",
-            price_monthly=149,
+            name="Standard",
+            price_monthly=197,
             setup_fee=99,
             features=STARTER_FEATURES,
             snapshot_id=settings.GHL_STANDARD_SNAPSHOT_ID or "TODO_GHL_STANDARD_SNAPSHOT_ID",
@@ -121,10 +121,10 @@ def get_plan_configs() -> dict[PlanTier, PlanConfig]:
             dispatch_permissions=(),
             ai_feature_permissions=("ai.answering", "ai.summary", "ai.widget"),
         ),
-        PlanTier.growth: PlanConfig(
+        "professional": PlanConfig(
             id=PlanTier.growth,
-            name="Growth",
-            price_monthly=299,
+            name="Professional",
+            price_monthly=297,
             setup_fee=99,
             features=GROWTH_FEATURES,
             snapshot_id=settings.GHL_PROFESSIONAL_SNAPSHOT_ID or "TODO_GHL_PROFESSIONAL_SNAPSHOT_ID",
@@ -134,10 +134,10 @@ def get_plan_configs() -> dict[PlanTier, PlanConfig]:
             dispatch_permissions=(),
             ai_feature_permissions=("ai.answering", "ai.summary", "ai.qualification", "ai.routing", "ai.voice_assistant"),
         ),
-        PlanTier.pro: PlanConfig(
+        "premium": PlanConfig(
             id=PlanTier.pro,
-            name="Pro",
-            price_monthly=499,
+            name="Premium",
+            price_monthly=497,
             setup_fee=99,
             features=PRO_FEATURES,
             snapshot_id=settings.GHL_PREMIUM_SNAPSHOT_ID or "TODO_GHL_PREMIUM_SNAPSHOT_ID",
@@ -186,7 +186,12 @@ def get_plan_config(plan_id: str | PlanTier) -> PlanConfig:
         tier = PLAN_ALIASES.get(plan_key) or PlanTier(plan_key)
     except ValueError as exc:
         raise KeyError(f"Unknown Roadcall plan: {plan_id}") from exc
-    return get_plan_configs()[tier]
+    plan_config_key = {
+        PlanTier.starter: "standard",
+        PlanTier.growth: "professional",
+        PlanTier.pro: "premium",
+    }[tier]
+    return get_plan_configs()[plan_config_key]
 
 
 def canonical_plan_id(plan_id: str | PlanTier) -> str:

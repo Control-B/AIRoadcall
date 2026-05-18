@@ -72,6 +72,8 @@ class MechanicAdminListItem(BaseModel):
     address: Optional[str] = None
     city: Optional[str] = None
     state: Optional[str] = None
+    base_lat: Optional[float] = None
+    base_lng: Optional[float] = None
     service_types: list[str]
     vehicle_types_supported: list[str]
     active: bool

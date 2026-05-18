@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense, useMemo, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -19,11 +19,14 @@ import {
   ArrowRight,
   AlertCircle,
   Shield,
+  Map as MapIcon,
+  LayoutGrid,
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
 import { getApiBase } from "@/lib/api-client";
+import { useMapboxToken } from "@/lib/mapbox-token";
 
 const API_URL = getApiBase();
 
@@ -54,6 +57,8 @@ type Mechanic = {
   company_name: string;
   city: string | null;
   state: string | null;
+  lat?: number | null;
+  lng?: number | null;
   rating: number | null;
   review_count: number | null;
   accepts_mobile_roadside: boolean;
@@ -62,6 +67,76 @@ type Mechanic = {
   service_types: string[];
   priority_score: number;
 };
+
+function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: number; lng: number } {
+  return typeof mechanic.lat === "number" && Number.isFinite(mechanic.lat) && typeof mechanic.lng === "number" && Number.isFinite(mechanic.lng);
+}
+
+function SearchResultsMap({ mechanics }: { mechanics: Mechanic[] }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
+  const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
+
+  useEffect(() => {
+    if (!containerRef.current || !configured || points.length === 0) return;
+
+    let map: any;
+    let cancelled = false;
+
+    import("mapbox-gl").then((mapboxModule) => {
+      if (cancelled || !containerRef.current) return;
+      const mapboxgl = (mapboxModule as any).default ?? mapboxModule;
+      mapboxgl.accessToken = token;
+      const first = points[0];
+      map = new mapboxgl.Map({
+        container: containerRef.current,
+        style: "mapbox://styles/mapbox/streets-v12",
+        center: [first.lng, first.lat],
+        zoom: points.length === 1 ? 10 : 4,
+      });
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
+
+      const bounds = new mapboxgl.LngLatBounds();
+      points.forEach((mechanic, index) => {
+        bounds.extend([mechanic.lng, mechanic.lat]);
+        const popupNode = document.createElement("div");
+        popupNode.className = "space-y-1 text-sm";
+        const title = document.createElement("strong");
+        title.textContent = mechanic.company_name;
+        const location = document.createElement("div");
+        location.textContent = [mechanic.city, mechanic.state].filter(Boolean).join(", ") || "Provider location";
+        popupNode.append(title, location);
+        new mapboxgl.Marker({ color: index === 0 ? "#f97316" : "#2563eb" })
+          .setLngLat([mechanic.lng, mechanic.lat])
+          .setPopup(new mapboxgl.Popup({ offset: 16 }).setDOMContent(popupNode))
+          .addTo(map);
+      });
+      if (points.length > 1) {
+        map.fitBounds(bounds, { padding: 64, maxZoom: 10, duration: 0 });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      if (map) map.remove();
+    };
+  }, [configured, points, token]);
+
+  if (loading) {
+    return <div className="grid h-[520px] place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 text-sm text-roadcall-muted">Loading map…</div>;
+  }
+
+  if (!configured) {
+    return <div className="grid h-[520px] place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 px-6 text-center text-sm text-roadcall-muted">Map view needs a configured Mapbox public token.</div>;
+  }
+
+  if (points.length === 0) {
+    return <div className="grid h-[520px] place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 px-6 text-center text-sm text-roadcall-muted">No mapped providers in these results yet. Try a state or city with geocoded mechanics.</div>;
+  }
+
+  return <div ref={containerRef} className="h-[520px] min-h-[420px] w-full overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30" />;
+}
 
 type SearchResult = {
   mechanics: Mechanic[];
@@ -148,6 +223,7 @@ function SearchPageInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [view, setView] = useState<"cards" | "map">("cards");
 
   const doSearch = useCallback(async (resetPage = false) => {
     const currentPage = resetPage ? 1 : page;
@@ -315,7 +391,7 @@ function SearchPageInner() {
       {/* Results area */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Result count / error */}
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex flex-col gap-3 mb-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
             {loading ? (
               <span className="text-sm text-roadcall-muted animate-pulse">Searching…</span>
@@ -328,13 +404,32 @@ function SearchPageInner() {
               </span>
             ) : null}
           </div>
-          {/* AI CTA */}
-          <a
-            href={telHref(HELP_PHONE)}
-            className="hidden sm:flex items-center gap-2 bg-roadcall-orange/10 border border-roadcall-orange/30 hover:bg-roadcall-orange/20 text-roadcall-orange text-xs font-semibold px-4 py-2 rounded-full transition-all"
-          >
-            <Zap className="h-3.5 w-3.5" /> Let AI dispatch for you
-          </a>
+          <div className="flex items-center gap-2">
+            {results && results.mechanics.length > 0 && (
+              <div className="inline-flex rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/50 p-1">
+                <button
+                  type="button"
+                  onClick={() => setView("cards")}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "cards" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" /> Cards
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView("map")}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "map" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
+                >
+                  <MapIcon className="h-3.5 w-3.5" /> Map
+                </button>
+              </div>
+            )}
+            <a
+              href={telHref(HELP_PHONE)}
+              className="hidden sm:flex items-center gap-2 bg-roadcall-orange/10 border border-roadcall-orange/30 hover:bg-roadcall-orange/20 text-roadcall-orange text-xs font-semibold px-4 py-2 rounded-full transition-all"
+            >
+              <Zap className="h-3.5 w-3.5" /> Let AI dispatch for you
+            </a>
+          </div>
         </div>
 
         {/* Grid */}
@@ -343,6 +438,13 @@ function SearchPageInner() {
             {Array.from({ length: 12 }).map((_, i) => (
               <div key={i} className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 h-48 animate-pulse" />
             ))}
+          </div>
+        ) : results && results.mechanics.length > 0 && view === "map" ? (
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <SearchResultsMap mechanics={results.mechanics} />
+            <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
+              {results.mechanics.map((m) => <MechanicCard key={m.id} m={m} />)}
+            </div>
           </div>
         ) : results && results.mechanics.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

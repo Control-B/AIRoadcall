@@ -12,7 +12,7 @@ from app.core.config import get_settings
 from app.core.plan_config import canonical_plan_id, get_plan_config, included_leads_for, plan_payload
 from app.models.mechanic_subscription import AIAgent, MechanicAccount, PlanUsage, ShopProfile, StripeSubscription
 from app.models.organization import Organization, VerticalType
-from app.models.tenant_provisioning import Tenant
+from app.models.tenant_provisioning import GHLConnection, Tenant
 from app.schemas.billing import CheckoutSessionCreateIn, ShopProfileUpdateIn
 from app.services.provisioning_service import ProvisioningService, slugify
 
@@ -233,9 +233,9 @@ class SubscriptionBillingService:
         steps = [
             {"id": "subscribe", "label": "Subscribe", "complete": active_subscription},
             {"id": "profile", "label": "Complete Shop Profile", "complete": profile_complete},
-            {"id": "ai", "label": "Create AI Advisor", "complete": bool(agent and agent.activation_status in {"retell_agent_created", "sip_pending", "active"})},
-            {"id": "number", "label": "Connect Number", "complete": bool(agent and agent.activation_status == "active")},
-            {"id": "live", "label": "Go Live", "complete": bool(agent and agent.activation_status == "active")},
+            {"id": "ai", "label": "Create AI Advisor", "complete": bool(agent and agent.activation_status in {"ghl_managed", "retell_agent_created", "sip_pending", "active"})},
+            {"id": "number", "label": "Connect Number", "complete": bool(agent and agent.activation_status in {"ghl_managed", "active"})},
+            {"id": "live", "label": "Go Live", "complete": bool(agent and agent.activation_status in {"ghl_managed", "active"})},
         ]
         return {
             "tenant_id": str(tenant_id),
@@ -319,6 +319,38 @@ class SubscriptionBillingService:
         if not self._profile_complete(profile):
             agent = await self._upsert_agent_status(db, tenant_id, "profile_incomplete", "Complete shop profile first")
             return {"activation_status": agent.activation_status, "detail": "Complete shop profile first", "retell_agent_id": None, "retell_conversation_flow_id": None}
+        if tenant.current_plan in {"starter", "growth", "pro"} and settings.GHL_API_KEY:
+            config = get_plan_config(tenant.current_plan)
+            connection = (await db.execute(select(GHLConnection).where(GHLConnection.tenant_id == tenant_id))).scalar_one_or_none()
+            if connection is None:
+                connection = GHLConnection(
+                    tenant_id=tenant_id,
+                    organization_id=tenant.organization_id,
+                    subaccount_name=tenant.name,
+                    snapshot_id=config.snapshot_id,
+                    snapshot_status="pending" if config.snapshot_id else "missing_snapshot_id",
+                    connection_status="pending_location",
+                    metadata_json={"managed_by": "ghl_saas", "plan_id": config.id.value},
+                )
+                db.add(connection)
+            else:
+                connection.subaccount_name = connection.subaccount_name or tenant.name
+                connection.snapshot_id = connection.snapshot_id or config.snapshot_id
+                connection.snapshot_status = connection.snapshot_status or ("pending" if connection.snapshot_id else "missing_snapshot_id")
+                connection.connection_status = connection.connection_status or "pending_location"
+                connection.metadata_json = {**(connection.metadata_json or {}), "managed_by": "ghl_saas", "plan_id": config.id.value}
+            agent = await self._upsert_agent_status(db, tenant_id, "ghl_managed", None)
+            agent.agent_name = "GHL AI Telephony"
+            agent.prompt_snapshot = "Managed in GoHighLevel SaaS Pro snapshot/workflow. Roadcall keeps tenant, billing, and dispatch state."
+            tenant.onboarding_status = "ghl_ai_telephony_ready"
+            await db.flush()
+            return {
+                "activation_status": agent.activation_status,
+                "detail": "AI telephony is managed in GoHighLevel. Complete phone, calendar, and AI workflow activation in the GHL sub-account.",
+                "retell_agent_id": None,
+                "retell_conversation_flow_id": None,
+            }
+
         metadata = {
             "shop_address": ", ".join(item for item in [profile.address, profile.city, profile.state] if item),
             "hourly_rate": profile.hourly_rate,

@@ -303,7 +303,10 @@ class ProvisioningService:
         org = await self._get_or_create_org(db, payload)
         tenant = await self._get_or_create_tenant(db, org, payload)
         tenant_plan, plan_view = await self._activate_plan(db, tenant, payload)
+        snapshot_id = tenant_plan.snapshot_id
+        ghl_connection = await self._upsert_ghl(db, tenant, org, payload, snapshot_id)
         retell_connection = await self._get_or_create_retell_connection(db, tenant, org, payload)
+        should_provision_retell = payload.provision_retell and org.vertical_type == VerticalType.fleet
         event = await self.record_event(
             db,
             event_type="subscription.created" if payload.subscription_status == "active" else "subscription.updated",
@@ -312,14 +315,30 @@ class ProvisioningService:
             status="provisioning_started",
             payload={
                 "plan_id": tenant.current_plan,
+                "ghl_location_id": ghl_connection.location_id,
+                "ghl_snapshot_id": ghl_connection.snapshot_id,
+                "ghl_snapshot_status": ghl_connection.snapshot_status,
                 "retell_agent_id": retell_connection.agent_id,
                 "retell_conversation_flow_id": retell_connection.conversation_flow_id,
                 "enabled_features": tenant.enabled_features,
             },
         )
-        ghl_result = None
+        ghl_result = await self.ghl.trigger_snapshot_assignment_placeholder(
+            db,
+            organization_id=str(org.id),
+            location_id=ghl_connection.location_id,
+            snapshot_id=ghl_connection.snapshot_id,
+            plan_id=tenant.current_plan,
+            tenant_id=str(tenant.id),
+        )
+        if ghl_result.get("status") == "sent":
+            ghl_connection.snapshot_status = "assignment_requested"
+        elif not ghl_connection.location_id:
+            ghl_connection.connection_status = "pending_location"
+        await db.flush()
+
         retell_result: dict[str, Any] | None = None
-        if payload.provision_retell:
+        if should_provision_retell:
             try:
                 retell_connection, retell_result = await self.provision_retell_for_tenant(
                     db,
@@ -332,6 +351,8 @@ class ProvisioningService:
                 )
             except Exception as exc:
                 warnings.append(f"Retell provisioning did not complete: {exc}")
+        elif payload.provision_retell and org.vertical_type == VerticalType.shops:
+            warnings.append("Shop AI telephony is GHL-managed; Retell provisioning was skipped for this tenant.")
         await db.flush()
         return tenant, plan_view, event, ghl_result, retell_result, warnings
 
