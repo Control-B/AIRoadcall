@@ -61,12 +61,19 @@ def _retell_connection_view(connection: RetellConnection | None) -> RetellConnec
     )
 
 
-def _tenant_view(tenant: Tenant, connection: GHLConnection | None = None, retell_connection: RetellConnection | None = None) -> TenantView:
+def _tenant_view(
+    tenant: Tenant,
+    connection: GHLConnection | None = None,
+    retell_connection: RetellConnection | None = None,
+    latest_activity: DispatchEvent | ProvisioningEvent | None = None,
+) -> TenantView:
     return TenantView(
         id=str(tenant.id),
         organization_id=str(tenant.organization_id),
         name=tenant.name,
         slug=tenant.slug,
+        contact_email=tenant.contact_email,
+        contact_phone=tenant.contact_phone,
         current_plan=tenant.current_plan,
         subscription_status=tenant.subscription_status,
         onboarding_status=tenant.onboarding_status,
@@ -75,6 +82,9 @@ def _tenant_view(tenant: Tenant, connection: GHLConnection | None = None, retell
         locked_features=locked_features_for(tenant.current_plan, tenant.enabled_features or []),
         ghl_connection=_connection_view(connection),
         retell_connection=_retell_connection_view(retell_connection),
+        latest_activity_type=latest_activity.event_type if latest_activity else None,
+        latest_activity_status=latest_activity.status if latest_activity else None,
+        latest_activity_at=latest_activity.created_at if latest_activity else None,
         is_active=tenant.is_active,
         created_at=tenant.created_at,
         updated_at=tenant.updated_at,
@@ -133,8 +143,32 @@ async def provision_tenant(payload: ProvisionTenantIn, db: AsyncSession = Depend
 @router.get("/admin/tenants", response_model=TenantListResponse, dependencies=[Depends(verify_admin)])
 async def list_tenants(db: AsyncSession = Depends(get_db)):
     pairs = await service.list_tenants(db)
+    tenant_ids = [tenant.id for tenant, _, _ in pairs]
+    latest_activity: dict[uuid.UUID, DispatchEvent | ProvisioningEvent] = {}
+    if tenant_ids:
+        provisioning_result = await db.execute(
+            select(ProvisioningEvent)
+            .where(ProvisioningEvent.tenant_id.in_(tenant_ids))
+            .order_by(ProvisioningEvent.created_at.desc())
+            .limit(500)
+        )
+        dispatch_result = await db.execute(
+            select(DispatchEvent)
+            .where(DispatchEvent.tenant_id.in_(tenant_ids))
+            .order_by(DispatchEvent.created_at.desc())
+            .limit(500)
+        )
+        for event in [*provisioning_result.scalars().all(), *dispatch_result.scalars().all()]:
+            if event.tenant_id is None:
+                continue
+            current = latest_activity.get(event.tenant_id)
+            if current is None or event.created_at > current.created_at:
+                latest_activity[event.tenant_id] = event
     return TenantListResponse(
-        tenants=[_tenant_view(tenant, connection, retell_connection) for tenant, connection, retell_connection in pairs],
+        tenants=[
+            _tenant_view(tenant, connection, retell_connection, latest_activity.get(tenant.id))
+            for tenant, connection, retell_connection in pairs
+        ],
         plans=[PlanConfigView(**plan_payload(config)) for config in get_plan_configs().values()],
     )
 

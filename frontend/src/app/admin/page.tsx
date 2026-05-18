@@ -11,6 +11,8 @@ import {
   Building2,
   ArrowUpRight,
   RefreshCw,
+  Crown,
+  ExternalLink,
 } from "lucide-react";
 import { adminFetch } from "@/lib/admin-auth";
 
@@ -25,6 +27,42 @@ interface DashboardStats {
   total_signups: number;
   lead_status_breakdown: Record<string, number>;
   top_states: { state: string; count: number }[];
+}
+
+interface GHLConnectionView {
+  location_id?: string | null;
+  subaccount_name?: string | null;
+  connection_status: string;
+}
+
+interface RetellConnectionView {
+  agent_id?: string | null;
+  agent_name?: string | null;
+  provisioning_status: string;
+}
+
+interface TenantView {
+  id: string;
+  organization_id: string;
+  name: string;
+  slug: string;
+  contact_email?: string | null;
+  contact_phone?: string | null;
+  current_plan: string;
+  subscription_status: string;
+  onboarding_status: string;
+  setup_fee_status: string;
+  ghl_connection?: GHLConnectionView | null;
+  retell_connection?: RetellConnectionView | null;
+  latest_activity_type?: string | null;
+  latest_activity_status?: string | null;
+  latest_activity_at?: string | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface TenantListResponse {
+  tenants: TenantView[];
 }
 
 const ACCENT: Record<string, string> = {
@@ -73,8 +111,29 @@ function StatCard({
   );
 }
 
+function StatusPill({ value, tone }: { value: string; tone?: "green" | "blue" | "amber" | "red" | "slate" | "orange" }) {
+  const palette = {
+    green: "border-emerald-500/25 bg-emerald-500/15 text-emerald-300",
+    blue: "border-blue-500/25 bg-blue-500/15 text-blue-300",
+    amber: "border-amber-500/25 bg-amber-500/15 text-amber-300",
+    red: "border-red-500/25 bg-red-500/15 text-red-300",
+    orange: "border-orange-500/25 bg-orange-500/15 text-orange-300",
+    slate: "border-white/10 bg-white/5 text-slate-300",
+  }[tone || "slate"];
+  return <span className={`inline-flex rounded-full border px-2 py-0.5 text-xs font-medium ${palette}`}>{value.replaceAll("_", " ")}</span>;
+}
+
+function statusTone(status?: string | null): "green" | "amber" | "red" | "slate" {
+  if (!status) return "slate";
+  if (["active", "connected", "completed", "paid", "healthy"].includes(status)) return "green";
+  if (["failed", "cancelled", "churned", "error"].includes(status)) return "red";
+  if (["pending", "in_progress", "not_started", "unpaid", "provisioning"].includes(status)) return "amber";
+  return "slate";
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [tenants, setTenants] = useState<TenantView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -82,8 +141,12 @@ export default function AdminDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminFetch<DashboardStats>("/outreach/dashboard");
-      setStats(data);
+      const [dashboardData, tenantData] = await Promise.all([
+        adminFetch<DashboardStats>("/outreach/dashboard"),
+        adminFetch<TenantListResponse>("/provisioning/admin/tenants"),
+      ]);
+      setStats(dashboardData);
+      setTenants(tenantData.tenants || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load");
     } finally {
@@ -137,6 +200,9 @@ export default function AdminDashboard() {
   }
 
   const leadBreakdown = stats.lead_status_breakdown;
+  const activeSubscribers = tenants.filter((tenant) => tenant.is_active && tenant.subscription_status === "active").length;
+  const aiPhoneActive = tenants.filter((tenant) => tenant.retell_connection?.provisioning_status === "active").length;
+  const proSubscribers = tenants.filter((tenant) => tenant.current_plan === "pro").length;
 
   return (
     <div className="space-y-8">
@@ -145,7 +211,7 @@ export default function AdminDashboard() {
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
           <p className="text-sm text-slate-400">
-            AI Receptionist — Sales &amp; Outreach Overview
+            AI Receptionist — Subscribers, Provisioning &amp; Outreach Overview
           </p>
         </div>
         <button
@@ -180,10 +246,86 @@ export default function AdminDashboard() {
         />
         <StatCard
           icon={UserPlus}
-          label="Signups"
-          value={stats.total_signups}
+          label="Subscribers"
+          value={tenants.length}
+          sublabel={`${activeSubscribers} active · ${proSubscribers} Pro`}
           color="green"
         />
+      </div>
+
+      <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 shadow-lg">
+        <div className="flex flex-col gap-3 border-b border-white/5 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2">
+            <Crown className="h-5 w-5 text-orange-300" />
+            <div>
+              <h2 className="font-semibold text-white">Subscribers &amp; Auto-Generated Sub-Accounts</h2>
+              <p className="text-xs text-slate-500">Track every Roadcall tenant, plan, AI phone agent, CRM sub-account, and latest activity.</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <StatusPill value={`${activeSubscribers} active`} tone="green" />
+            <StatusPill value={`${aiPhoneActive} AI phone active`} tone="blue" />
+            <a href="/admin/provisioning" className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
+              Manage provisioning <ExternalLink className="h-3 w-3" />
+            </a>
+            <a href="https://dashboard.retellai.com/agents" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-blue-400/25 bg-blue-500/10 px-3 py-1.5 text-blue-200 hover:bg-blue-500/20">
+              Retell agents <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
+        </div>
+        {tenants.length === 0 ? (
+          <div className="py-12 text-center text-sm text-slate-500">No subscribers provisioned yet.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[980px] text-sm">
+              <thead>
+                <tr className="border-b border-white/5 text-left text-xs uppercase tracking-wide text-slate-500">
+                  <th className="px-4 py-3">Subscriber</th>
+                  <th className="px-4 py-3">Contact</th>
+                  <th className="px-4 py-3">Plan</th>
+                  <th className="px-4 py-3">Sub-Account</th>
+                  <th className="px-4 py-3">AI Phone</th>
+                  <th className="px-4 py-3">Latest Activity</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {tenants.map((tenant) => (
+                  <tr key={tenant.id} className="hover:bg-white/[0.02]">
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-slate-200">{tenant.name}</div>
+                      <div className="font-mono text-xs text-slate-600">{tenant.slug}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-400">
+                      <div>{tenant.contact_email || "No email"}</div>
+                      <div>{tenant.contact_phone || "No phone"}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <StatusPill value={tenant.current_plan} tone={tenant.current_plan === "pro" ? "orange" : tenant.current_plan === "growth" ? "blue" : "slate"} />
+                        <StatusPill value={tenant.subscription_status} tone={statusTone(tenant.subscription_status)} />
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">Onboarding: {tenant.onboarding_status.replaceAll("_", " ")}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-400">
+                      <div className="font-medium text-slate-300">{tenant.ghl_connection?.subaccount_name || "Not mapped"}</div>
+                      <div>{tenant.ghl_connection?.location_id || "No CRM location"}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-col gap-1">
+                        <StatusPill value={tenant.retell_connection?.provisioning_status || "not_provisioned"} tone={statusTone(tenant.retell_connection?.provisioning_status)} />
+                        <span className="font-mono text-xs text-slate-500">{tenant.retell_connection?.agent_id || "No agent"}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-slate-400">
+                      <div className="font-medium text-slate-300">{tenant.latest_activity_type?.replaceAll("_", " ") || "No activity yet"}</div>
+                      <div>{tenant.latest_activity_at ? new Date(tenant.latest_activity_at).toLocaleString() : "—"}</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

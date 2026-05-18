@@ -19,14 +19,18 @@ import {
   Workflow,
   Crown,
   ExternalLink,
+  Phone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isAuthenticated, getUsername, logout } from "@/lib/admin-auth";
 import { BrandMark } from "@/components/BrandMark";
 
 const GHL_DASHBOARD_URL = "https://app.roadcall.ai/v2/location/ZRZKlNyMxEmu0yppEcE3/dashboard";
+const RETELL_AGENTS_URL = "https://dashboard.retellai.com/agents";
 const navItems = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/admin/provisioning", icon: Crown, label: "Provisioning" },
+  { href: RETELL_AGENTS_URL, icon: Phone, label: "Retell Agents", external: true },
   { href: "/admin/mechanics", icon: Wrench, label: "Mechanics" },
   { href: "/admin/trucking-companies", icon: Truck, label: "Trucking Companies" },
   { href: "/admin/national-vendors", icon: MapPinned, label: "National Vendors" },

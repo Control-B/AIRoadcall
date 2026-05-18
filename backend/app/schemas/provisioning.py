@@ -72,6 +72,8 @@ class TenantView(BaseModel):
     organization_id: str
     name: str
     slug: str
+    contact_email: str | None = None
+    contact_phone: str | None = None
     current_plan: str
     subscription_status: str
     onboarding_status: str
@@ -80,6 +82,9 @@ class TenantView(BaseModel):
     locked_features: list[str] = Field(default_factory=list)
     ghl_connection: GHLConnectionView | None = None
     retell_connection: RetellConnectionView | None = None
+    latest_activity_type: str | None = None
+    latest_activity_status: str | None = None
+    latest_activity_at: datetime | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
