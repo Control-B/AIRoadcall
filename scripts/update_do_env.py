@@ -11,6 +11,8 @@ UPDATES = {
     "RETELL_CONVERSATION_FLOW_ID": "conversation_flow_9830b2d0fa37",
     "RETELL_SHOP_AGENT_ID": "agent_9edfdf87e375eeffba42912a6f",
     "RETELL_SHOP_CONVERSATION_FLOW_ID": "conversation_flow_6765418d421c",
+    "RETELL_FLEET_AGENT_ID": "agent_de6a05ee2707364b82883974ad",
+    "RETELL_FLEET_CONVERSATION_FLOW_ID": "conversation_flow_9c91cb43d4d9",
 }
 
 # Fetch current spec
