@@ -40,6 +40,7 @@ from app.api.routes import (
     provisioning,
     billing,
     go,
+    support_router,
 )
 
 settings = get_settings()
@@ -154,6 +155,7 @@ app.include_router(public_directories.router, prefix="/api")
 app.include_router(provisioning.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
 app.include_router(go.router, prefix="/api")
+app.include_router(support_router, prefix="/api")
 
 
 @app.on_event("startup")

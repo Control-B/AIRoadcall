@@ -23,6 +23,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import { SiteFooter } from "@/components/site-footer";
 
 const features = [
   {
@@ -353,10 +354,7 @@ export default function DemoPage() {
       </section>
 
       {/* Footer */}
-      {/* Use global site footer for consistency */}
-      {/* @ts-expect-error Server Component import in Client Component */}
-      import { SiteFooterChrome } from "@/components/site-chrome";
-      <SiteFooterChrome />
+      <SiteFooter />
     </div>
   );
 }
