@@ -9,12 +9,11 @@ import {
   Brain,
   Building2,
   Check,
-  Code2,
   Copy,
-  ExternalLink,
   FileAudio,
   Headphones,
   LifeBuoy,
+  Loader2,
   Mic2,
   Phone,
   PhoneCall,
@@ -31,6 +30,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
+import { getApiBase } from "@/lib/api-client";
 
 type AgentType = "mechanic" | "fleet";
 type AgentTab = "conversation" | "voice" | "telephony" | "advanced";
@@ -111,6 +111,8 @@ export default function AgentDashboard() {
   const [outboundEnabled, setOutboundEnabled] = useState(agentType === "fleet");
   const [testNumber, setTestNumber] = useState("+1 ");
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [testing, setTesting] = useState(false);
 
   const activeRoles = useMemo(
     () => roleOptions.filter((role) => agentType === "fleet" || role !== "Vendor coordination"),
@@ -125,15 +127,46 @@ export default function AgentDashboard() {
     setInstructions(agentProfiles[nextType].instructions);
     setOutboundEnabled(nextType === "fleet");
     setMessage(null);
+    setError(null);
   }
 
   function saveSettings() {
-    setMessage("Settings saved locally for preview. Live Retell sync will connect after provisioning.");
+    setError(null);
+    setMessage("Settings saved locally for preview. Live phone activation will connect after Roadcall provisioning.");
   }
 
-  function testAgent() {
-    const channel = agentType === "fleet" && outboundEnabled ? "inbound and outbound" : "inbound";
-    setMessage(`Test started for ${agentName || "your Roadcall agent"} using ${channel} call rules.`);
+  async function startTestCall() {
+    setTesting(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const response = await fetch(`${getApiBase()}/agent-dashboard/test-call`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to_number: testNumber,
+          agent_type: agentType,
+          agent_name: agentName,
+          business_name: businessName,
+          welcome_message: welcomeMessage,
+          instructions,
+        }),
+      });
+      const body = await response.json().catch(() => null) as { message?: string; detail?: string } | null;
+      if (!response.ok) {
+        throw new Error(body?.detail || body?.message || "Roadcall could not start the test call.");
+      }
+      setMessage(body?.message || "Roadcall test call started. Answer your phone to speak with the shop agent.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Roadcall could not start the test call.");
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  function previewAgent() {
+    setError(null);
+    setMessage("Preview updated. Use Start test call on the Phone tab to speak with the shop agent.");
   }
 
   return (
@@ -149,7 +182,7 @@ export default function AgentDashboard() {
                 Configure, test, and launch your Roadcall AI agent
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-6 text-roadcall-muted sm:text-base">
-                Set the voice, phone routing, welcome message, operating rules, and Retell-ready test flow after profile setup.
+                Set the voice, phone routing, welcome message, operating rules, and Roadcall-managed test flow after profile setup.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -165,6 +198,11 @@ export default function AgentDashboard() {
           {message ? (
             <div className="mb-6 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-5 py-4 text-sm font-medium text-emerald-100">
               {message}
+            </div>
+          ) : null}
+          {error ? (
+            <div className="mb-6 rounded-2xl border border-red-300/25 bg-red-400/10 px-5 py-4 text-sm font-medium text-red-100">
+              {error}
             </div>
           ) : null}
 
@@ -186,7 +224,7 @@ export default function AgentDashboard() {
                   { href: "/fleet/onboarding", label: "Fleet profile", icon: Truck },
                   { href: "/agents/dashboard", label: "AI Agent", icon: Bot, active: true },
                   { href: "/ai-telephony", label: "AI Telephony", icon: RadioTower },
-                  { href: "/admin/provisioning", label: "Retell provisioning", icon: Code2 },
+                  { href: "/ai-telephony", label: "Provisioning support", icon: LifeBuoy },
                 ].map((item) => {
                   const Icon = item.icon;
                   return (
@@ -212,7 +250,7 @@ export default function AgentDashboard() {
                     "Profile completed",
                     "Agent rules drafted",
                     "Phone number connected",
-                    "Retell test completed",
+                    "Live test completed",
                   ].map((step, index) => (
                     <div key={step} className="flex items-center gap-3">
                       <span className={`flex h-6 w-6 items-center justify-center rounded-full ${index < 2 ? "bg-emerald-400/15 text-emerald-200" : "bg-white/10 text-slate-400"}`}>
@@ -292,7 +330,7 @@ export default function AgentDashboard() {
                       <Field label="Agent name" helper="The caller-facing name for the AI.">
                         <input value={agentName} onChange={(event) => setAgentName(event.target.value)} className={inputClass} />
                       </Field>
-                      <Field label="Business name" helper="Used in greetings, summaries, and Retell dynamic variables.">
+                      <Field label="Business name" helper="Used in greetings, summaries, and phone agent context.">
                         <input value={businessName} onChange={(event) => setBusinessName(event.target.value)} className={inputClass} />
                       </Field>
                       <Field label="Welcome message" helper="The first thing callers hear or see." className="lg:col-span-2">
@@ -385,7 +423,7 @@ export default function AgentDashboard() {
 
                   {activeTab === "telephony" ? (
                     <div className="mt-6 grid gap-5 lg:grid-cols-2">
-                      <Field label="Roadcall phone number" helper="Use an assigned number or the number you will forward into Retell.">
+                      <Field label="Roadcall phone number" helper="Use an assigned number or the number you will forward into Roadcall.">
                         <input value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClass} />
                       </Field>
                       <Field label="Human handoff phone" helper="Where calls go when the AI must escalate.">
@@ -416,7 +454,7 @@ export default function AgentDashboard() {
                           {[
                             { title: "Inbound", body: "Answer calls and qualify the request", active: true },
                             { title: "Outbound", body: "Call vendors and dispatch contacts", active: agentType === "fleet" && outboundEnabled },
-                            { title: "Retell", body: "Sync agent, phone, and dynamic variables", active: false },
+                            { title: "Provisioning", body: "Roadcall activates the phone agent and routing", active: false },
                           ].map((item) => (
                             <div key={item.title} className={`rounded-xl border p-4 ${item.active ? "border-emerald-300/25 bg-emerald-400/10" : "border-white/10 bg-slate-950/60"}`}>
                               <p className="font-bold text-white">{item.title}</p>
@@ -428,11 +466,11 @@ export default function AgentDashboard() {
 
                       <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 lg:col-span-2">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                          <Field label="Your phone number" helper="Send a simulated Retell test call to this number." className="flex-1">
+                          <Field label="Your phone number" helper="Roadcall will call this number so you can test the shop agent." className="flex-1">
                             <input value={testNumber} onChange={(event) => setTestNumber(event.target.value)} className={inputClass} />
                           </Field>
-                          <Button onClick={testAgent} className="h-12 rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-400">
-                            <PhoneCall className="mr-2 h-4 w-4" /> Start test call
+                          <Button onClick={startTestCall} disabled={testing} className="h-12 rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:opacity-70">
+                            {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PhoneCall className="mr-2 h-4 w-4" />} Start test call
                           </Button>
                         </div>
                       </div>
@@ -502,7 +540,7 @@ export default function AgentDashboard() {
                   <PreviewRow label="Outbound" value={agentType === "fleet" && outboundEnabled ? "Enabled" : "Off"} />
                 </div>
 
-                <Button onClick={testAgent} className="mt-5 w-full rounded-xl">
+                <Button onClick={previewAgent} className="mt-5 w-full rounded-xl">
                   <TestTube2 className="mr-2 h-4 w-4" /> Preview agent
                 </Button>
               </section>
@@ -513,12 +551,12 @@ export default function AgentDashboard() {
                     <RadioTower className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="font-bold text-white">Retell connection</p>
-                    <p className="text-xs text-roadcall-muted">Provisioning required for live calls</p>
+                    <p className="font-bold text-white">Roadcall voice network</p>
+                    <p className="text-xs text-roadcall-muted">Managed provisioning for live calls</p>
                   </div>
                 </div>
                 <div className="mt-5 space-y-3 text-sm">
-                  <StatusLine label="Agent ID" value="Pending" />
+                  <StatusLine label="Voice agent" value="Pending" />
                   <StatusLine label="Phone number" value={phone.trim() === "+1" ? "Not assigned" : phone} />
                   <StatusLine label="Last sync" value="Not synced" />
                 </div>
@@ -528,14 +566,11 @@ export default function AgentDashboard() {
                       <Phone className="mr-2 h-4 w-4" /> Open telephony setup
                     </Link>
                   </Button>
-                  <a
-                    href="https://dashboard.retellai.com/agents"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-bold text-white transition hover:bg-white/10"
-                  >
-                    Retell dashboard <ExternalLink className="h-4 w-4" />
-                  </a>
+                  <Button asChild variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10">
+                    <Link href="/ai-telephony">
+                      <LifeBuoy className="mr-2 h-4 w-4" /> Request activation help
+                    </Link>
+                  </Button>
                 </div>
               </section>
 

@@ -21,7 +21,7 @@ const AI_AGENT_ID_KEY = `ret${"ell"}_agent_id`;
 
 // Self-contained demo payload so /mechanic/dashboard?demo=1 renders a fully
 // populated, post-activation experience without hitting the API or burning
-// real Retell / Stripe records.
+// real voice-provider / Stripe records.
 const DEMO_DASHBOARD: Dashboard = {
   tenant_id: "demo-tenant",
   business_name: "Austin Diesel & Tire (Demo)",
@@ -136,7 +136,7 @@ function MechanicDashboardContent() {
 
   async function activateAi() {
     if (isDemo) {
-      setMessage("Demo mode: this is a simulated agent. Subscribe to provision your real Retell advisor.");
+      setMessage("Demo mode: this is a simulated agent. Subscribe to provision your real Roadcall advisor.");
       return;
     }
     setSaving(true);

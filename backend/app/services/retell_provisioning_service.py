@@ -182,3 +182,44 @@ class RetellProvisioningService:
             "dynamic_variables": dynamic_variables,
             "service_advisor_prompt": service_advisor_prompt,
         }
+
+    async def create_shop_test_call(
+        self,
+        *,
+        to_number: str,
+        agent_name: str | None = None,
+        business_name: str | None = None,
+        welcome_message: str | None = None,
+        instructions: str | None = None,
+        agent_type: str | None = None,
+    ) -> dict[str, Any]:
+        agent_id = self.settings.RETELL_SHOP_AGENT_ID.strip()
+        if not agent_id:
+            raise RuntimeError("Roadcall shop voice agent is not configured")
+
+        from_number = (self.settings.RETELL_TEST_FROM_NUMBER or self.settings.DEMO_PHONE_NUMBER).strip()
+        if not from_number:
+            raise RuntimeError("Roadcall test calling number is not configured")
+
+        body = {
+            "from_number": from_number,
+            "to_number": to_number,
+            "override_agent_id": agent_id,
+            "metadata": {
+                "source": "roadcall_agent_dashboard",
+                "agent_type": agent_type or "mechanic",
+            },
+            "retell_llm_dynamic_variables": {
+                "agent_name": agent_name or "Roadcall Service Advisor",
+                "shop_name": business_name or "Roadcall shop",
+                "business_name": business_name or "Roadcall shop",
+                "welcome_message": welcome_message or "Thanks for calling Roadcall.",
+                "dashboard_instructions": instructions or "Use Roadcall service advisor call handling rules.",
+            },
+        }
+        response = await asyncio.to_thread(self._request, "POST", "/v2/create-phone-call", body)
+        return {
+            "call_id": response.get("call_id"),
+            "call_status": response.get("call_status") or response.get("status") or "started",
+            "provider_response": response,
+        }

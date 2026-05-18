@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     # Shop AI receptionist (third Retell agent, separate from Sandy roadside + Fleet roadside)
     RETELL_SHOP_AGENT_ID: str = ""
     RETELL_SHOP_CONVERSATION_FLOW_ID: str = ""
+    RETELL_TEST_FROM_NUMBER: str = ""
     # Fleet vertical routing (used by retell_dispatch.create_service_request to fork into RoadsideIncident)
     RETELL_FLEET_AGENT_ID: str = ""
     ADMIN_USERNAME: str = "admin"

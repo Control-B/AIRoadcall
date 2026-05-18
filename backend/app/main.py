@@ -40,6 +40,7 @@ from app.api.routes import (
     provisioning,
     billing,
     go,
+    agent_dashboard,
     support_router,
 )
 
@@ -155,6 +156,7 @@ app.include_router(public_directories.router, prefix="/api")
 app.include_router(provisioning.router, prefix="/api")
 app.include_router(billing.router, prefix="/api")
 app.include_router(go.router, prefix="/api")
+app.include_router(agent_dashboard.router, prefix="/api")
 app.include_router(support_router, prefix="/api")
 
 
