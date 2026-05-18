@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import json
+import logging
 import secrets
+import urllib.error
+import urllib.request
 import uuid
 from datetime import datetime, timezone
 from typing import Any
@@ -18,8 +22,21 @@ from app.services.provisioning_service import ProvisioningService, slugify
 
 settings = get_settings()
 stripe.api_key = settings.STRIPE_SECRET_KEY
+logger = logging.getLogger(__name__)
 
 ACTIVE_SUBSCRIPTION_STATUSES = {"active", "trialing"}
+
+# Default catalog seeded into a fresh shop profile so the tenant can answer
+# calls immediately. The owner trims/edits these via the dashboard.
+_DEFAULT_SHOP_SERVICES: list[str] = [
+    "oil change",
+    "brake inspection / repair",
+    "tire repair / replacement",
+    "battery / electrical",
+    "check engine diagnostics",
+    "DOT inspection",
+    "general maintenance",
+]
 
 
 def _from_timestamp(value: int | None) -> datetime | None:
@@ -156,6 +173,10 @@ class SubscriptionBillingService:
             "success_url": self._success_url(tenant.id, account.dashboard_token),
             "cancel_url": self._cancel_url(),
             "allow_promotion_codes": True,
+            # Collect billing address + phone so we can seed ShopProfile.city/state/phone
+            # automatically. Without these, _profile_complete() blocks AI activation.
+            "billing_address_collection": "required",
+            "phone_number_collection": {"enabled": True},
             "metadata": {
                 "tenant_id": str(tenant.id),
                 "organization_id": str(org.id),
@@ -319,6 +340,14 @@ class SubscriptionBillingService:
         if not self._profile_complete(profile):
             agent = await self._upsert_agent_status(db, tenant_id, "profile_incomplete", "Complete shop profile first")
             return {"activation_status": agent.activation_status, "detail": "Complete shop profile first", "retell_agent_id": None, "retell_conversation_flow_id": None}
+        return await self._run_ai_activation(db, tenant)
+
+    async def _run_ai_activation(self, db, tenant: Tenant) -> dict[str, str | None]:
+        """Provision the per-tenant Retell agent. Caller must have verified
+        subscription + profile readiness. Safe to invoke from a webhook (no
+        dashboard token required)."""
+        tenant_id = tenant.id
+        profile = (await db.execute(select(ShopProfile).where(ShopProfile.tenant_id == tenant_id))).scalar_one_or_none()
         if tenant.current_plan in {"starter", "growth", "pro"} and settings.GHL_API_KEY:
             config = get_plan_config(tenant.current_plan)
             connection = (await db.execute(select(GHLConnection).where(GHLConnection.tenant_id == tenant_id))).scalar_one_or_none()
@@ -390,12 +419,34 @@ class SubscriptionBillingService:
             account.status = "payment_active"
             account.updated_at = datetime.now(timezone.utc)
         tenant = await db.get(Tenant, tenant_id)
-        if tenant:
-            tenant.subscription_status = "active"
-            tenant.setup_fee_status = "paid"
-            tenant.is_active = True
-            tenant.current_plan = canonical_plan_id(metadata.get("plan_id") or tenant.current_plan)
-            await self._apply_plan_to_tenant(db, tenant)
+        if not tenant:
+            return
+        tenant.subscription_status = "active"
+        tenant.setup_fee_status = "paid"
+        tenant.is_active = True
+        tenant.current_plan = canonical_plan_id(metadata.get("plan_id") or tenant.current_plan)
+        await self._apply_plan_to_tenant(db, tenant)
+
+        # ── Roadcall-direct provisioning (Stripe-only, no GHL required) ──────
+        # 1. Seed the shop profile with sensible defaults using Stripe-collected
+        #    billing address + phone. This is the "snapshot" replacement.
+        profile = await self._seed_tenant_defaults(db, tenant, session)
+        # 2. Auto-trigger Retell agent provisioning so the AI is live the moment
+        #    the customer logs into the dashboard. Best-effort; surfaces error
+        #    on AIAgent.last_error if Retell rejects.
+        if self._profile_complete(profile):
+            try:
+                await self._run_ai_activation(db, tenant)
+            except Exception as exc:  # noqa: BLE001 — webhook must never raise
+                logger.warning(
+                    "auto-activate AI failed for tenant %s: %s", tenant.id, exc
+                )
+                await self._upsert_agent_status(
+                    db, tenant.id, "failed", f"auto-activation error: {exc}"
+                )
+        # 3. Welcome email with dashboard magic-link (Resend, best-effort).
+        if account:
+            self._send_welcome_email(account, tenant, profile)
 
     async def sync_subscription(self, db, subscription: dict[str, Any]) -> None:
         metadata = subscription.get("metadata") or {}
@@ -461,6 +512,103 @@ class SubscriptionBillingService:
         tenant.enabled_features = [feature.value for feature in config.features]
         for feature in config.features:
             await self.provisioning.set_feature_flag(db, tenant.id, feature.value, True, "stripe_billing")
+
+    async def _seed_tenant_defaults(
+        self, db, tenant: Tenant, checkout_session: dict[str, Any]
+    ) -> ShopProfile | None:
+        """Replace the GHL snapshot. Backfills the shop profile with billing
+        address + phone collected by Stripe Checkout and a default services
+        catalog, so the tenant can begin taking AI calls immediately. Only
+        fills fields that are currently empty \u2014 owner edits always win.
+        """
+        profile = (
+            await db.execute(select(ShopProfile).where(ShopProfile.tenant_id == tenant.id))
+        ).scalar_one_or_none()
+        if profile is None:
+            return None
+
+        customer_details = checkout_session.get("customer_details") or {}
+        address = customer_details.get("address") or {}
+        billing_phone = customer_details.get("phone") or ""
+        billing_email = customer_details.get("email") or ""
+
+        if not profile.phone and billing_phone:
+            profile.phone = str(billing_phone)[:30]
+        if not profile.email and billing_email:
+            profile.email = str(billing_email)[:255]
+        if not profile.city and address.get("city"):
+            profile.city = str(address["city"])[:120]
+        if not profile.state and address.get("state"):
+            profile.state = str(address["state"])[:40]
+        if not profile.address:
+            line_parts = [address.get("line1"), address.get("line2")]
+            joined = ", ".join(p for p in line_parts if p)
+            if joined:
+                profile.address = joined
+        if not profile.services_offered:
+            profile.services_offered = list(_DEFAULT_SHOP_SERVICES)
+        # Sensible business defaults; owner can change in dashboard.
+        if profile.offers_mobile_service is None:
+            profile.offers_mobile_service = True
+        if profile.service_radius_miles in (None, 0):
+            profile.service_radius_miles = 50
+        if not profile.service_area and profile.city and profile.state:
+            profile.service_area = f"{profile.city}, {profile.state} ({profile.service_radius_miles} mi radius)"
+
+        profile.profile_status = "complete" if self._profile_complete(profile) else "incomplete"
+        tenant.onboarding_status = (
+            "profile_complete" if profile.profile_status == "complete" else "profile_incomplete"
+        )
+        profile.updated_at = datetime.now(timezone.utc)
+        await db.flush()
+        return profile
+
+    def _send_welcome_email(
+        self,
+        account: MechanicAccount,
+        tenant: Tenant,
+        profile: ShopProfile | None,
+    ) -> None:
+        """Resend-backed welcome email with the dashboard magic link. Fire and
+        forget \u2014 failures are logged but never raised."""
+        api_key = settings.RESEND_API_KEY
+        from_email = getattr(settings, "RESEND_FROM_EMAIL", "") or "hello@roadcall.ai"
+        to_email = (profile.email if profile else None) or account.email
+        if not (api_key and to_email):
+            return
+        dashboard_url = self.public_dashboard_url(tenant.id, account.dashboard_token)
+        business_name = (profile.business_name if profile else None) or tenant.name
+        body = (
+            f"Hi {business_name},\n\n"
+            "Your Roadcall account is live. Your AI service advisor is being\n"
+            "provisioned right now \u2014 it should be ready to answer calls in a few\n"
+            "minutes.\n\n"
+            f"Open your dashboard to review settings and connect a phone number:\n{dashboard_url}\n\n"
+            "Bookmark this link \u2014 it is your private, password-less sign-in.\n\n"
+            "\u2014 The Roadcall team"
+        )
+        payload = json.dumps(
+            {
+                "from": from_email,
+                "to": [to_email],
+                "subject": "Welcome to Roadcall \u2014 your AI receptionist is live",
+                "text": body,
+            }
+        ).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.resend.com/emails",
+            data=payload,
+            method="POST",
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json",
+            },
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=5) as resp:
+                resp.read()
+        except (urllib.error.URLError, TimeoutError) as exc:
+            logger.warning("welcome email send failed for tenant %s: %s", tenant.id, exc)
 
     async def _ensure_usage_row(self, db, tenant_id: uuid.UUID, plan_id: str) -> PlanUsage:
         usage_month = datetime.now(timezone.utc).strftime("%Y-%m")
