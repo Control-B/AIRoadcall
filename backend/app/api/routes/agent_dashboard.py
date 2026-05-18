@@ -44,6 +44,11 @@ def _normalize_phone(value: str) -> str:
 @router.post("/test-call", response_model=AgentTestCallOut)
 async def start_agent_test_call(payload: AgentTestCallIn) -> AgentTestCallOut:
     to_number = _normalize_phone(payload.to_number)
+    normalized_agent_type = payload.agent_type.strip().lower()
+    agent_label = {
+        "fleet": "fleet dispatcher",
+        "roadside": "roadside dispatch agent",
+    }.get(normalized_agent_type, "mechanic service advisor")
     try:
         result = await service.create_shop_test_call(
             to_number=to_number,
@@ -64,5 +69,5 @@ async def start_agent_test_call(payload: AgentTestCallIn) -> AgentTestCallOut:
         ok=True,
         call_id=result.get("call_id"),
         call_status=result.get("call_status") or "started",
-        message="Roadcall test call started. Answer your phone to speak with the shop agent.",
+        message=f"Roadcall test call started. Answer your phone to speak with the {agent_label}.",
     )

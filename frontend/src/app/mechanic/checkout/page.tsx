@@ -7,17 +7,18 @@ import { ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { getApiBase } from "@/lib/api-client";
 
 const PLANS = {
-  starter: { name: "Starter", price: "$149/mo", leads: "10 included leads" },
-  growth: { name: "Growth", price: "$299/mo", leads: "35 included leads" },
-  pro: { name: "Pro", price: "$499/mo", leads: "100 included leads" },
+  standard: { name: "Standard", price: "$197/mo", leads: "10 included leads", setup: "$99 AI setup" },
+  professional: { name: "Professional", price: "$297/mo", leads: "35 included leads", setup: "$99 AI setup" },
+  premium: { name: "Premium", price: "$497/mo", leads: "100 included leads", setup: "$99 AI setup" },
 } as const;
 
 type PlanId = keyof typeof PLANS;
 
 function MechanicCheckoutContent() {
   const params = useSearchParams();
-  const initialPlan = (params.get("plan") || "starter") as PlanId;
-  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "starter");
+  const rawPlan = params.get("plan") || "standard";
+  const initialPlan = ({ starter: "standard", growth: "professional", pro: "premium" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
+  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "standard");
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
@@ -76,7 +77,7 @@ function MechanicCheckoutContent() {
               >
                 <p className="font-bold">{PLANS[id].name}</p>
                 <p className="mt-1 text-2xl font-black">{PLANS[id].price}</p>
-                <p className="mt-1 text-xs text-slate-400">{PLANS[id].leads}</p>
+                <p className="mt-1 text-xs text-slate-400">{PLANS[id].setup} · {PLANS[id].leads}</p>
               </button>
             ))}
           </div>

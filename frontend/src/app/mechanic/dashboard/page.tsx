@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Bot, CheckCircle2, Loader2, PhoneForwarded, PlayCircle, Save, ShieldAlert } from "lucide-react";
 import { getApiBase } from "@/lib/api-client";
 
@@ -26,7 +26,7 @@ const DEMO_DASHBOARD: Dashboard = {
   tenant_id: "demo-tenant",
   business_name: "Austin Diesel & Tire (Demo)",
   account_status: "payment_active",
-  subscription: { plan_id: "growth", status: "active", current_period_end: null, cancel_at_period_end: false },
+  subscription: { plan_id: "professional", status: "active", current_period_end: null, cancel_at_period_end: false },
   profile: {
     business_name: "Austin Diesel & Tire",
     phone: "+1 (512) 555-0143",
@@ -62,6 +62,7 @@ const DEMO_DASHBOARD: Dashboard = {
 };
 
 function MechanicDashboardContent() {
+  const router = useRouter();
   const params = useSearchParams();
   const tenantId = params.get("tenant") || "";
   const token = params.get("token") || "";
@@ -111,12 +112,17 @@ function MechanicDashboardContent() {
 
   async function saveProfile(event: React.FormEvent) {
     event.preventDefault();
+    if (isDemo) {
+      router.push("/agents/dashboard?agent=mechanic");
+      return;
+    }
     setSaving(true);
     setError(null);
     setMessage(null);
     try {
       await submitToSupport(form);
-      setMessage("Profile submitted! Our team will reach out to you shortly.");
+      setMessage("Profile submitted. Opening Agent Configuration now.");
+      router.push("/agents/dashboard?agent=mechanic");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not submit profile");
     } finally {
@@ -184,11 +190,11 @@ function MechanicDashboardContent() {
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col justify-between gap-4 md:flex-row md:items-end">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-300">Mechanic AI Dashboard</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-300">Mechanics AI Profile</p>
             <h1 className="mt-3 text-4xl font-black tracking-tight">{dashboard?.business_name}</h1>
           </div>
           {isDemo ? (
-            <Link href="/mechanic/checkout?plan=growth" className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-white/10">
+            <Link href="/mechanic/checkout?plan=professional" className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-white/10">
               Manage billing
             </Link>
           ) : (
@@ -203,7 +209,7 @@ function MechanicDashboardContent() {
               <span>You&apos;re in <strong>demo mode</strong>. Data is sample; changes won&apos;t persist.</span>
             </div>
             <a
-              href="/mechanic/checkout?plan=growth"
+              href="/mechanic/checkout?plan=professional"
               className="inline-flex items-center justify-center rounded-full bg-roadcall-orange px-5 py-2 text-sm font-bold text-slate-950 hover:brightness-110"
             >
               Subscribe to activate your real shop
@@ -215,7 +221,7 @@ function MechanicDashboardContent() {
 
         <section className="mt-8 max-w-2xl mx-auto">
           <form onSubmit={saveProfile} className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6">
-            <h2 className="text-xl font-bold">Shop Profile</h2>
+            <h2 className="text-xl font-bold">Mechanics AI Profile</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
               {([
                 ["business_name", "Business name"],

@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { getApiBase } from "@/lib/api-client";
 
-type AgentType = "mechanic" | "fleet";
+type AgentType = "mechanic" | "fleet" | "roadside";
 type AgentTab = "conversation" | "voice" | "telephony" | "advanced";
 
 const inputClass =
@@ -62,6 +62,18 @@ const agentProfiles = {
     instructions:
       "Act like a fleet roadside dispatcher. Gather driver name, unit number, trailer number, load status, exact location, safety condition, issue type, and preferred vendor rules. For outbound calls, identify yourself as Roadcall dispatch, confirm vendor availability, ETA, pricing basics, and callback information. Never authorize work outside approved fleet rules.",
     abilities: ["Answer driver hotline", "Call approved vendors", "Update dispatch status", "Escalate exceptions"],
+  },
+  roadside: {
+    label: "Roadside dispatch agent",
+    badge: "Public dispatch",
+    icon: PhoneCall,
+    agentName: "Roadcall Roadside Dispatcher",
+    businessName: "Roadcall Dispatch",
+    welcome:
+      "Roadcall dispatch. I can open a roadside case, capture your exact location, find nearby service, and keep you updated.",
+    instructions:
+      "Act like Roadcall's public roadside dispatcher. Capture caller name, callback number, vehicle type, issue, safety condition, city/state, highway, mile marker, direction, exit, truck stop, or landmark. Send the secure GPS link when exact location is needed. Confirm payment authorization before revealing provider contact details. Escalate injuries, hazmat, police, or unsafe roadside conditions immediately.",
+    abilities: ["Open roadside cases", "Capture GPS location", "Match nearby providers", "Escalate emergencies"],
   },
 } satisfies Record<AgentType, {
   label: string;
@@ -106,16 +118,23 @@ export default function AgentDashboard() {
   const [voiceCloneEnabled, setVoiceCloneEnabled] = useState(false);
   const [voiceCloneName, setVoiceCloneName] = useState("Owner voice");
   const [sampleName, setSampleName] = useState("");
-  const [outboundEnabled, setOutboundEnabled] = useState(agentType === "fleet");
+  const [outboundEnabled, setOutboundEnabled] = useState(agentType !== "mechanic");
   const [testNumber, setTestNumber] = useState("+1 ");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
 
   const activeRoles = useMemo(
-    () => roleOptions.filter((role) => agentType === "fleet" || role !== "Vendor coordination"),
+    () => roleOptions.filter((role) => agentType !== "mechanic" || role !== "Vendor coordination"),
     [agentType]
   );
+
+  useEffect(() => {
+    const requestedAgent = new URLSearchParams(window.location.search).get("agent");
+    if (requestedAgent === "mechanic" || requestedAgent === "fleet" || requestedAgent === "roadside") {
+      switchAgentType(requestedAgent);
+    }
+  }, []);
 
   function switchAgentType(nextType: AgentType) {
     setAgentType(nextType);
@@ -123,7 +142,7 @@ export default function AgentDashboard() {
     setBusinessName(agentProfiles[nextType].businessName);
     setWelcomeMessage(agentProfiles[nextType].welcome);
     setInstructions(agentProfiles[nextType].instructions);
-    setOutboundEnabled(nextType === "fleet");
+    setOutboundEnabled(nextType !== "mechanic");
     setMessage(null);
     setError(null);
   }
@@ -243,9 +262,9 @@ export default function AgentDashboard() {
 
               <nav className="mt-5 space-y-2">
                 {[
-                  { href: "/shops/onboarding", label: "Shop profile", icon: Building2 },
+                  { href: "/mechanic/dashboard?demo=1", label: "Mechanics AI Profile", icon: Building2 },
                   { href: "/fleet/onboarding", label: "Fleet profile", icon: Truck },
-                  { href: "/agents/dashboard", label: "AI Agent", icon: Bot, active: true },
+                  { href: "/agents/dashboard", label: "Agent Configuration", icon: Bot, active: true },
                   { href: "/ai-telephony", label: "AI Telephony", icon: PhoneCall },
                   { href: "mailto:support@roadcall.ai?subject=Roadcall%20agent%20provisioning%20help", label: "Provisioning support", icon: LifeBuoy },
                 ].map((item) => {
@@ -300,8 +319,8 @@ export default function AgentDashboard() {
                       </div>
                     </div>
 
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {(["mechanic", "fleet"] as AgentType[]).map((type) => {
+                    <div className="grid gap-2 sm:grid-cols-3">
+                      {(["mechanic", "fleet", "roadside"] as AgentType[]).map((type) => {
                         const option = agentProfiles[type];
                         const Icon = option.icon;
                         const active = agentType === type;
@@ -318,7 +337,7 @@ export default function AgentDashboard() {
                           >
                             <Icon className={active ? "h-5 w-5 text-roadcall-cyan" : "h-5 w-5 text-slate-400"} />
                             <span>
-                              <span className="block text-sm font-bold">{type === "mechanic" ? "Mechanic" : "Fleet"}</span>
+                              <span className="block text-sm font-bold">{type === "mechanic" ? "Mechanic" : type === "fleet" ? "Fleet" : "Roadside"}</span>
                               <span className="block text-xs text-roadcall-muted">{option.badge}</span>
                             </span>
                           </button>
@@ -458,7 +477,7 @@ export default function AgentDashboard() {
                           <div>
                             <p className="font-bold text-white">Outbound calls</p>
                             <p className="mt-1 text-sm text-roadcall-muted">
-                              Fleet agents can call approved vendors and dispatch contacts. Mechanic agents stay inbound only.
+                              Fleet and roadside agents can call approved vendors and dispatch contacts. Mechanic agents stay inbound only.
                             </p>
                           </div>
                           <button
@@ -466,7 +485,7 @@ export default function AgentDashboard() {
                             disabled={agentType === "mechanic"}
                             onClick={() => setOutboundEnabled((current) => !current)}
                             className={`rounded-full px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
-                              outboundEnabled && agentType === "fleet" ? "bg-emerald-400 text-slate-950" : "bg-white/10 text-slate-200 ring-1 ring-white/15"
+                              outboundEnabled && agentType !== "mechanic" ? "bg-emerald-400 text-slate-950" : "bg-white/10 text-slate-200 ring-1 ring-white/15"
                             }`}
                           >
                             {agentType === "mechanic" ? "Locked" : outboundEnabled ? "Enabled" : "Disabled"}
@@ -476,7 +495,7 @@ export default function AgentDashboard() {
                         <div className="mt-5 grid gap-3 md:grid-cols-3">
                           {[
                             { title: "Inbound", body: "Answer calls and qualify the request", active: true },
-                            { title: "Outbound", body: "Call vendors and dispatch contacts", active: agentType === "fleet" && outboundEnabled },
+                            { title: "Outbound", body: "Call vendors and dispatch contacts", active: agentType !== "mechanic" && outboundEnabled },
                             { title: "Provisioning", body: "Roadcall activates the phone agent and routing", active: false },
                           ].map((item) => (
                             <div key={item.title} className={`rounded-xl border p-4 ${item.active ? "border-emerald-300/25 bg-emerald-400/10" : "border-white/10 bg-slate-950/60"}`}>
@@ -553,14 +572,16 @@ export default function AgentDashboard() {
                 <p className="mt-2 text-sm leading-6 text-roadcall-muted">
                   {agentType === "fleet"
                     ? "Fleet dispatcher with inbound hotline and outbound vendor calling."
-                    : "Mechanic service advisor for inbound calls and repair triage."}
+                    : agentType === "roadside"
+                      ? "Roadside dispatcher for public breakdown intake, GPS capture, and provider matching."
+                      : "Mechanic service advisor for inbound calls and repair triage."}
                 </p>
 
                 <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-left text-sm">
                   <PreviewRow label="Business" value={businessName || "Not set"} />
                   <PreviewRow label="Phone" value={phone.trim() === "+1" ? "Not assigned" : phone} />
                   <PreviewRow label="Voice" value={voice === "clone" ? voiceCloneName || "Cloned voice" : voice === "female" ? "Female voice" : "Male voice"} />
-                  <PreviewRow label="Outbound" value={agentType === "fleet" && outboundEnabled ? "Enabled" : "Off"} />
+                  <PreviewRow label="Outbound" value={agentType !== "mechanic" && outboundEnabled ? "Enabled" : "Off"} />
                 </div>
 
                 <Button onClick={previewAgent} className="mt-5 w-full rounded-xl">

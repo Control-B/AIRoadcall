@@ -89,7 +89,7 @@ function ShopTrack() {
           </Link>
           <Link href="/mechanic/dashboard?demo=1" className="block">
             <Button variant="outline" className="w-full border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl py-6">
-              <PlayCircle className="h-4 w-4 mr-2" /> Try the demo dashboard
+              <PlayCircle className="h-4 w-4 mr-2" /> Try the Mechanics AI Profile
             </Button>
           </Link>
         </div>

@@ -1,6 +1,6 @@
 # Roadcall Production Readiness Report
 
-Generated: 2026-05-18T18:32:12.462Z
+Generated: 2026-05-18T19:10:49.723Z
 
 - Page routes: 65
 - Internal links checked: 99

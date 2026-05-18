@@ -193,9 +193,18 @@ class RetellProvisioningService:
         instructions: str | None = None,
         agent_type: str | None = None,
     ) -> dict[str, Any]:
-        agent_id = self.settings.RETELL_SHOP_AGENT_ID.strip()
+        normalized_agent_type = (agent_type or "mechanic").strip().lower()
+        if normalized_agent_type == "fleet":
+            agent_id = (self.settings.RETELL_FLEET_AGENT_ID or self.settings.RETELL_AGENT_ID).strip()
+            missing_message = "Roadcall fleet voice agent is not configured"
+        elif normalized_agent_type == "roadside":
+            agent_id = self.settings.RETELL_AGENT_ID.strip()
+            missing_message = "Roadcall roadside dispatch voice agent is not configured"
+        else:
+            agent_id = self.settings.RETELL_SHOP_AGENT_ID.strip()
+            missing_message = "Roadcall shop voice agent is not configured"
         if not agent_id:
-            raise RuntimeError("Roadcall shop voice agent is not configured")
+            raise RuntimeError(missing_message)
 
         from_number = (self.settings.RETELL_TEST_FROM_NUMBER or self.settings.DEMO_PHONE_NUMBER).strip()
         if not from_number:
@@ -207,7 +216,7 @@ class RetellProvisioningService:
             "override_agent_id": agent_id,
             "metadata": {
                 "source": "roadcall_agent_dashboard",
-                "agent_type": agent_type or "mechanic",
+                "agent_type": normalized_agent_type,
             },
             "retell_llm_dynamic_variables": {
                 "agent_name": agent_name or "Roadcall Service Advisor",

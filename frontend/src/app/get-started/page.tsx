@@ -34,30 +34,30 @@ const TRACKS: { id: Track; label: string; icon: typeof Wrench; tagline: string }
 
 const SHOP_PLANS = [
   {
-    id: "starter",
-    name: "Starter",
-    price: "$199/mo",
-    setup: "$499 setup",
-    bullets: ["AI receptionist", "Up to 150 leads / mo", "Cal.com booking", "Email + SMS notifications"],
-    cta: "Subscribe to Starter",
+    id: "standard",
+    name: "Standard",
+    price: "$197/mo",
+    setup: "$99 AI setup",
+    bullets: ["24/7 AI phone answering", "Missed-call text-back", "Basic CRM pipeline", "Website AI widget"],
+    cta: "Start Standard",
     accent: false,
   },
   {
-    id: "growth",
-    name: "Growth",
-    price: "$399/mo",
-    setup: "$499 setup",
-    bullets: ["Everything in Starter", "Up to 500 leads / mo", "Service area expansion", "Priority support"],
-    cta: "Subscribe to Growth",
+    id: "professional",
+    name: "Professional",
+    price: "$297/mo",
+    setup: "$99 AI setup",
+    bullets: ["Everything in Standard", "Appointment scheduling", "Advanced analytics", "Priority onboarding"],
+    cta: "Start Professional",
     accent: true,
   },
   {
-    id: "pro",
-    name: "Pro",
-    price: "$799/mo",
-    setup: "$499 setup",
-    bullets: ["Everything in Growth", "Unlimited leads", "Custom AI prompt", "Dedicated success manager"],
-    cta: "Subscribe to Pro",
+    id: "premium",
+    name: "Premium",
+    price: "$497/mo",
+    setup: "$99 AI setup",
+    bullets: ["Everything in Professional", "AI roadside intake", "SMS GPS capture", "Dispatch dashboard"],
+    cta: "Start Premium",
     accent: false,
   },
 ];
@@ -172,7 +172,7 @@ function ShopSubscribe() {
           <div>
             <p className="font-bold text-white">Want to see it first?</p>
             <p className="text-sm text-roadcall-muted">
-              Take the shop dashboard for a spin — no signup required.
+              Take the Mechanics AI Profile for a spin — no signup required.
             </p>
           </div>
         </div>
@@ -181,7 +181,7 @@ function ShopSubscribe() {
             variant="outline"
             className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl"
           >
-            <PlayCircle className="h-4 w-4 mr-2" /> Try the demo dashboard
+            <PlayCircle className="h-4 w-4 mr-2" /> Try the Mechanics AI Profile
           </Button>
         </Link>
       </div>
