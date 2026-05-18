@@ -1527,13 +1527,13 @@ export default function ApiTesterPage() {
   const activeTabConfig = TABS.find((t) => t.id === activeTab)!;
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="roadcall-page min-h-screen text-roadcall-silver">
       {/* Header */}
-      <div className="border-b bg-white shadow-sm">
+      <div className="border-b border-white/10 bg-slate-950/70 shadow-sm">
         <div className="mx-auto max-w-7xl px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">
+              <h1 className="text-2xl font-bold text-white">
                 🛠️ API Testing Dashboard
               </h1>
               <p className="text-sm text-muted-foreground">
@@ -1570,8 +1570,8 @@ export default function ApiTesterPage() {
                   }}
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors ${
                     activeTab === tab.id
-                      ? "bg-white text-slate-900 shadow-sm ring-1 ring-slate-200"
-                      : "text-roadcall-muted/55 hover:bg-roadcall-panel/450 hover:text-slate-900"
+                      ? "bg-roadcall-cyan/15 text-roadcall-cyan shadow-sm ring-1 ring-roadcall-cyan/25"
+                      : "text-roadcall-muted hover:bg-white/5 hover:text-white"
                   }`}
                 >
                   <span>{tab.label}</span>
@@ -1580,7 +1580,7 @@ export default function ApiTesterPage() {
             </nav>
 
             {/* Quick info */}
-            <div className="mt-6 hidden rounded-lg bg-white p-4 shadow-sm ring-1 ring-slate-200 lg:block">
+            <div className="mt-6 hidden rounded-lg bg-slate-950/70 p-4 shadow-sm ring-1 ring-white/10 lg:block">
               <h3 className="text-xs font-semibold uppercase text-roadcall-muted/70">
                 Workflow
               </h3>
@@ -1604,7 +1604,7 @@ export default function ApiTesterPage() {
               <div
                 className={`h-3 w-3 rounded-full ${activeTabConfig.color}`}
               />
-              <h2 className="text-lg font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-white">
                 {activeTabConfig.label}
               </h2>
             </div>
@@ -1696,7 +1696,7 @@ export default function ApiTesterPage() {
                                 timestamp: entry.timestamp,
                               })
                             }
-                            className="flex w-full items-center gap-2 rounded-md p-2 text-left text-xs hover:bg-slate-50"
+                            className="flex w-full items-center gap-2 rounded-md p-2 text-left text-xs hover:bg-white/5"
                           >
                             <Badge
                               className={`${getMethodColor(entry.method)} text-[10px]`}

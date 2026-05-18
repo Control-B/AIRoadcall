@@ -60,7 +60,7 @@ const STEPS = [
 
 export default function FleetIntegrationsPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="roadcall-page min-h-screen text-roadcall-silver">
       {/* Hero */}
       <section className="relative min-h-[65vh] flex flex-col justify-end overflow-hidden">
         <Image
@@ -104,25 +104,25 @@ export default function FleetIntegrationsPage() {
       </section>
 
       {/* Categories */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="py-20 px-4 bg-slate-950/35 border-y border-white/10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Integration categories</h2>
-            <p className="text-gray-600 max-w-xl mx-auto">Seven categories covering the full fleet operations stack. Native connectors and open REST API for anything else.</p>
+            <h2 className="text-3xl font-bold text-white mb-4">Integration categories</h2>
+            <p className="text-roadcall-muted max-w-xl mx-auto">Seven categories covering the full fleet operations stack. Native connectors and open REST API for anything else.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {CATEGORIES.map((c) => {
               const Icon = c.icon;
               return (
-                <div key={c.title} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                    <Icon className="w-5 h-5 text-blue-600" />
+                <div key={c.title} className="bg-slate-950/70 rounded-xl p-6 border border-white/10 hover:border-roadcall-cyan/35 transition-colors">
+                  <div className="w-10 h-10 bg-roadcall-cyan/15 rounded-lg flex items-center justify-center mb-4">
+                    <Icon className="w-5 h-5 text-roadcall-cyan" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{c.title}</h3>
-                  <p className="text-sm text-gray-600 mb-4">{c.desc}</p>
+                  <h3 className="font-semibold text-white mb-2">{c.title}</h3>
+                  <p className="text-sm text-roadcall-muted mb-4">{c.desc}</p>
                   <div className="flex flex-wrap gap-2">
                     {c.providers.map((p) => (
-                      <span key={p} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded-full border border-blue-100">{p}</span>
+                      <span key={p} className="text-xs bg-roadcall-cyan/10 text-roadcall-cyan px-2 py-1 rounded-full border border-roadcall-cyan/20">{p}</span>
                     ))}
                   </div>
                 </div>
@@ -136,18 +136,18 @@ export default function FleetIntegrationsPage() {
       <section className="py-20 px-4">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">How integration works</h2>
-            <p className="text-gray-600">Five steps from data connection to live roadside AI support.</p>
+            <h2 className="text-3xl font-bold text-white mb-4">How integration works</h2>
+            <p className="text-roadcall-muted">Five steps from data connection to live roadside AI support.</p>
           </div>
           <div className="space-y-6">
             {STEPS.map((s, i) => (
-              <div key={s.title} className="flex gap-6 items-start p-6 bg-gray-50 rounded-xl border border-gray-100">
-                <div className="flex-shrink-0 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+              <div key={s.title} className="flex gap-6 items-start p-6 bg-slate-950/70 rounded-xl border border-white/10">
+                <div className="flex-shrink-0 w-12 h-12 bg-roadcall-cyan text-slate-950 rounded-full flex items-center justify-center font-bold text-lg">
                   {i + 1}
                 </div>
                 <div>
-                  <h3 className="font-semibold text-gray-900 text-lg mb-1">{s.title}</h3>
-                  <p className="text-gray-600">{s.desc}</p>
+                  <h3 className="font-semibold text-white text-lg mb-1">{s.title}</h3>
+                  <p className="text-roadcall-muted">{s.desc}</p>
                 </div>
               </div>
             ))}
@@ -156,10 +156,10 @@ export default function FleetIntegrationsPage() {
       </section>
 
       {/* Open API note */}
-      <section className="py-16 px-4 bg-blue-50 border-y border-blue-100">
+      <section className="py-16 px-4 bg-roadcall-cyan/10 border-y border-roadcall-cyan/20">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Not on the list? Use the open API.</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-white mb-4">Not on the list? Use the open API.</h2>
+          <p className="text-roadcall-muted mb-6">
             Every Roadcall Fleet endpoint is accessible via REST. Bring your own integration, your own scheduler,
             your own data pipeline — we publish and version our API so your team can build confidently.
           </p>
@@ -179,7 +179,7 @@ export default function FleetIntegrationsPage() {
           <p className="text-blue-100 mb-6">Book a call with the Roadcall Fleet team to map your integration path.</p>
           <Link
             href="/fleet/onboarding"
-            className="bg-white text-blue-700 font-semibold px-8 py-3 rounded-lg hover:bg-blue-50 transition-colors inline-flex items-center gap-2"
+            className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold px-8 py-3 rounded-lg hover:brightness-110 transition-colors inline-flex items-center gap-2"
           >
             Start Fleet Setup <ArrowRight className="w-4 h-4" />
           </Link>

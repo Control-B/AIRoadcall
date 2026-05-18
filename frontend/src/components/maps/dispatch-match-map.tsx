@@ -120,7 +120,7 @@ export function DispatchMatchMap({ match, className = "h-[420px] w-full" }: Disp
 
   if (!mapboxToken) {
     return (
-      <div className={`${className} flex items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500`}>
+      <div className={`${className} flex items-center justify-center rounded-xl border border-dashed border-roadcall-cyan/30 bg-slate-950/60 text-sm text-roadcall-muted`}>
         Map requires `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN`.
       </div>
     );
@@ -128,11 +128,11 @@ export function DispatchMatchMap({ match, className = "h-[420px] w-full" }: Disp
 
   if (!match.coordinates) {
     return (
-      <div className={`${className} flex items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500`}>
+      <div className={`${className} flex items-center justify-center rounded-xl border border-dashed border-roadcall-cyan/30 bg-slate-950/60 text-sm text-roadcall-muted`}>
         No caller coordinates available.
       </div>
     );
   }
 
-  return <div ref={containerRef} className={`${className} overflow-hidden rounded-xl border border-slate-200`} />;
+  return <div ref={containerRef} className={`${className} overflow-hidden rounded-xl border border-white/10`} />;
 }

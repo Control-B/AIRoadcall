@@ -20,8 +20,8 @@ const DATA_MODES = [
   {
     name: "Hosted Multi-Tenant",
     tag: "Default",
-    color: "border-blue-200 bg-blue-50",
-    tagColor: "bg-blue-100 text-blue-700",
+    color: "border-roadcall-cyan/35 bg-roadcall-cyan/10",
+    tagColor: "bg-roadcall-cyan/15 text-roadcall-cyan",
     items: [
       "Shared infrastructure, isolated data",
       "Fastest time-to-live",
@@ -32,7 +32,7 @@ const DATA_MODES = [
   {
     name: "Private Tenant",
     tag: "Enterprise",
-    color: "border-slate-300 bg-white",
+    color: "border-white/10 bg-slate-950/70",
     tagColor: "bg-roadcall-panel text-white",
     items: [
       "Dedicated infrastructure, your namespace",
@@ -44,7 +44,7 @@ const DATA_MODES = [
   {
     name: "Hybrid In-House",
     tag: "Advanced",
-    color: "border-cyan-200 bg-cyan-50",
+    color: "border-cyan-300/30 bg-cyan-400/10",
     tagColor: "bg-cyan-700 text-white",
     items: [
       "Roadcall handles AI calls + vendor dispatch",
@@ -57,7 +57,7 @@ const DATA_MODES = [
 
 export default function FleetSecurityPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="roadcall-page min-h-screen text-roadcall-silver">
       {/* Hero */}
       <section className="relative min-h-[65vh] flex flex-col justify-end overflow-hidden">
         <Image
@@ -101,22 +101,22 @@ export default function FleetSecurityPage() {
       </section>
 
       {/* Security Pillars */}
-      <section className="py-20 px-4 bg-gray-50">
+      <section className="py-20 px-4 bg-slate-950/35 border-y border-white/10">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Eight security pillars</h2>
-            <p className="text-gray-600 max-w-xl mx-auto">Built from the ground up for carriers that cannot afford data exposure during roadside events.</p>
+            <h2 className="text-3xl font-bold text-white mb-4">Eight security pillars</h2>
+            <p className="text-roadcall-muted max-w-xl mx-auto">Built from the ground up for carriers that cannot afford data exposure during roadside events.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {PILLARS.map((p) => {
               const Icon = p.icon;
               return (
-                <div key={p.title} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-                    <Icon className="w-5 h-5 text-blue-600" />
+                <div key={p.title} className="bg-slate-950/70 rounded-xl p-6 border border-white/10 hover:border-roadcall-cyan/35 transition-colors">
+                  <div className="w-10 h-10 bg-roadcall-cyan/15 rounded-lg flex items-center justify-center mb-4">
+                    <Icon className="w-5 h-5 text-roadcall-cyan" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">{p.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{p.desc}</p>
+                  <h3 className="font-semibold text-white mb-2">{p.title}</h3>
+                  <p className="text-sm text-roadcall-muted leading-relaxed">{p.desc}</p>
                 </div>
               );
             })}
@@ -128,18 +128,18 @@ export default function FleetSecurityPage() {
       <section className="py-20 px-4">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Choose your data architecture</h2>
-            <p className="text-gray-600">Three deployment modes — all supported, no lock-in.</p>
+            <h2 className="text-3xl font-bold text-white mb-4">Choose your data architecture</h2>
+            <p className="text-roadcall-muted">Three deployment modes — all supported, no lock-in.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {DATA_MODES.map((m) => (
               <div key={m.name} className={`rounded-2xl border-2 p-8 ${m.color}`}>
                 <span className={`inline-block text-xs font-bold px-3 py-1 rounded-full mb-4 ${m.tagColor}`}>{m.tag}</span>
-                <h3 className="font-bold text-gray-900 text-xl mb-4">{m.name}</h3>
+                <h3 className="font-bold text-white text-xl mb-4">{m.name}</h3>
                 <ul className="space-y-3">
                   {m.items.map((item) => (
-                    <li key={item} className="flex items-start gap-2 text-sm text-gray-700">
-                      <Shield className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                    <li key={item} className="flex items-start gap-2 text-sm text-slate-300">
+                      <Shield className="w-4 h-4 text-roadcall-cyan flex-shrink-0 mt-0.5" />
                       {item}
                     </li>
                   ))}
@@ -151,18 +151,18 @@ export default function FleetSecurityPage() {
       </section>
 
       {/* Value */}
-      <section className="py-20 px-4 bg-slate-50">
+      <section className="py-20 px-4 bg-slate-950/35 border-y border-white/10">
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold text-gray-900 mb-12 text-center">Why security-first fleet automation matters</h2>
+          <h2 className="text-3xl font-bold text-white mb-12 text-center">Why security-first fleet automation matters</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
             {[
               { title: "For the Industry", body: "Trucking operations have historically been forced to use consumer tools or generic SaaS that weren't designed for fleet data sensitivity. Roadcall Fleet was built differently from day one." },
               { title: "For the Fleet", body: "Driver locations, vehicle movements, vendor relationships, and incident data are operationally sensitive. Roadcall protects all of it while still automating roadside support." },
               { title: "The Outcome", body: "Faster roadside response without losing data control. Your drivers get help faster. Your ops team doesn't get a security incident." },
             ].map((v) => (
-              <div key={v.title} className="bg-white rounded-xl p-8 shadow-sm border border-slate-100">
-                <h3 className="font-semibold text-gray-900 text-lg mb-3">{v.title}</h3>
-                <p className="text-gray-600 text-sm leading-relaxed">{v.body}</p>
+              <div key={v.title} className="bg-slate-950/70 rounded-xl p-8 border border-white/10">
+                <h3 className="font-semibold text-white text-lg mb-3">{v.title}</h3>
+                <p className="text-roadcall-muted text-sm leading-relaxed">{v.body}</p>
               </div>
             ))}
           </div>
@@ -176,7 +176,7 @@ export default function FleetSecurityPage() {
           <p className="text-blue-200 mb-6">Walk through our data architecture with a Roadcall Fleet engineer before signing anything.</p>
           <Link
             href="/fleet/onboarding"
-            className="bg-white text-slate-900 font-semibold px-8 py-3 rounded-lg hover:bg-blue-50 transition-colors inline-flex items-center gap-2"
+            className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold px-8 py-3 rounded-lg hover:brightness-110 transition-colors inline-flex items-center gap-2"
           >
             Start Fleet Setup <ArrowRight className="w-4 h-4" />
           </Link>

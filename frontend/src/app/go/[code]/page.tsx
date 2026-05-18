@@ -35,25 +35,25 @@ export default function GoCodePage() {
   }, [code, router]);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+    <div className="roadcall-page min-h-screen flex items-center justify-center p-4 text-roadcall-silver">
+      <div className="roadcall-surface max-w-md w-full rounded-2xl p-8 text-center">
         <div className="mb-6">
-          <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="w-16 h-16 bg-roadcall-cyan/15 rounded-full flex items-center justify-center mx-auto mb-4 ring-1 ring-roadcall-cyan/25">
+            <svg className="w-8 h-8 text-roadcall-cyan" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Roadside Assist</h1>
+          <h1 className="text-2xl font-bold text-white mb-2">Roadside Assist</h1>
           {loading && !error ? (
             <>
-              <p className="text-gray-600 mb-4">Looking up case <span className="font-mono font-bold">{code}</span>…</p>
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="text-roadcall-muted mb-4">Looking up case <span className="font-mono font-bold text-white">{code}</span>...</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-roadcall-cyan mx-auto"></div>
             </>
           ) : error ? (
             <>
-              <p className="text-red-600 mb-4">{error}</p>
-              <p className="text-sm text-gray-500">
+              <p className="text-red-200 mb-4">{error}</p>
+              <p className="text-sm text-roadcall-muted">
                 Your code should look like <span className="font-mono">RC-XXXXXXXX</span>
               </p>
             </>

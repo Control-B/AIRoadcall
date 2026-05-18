@@ -10,7 +10,7 @@ const TIERS = [
     tag: "Small fleets · up to 25 vehicles",
     price: "Contact Sales",
     highlight: false,
-    color: "border-gray-200 bg-white",
+    color: "border-white/10 bg-slate-950/70",
     cta: "Book Fleet Demo",
     ctaHref: "/fleet/onboarding",
     features: [
@@ -28,7 +28,7 @@ const TIERS = [
     tag: "Growing carriers · up to 250 vehicles",
     price: "Contact Sales",
     highlight: true,
-    color: "border-blue-500 ring-2 ring-blue-500 bg-blue-50",
+    color: "border-roadcall-cyan/60 bg-roadcall-cyan/10 ring-2 ring-roadcall-cyan/30",
     cta: "Book Fleet Demo",
     ctaHref: "/fleet/onboarding",
     features: [
@@ -47,7 +47,7 @@ const TIERS = [
     tag: "Large carriers · private or hybrid",
     price: "Custom",
     highlight: false,
-    color: "border-slate-300 bg-white",
+    color: "border-white/10 bg-slate-950/70",
     cta: "Contact Sales",
     ctaHref: `tel:${HELP_PHONE}`,
     features: [
@@ -82,7 +82,7 @@ const FAQS = [
 
 export default function FleetPricingPage() {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="roadcall-page min-h-screen text-roadcall-silver">
       {/* Hero */}
       <section className="bg-gradient-to-br from-slate-800 via-blue-900 to-cyan-900 text-white py-16 px-4 text-center">
         <div className="max-w-3xl mx-auto">
@@ -101,20 +101,20 @@ export default function FleetPricingPage() {
                 {t.highlight && (
                   <span className="inline-block bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white text-xs font-bold px-3 py-1 rounded-full mb-4 self-start">MOST POPULAR</span>
                 )}
-                <div className="text-sm text-gray-500 mb-2">{t.tag}</div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">{t.price}</div>
-                <div className="font-semibold text-xl text-gray-900 mb-6">{t.name}</div>
+                <div className="text-sm text-roadcall-muted mb-2">{t.tag}</div>
+                <div className="text-3xl font-bold text-white mb-2">{t.price}</div>
+                <div className="font-semibold text-xl text-white mb-6">{t.name}</div>
                 <ul className="space-y-3 mb-8 flex-1">
                   {t.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-gray-700">
-                      <CheckCircle2 className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />{f}
+                    <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
+                      <CheckCircle2 className="w-4 h-4 text-roadcall-cyan flex-shrink-0 mt-0.5" />{f}
                     </li>
                   ))}
                 </ul>
                 <Link
                   href={t.ctaHref}
                   className={`w-full text-center font-semibold py-3 rounded-lg transition-colors ${
-                    t.highlight ? "bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white hover:brightness-110" : "border border-blue-600 text-blue-600 hover:bg-blue-50"
+                    t.highlight ? "bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white hover:brightness-110" : "border border-roadcall-cyan/35 text-roadcall-cyan hover:bg-roadcall-cyan/10"
                   }`}
                 >
                   {t.cta}
@@ -126,16 +126,16 @@ export default function FleetPricingPage() {
       </section>
 
       {/* Pricing Dimensions */}
-      <section className="py-16 px-4 bg-gray-50">
+      <section className="py-16 px-4 bg-slate-950/35 border-y border-white/10">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">How pricing is measured</h2>
+          <h2 className="text-2xl font-bold text-white mb-8 text-center">How pricing is measured</h2>
           <div className="space-y-4">
             {DIMENSIONS.map((d) => (
-              <div key={d.label} className="flex gap-4 p-4 bg-white rounded-xl border border-gray-100">
-                <CheckCircle2 className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <div key={d.label} className="flex gap-4 p-4 bg-slate-950/70 rounded-xl border border-white/10">
+                <CheckCircle2 className="w-5 h-5 text-roadcall-cyan flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-gray-900">{d.label}</span>
-                  <span className="text-gray-600"> — {d.desc}</span>
+                  <span className="font-semibold text-white">{d.label}</span>
+                  <span className="text-roadcall-muted"> — {d.desc}</span>
                 </div>
               </div>
             ))}
@@ -146,15 +146,15 @@ export default function FleetPricingPage() {
       {/* FAQ */}
       <section className="py-16 px-4">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">Frequently asked questions</h2>
+          <h2 className="text-2xl font-bold text-white mb-8 text-center">Frequently asked questions</h2>
           <div className="space-y-6">
             {FAQS.map((faq) => (
-              <div key={faq.q} className="border border-gray-100 rounded-xl p-6">
+              <div key={faq.q} className="border border-white/10 bg-slate-950/55 rounded-xl p-6">
                 <div className="flex gap-3 mb-2">
-                  <HelpCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-                  <p className="font-semibold text-gray-900">{faq.q}</p>
+                  <HelpCircle className="w-5 h-5 text-roadcall-cyan flex-shrink-0 mt-0.5" />
+                  <p className="font-semibold text-white">{faq.q}</p>
                 </div>
-                <p className="text-gray-600 text-sm ml-8">{faq.a}</p>
+                <p className="text-roadcall-muted text-sm ml-8">{faq.a}</p>
               </div>
             ))}
           </div>
@@ -168,7 +168,7 @@ export default function FleetPricingPage() {
           <p className="text-blue-200 mb-6">30-minute live walkthrough of AI call handling, incident management, and vendor dispatch.</p>
           <Link
             href="/fleet/onboarding"
-            className="bg-white text-slate-900 font-semibold px-8 py-3 rounded-lg hover:bg-blue-50 transition-colors inline-flex items-center gap-2"
+            className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold px-8 py-3 rounded-lg hover:brightness-110 transition-colors inline-flex items-center gap-2"
           >
             Book Fleet Demo <ArrowRight className="w-4 h-4" />
           </Link>

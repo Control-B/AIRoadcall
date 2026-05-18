@@ -40,23 +40,23 @@ export default function CookieConsent() {
           aria-label="Cookie preferences"
           className="fixed inset-x-0 bottom-0 z-[60] px-4 pb-4 sm:px-6"
         >
-          <div className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white/95 backdrop-blur shadow-2xl ring-1 ring-black/5">
+          <div className="roadcall-surface mx-auto max-w-4xl rounded-2xl">
             <div className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm leading-snug text-slate-700">
-                <strong className="text-slate-900">Roadcall.ai</strong> uses essential cookies to
+              <p className="text-sm leading-snug text-roadcall-muted">
+                <strong className="text-white">Roadcall.ai</strong> uses essential cookies to
                 keep roadside sessions, dashboard access, and dispatch workflows secure and
                 reliable. Optional analytics cookies help us improve the service.
               </p>
               <div className="flex flex-wrap gap-2 sm:flex-nowrap">
                 <button
                   onClick={() => setShowPrefs(true)}
-                  className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="rounded-lg border border-white/15 px-3.5 py-2 text-sm font-medium text-slate-200 hover:bg-white/10"
                 >
                   Preferences
                 </button>
                 <button
                   onClick={() => pick("denied")}
-                  className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  className="rounded-lg border border-white/15 px-3.5 py-2 text-sm font-medium text-slate-200 hover:bg-white/10"
                 >
                   Reject optional
                 </button>
@@ -74,9 +74,9 @@ export default function CookieConsent() {
 
       {/* Preferences modal */}
       {showPrefs && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
-            <h2 className="text-lg font-semibold text-slate-900">Cookie preferences</h2>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 px-4">
+          <div className="roadcall-surface w-full max-w-lg rounded-2xl p-6">
+            <h2 className="text-lg font-semibold text-white">Cookie preferences</h2>
             <p className="mt-1 text-sm text-roadcall-muted/70">
               Essential cookies keep roadside dispatch, GPS capture, and dashboard sessions
               working. Optional cookies are off until you turn them on.
@@ -105,13 +105,13 @@ export default function CookieConsent() {
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <button
                 onClick={() => setShowPrefs(false)}
-                className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-white/15 px-3.5 py-2 text-sm font-medium text-slate-200 hover:bg-white/10"
               >
                 Back
               </button>
               <button
                 onClick={() => pick("denied")}
-                className="rounded-lg border border-slate-300 px-3.5 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="rounded-lg border border-white/15 px-3.5 py-2 text-sm font-medium text-slate-200 hover:bg-white/10"
               >
                 Save — essential only
               </button>
@@ -141,14 +141,14 @@ function Row({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 rounded-lg border border-slate-100 bg-slate-50/50 px-4 py-3">
+    <div className="flex items-start justify-between gap-3 rounded-lg border border-white/10 bg-slate-950/60 px-4 py-3">
       <div>
-        <p className="text-sm font-semibold text-slate-800">{title}</p>
+        <p className="text-sm font-semibold text-white">{title}</p>
         <p className="text-xs text-roadcall-muted/70">{detail}</p>
       </div>
       <span
         className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-          disabled ? "bg-slate-200 text-roadcall-muted/55" : "bg-emerald-100 text-emerald-700"
+          disabled ? "bg-white/10 text-roadcall-muted" : "bg-emerald-400/15 text-emerald-200"
         }`}
       >
         {tag}

@@ -77,28 +77,28 @@ export default function LocatePage() {
   };
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-800 via-blue-900 to-slate-900 flex items-center justify-center px-4 py-16">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 text-center">
+    <main className="roadcall-page min-h-screen flex items-center justify-center px-4 py-16 text-roadcall-silver">
+      <div className="roadcall-surface max-w-md w-full rounded-2xl p-8 text-center">
         {/* Brand */}
         <div className="flex items-center justify-center gap-2 mb-6">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
             <MapPin className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-gray-900 text-lg">Roadcall Fleet</span>
+          <span className="font-bold text-white text-lg">Roadcall Fleet</span>
         </div>
 
         {/* States */}
         {state === "idle" && (
           <>
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <MapPin className="w-8 h-8 text-blue-600" />
+            <div className="w-16 h-16 bg-roadcall-cyan/15 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-roadcall-cyan/25">
+              <MapPin className="w-8 h-8 text-roadcall-cyan" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-3">Share your location</h1>
-            <p className="text-gray-600 mb-2 leading-relaxed">
+            <h1 className="text-2xl font-bold text-white mb-3">Share your location</h1>
+            <p className="text-roadcall-muted mb-2 leading-relaxed">
               Your dispatcher needs your GPS location to find the nearest roadside mechanic.
             </p>
-            <p className="text-gray-500 text-sm mb-8 flex items-center justify-center gap-1">
-              <Shield className="w-4 h-4 text-blue-500" />
+            <p className="text-roadcall-muted text-sm mb-8 flex items-center justify-center gap-1">
+              <Shield className="w-4 h-4 text-roadcall-cyan" />
               One-time share. Your location is not tracked continuously.
             </p>
             <button
@@ -107,7 +107,7 @@ export default function LocatePage() {
             >
               <MapPin className="w-5 h-5" /> Share My Location
             </button>
-            <p className="text-xs text-gray-400 mt-4">
+            <p className="text-xs text-roadcall-muted mt-4">
               Your browser will ask for permission. Tap &quot;Allow&quot; to share.
             </p>
           </>
@@ -115,11 +115,11 @@ export default function LocatePage() {
 
         {(state === "requesting" || state === "submitting") && (
           <>
-            <Loader2 className="w-14 h-14 text-blue-600 animate-spin mx-auto mb-6" />
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
+            <Loader2 className="w-14 h-14 text-roadcall-cyan animate-spin mx-auto mb-6" />
+            <h2 className="text-xl font-bold text-white mb-2">
               {state === "requesting" ? "Getting your location…" : "Sending to dispatcher…"}
             </h2>
-            <p className="text-gray-500 text-sm">
+            <p className="text-roadcall-muted text-sm">
               {state === "requesting"
                 ? "Allow location access in your browser when prompted."
                 : "Almost done."}
@@ -129,14 +129,14 @@ export default function LocatePage() {
 
         {state === "success" && (
           <>
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 className="w-8 h-8 text-green-600" />
+            <div className="w-16 h-16 bg-emerald-400/15 rounded-full flex items-center justify-center mx-auto mb-6 ring-1 ring-emerald-300/20">
+              <CheckCircle2 className="w-8 h-8 text-emerald-300" />
             </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-3">Location shared!</h2>
-            <p className="text-gray-600">
+            <h2 className="text-2xl font-bold text-white mb-3">Location shared!</h2>
+            <p className="text-roadcall-muted">
               Your dispatcher has your location and is finding the nearest help. Stay with your vehicle.
             </p>
-            <p className="text-sm text-gray-400 mt-6">You can close this page.</p>
+            <p className="text-sm text-roadcall-muted mt-6">You can close this page.</p>
           </>
         )}
 
@@ -145,13 +145,13 @@ export default function LocatePage() {
             <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertTriangle className="w-8 h-8 text-yellow-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Location permission denied</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-xl font-bold text-white mb-3">Location permission denied</h2>
+            <p className="text-roadcall-muted mb-6">
               Please allow location access in your browser settings and try again, or call your dispatcher directly.
             </p>
             <button
               onClick={() => setState("idle")}
-              className="w-full border border-blue-600 text-blue-600 font-semibold py-3 rounded-xl hover:bg-blue-50 transition-colors"
+              className="w-full border border-roadcall-cyan/40 text-roadcall-cyan font-semibold py-3 rounded-xl hover:bg-roadcall-cyan/10 transition-colors"
             >
               Try Again
             </button>
@@ -163,13 +163,13 @@ export default function LocatePage() {
             <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <AlertTriangle className="w-8 h-8 text-yellow-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Location timed out</h2>
-            <p className="text-gray-600 mb-6">
+            <h2 className="text-xl font-bold text-white mb-3">Location timed out</h2>
+            <p className="text-roadcall-muted mb-6">
               We couldn't get a GPS fix in time. Make sure you're not in a tunnel or underground, then try again.
             </p>
             <button
               onClick={() => setState("idle")}
-              className="w-full border border-blue-600 text-blue-600 font-semibold py-3 rounded-xl hover:bg-blue-50 transition-colors"
+              className="w-full border border-roadcall-cyan/40 text-roadcall-cyan font-semibold py-3 rounded-xl hover:bg-roadcall-cyan/10 transition-colors"
             >
               Try Again
             </button>
@@ -181,8 +181,8 @@ export default function LocatePage() {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <XCircle className="w-8 h-8 text-red-500" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Link expired</h2>
-            <p className="text-gray-600">
+            <h2 className="text-xl font-bold text-white mb-3">Link expired</h2>
+            <p className="text-roadcall-muted">
               This location link has expired. Ask your dispatcher to send a new one, or call them directly.
             </p>
           </>
@@ -193,8 +193,8 @@ export default function LocatePage() {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <XCircle className="w-8 h-8 text-red-500" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">GPS not supported</h2>
-            <p className="text-gray-600">
+            <h2 className="text-xl font-bold text-white mb-3">GPS not supported</h2>
+            <p className="text-roadcall-muted">
               Your browser or device doesn't support location sharing. Try opening this link in Chrome or Safari,
               or call your dispatcher to give your location verbally.
             </p>
@@ -206,12 +206,12 @@ export default function LocatePage() {
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
               <XCircle className="w-8 h-8 text-red-500" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-3">Something went wrong</h2>
-            <p className="text-gray-600 mb-4">{errMsg || "Please try again or call your dispatcher."}</p>
+            <h2 className="text-xl font-bold text-white mb-3">Something went wrong</h2>
+            <p className="text-roadcall-muted mb-4">{errMsg || "Please try again or call your dispatcher."}</p>
             {errMsg && (
               <button
                 onClick={() => { setState("idle"); setErrMsg(""); }}
-                className="w-full border border-blue-600 text-blue-600 font-semibold py-3 rounded-xl hover:bg-blue-50 transition-colors"
+                className="w-full border border-roadcall-cyan/40 text-roadcall-cyan font-semibold py-3 rounded-xl hover:bg-roadcall-cyan/10 transition-colors"
               >
                 Try Again
               </button>
