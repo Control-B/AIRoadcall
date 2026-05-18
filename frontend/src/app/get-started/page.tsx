@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
+import AgentsLink from "./AgentsLink";
 
 type Track = "shop" | "fleet";
 
@@ -114,6 +115,7 @@ export default function GetStartedPage() {
           </div>
         </div>
       </section>
+      <AgentsLink />
     </PageLayout>
   );
 }
