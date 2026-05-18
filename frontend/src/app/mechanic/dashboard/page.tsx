@@ -15,7 +15,6 @@ type Dashboard = {
   profile_complete: boolean;
   ai_agent: { activation_status: string; agent_name?: string | null; last_error?: string | null } & Record<string, string | null | undefined> | null;
   usage: { usage_month: string; calls_handled: number; leads_allocated: number; included_leads: number; overage_leads: number } | null;
-  activation_steps: Array<{ id: string; label: string; complete: boolean }>;
 };
 
 const AI_AGENT_ID_KEY = `ret${"ell"}_agent_id`;
@@ -60,13 +59,6 @@ const DEMO_DASHBOARD: Dashboard = {
     [AI_AGENT_ID_KEY]: "agent_demo_9edfdf87e375eeffba42912a",
   },
   usage: { usage_month: new Date().toISOString().slice(0, 7), calls_handled: 47, leads_allocated: 18, included_leads: 35, overage_leads: 0 },
-  activation_steps: [
-    { id: "subscribe", label: "Subscribe", complete: true },
-    { id: "profile", label: "Complete Shop Profile", complete: true },
-    { id: "ai", label: "Create AI Advisor", complete: true },
-    { id: "number", label: "Connect Number", complete: true },
-    { id: "live", label: "Go Live", complete: true },
-  ],
 };
 
 function MechanicDashboardContent() {
@@ -119,32 +111,27 @@ function MechanicDashboardContent() {
 
   async function saveProfile(event: React.FormEvent) {
     event.preventDefault();
-    if (isDemo) {
-      setMessage("Demo mode: profile changes aren't persisted. Subscribe to save your real shop.");
-      return;
-    }
     setSaving(true);
     setError(null);
     setMessage(null);
     try {
-      const response = await fetch(`${dashboardPath}/profile?token=${encodeURIComponent(token)}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          service_radius_miles: Number(form.service_radius_miles || 50),
-          services_offered: String(form.services_text || "").split(",").map((item) => item.trim()).filter(Boolean),
-        }),
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.detail || "Could not save profile");
-      setDashboard(body);
-      setMessage("Shop profile saved.");
+      await submitToSupport(form);
+      setMessage("Profile submitted! Our team will reach out to you shortly.");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not save profile");
+      setError(err instanceof Error ? err.message : "Could not submit profile");
     } finally {
       setSaving(false);
     }
+  }
+
+  // Utility to submit form to support@roadcall.ai
+  async function submitToSupport(form: Record<string, any>) {
+    const res = await fetch("/api/support/submit-setup-form", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "mechanic", data: form }),
+    });
+    if (!res.ok) throw new Error("Failed to submit form");
   }
 
   async function activateAi() {
@@ -226,16 +213,7 @@ function MechanicDashboardContent() {
 
         {(error || message) && <div className={`mt-6 rounded-xl border px-4 py-3 text-sm ${error ? "border-red-400/20 bg-red-400/10 text-red-100" : "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"}`}>{error || message}</div>}
 
-        <section className="mt-8 grid gap-4 md:grid-cols-5">
-          {dashboard?.activation_steps.map((step) => (
-            <div key={step.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-              <CheckCircle2 className={`h-5 w-5 ${step.complete ? "text-emerald-300" : "text-slate-600"}`} />
-              <p className="mt-3 text-sm font-bold">{step.label}</p>
-            </div>
-          ))}
-        </section>
-
-        <section className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+        <section className="mt-8 max-w-2xl mx-auto">
           <form onSubmit={saveProfile} className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6">
             <h2 className="text-xl font-bold">Shop Profile</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -273,27 +251,8 @@ function MechanicDashboardContent() {
                 </label>
               ))}
             </div>
-            <button disabled={saving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950"><Save className="h-4 w-4" /> Save profile</button>
+            <button disabled={saving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950"><Save className="h-4 w-4" /> Submit profile</button>
           </form>
-
-          <aside className="space-y-6">
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-              <h2 className="text-xl font-bold">Subscription</h2>
-              <p className="mt-4 text-3xl font-black capitalize">{dashboard?.subscription?.plan_id || "No plan"}</p>
-              <p className="mt-1 text-sm text-slate-400">Status: {dashboard?.subscription?.status || "not active"}</p>
-              <p className="mt-4 text-sm text-slate-300">Lead quota: {dashboard?.usage?.leads_allocated || 0} / {dashboard?.usage?.included_leads || 0}</p>
-            </div>
-            <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
-              <div className="flex items-center gap-2"><Bot className="h-5 w-5 text-orange-300" /><h2 className="text-xl font-bold">Phone & AI Advisor</h2></div>
-              <p className="mt-4 text-sm text-slate-300">Attach the shop phone, set fallback rules, then create the AI advisor for this mechanic account.</p>
-              <p className="mt-3 text-sm text-slate-300">Status: {dashboard?.ai_agent?.activation_status || "not_subscribed"}</p>
-              {dashboard?.ai_agent?.[AI_AGENT_ID_KEY] && <p className="mt-2 break-all text-xs text-slate-500">Agent: {dashboard.ai_agent[AI_AGENT_ID_KEY]}</p>}
-              <Link href="/ai-telephony" className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-400 px-5 py-3 text-sm font-bold text-slate-950 hover:brightness-110">
-                <PhoneForwarded className="h-4 w-4" /> Create AI advisor
-              </Link>
-              {!dashboard?.profile_complete && <p className="mt-3 flex gap-2 text-xs text-amber-200"><ShieldAlert className="h-4 w-4" /> Complete profile before activation.</p>}
-            </div>
-          </aside>
         </section>
       </div>
     </main>

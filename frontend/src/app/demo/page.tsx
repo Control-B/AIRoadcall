@@ -353,11 +353,10 @@ export default function DemoPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-800 py-8">
-        <div className="max-w-6xl mx-auto px-4 text-center text-roadcall-muted text-sm">
-          <p>© {new Date().getFullYear()} AI Roadside Support. All rights reserved.</p>
-        </div>
-      </footer>
+      {/* Use global site footer for consistency */}
+      {/* @ts-expect-error Server Component import in Client Component */}
+      import { SiteFooterChrome } from "@/components/site-chrome";
+      <SiteFooterChrome />
     </div>
   );
 }
