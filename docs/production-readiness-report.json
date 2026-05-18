@@ -1,0 +1,33 @@
+{
+  "generated_at": "2026-05-18T18:32:12.462Z",
+  "summary": {
+    "page_routes": 65,
+    "internal_links_checked": 99,
+    "broken_links": 0,
+    "missing_env_vars": 0
+  },
+  "broken_links": [],
+  "env": [
+    {
+      "name": "NEXT_PUBLIC_API_URL",
+      "configured": true
+    },
+    {
+      "name": "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "configured": true
+    },
+    {
+      "name": "MAPBOX_ACCESS_TOKEN",
+      "configured": true
+    },
+    {
+      "name": "ROADCALL_ONBOARDING_WEBHOOK_URL",
+      "configured": true
+    }
+  ],
+  "recommended_commands": [
+    "cd frontend && npm run build",
+    "cd backend && uv run pytest",
+    "cd frontend && npm run qa:production"
+  ]
+}

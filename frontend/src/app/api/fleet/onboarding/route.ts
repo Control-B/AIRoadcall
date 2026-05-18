@@ -16,10 +16,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    await forwardIntake("fleet", payload);
+    const delivery = await forwardIntake("fleet", payload);
+    return NextResponse.json({ ok: true, message: "Fleet onboarding request received.", delivery });
   } catch (error) {
     console.error("Fleet onboarding forward failed", error);
+    return NextResponse.json(
+      { detail: "We could not deliver this fleet profile. Please call Roadcall or try again in a moment." },
+      { status: 503 },
+    );
   }
-
-  return NextResponse.json({ ok: true, message: "Fleet onboarding request received." });
 }

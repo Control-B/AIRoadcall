@@ -16,10 +16,13 @@ export async function POST(request: Request) {
   }
 
   try {
-    await forwardIntake("shops", payload);
+    const delivery = await forwardIntake("shops", payload);
+    return NextResponse.json({ ok: true, message: "Shop onboarding request received.", delivery });
   } catch (error) {
     console.error("Shop onboarding forward failed", error);
+    return NextResponse.json(
+      { detail: "We could not deliver this shop profile. Please call Roadcall or try again in a moment." },
+      { status: 503 },
+    );
   }
-
-  return NextResponse.json({ ok: true, message: "Shop onboarding request received." });
 }

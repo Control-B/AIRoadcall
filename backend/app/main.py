@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Request
+from datetime import datetime, timezone
+
+from fastapi import FastAPI, Request, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy import text
@@ -262,3 +265,105 @@ async def ensure_database_schema() -> None:
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "ai-roadside-support"}
+
+
+def _configured(value: str, *, allow_local: bool = False) -> bool:
+    normalized = (value or "").strip().lower()
+    if not normalized:
+        return False
+    if "xxx" in normalized or "placeholder" in normalized or "change-this" in normalized:
+        return False
+    if not allow_local and ("localhost" in normalized or "user:password" in normalized):
+        return False
+    return True
+
+
+def _integration_checks() -> dict[str, dict[str, bool | str]]:
+    return {
+        "database": {
+            "configured": _configured(settings.DATABASE_URL, allow_local=True),
+            "required_for": "all persistent flows",
+        },
+        "stripe": {
+            "configured": _configured(settings.STRIPE_SECRET_KEY) and _configured(settings.STRIPE_WEBHOOK_SECRET),
+            "required_for": "checkout, subscription sync, payment gating",
+        },
+        "retell": {
+            "configured": _configured(settings.RETELL_API_KEY) and _configured(settings.RETELL_BACKEND_WEBHOOK_TOKEN),
+            "required_for": "AI telephony provisioning and function calls",
+        },
+        "mapbox": {
+            "configured": _configured(settings.MAPBOX_ACCESS_TOKEN),
+            "required_for": "reverse geocoding and dispatch maps",
+        },
+        "sms": {
+            "configured": (
+                _configured(settings.TWILIO_ACCOUNT_SID)
+                and _configured(settings.TWILIO_AUTH_TOKEN)
+                and (_configured(settings.TWILIO_FROM_NUMBER) or _configured(settings.TWILIO_MESSAGING_SERVICE_SID))
+            )
+            or (_configured(settings.TELNYX_API_KEY) and _configured(settings.TELNYX_FROM_NUMBER)),
+            "required_for": "magic links, dispatch offers, driver updates",
+        },
+        "email": {
+            "configured": _configured(settings.RESEND_API_KEY),
+            "required_for": "lead generation and notification fallback",
+        },
+    }
+
+
+@app.get("/health/ready")
+async def readiness_check():
+    db_ok = False
+    db_error = None
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        db_ok = True
+    except Exception as exc:  # pragma: no cover - exercised in deployed environments
+        db_error = str(exc)
+
+    integrations = _integration_checks()
+    critical_ready = db_ok and all(
+        bool(integrations[name]["configured"])
+        for name in ("database", "stripe", "retell", "mapbox", "sms")
+    )
+    payload = {
+        "status": "ready" if critical_ready else "degraded",
+        "service": "ai-roadside-support",
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "database": {"ok": db_ok, "error": db_error},
+        "integrations": integrations,
+    }
+    return JSONResponse(
+        payload,
+        status_code=status.HTTP_200_OK if critical_ready else status.HTTP_503_SERVICE_UNAVAILABLE,
+    )
+
+
+@app.get("/api/system/status")
+async def system_status():
+    integrations = _integration_checks()
+    return {
+        "service": "ai-roadside-support",
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+        "operational_lanes": {
+            "ai_roadside_dispatch": {
+                "ready": bool(integrations["database"]["configured"] and integrations["mapbox"]["configured"] and integrations["sms"]["configured"]),
+                "checks": ["database", "mapbox", "sms"],
+            },
+            "ai_telephony": {
+                "ready": bool(integrations["database"]["configured"] and integrations["retell"]["configured"]),
+                "checks": ["database", "retell"],
+            },
+            "ai_lead_generation": {
+                "ready": bool(integrations["database"]["configured"] and integrations["email"]["configured"]),
+                "checks": ["database", "email"],
+            },
+            "truck_service_directory": {
+                "ready": bool(integrations["database"]["configured"] and integrations["mapbox"]["configured"]),
+                "checks": ["database", "mapbox"],
+            },
+        },
+        "integrations": integrations,
+    }

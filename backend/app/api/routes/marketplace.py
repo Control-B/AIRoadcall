@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import re
 import secrets
+import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -44,6 +45,13 @@ def _normalize_phone(value: str | None) -> str | None:
         return None
     digits = _PHONE_DIGITS.sub("", value)
     return digits[-10:] if len(digits) >= 10 else digits or None
+
+
+def _mechanic_uuid(mechanic_id: str) -> uuid.UUID:
+    try:
+        return uuid.UUID(str(mechanic_id))
+    except ValueError as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found") from exc
 
 
 async def _is_subscriber_phone(db: AsyncSession, phone: str) -> Organization | None:
@@ -97,7 +105,7 @@ class ReviewView(BaseModel):
 
 class SubmitListingRequest(BaseModel):
     company_name: str = Field(..., min_length=2, max_length=255)
-    contact_name: str = Field(..., min_length=2, max_length=255)
+    contact_name: str = Field(..., min_length=1, max_length=255)
     phone: str = Field(..., min_length=7, max_length=30)
     email: str | None = Field(default=None, max_length=255)
     website: str | None = None
@@ -178,7 +186,7 @@ class EditListingRequest(BaseModel):
 # ── routes ───────────────────────────────────────────────────────────
 @router.get("/{mechanic_id}", response_model=ProviderDetailResponse)
 async def get_provider_detail(mechanic_id: str, db: AsyncSession = Depends(get_session)):
-    mechanic = await db.get(Mechanic, mechanic_id)
+    mechanic = await db.get(Mechanic, _mechanic_uuid(mechanic_id))
     if not mechanic or not mechanic.active:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found")
 
@@ -288,7 +296,7 @@ async def submit_review(
     request: Request,
     db: AsyncSession = Depends(get_session),
 ):
-    mechanic = await db.get(Mechanic, mechanic_id)
+    mechanic = await db.get(Mechanic, _mechanic_uuid(mechanic_id))
     if not mechanic or not mechanic.active:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found")
 
@@ -303,7 +311,11 @@ async def submit_review(
     elif ip:
         recent_q = recent_q.where(MechanicReview.reviewer_ip == ip)
     existing_recent = (await db.execute(recent_q.order_by(MechanicReview.created_at.desc()).limit(1))).scalar_one_or_none()
-    if existing_recent and (cutoff - existing_recent.created_at).total_seconds() < 86400:
+    if existing_recent:
+        created_at = existing_recent.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+    if existing_recent and (cutoff - created_at).total_seconds() < 86400:
         raise HTTPException(
             status.HTTP_429_TOO_MANY_REQUESTS,
             detail="You already reviewed this provider in the last 24 hours.",
@@ -353,7 +365,7 @@ async def claim_listing(
     Auto-approved when the claim phone matches the mechanic's phone OR matches
     an active Roadcall subscriber organization. Otherwise queued for admin review.
     """
-    mechanic = await db.get(Mechanic, mechanic_id)
+    mechanic = await db.get(Mechanic, _mechanic_uuid(mechanic_id))
     if not mechanic:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found")
 
@@ -432,7 +444,7 @@ async def edit_listing(
     db: AsyncSession = Depends(get_session),
 ):
     """Self-edit a claimed listing. Auth = phone matches claimed_by_phone."""
-    mechanic = await db.get(Mechanic, mechanic_id)
+    mechanic = await db.get(Mechanic, _mechanic_uuid(mechanic_id))
     if not mechanic:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found")
     if not mechanic.claimed:

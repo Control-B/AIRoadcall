@@ -1,5 +1,6 @@
 """Admin authentication — login endpoint and JWT session tokens."""
 import secrets
+import os
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Header, Request, Response
@@ -24,6 +25,10 @@ router = APIRouter(prefix="/admin", tags=["admin-auth"])
 # Tokens are opaque random strings, not JWTs — simpler and no secret key needed.
 _active_tokens: dict[str, dict] = {}
 TOKEN_EXPIRY_HOURS = 24
+
+
+def _admin_api_key() -> str:
+    return os.environ.get("ADMIN_API_KEY") or get_settings().ADMIN_API_KEY
 
 
 class LoginRequest(BaseModel):
@@ -54,7 +59,8 @@ async def admin_login(data: LoginRequest, response: Response):
     """
     username = data.username.strip()
     password = data.password.strip()
-    if username != settings.ADMIN_USERNAME or password != settings.ADMIN_PASSWORD:
+    current_settings = get_settings()
+    if username != current_settings.ADMIN_USERNAME or password != current_settings.ADMIN_PASSWORD:
         logger.warning(f"Failed admin login attempt: {data.username}")
         raise HTTPException(status_code=401, detail="Invalid username or password")
 
@@ -89,11 +95,12 @@ async def admin_login(data: LoginRequest, response: Response):
 async def check_auth(request: Request, x_admin_key: str = Header(default="")):
     """Check if a token is valid (header *or* cookie)."""
     token = x_admin_key or read_cookie(request, COOKIE_AUTH_SESSION) or ""
+    current_settings = get_settings()
     session = _active_tokens.get(token)
     if not session:
         # Also accept the static ADMIN_API_KEY for backward compat
-        if token and token == settings.ADMIN_API_KEY:
-            return AuthStatus(authenticated=True, username=settings.ADMIN_USERNAME)
+        if token and token == _admin_api_key():
+            return AuthStatus(authenticated=True, username=current_settings.ADMIN_USERNAME)
         return AuthStatus(authenticated=False, username="")
 
     if session["expires_at"] < datetime.now(timezone.utc):
@@ -135,7 +142,8 @@ async def verify_admin(
             del _active_tokens[token]
 
     # Fall back to static API key (used by ops scripts).
-    if token and token == settings.ADMIN_API_KEY:
-        return settings.ADMIN_USERNAME
+    current_settings = get_settings()
+    if token and token == _admin_api_key():
+        return current_settings.ADMIN_USERNAME
 
     raise HTTPException(status_code=401, detail="Not authenticated")
