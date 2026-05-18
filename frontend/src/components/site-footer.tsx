@@ -46,7 +46,7 @@ export function SiteFooter() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 xl:gap-12">
           {/* Brand column */}
-          <div className="lg:col-span-2">
+          <div>
             <Link href="/" className="mb-5 inline-block">
               <BrandMark width={250} height={82} />
             </Link>
