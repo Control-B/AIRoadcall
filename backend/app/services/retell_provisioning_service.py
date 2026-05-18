@@ -114,6 +114,30 @@ class RetellProvisioningService:
             return normalized_agent_type, self.settings.RETELL_AGENT_ID.strip(), "Roadcall roadside dispatch voice agent is not configured"
         return "mechanic", self.settings.RETELL_SHOP_AGENT_ID.strip(), "Roadcall shop voice agent is not configured"
 
+    def _test_call_agent_id_for_type(self, agent_type: str | None) -> tuple[str, str, str]:
+        normalized_agent_type, default_agent_id, missing_message = self._agent_id_for_type(agent_type)
+        if normalized_agent_type == "fleet":
+            test_agent_id = (self.settings.RETELL_TEST_OUTBOUND_AGENT_ID or default_agent_id).strip()
+            return normalized_agent_type, test_agent_id, "Roadcall fleet test outbound voice agent is not configured"
+        return normalized_agent_type, default_agent_id, missing_message
+
+    def _voice_id_for_choice(self, voice: str | None) -> tuple[str, str | None]:
+        normalized_voice = (voice or "female").strip().lower()
+        if normalized_voice == "male":
+            return "male", (self.settings.RETELL_MALE_VOICE_ID or "11labs-Adrian").strip()
+        if normalized_voice == "clone":
+            cloned_voice_id = self.settings.RETELL_CLONED_VOICE_ID.strip()
+            if cloned_voice_id:
+                return "clone", cloned_voice_id
+            return "female", (self.settings.RETELL_FEMALE_VOICE_ID or "11labs-Lily").strip()
+        return "female", (self.settings.RETELL_FEMALE_VOICE_ID or "11labs-Lily").strip()
+
+    def _agent_override_for_voice(self, voice: str | None) -> tuple[str, dict[str, Any]]:
+        voice_choice, voice_id = self._voice_id_for_choice(voice)
+        if not voice_id:
+            return voice_choice, {}
+        return voice_choice, {"voice_id": voice_id}
+
     async def provision_agent(
         self,
         tenant: Tenant,
@@ -200,14 +224,17 @@ class RetellProvisioningService:
         welcome_message: str | None = None,
         instructions: str | None = None,
         agent_type: str | None = None,
+        voice: str | None = None,
     ) -> dict[str, Any]:
-        normalized_agent_type, agent_id, missing_message = self._agent_id_for_type(agent_type)
+        normalized_agent_type, agent_id, missing_message = self._test_call_agent_id_for_type(agent_type)
         if not agent_id:
             raise RuntimeError(missing_message)
 
         from_number = (self.settings.RETELL_TEST_FROM_NUMBER or self.settings.DEMO_PHONE_NUMBER).strip()
         if not from_number:
-            raise RuntimeError("Roadcall test calling number is not configured")
+            raise RuntimeError("RETELL_TEST_FROM_NUMBER must be a Retell-owned or imported number before outbound phone tests can start")
+
+        voice_choice, agent_override = self._agent_override_for_voice(voice)
 
         body = {
             "from_number": from_number,
@@ -216,15 +243,19 @@ class RetellProvisioningService:
             "metadata": {
                 "source": "roadcall_agent_dashboard",
                 "agent_type": normalized_agent_type,
+                "voice": voice_choice,
             },
             "retell_llm_dynamic_variables": {
                 "agent_name": agent_name or "Roadcall Service Advisor",
                 "shop_name": business_name or "Roadcall shop",
                 "business_name": business_name or "Roadcall shop",
+                "voice": voice_choice,
                 "welcome_message": welcome_message or "Thanks for calling Roadcall.",
                 "dashboard_instructions": instructions or "Use Roadcall service advisor call handling rules.",
             },
         }
+        if agent_override:
+            body["agent_override"] = agent_override
         response = await asyncio.to_thread(self._request, "POST", "/v2/create-phone-call", body)
         return {
             "call_id": response.get("call_id"),
@@ -242,16 +273,20 @@ class RetellProvisioningService:
         welcome_message: str | None = None,
         instructions: str | None = None,
         agent_type: str | None = None,
+        voice: str | None = None,
     ) -> dict[str, Any]:
         normalized_agent_type, agent_id, missing_message = self._agent_id_for_type(agent_type)
         if not agent_id:
             raise RuntimeError(missing_message)
+
+        voice_choice, agent_override = self._agent_override_for_voice(voice)
 
         body = {
             "agent_id": agent_id,
             "metadata": {
                 "source": "roadcall_agent_dashboard_preview",
                 "agent_type": normalized_agent_type,
+                "voice": voice_choice,
             },
             "retell_llm_dynamic_variables": {
                 "agent_name": agent_name or "Roadcall Service Advisor",
@@ -260,10 +295,13 @@ class RetellProvisioningService:
                 "company_phone": company_phone or "Not provided",
                 "forward_phone": forward_phone or "Not provided",
                 "dispatch_phone": forward_phone or company_phone or "Not provided",
+                "voice": voice_choice,
                 "welcome_message": welcome_message or "Thanks for calling Roadcall.",
                 "dashboard_instructions": instructions or "Use Roadcall service advisor call handling rules.",
             },
         }
+        if agent_override:
+            body["agent_override"] = agent_override
         response = await asyncio.to_thread(self._request, "POST", "/v2/create-web-call", body)
         return {
             "call_id": response.get("call_id"),

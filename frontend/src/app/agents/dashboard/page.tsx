@@ -222,6 +222,7 @@ export default function AgentDashboard() {
         body: JSON.stringify({
           to_number: testNumber,
           agent_type: agentType,
+          voice,
           agent_name: agentName,
           business_name: businessName,
           welcome_message: welcomeMessage,
@@ -251,6 +252,7 @@ export default function AgentDashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           agent_type: agentType,
+          voice,
           agent_name: agentName,
           business_name: businessName,
           company_phone: phone,

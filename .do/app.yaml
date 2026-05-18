@@ -80,6 +80,30 @@ services:
       - key: RETELL_API_KEY
         scope: RUN_TIME
         type: SECRET
+      - key: RETELL_AGENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: RETELL_SHOP_AGENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: RETELL_FLEET_AGENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: RETELL_TEST_OUTBOUND_AGENT_ID
+        scope: RUN_TIME
+        type: SECRET
+      - key: RETELL_TEST_FROM_NUMBER
+        scope: RUN_TIME
+        type: SECRET
+      - key: RETELL_FEMALE_VOICE_ID
+        scope: RUN_TIME
+        value: 11labs-Lily
+      - key: RETELL_MALE_VOICE_ID
+        scope: RUN_TIME
+        value: 11labs-Adrian
+      - key: RETELL_CLONED_VOICE_ID
+        scope: RUN_TIME
+        type: SECRET
       - key: RETELL_CONVERSATION_FLOW_ID
         scope: RUN_TIME
         value: conversation_flow_9830b2d0fa37

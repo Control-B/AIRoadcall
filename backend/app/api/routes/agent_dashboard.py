@@ -16,6 +16,7 @@ service = RetellProvisioningService()
 class AgentTestCallIn(BaseModel):
     to_number: str = Field(min_length=7, max_length=32)
     agent_type: str = "mechanic"
+    voice: str = "female"
     agent_name: str | None = None
     business_name: str | None = None
     welcome_message: str | None = None
@@ -24,6 +25,7 @@ class AgentTestCallIn(BaseModel):
 
 class AgentWebCallIn(BaseModel):
     agent_type: str = "mechanic"
+    voice: str = "female"
     agent_name: str | None = None
     business_name: str | None = None
     company_phone: str | None = None
@@ -76,10 +78,14 @@ async def start_agent_test_call(payload: AgentTestCallIn) -> AgentTestCallOut:
             welcome_message=payload.welcome_message,
             instructions=payload.instructions,
             agent_type=payload.agent_type,
+            voice=payload.voice,
         )
     except RuntimeError as exc:
         logger.warning("Roadcall test call could not start: %s", exc)
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Roadcall test calling is not ready yet. Please contact support to finish phone activation.") from exc
+        setup_detail = str(exc)
+        if "configured" not in setup_detail and "RETELL_TEST_FROM_NUMBER" not in setup_detail:
+            setup_detail = "Roadcall test calling is not ready yet. Please contact support to finish Retell phone activation."
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=setup_detail) from exc
     except Exception as exc:
         logger.exception("Roadcall test call failed")
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Roadcall could not start the test call. Please try again shortly.") from exc
@@ -108,6 +114,7 @@ async def start_agent_web_call(payload: AgentWebCallIn) -> AgentWebCallOut:
             welcome_message=payload.welcome_message,
             instructions=payload.instructions,
             agent_type=payload.agent_type,
+            voice=payload.voice,
         )
     except RuntimeError as exc:
         logger.warning("Roadcall web preview could not start: %s", exc)
