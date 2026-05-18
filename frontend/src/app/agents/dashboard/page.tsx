@@ -1,60 +1,595 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import {
+  ArrowRight,
+  BadgeCheck,
+  Bot,
+  Brain,
+  Building2,
+  Check,
+  Code2,
+  Copy,
+  ExternalLink,
+  FileAudio,
+  Headphones,
+  LifeBuoy,
+  Mic2,
+  Phone,
+  PhoneCall,
+  RadioTower,
+  Save,
+  Settings2,
+  ShieldCheck,
+  Sparkles,
+  TestTube2,
+  Truck,
+  Upload,
+  Volume2,
+  Wrench,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PageLayout } from "@/components/page-layout";
+
+type AgentType = "mechanic" | "fleet";
+type AgentTab = "conversation" | "voice" | "telephony" | "advanced";
+
+const inputClass =
+  "w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-roadcall-cyan/70 focus:ring-2 focus:ring-roadcall-cyan/20";
+
+const textareaClass = `${inputClass} min-h-[150px] resize-y leading-6`;
+
+const agentProfiles = {
+  mechanic: {
+    label: "Mechanic agent",
+    badge: "Inbound only",
+    icon: Wrench,
+    agentName: "Roadcall Service Advisor",
+    businessName: "Diesel repair shop",
+    welcome:
+      "Thanks for calling. I can help with roadside service, shop availability, location, truck details, and the best next step for your repair.",
+    instructions:
+      "Act like a calm service advisor for a heavy-duty repair shop. Capture caller name, truck or trailer type, location, issue, urgency, and callback number. Confirm whether the shop offers the requested service before promising availability. Escalate urgent safety issues or pricing disputes to the shop owner.",
+    abilities: ["Answer inbound calls", "Qualify repair requests", "Capture lead details", "Escalate to owner"],
+  },
+  fleet: {
+    label: "Fleet agent",
+    badge: "Inbound and outbound",
+    icon: Truck,
+    agentName: "Roadcall Fleet Dispatcher",
+    businessName: "Fleet operations team",
+    welcome:
+      "Roadcall dispatch here. I can help open a breakdown case, collect driver and asset details, contact approved vendors, and keep your team updated.",
+    instructions:
+      "Act like a fleet roadside dispatcher. Gather driver name, unit number, trailer number, load status, exact location, safety condition, issue type, and preferred vendor rules. For outbound calls, identify yourself as Roadcall dispatch, confirm vendor availability, ETA, pricing basics, and callback information. Never authorize work outside approved fleet rules.",
+    abilities: ["Answer driver hotline", "Call approved vendors", "Update dispatch status", "Escalate exceptions"],
+  },
+} satisfies Record<AgentType, {
+  label: string;
+  badge: string;
+  icon: typeof Wrench;
+  agentName: string;
+  businessName: string;
+  welcome: string;
+  instructions: string;
+  abilities: string[];
+}>;
+
+const tabs: { id: AgentTab; label: string; icon: typeof Bot }[] = [
+  { id: "conversation", label: "Conversation", icon: Bot },
+  { id: "voice", label: "Voice", icon: Volume2 },
+  { id: "telephony", label: "Phone", icon: PhoneCall },
+  { id: "advanced", label: "Advanced", icon: Settings2 },
+];
+
+const roleOptions = [
+  "Roadside triage",
+  "Lead capture",
+  "Human handoff",
+  "Appointment booking",
+  "After-hours coverage",
+  "Vendor coordination",
+];
 
 export default function AgentDashboard() {
-  const [agentType, setAgentType] = useState("mechanic");
-  const [phone, setPhone] = useState("");
-  const [testResult, setTestResult] = useState<string | null>(null);
+  const [agentType, setAgentType] = useState<AgentType>("mechanic");
+  const [activeTab, setActiveTab] = useState<AgentTab>("conversation");
+  const profile = agentProfiles[agentType];
+  const ProfileIcon = profile.icon;
 
-  const handleTestAgent = () => {
-    // Placeholder for agent test logic (Retell integration)
-    setTestResult("Test call initiated. (Simulated)");
-  };
+  const [agentName, setAgentName] = useState(profile.agentName);
+  const [businessName, setBusinessName] = useState(profile.businessName);
+  const [phone, setPhone] = useState("+1 ");
+  const [handoffPhone, setHandoffPhone] = useState("+1 ");
+  const [welcomeMessage, setWelcomeMessage] = useState(profile.welcome);
+  const [instructions, setInstructions] = useState(profile.instructions);
+  const [voice, setVoice] = useState<"female" | "male" | "clone">("female");
+  const [voiceCloneEnabled, setVoiceCloneEnabled] = useState(false);
+  const [voiceCloneName, setVoiceCloneName] = useState("Owner voice");
+  const [sampleName, setSampleName] = useState("");
+  const [outboundEnabled, setOutboundEnabled] = useState(agentType === "fleet");
+  const [testNumber, setTestNumber] = useState("+1 ");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const activeRoles = useMemo(
+    () => roleOptions.filter((role) => agentType === "fleet" || role !== "Vendor coordination"),
+    [agentType]
+  );
+
+  function switchAgentType(nextType: AgentType) {
+    setAgentType(nextType);
+    setAgentName(agentProfiles[nextType].agentName);
+    setBusinessName(agentProfiles[nextType].businessName);
+    setWelcomeMessage(agentProfiles[nextType].welcome);
+    setInstructions(agentProfiles[nextType].instructions);
+    setOutboundEnabled(nextType === "fleet");
+    setMessage(null);
+  }
+
+  function saveSettings() {
+    setMessage("Settings saved locally for preview. Live Retell sync will connect after provisioning.");
+  }
+
+  function testAgent() {
+    const channel = agentType === "fleet" && outboundEnabled ? "inbound and outbound" : "inbound";
+    setMessage(`Test started for ${agentName || "your Roadcall agent"} using ${channel} call rules.`);
+  }
 
   return (
-    <div className="max-w-xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Agent Dashboard</h1>
-      <div className="mb-4">
-        <label className="block font-medium mb-1">Agent Type</label>
-        <select
-          className="border rounded px-2 py-1 w-full"
-          value={agentType}
-          onChange={e => setAgentType(e.target.value)}
-        >
-          <option value="mechanic">Mechanic (Inbound only)</option>
-          <option value="fleet">Fleet (Inbound & Outbound)</option>
-        </select>
-      </div>
-      <div className="mb-4">
-        <label className="block font-medium mb-1">Phone Number</label>
-        <input
-          className="border rounded px-2 py-1 w-full"
-          type="tel"
-          placeholder="Enter phone number"
-          value={phone}
-          onChange={e => setPhone(e.target.value)}
-        />
-      </div>
-      {agentType === "fleet" && (
-        <div className="mb-4">
-          <label className="block font-medium mb-1">Outbound Call Options</label>
-          <div className="text-sm text-gray-600">Fleet agents can make outbound calls.</div>
+    <PageLayout>
+      <section className="px-4 pb-16 pt-10 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1500px]">
+          <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-roadcall-cyan/25 bg-roadcall-cyan/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.22em] text-roadcall-cyan">
+                <Sparkles className="h-4 w-4" /> Agent configuration
+              </div>
+              <h1 className="mt-4 text-3xl font-black tracking-tight text-white sm:text-4xl">
+                Configure, test, and launch your Roadcall AI agent
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-6 text-roadcall-muted sm:text-base">
+                Set the voice, phone routing, welcome message, operating rules, and Retell-ready test flow after profile setup.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10">
+                <Link href="/get-started">Get started</Link>
+              </Button>
+              <Button onClick={saveSettings} className="rounded-xl">
+                <Save className="mr-2 h-4 w-4" /> Save changes
+              </Button>
+            </div>
+          </div>
+
+          {message ? (
+            <div className="mb-6 rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-5 py-4 text-sm font-medium text-emerald-100">
+              {message}
+            </div>
+          ) : null}
+
+          <div className="grid gap-6 xl:grid-cols-[240px_minmax(0,1fr)_390px]">
+            <aside className="roadcall-surface rounded-2xl p-4 xl:sticky xl:top-24 xl:self-start">
+              <div className="flex items-center gap-3 border-b border-white/10 pb-5">
+                <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-roadcall-cyan/15 text-roadcall-cyan ring-1 ring-roadcall-cyan/25">
+                  <Bot className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="font-bold text-white">Roadcall AI</p>
+                  <p className="text-xs text-roadcall-muted">Agent builder</p>
+                </div>
+              </div>
+
+              <nav className="mt-5 space-y-2">
+                {[
+                  { href: "/shops/onboarding", label: "Shop profile", icon: Building2 },
+                  { href: "/fleet/onboarding", label: "Fleet profile", icon: Truck },
+                  { href: "/agents/dashboard", label: "AI Agent", icon: Bot, active: true },
+                  { href: "/ai-telephony", label: "AI Telephony", icon: RadioTower },
+                  { href: "/admin/provisioning", label: "Retell provisioning", icon: Code2 },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
+                        item.active
+                          ? "bg-roadcall-cyan/15 text-roadcall-cyan ring-1 ring-roadcall-cyan/20"
+                          : "text-slate-300 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" /> {item.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+
+              <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-roadcall-muted">Setup path</p>
+                <div className="mt-4 space-y-3 text-sm text-slate-300">
+                  {[
+                    "Profile completed",
+                    "Agent rules drafted",
+                    "Phone number connected",
+                    "Retell test completed",
+                  ].map((step, index) => (
+                    <div key={step} className="flex items-center gap-3">
+                      <span className={`flex h-6 w-6 items-center justify-center rounded-full ${index < 2 ? "bg-emerald-400/15 text-emerald-200" : "bg-white/10 text-slate-400"}`}>
+                        {index < 2 ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                      </span>
+                      {step}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </aside>
+
+            <main className="min-w-0 space-y-6">
+              <section className="roadcall-surface overflow-hidden rounded-2xl">
+                <div className="border-b border-white/10 bg-slate-950/75 px-5 py-4 sm:px-6">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-roadcall-orange/15 text-roadcall-orange ring-1 ring-roadcall-orange/20">
+                        <ProfileIcon className="h-5 w-5" />
+                      </span>
+                      <div>
+                        <p className="text-sm font-bold text-white">{profile.label}</p>
+                        <p className="text-xs text-roadcall-muted">{profile.badge} call behavior</p>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {(["mechanic", "fleet"] as AgentType[]).map((type) => {
+                        const option = agentProfiles[type];
+                        const Icon = option.icon;
+                        const active = agentType === type;
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => switchAgentType(type)}
+                            className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${
+                              active
+                                ? "border-roadcall-cyan/60 bg-roadcall-cyan/10 text-white"
+                                : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/20 hover:bg-white/[0.06]"
+                            }`}
+                          >
+                            <Icon className={active ? "h-5 w-5 text-roadcall-cyan" : "h-5 w-5 text-slate-400"} />
+                            <span>
+                              <span className="block text-sm font-bold">{type === "mechanic" ? "Mechanic" : "Fleet"}</span>
+                              <span className="block text-xs text-roadcall-muted">{option.badge}</span>
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 sm:p-6">
+                  <div className="flex gap-2 overflow-x-auto border-b border-white/10 pb-4">
+                    {tabs.map((tab) => {
+                      const Icon = tab.icon;
+                      const active = activeTab === tab.id;
+                      return (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
+                            active ? "bg-roadcall-cyan text-slate-950" : "bg-white/5 text-slate-300 hover:bg-white/10 hover:text-white"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" /> {tab.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {activeTab === "conversation" ? (
+                    <div className="mt-6 grid gap-5 lg:grid-cols-2">
+                      <Field label="Agent name" helper="The caller-facing name for the AI.">
+                        <input value={agentName} onChange={(event) => setAgentName(event.target.value)} className={inputClass} />
+                      </Field>
+                      <Field label="Business name" helper="Used in greetings, summaries, and Retell dynamic variables.">
+                        <input value={businessName} onChange={(event) => setBusinessName(event.target.value)} className={inputClass} />
+                      </Field>
+                      <Field label="Welcome message" helper="The first thing callers hear or see." className="lg:col-span-2">
+                        <textarea value={welcomeMessage} onChange={(event) => setWelcomeMessage(event.target.value)} rows={3} className={textareaClass} />
+                      </Field>
+                      <Field label="Instructions" helper="Tell the agent what to collect, avoid, confirm, and escalate." className="lg:col-span-2">
+                        <textarea value={instructions} onChange={(event) => setInstructions(event.target.value)} rows={7} className={textareaClass} />
+                      </Field>
+                    </div>
+                  ) : null}
+
+                  {activeTab === "voice" ? (
+                    <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.75fr)]">
+                      <div className="space-y-4">
+                        {[
+                          { id: "female", title: "Female voice", body: "Warm, clear advisor voice for repair and dispatch calls." },
+                          { id: "male", title: "Male voice", body: "Direct, steady operations voice for fast triage." },
+                          { id: "clone", title: "Cloned voice", body: "Use your saved sample once voice cloning is enabled." },
+                        ].map((option) => {
+                          const active = voice === option.id;
+                          return (
+                            <button
+                              key={option.id}
+                              type="button"
+                              onClick={() => setVoice(option.id as typeof voice)}
+                              className={`flex w-full items-start gap-4 rounded-2xl border p-4 text-left transition ${
+                                active ? "border-roadcall-cyan/70 bg-roadcall-cyan/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+                              }`}
+                            >
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-roadcall-cyan">
+                                <Volume2 className="h-5 w-5" />
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block font-bold text-white">{option.title}</span>
+                                <span className="mt-1 block text-sm leading-5 text-roadcall-muted">{option.body}</span>
+                              </span>
+                              <span className={`mt-1 h-2.5 w-2.5 rounded-full ${active ? "bg-roadcall-cyan" : "bg-slate-600"}`} />
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5">
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3">
+                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-400/15 text-violet-200">
+                              <Mic2 className="h-5 w-5" />
+                            </span>
+                            <div>
+                              <p className="font-bold text-white">Voice cloning</p>
+                              <p className="mt-1 text-sm leading-5 text-roadcall-muted">Upload or record a short sample to use a custom voice.</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const enabled = !voiceCloneEnabled;
+                              setVoiceCloneEnabled(enabled);
+                              if (enabled) setVoice("clone");
+                            }}
+                            className={`rounded-full px-4 py-2 text-xs font-bold transition ${
+                              voiceCloneEnabled ? "bg-violet-400 text-white" : "bg-white/10 text-slate-200 ring-1 ring-white/15"
+                            }`}
+                          >
+                            {voiceCloneEnabled ? "Enabled" : "Enable"}
+                          </button>
+                        </div>
+
+                        {voiceCloneEnabled ? (
+                          <div className="mt-5 space-y-4">
+                            <Field label="Clone name" helper="Shown internally when selecting the saved voice.">
+                              <input value={voiceCloneName} onChange={(event) => setVoiceCloneName(event.target.value)} className={inputClass} />
+                            </Field>
+                            <label className="flex cursor-pointer items-center justify-center gap-3 rounded-xl border border-dashed border-violet-300/35 bg-violet-400/10 px-4 py-5 text-sm font-bold text-violet-100 transition hover:bg-violet-400/15">
+                              <Upload className="h-4 w-4" />
+                              {sampleName || "Upload voice sample"}
+                              <input
+                                type="file"
+                                accept="audio/*"
+                                className="sr-only"
+                                onChange={(event) => setSampleName(event.target.files?.[0]?.name || "")}
+                              />
+                            </label>
+                            <p className="text-xs leading-5 text-roadcall-muted">Sample stays in preview until backend voice-clone storage is connected.</p>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {activeTab === "telephony" ? (
+                    <div className="mt-6 grid gap-5 lg:grid-cols-2">
+                      <Field label="Roadcall phone number" helper="Use an assigned number or the number you will forward into Retell.">
+                        <input value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClass} />
+                      </Field>
+                      <Field label="Human handoff phone" helper="Where calls go when the AI must escalate.">
+                        <input value={handoffPhone} onChange={(event) => setHandoffPhone(event.target.value)} className={inputClass} />
+                      </Field>
+
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 lg:col-span-2">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="font-bold text-white">Outbound calls</p>
+                            <p className="mt-1 text-sm text-roadcall-muted">
+                              Fleet agents can call approved vendors and dispatch contacts. Mechanic agents stay inbound only.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={agentType === "mechanic"}
+                            onClick={() => setOutboundEnabled((current) => !current)}
+                            className={`rounded-full px-4 py-2 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                              outboundEnabled && agentType === "fleet" ? "bg-emerald-400 text-slate-950" : "bg-white/10 text-slate-200 ring-1 ring-white/15"
+                            }`}
+                          >
+                            {agentType === "mechanic" ? "Locked" : outboundEnabled ? "Enabled" : "Disabled"}
+                          </button>
+                        </div>
+
+                        <div className="mt-5 grid gap-3 md:grid-cols-3">
+                          {[
+                            { title: "Inbound", body: "Answer calls and qualify the request", active: true },
+                            { title: "Outbound", body: "Call vendors and dispatch contacts", active: agentType === "fleet" && outboundEnabled },
+                            { title: "Retell", body: "Sync agent, phone, and dynamic variables", active: false },
+                          ].map((item) => (
+                            <div key={item.title} className={`rounded-xl border p-4 ${item.active ? "border-emerald-300/25 bg-emerald-400/10" : "border-white/10 bg-slate-950/60"}`}>
+                              <p className="font-bold text-white">{item.title}</p>
+                              <p className="mt-1 text-xs leading-5 text-roadcall-muted">{item.body}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 lg:col-span-2">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                          <Field label="Your phone number" helper="Send a simulated Retell test call to this number." className="flex-1">
+                            <input value={testNumber} onChange={(event) => setTestNumber(event.target.value)} className={inputClass} />
+                          </Field>
+                          <Button onClick={testAgent} className="h-12 rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-400">
+                            <PhoneCall className="mr-2 h-4 w-4" /> Start test call
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {activeTab === "advanced" ? (
+                    <div className="mt-6 grid gap-5 md:grid-cols-2">
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                        <div className="flex items-center gap-3">
+                          <Brain className="h-5 w-5 text-roadcall-cyan" />
+                          <p className="font-bold text-white">Agent roles</p>
+                        </div>
+                        <div className="mt-5 grid gap-3">
+                          {activeRoles.map((role) => (
+                            <label key={role} className="flex items-center gap-3 rounded-xl border border-white/10 bg-slate-950/60 p-3 text-sm text-slate-300">
+                              <input type="checkbox" defaultChecked className="h-4 w-4 rounded border-white/20 bg-slate-950 text-roadcall-cyan" />
+                              {role}
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                        <div className="flex items-center gap-3">
+                          <ShieldCheck className="h-5 w-5 text-emerald-300" />
+                          <p className="font-bold text-white">Guardrails</p>
+                        </div>
+                        <div className="mt-5 space-y-3 text-sm text-slate-300">
+                          {[
+                            "Do not quote final repair prices unless provided by the business.",
+                            "Confirm exact location before dispatching or escalating.",
+                            "Ask one question at a time during phone calls.",
+                            "Escalate safety, hazmat, injury, or police situations immediately.",
+                          ].map((rule) => (
+                            <div key={rule} className="flex gap-3 rounded-xl border border-white/10 bg-slate-950/60 p-3">
+                              <BadgeCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                              <span>{rule}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </section>
+            </main>
+
+            <aside className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+              <section className="roadcall-surface rounded-2xl p-5 text-center">
+                <div className="mx-auto flex h-32 w-32 items-center justify-center rounded-full border border-roadcall-cyan/25 bg-slate-950/70 shadow-[0_0_60px_rgba(20,216,255,0.14)]">
+                  <div className="relative flex h-20 w-20 items-center justify-center rounded-full bg-roadcall-cyan/10">
+                    <span className="absolute inset-0 animate-pulse-ring rounded-full border border-roadcall-cyan/30" />
+                    <Mic2 className="relative h-9 w-9 text-roadcall-cyan" />
+                  </div>
+                </div>
+                <h2 className="mt-5 text-xl font-black text-white">{agentName || "Roadcall AI"}</h2>
+                <p className="mt-2 text-sm leading-6 text-roadcall-muted">
+                  {agentType === "fleet"
+                    ? "Fleet dispatcher with inbound hotline and outbound vendor calling."
+                    : "Mechanic service advisor for inbound calls and repair triage."}
+                </p>
+
+                <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-slate-950/70 p-4 text-left text-sm">
+                  <PreviewRow label="Business" value={businessName || "Not set"} />
+                  <PreviewRow label="Phone" value={phone.trim() === "+1" ? "Not assigned" : phone} />
+                  <PreviewRow label="Voice" value={voice === "clone" ? voiceCloneName || "Cloned voice" : voice === "female" ? "Female voice" : "Male voice"} />
+                  <PreviewRow label="Outbound" value={agentType === "fleet" && outboundEnabled ? "Enabled" : "Off"} />
+                </div>
+
+                <Button onClick={testAgent} className="mt-5 w-full rounded-xl">
+                  <TestTube2 className="mr-2 h-4 w-4" /> Preview agent
+                </Button>
+              </section>
+
+              <section className="roadcall-surface rounded-2xl p-5">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-roadcall-orange/15 text-roadcall-orange">
+                    <RadioTower className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="font-bold text-white">Retell connection</p>
+                    <p className="text-xs text-roadcall-muted">Provisioning required for live calls</p>
+                  </div>
+                </div>
+                <div className="mt-5 space-y-3 text-sm">
+                  <StatusLine label="Agent ID" value="Pending" />
+                  <StatusLine label="Phone number" value={phone.trim() === "+1" ? "Not assigned" : phone} />
+                  <StatusLine label="Last sync" value="Not synced" />
+                </div>
+                <div className="mt-5 grid gap-3">
+                  <Button asChild variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10">
+                    <Link href="/ai-telephony">
+                      <Phone className="mr-2 h-4 w-4" /> Open telephony setup
+                    </Link>
+                  </Button>
+                  <a
+                    href="https://dashboard.retellai.com/agents"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-4 text-sm font-bold text-white transition hover:bg-white/10"
+                  >
+                    Retell dashboard <ExternalLink className="h-4 w-4" />
+                  </a>
+                </div>
+              </section>
+
+              <section className="roadcall-surface rounded-2xl p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-roadcall-muted">Launch utilities</p>
+                <div className="mt-4 grid gap-3">
+                  {[
+                    { label: "Copy install snippet", icon: Copy },
+                    { label: "Upload voice sample", icon: FileAudio },
+                    { label: "Ask support to provision", icon: LifeBuoy },
+                    { label: "Call quality checklist", icon: Headphones },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <button key={item.label} type="button" className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/[0.06]">
+                        <span className="inline-flex items-center gap-3"><Icon className="h-4 w-4 text-roadcall-cyan" /> {item.label}</span>
+                        <ArrowRight className="h-4 w-4 text-slate-500" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            </aside>
+          </div>
         </div>
-      )}
-      <button
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        onClick={handleTestAgent}
-      >
-        Test Agent
-      </button>
-      {testResult && <div className="mt-4 text-green-700">{testResult}</div>}
-      <div className="mt-8 flex flex-col gap-2">
-        <Link href="/get-started" className="text-blue-600 hover:underline">← Back to Get Started</Link>
-        <Link href="/profile" className="text-blue-600 hover:underline">Go to Profile Setup</Link>
-        <Link href="/retell" className="text-blue-600 hover:underline">Go to Retell Integration</Link>
-      </div>
+      </section>
+    </PageLayout>
+  );
+}
+
+function Field({ label, helper, className = "", children }: { label: string; helper: string; className?: string; children: React.ReactNode }) {
+  return (
+    <label className={`block ${className}`}>
+      <span className="text-sm font-bold text-slate-200">{label}</span>
+      <span className="mt-1 block text-xs leading-5 text-roadcall-muted">{helper}</span>
+      <span className="mt-2 block">{children}</span>
+    </label>
+  );
+}
+
+function PreviewRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-roadcall-muted">{label}</span>
+      <span className="truncate font-bold text-white">{value}</span>
+    </div>
+  );
+}
+
+function StatusLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3">
+      <span className="text-roadcall-muted">{label}</span>
+      <span className="font-bold text-white">{value}</span>
     </div>
   );
 }
