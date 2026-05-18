@@ -305,6 +305,9 @@ NODES = [
         "display_position": {"x": 1050, "y": -200},
         "tool_id": "tool-shopai-check-availability",
         "tool_type": "custom",
+        "name": "Call check_availability",
+        "speak_during_execution": True,
+        "wait_for_result": True,
         "instruction": {"type": "prompt", "text": "Call check_availability with tenant_id={{tenant_id}} and requested_window."},
         "edges": [
             {
@@ -320,6 +323,9 @@ NODES = [
         "display_position": {"x": 1400, "y": -200},
         "tool_id": "tool-shopai-book-appointment",
         "tool_type": "custom",
+        "name": "Call book_appointment",
+        "speak_during_execution": True,
+        "wait_for_result": True,
         "instruction": {
             "type": "prompt",
             "text": (
@@ -402,6 +408,9 @@ NODES = [
         "display_position": {"x": 1400, "y": 200},
         "tool_id": "tool-shopai-save-lead",
         "tool_type": "custom",
+        "name": "Call save_lead",
+        "speak_during_execution": False,
+        "wait_for_result": True,
         "instruction": {
             "type": "prompt",
             "text": (
@@ -449,6 +458,9 @@ NODES = [
         "display_position": {"x": 2100, "y": 100},
         "tool_id": "tool-shopai-send-sms",
         "tool_type": "custom",
+        "name": "Call send_sms_followup",
+        "speak_during_execution": False,
+        "wait_for_result": True,
         "instruction": {
             "type": "prompt",
             "text": "Call send_sms_followup with tenant_id={{tenant_id}}, caller_phone, retell_call_id, and a short friendly body.",
@@ -467,6 +479,9 @@ NODES = [
         "display_position": {"x": 2100, "y": 300},
         "tool_id": "tool-shopai-save-summary",
         "tool_type": "custom",
+        "name": "Call save_call_summary",
+        "speak_during_execution": False,
+        "wait_for_result": True,
         "instruction": {
             "type": "prompt",
             "text": (
