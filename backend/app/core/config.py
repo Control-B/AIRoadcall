@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     RETELL_API_KEY: str = ""
     RETELL_AGENT_ID: str = ""
     RETELL_CONVERSATION_FLOW_ID: str = ""
+    # Shop AI receptionist (third Retell agent, separate from Sandy roadside + Fleet roadside)
+    RETELL_SHOP_AGENT_ID: str = ""
+    RETELL_SHOP_CONVERSATION_FLOW_ID: str = ""
+    # Fleet vertical routing (used by retell_dispatch.create_service_request to fork into RoadsideIncident)
+    RETELL_FLEET_AGENT_ID: str = ""
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "change-this"
     RETELL_BACKEND_WEBHOOK_TOKEN: str = "local-dev-retell-token"

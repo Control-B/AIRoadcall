@@ -210,10 +210,13 @@ class ProvisioningService:
         conversation_flow_id: str | None = None,
         phone_number_id: str | None = None,
         voice_id: str = "11labs-Lily",
+        vertical: str | None = None,
     ) -> tuple[RetellConnection, dict[str, Any]]:
         org = await db.get(Organization, tenant.organization_id)
         if not org:
             raise ValueError("Tenant organization not found")
+        if vertical is None and org.vertical_type is not None:
+            vertical = org.vertical_type.value if hasattr(org.vertical_type, "value") else str(org.vertical_type)
         result = await db.execute(select(RetellConnection).where(RetellConnection.tenant_id == tenant.id))
         connection = result.scalar_one_or_none()
         if connection is None:
@@ -237,6 +240,7 @@ class ProvisioningService:
                 metadata=connection.metadata_json or {},
                 conversation_flow_id=conversation_flow_id,
                 voice_id=voice_id,
+                vertical=vertical,
             )
             connection.agent_id = result_payload["agent_id"]
             connection.conversation_flow_id = result_payload["conversation_flow_id"]
@@ -306,7 +310,7 @@ class ProvisioningService:
         snapshot_id = tenant_plan.snapshot_id
         ghl_connection = await self._upsert_ghl(db, tenant, org, payload, snapshot_id)
         retell_connection = await self._get_or_create_retell_connection(db, tenant, org, payload)
-        should_provision_retell = payload.provision_retell and org.vertical_type == VerticalType.fleet
+        should_provision_retell = payload.provision_retell and org.vertical_type in {VerticalType.fleet, VerticalType.shops}
         event = await self.record_event(
             db,
             event_type="subscription.created" if payload.subscription_status == "active" else "subscription.updated",
@@ -348,11 +352,10 @@ class ProvisioningService:
                     conversation_flow_id=payload.retell_conversation_flow_id or retell_connection.conversation_flow_id,
                     phone_number_id=payload.retell_phone_number_id or retell_connection.phone_number_id,
                     voice_id=payload.retell_voice_id,
+                    vertical=org.vertical_type.value if hasattr(org.vertical_type, "value") else str(org.vertical_type),
                 )
             except Exception as exc:
                 warnings.append(f"Retell provisioning did not complete: {exc}")
-        elif payload.provision_retell and org.vertical_type == VerticalType.shops:
-            warnings.append("Shop AI telephony is GHL-managed; Retell provisioning was skipped for this tenant.")
         await db.flush()
         return tenant, plan_view, event, ghl_result, retell_result, warnings
 

@@ -330,26 +330,14 @@ class SubscriptionBillingService:
                     snapshot_id=config.snapshot_id,
                     snapshot_status="pending" if config.snapshot_id else "missing_snapshot_id",
                     connection_status="pending_location",
-                    metadata_json={"managed_by": "ghl_saas", "plan_id": config.id.value},
+                    metadata_json={"managed_by": "roadcall_retell", "role": "crm_mirror", "plan_id": config.id.value},
                 )
                 db.add(connection)
             else:
                 connection.subaccount_name = connection.subaccount_name or tenant.name
                 connection.snapshot_id = connection.snapshot_id or config.snapshot_id
-                connection.snapshot_status = connection.snapshot_status or ("pending" if connection.snapshot_id else "missing_snapshot_id")
-                connection.connection_status = connection.connection_status or "pending_location"
-                connection.metadata_json = {**(connection.metadata_json or {}), "managed_by": "ghl_saas", "plan_id": config.id.value}
-            agent = await self._upsert_agent_status(db, tenant_id, "ghl_managed", None)
-            agent.agent_name = "GHL AI Telephony"
-            agent.prompt_snapshot = "Managed in GoHighLevel SaaS Pro snapshot/workflow. Roadcall keeps tenant, billing, and dispatch state."
-            tenant.onboarding_status = "ghl_ai_telephony_ready"
+                connection.metadata_json = {**(connection.metadata_json or {}), "managed_by": "roadcall_retell", "role": "crm_mirror", "plan_id": config.id.value}
             await db.flush()
-            return {
-                "activation_status": agent.activation_status,
-                "detail": "AI telephony is managed in GoHighLevel. Complete phone, calendar, and AI workflow activation in the GHL sub-account.",
-                "retell_agent_id": None,
-                "retell_conversation_flow_id": None,
-            }
 
         metadata = {
             "shop_address": ", ".join(item for item in [profile.address, profile.city, profile.state] if item),
@@ -360,7 +348,12 @@ class SubscriptionBillingService:
             "supported_services": profile.services_offered,
             "calcom_calendar_url": profile.calcom_calendar_url,
         }
-        retell_connection, retell_result = await self.provisioning.provision_retell_for_tenant(db, tenant, metadata=metadata)
+        retell_connection, retell_result = await self.provisioning.provision_retell_for_tenant(
+            db,
+            tenant,
+            metadata=metadata,
+            vertical="shops",
+        )
         agent = await self._upsert_agent_status(db, tenant_id, "retell_agent_created", None)
         agent.retell_connection_id = retell_connection.id
         agent.retell_agent_id = retell_connection.agent_id

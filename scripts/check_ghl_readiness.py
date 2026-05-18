@@ -89,9 +89,12 @@ def main() -> int:
     ]
 
     retell_checks = [
-        Check("RETELL_API_KEY", _has(env.get("RETELL_API_KEY")), True, "needed for Sandy roadside + Fleet roadside agents"),
+        Check("RETELL_API_KEY", _has(env.get("RETELL_API_KEY")), True, "needed for Sandy roadside + Fleet roadside + Shop receptionist agents"),
         Check("RETELL_AGENT_ID", _has(env.get("RETELL_AGENT_ID")), False, _len_hint(env.get("RETELL_AGENT_ID"))),
         Check("RETELL_CONVERSATION_FLOW_ID", _has(env.get("RETELL_CONVERSATION_FLOW_ID")), False, _len_hint(env.get("RETELL_CONVERSATION_FLOW_ID"))),
+        Check("RETELL_FLEET_AGENT_ID", _has(env.get("RETELL_FLEET_AGENT_ID")), False, _len_hint(env.get("RETELL_FLEET_AGENT_ID")) or "required to fork fleet calls into RoadsideIncident"),
+        Check("RETELL_SHOP_AGENT_ID", _has(env.get("RETELL_SHOP_AGENT_ID")), False, _len_hint(env.get("RETELL_SHOP_AGENT_ID")) or "third Retell agent for shop AI answering"),
+        Check("RETELL_SHOP_CONVERSATION_FLOW_ID", _has(env.get("RETELL_SHOP_CONVERSATION_FLOW_ID")), False, _len_hint(env.get("RETELL_SHOP_CONVERSATION_FLOW_ID")) or "master flow for shop receptionist (run scripts/create_shop_retell_flow.py)"),
         Check("RETELL_BACKEND_WEBHOOK_TOKEN", _has(env.get("RETELL_BACKEND_WEBHOOK_TOKEN")), True, "shared secret for Retell -> Roadcall webhooks"),
     ]
 
@@ -122,7 +125,7 @@ def main() -> int:
         ("GHL SaaS connection (shop AI telephony)", ghl_checks),
         ("GHL snapshot IDs (set after official snapshots are saved)", snapshot_checks),
         ("Stripe (billing for GHL-aligned plans)", stripe_checks),
-        ("Retell (Sandy roadside + Fleet roadside)", retell_checks),
+        ("Retell (Sandy roadside + Fleet roadside + Shop receptionist)", retell_checks),
         ("App / admin secrets", app_checks),
         ("Frontend public env (Next.js build)", frontend_public_checks),
         ("Optional SMS / voice providers", sms_voice_checks),

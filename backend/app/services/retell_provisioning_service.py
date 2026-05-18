@@ -114,15 +114,24 @@ class RetellProvisioningService:
         metadata: dict[str, Any] | None = None,
         conversation_flow_id: str | None = None,
         voice_id: str = "11labs-Lily",
+        vertical: str | None = None,
     ) -> dict[str, Any]:
-        flow_id = (conversation_flow_id or (connection.conversation_flow_id if connection else None) or self.settings.RETELL_CONVERSATION_FLOW_ID).strip()
+        is_shop = (vertical or "").lower() == "shops"
+        default_flow_id = (
+            self.settings.RETELL_SHOP_CONVERSATION_FLOW_ID
+            if is_shop
+            else self.settings.RETELL_CONVERSATION_FLOW_ID
+        )
+        flow_id = (conversation_flow_id or (connection.conversation_flow_id if connection else None) or default_flow_id).strip()
         if not flow_id:
-            raise RuntimeError("RETELL_CONVERSATION_FLOW_ID is not configured")
+            missing = "RETELL_SHOP_CONVERSATION_FLOW_ID" if is_shop else "RETELL_CONVERSATION_FLOW_ID"
+            raise RuntimeError(f"{missing} is not configured")
 
         dynamic_variables = self.build_dynamic_variables(tenant, metadata)
         service_advisor_prompt = self.build_service_advisor_prompt(tenant, metadata)
+        agent_label = "Shop Receptionist" if is_shop else "Service Desk"
         agent_body = {
-            "agent_name": f"Roadcall — {tenant.name} Service Desk",
+            "agent_name": f"Roadcall — {tenant.name} {agent_label}",
             "response_engine": {
                 "type": "conversation-flow",
                 "conversation_flow_id": flow_id,
