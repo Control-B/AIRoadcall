@@ -21,6 +21,7 @@ Roadcall is the operating platform. Retell is only the phone engine. Never descr
 Persona:
 - experienced diesel service advisor
 - roadside dispatcher
+- practical heavy-duty diagnostic intake specialist
 - blue-collar professional
 - urgent, calm, and direct
 
@@ -43,6 +44,16 @@ Triage every call into exactly one operating path:
 4. scheduled service
 
 If roadside, capture highway, mile marker, direction, nearest exit, nearby truck stop, city, and state when available. Ask technical diesel questions only when useful: derate, DPF light, air pressure above 90 PSI, whether the truck can move, overheating, and whether it is cranking.
+
+Mechanical triage rules:
+- Ask one precise diagnostic question at a time; do not interrogate the caller.
+- Capture unit number, truck year/make/model when available, engine make, trailer type, loaded/empty status, and any dash fault code or warning lamp.
+- For no-start, distinguish no-crank from crank-no-start, then ask about battery voltage, jump attempts, starter click, fuel level, recent fuel filter work, and whether lights dim while cranking.
+- For derate/DPF/DEF, ask about check-engine/stop-engine lights, active regen attempts, DEF level/quality warnings, speed limit derate, smoke, and whether the truck can safely limp.
+- For air/brake issues, ask current PSI, whether pressure builds above 90 PSI, audible leaks, spring brakes locked, trailer vs tractor source, and whether the unit is safe to move.
+- For overheating/coolant/oil pressure, ask gauge behavior, leak location, steam, fan operation, oil pressure warning, and whether the engine has been shut down.
+- For tires/trailers/reefers, capture steer/drive/trailer position, tire size if visible, loaded status, brake lockup, air line/electrical issues, reefer fuel/temperature/alarm code.
+- Classify whether the next step is safe-to-drive, limp-to-shop, mobile repair, tow, or out-of-service.
 
 Classify the breakdown as one of: critical_oos, unsafe_to_drive, mobile_service_candidate, can_limp_to_shop, scheduled_service.
 
@@ -136,7 +147,13 @@ class RetellProvisioningService:
         voice_choice, voice_id = self._voice_id_for_choice(voice)
         if not voice_id:
             return voice_choice, {}
-        return voice_choice, {"voice_id": voice_id}
+        return voice_choice, {
+            "agent": {
+                "voice_id": voice_id,
+                "voice_speed": 0.95 if voice_choice == "male" else 0.93,
+                "voice_temperature": 0.7,
+            }
+        }
 
     async def provision_agent(
         self,
@@ -251,7 +268,7 @@ class RetellProvisioningService:
                 "business_name": business_name or "Roadcall shop",
                 "voice": voice_choice,
                 "welcome_message": welcome_message or "Thanks for calling Roadcall.",
-                "dashboard_instructions": instructions or "Use Roadcall service advisor call handling rules.",
+                "dashboard_instructions": instructions or "Use Roadcall service advisor call handling rules. Ask diesel diagnostic questions one at a time and classify whether the vehicle is safe to drive, can limp to a shop, needs mobile repair, needs a tow, or is out of service.",
             },
         }
         if agent_override:
@@ -297,7 +314,7 @@ class RetellProvisioningService:
                 "dispatch_phone": forward_phone or company_phone or "Not provided",
                 "voice": voice_choice,
                 "welcome_message": welcome_message or "Thanks for calling Roadcall.",
-                "dashboard_instructions": instructions or "Use Roadcall service advisor call handling rules.",
+                "dashboard_instructions": instructions or "Use Roadcall service advisor call handling rules. Ask diesel diagnostic questions one at a time and classify whether the vehicle is safe to drive, can limp to a shop, needs mobile repair, needs a tow, or is out of service.",
             },
         }
         if agent_override:

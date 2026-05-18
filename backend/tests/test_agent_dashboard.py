@@ -120,7 +120,9 @@ async def test_fleet_phone_test_call_uses_test_agent_and_voice_override():
     assert captured["path"] == "/v2/create-phone-call"
     assert captured["body"]["from_number"] == "+17275550000"
     assert captured["body"]["override_agent_id"] == "fleet-test-agent"
-    assert captured["body"]["agent_override"] == {"voice_id": "retell-Cimo"}
+    assert captured["body"]["agent_override"] == {
+        "agent": {"voice_id": "retell-Cimo", "voice_speed": 0.95, "voice_temperature": 0.7}
+    }
     assert captured["body"]["metadata"]["voice"] == "male"
 
 
@@ -144,5 +146,7 @@ async def test_web_preview_uses_selected_voice_override():
     assert captured["method"] == "POST"
     assert captured["path"] == "/v2/create-web-call"
     assert captured["body"]["agent_id"] == "shop-agent"
-    assert captured["body"]["agent_override"] == {"voice_id": "retell-Cimo"}
+    assert captured["body"]["agent_override"] == {
+        "agent": {"voice_id": "retell-Cimo", "voice_speed": 0.95, "voice_temperature": 0.7}
+    }
     assert captured["body"]["retell_llm_dynamic_variables"]["voice"] == "male"
