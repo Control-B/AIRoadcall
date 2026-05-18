@@ -301,14 +301,19 @@ NODES = [
     },
     {
         "id": "appointment-check-availability",
-        "type": "function",
+        "type": "conversation",
         "display_position": {"x": 1050, "y": -200},
-        "tool_id": "tool-shopai-check-availability",
-        "tool_type": "custom",
-        "name": "Call check_availability",
-        "speak_during_execution": True,
-        "wait_for_result": True,
-        "instruction": {"type": "prompt", "text": "Call check_availability with tenant_id={{tenant_id}} and requested_window."},
+        "name": "Check availability",
+        "instruction": {
+            "type": "prompt",
+            "text": (
+                "Say briefly: 'Let me check our calendar.' Then invoke the check_availability tool with "
+                "tenant_id={{tenant_id}}, requested_window, and the caller's timezone if known. "
+                "If the tool returns a non-empty slots array, read up to three slot 'human' labels back to "
+                "the caller verbatim and ask which one works. Remember the matching 'start' ISO. "
+                "If slots is empty but booking_url is set, offer to text them the link. Otherwise take a message."
+            ),
+        },
         "edges": [
             {
                 "id": "edge-check-to-book",
@@ -319,13 +324,9 @@ NODES = [
     },
     {
         "id": "appointment-book",
-        "type": "function",
+        "type": "conversation",
         "display_position": {"x": 1400, "y": -200},
-        "tool_id": "tool-shopai-book-appointment",
-        "tool_type": "custom",
-        "name": "Call book_appointment",
-        "speak_during_execution": True,
-        "wait_for_result": True,
+        "name": "Book appointment",
         "instruction": {
             "type": "prompt",
             "text": (
@@ -404,13 +405,9 @@ NODES = [
     },
     {
         "id": "save-lead",
-        "type": "function",
+        "type": "conversation",
         "display_position": {"x": 1400, "y": 200},
-        "tool_id": "tool-shopai-save-lead",
-        "tool_type": "custom",
-        "name": "Call save_lead",
-        "speak_during_execution": False,
-        "wait_for_result": True,
+        "name": "Save lead",
         "instruction": {
             "type": "prompt",
             "text": (
@@ -454,13 +451,9 @@ NODES = [
     },
     {
         "id": "send-sms",
-        "type": "function",
+        "type": "conversation",
         "display_position": {"x": 2100, "y": 100},
-        "tool_id": "tool-shopai-send-sms",
-        "tool_type": "custom",
-        "name": "Call send_sms_followup",
-        "speak_during_execution": False,
-        "wait_for_result": True,
+        "name": "Send SMS follow-up",
         "instruction": {
             "type": "prompt",
             "text": "Call send_sms_followup with tenant_id={{tenant_id}}, caller_phone, retell_call_id, and a short friendly body.",
@@ -475,13 +468,9 @@ NODES = [
     },
     {
         "id": "save-summary",
-        "type": "function",
+        "type": "conversation",
         "display_position": {"x": 2100, "y": 300},
-        "tool_id": "tool-shopai-save-summary",
-        "tool_type": "custom",
-        "name": "Call save_call_summary",
-        "speak_during_execution": False,
-        "wait_for_result": True,
+        "name": "Save summary",
         "instruction": {
             "type": "prompt",
             "text": (
