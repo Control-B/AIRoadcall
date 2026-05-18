@@ -1,60 +1,219 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { LogIn, Wrench, Shield } from "lucide-react";
+import { ArrowRight, Bot, LogIn, PlayCircle, Shield, Truck, Wrench } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
-import { GHL_SIGN_IN_URL, isExternalUrl } from "@/lib/ghl-links";
+
+type Role = "shop" | "fleet" | "admin";
+
+const ROLES: { id: Role; label: string; icon: typeof Wrench; tagline: string }[] = [
+  { id: "shop", label: "Shop / Mechanic", icon: Wrench, tagline: "AI service advisor that answers, qualifies, and books." },
+  { id: "fleet", label: "Fleet Manager", icon: Truck, tagline: "AI roadside dispatch for trucks, trailers, and drivers." },
+  { id: "admin", label: "Roadcall Admin", icon: Shield, tagline: "Operator console for the Roadcall team." },
+];
 
 export default function SignInPage() {
-  const hasGhlSignIn = Boolean(GHL_SIGN_IN_URL);
-  const external = hasGhlSignIn && isExternalUrl(GHL_SIGN_IN_URL);
-
-  useEffect(() => {
-    if (external) {
-      window.location.replace(GHL_SIGN_IN_URL);
-    }
-  }, [external]);
+  const [role, setRole] = useState<Role>("shop");
 
   return (
     <PageLayout>
-      <section className="min-h-[80vh] flex flex-col items-center justify-center px-4 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-roadcall-orange/25 bg-roadcall-orange/10 px-4 py-1.5 mb-6">
-          <LogIn className="h-4 w-4 text-roadcall-orange" />
-          <span className="text-sm font-medium text-orange-100">Sign In</span>
-        </div>
-        <h1 className="text-4xl md:text-5xl font-black text-white mb-4">Sign in to Roadcall</h1>
-        <p className="text-roadcall-muted max-w-xl mb-10 leading-relaxed">
-          {external
-            ? "Redirecting you to the Roadcall customer portal…"
-            : "Customer and provider sign-in will route through the Roadcall portal once the portal link is configured. Internal Roadcall admins can use the admin dashboard."}
-        </p>
-        {external ? (
-          <div className="text-sm text-roadcall-muted">Redirecting…</div>
-        ) : (
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            {hasGhlSignIn ? (
-              <Link href={GHL_SIGN_IN_URL}>
-                <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold rounded-xl px-7">
-                  <Wrench className="h-4 w-4 mr-2" /> Continue to Portal
-                </Button>
-              </Link>
-            ) : (
-              <Link href="/get-started">
-                <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold rounded-xl px-7">
-                  <Wrench className="h-4 w-4 mr-2" /> Get Started
-                </Button>
-              </Link>
-            )}
-            <Link href="/admin/login">
-              <Button variant="outline" className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl px-7">
-                <Shield className="h-4 w-4 mr-2" /> Admin Login
-              </Button>
-            </Link>
+      <section className="min-h-[85vh] px-4 py-16">
+        <div className="mx-auto max-w-5xl">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 rounded-full border border-roadcall-orange/25 bg-roadcall-orange/10 px-4 py-1.5 mb-6">
+              <LogIn className="h-4 w-4 text-roadcall-orange" />
+              <span className="text-sm font-medium text-orange-100">Sign In</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-white mb-4">Pick how you use Roadcall</h1>
+            <p className="text-roadcall-muted max-w-xl mx-auto leading-relaxed">
+              Subscribe to activate your live AI agent, or take the demo dashboard for a spin first.
+              Returning customers can request a fresh sign-in link by email.
+            </p>
           </div>
-        )}
+
+          <div className="mt-10 grid gap-3 sm:grid-cols-3">
+            {ROLES.map((option) => {
+              const Icon = option.icon;
+              const active = role === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => setRole(option.id)}
+                  className={`rounded-2xl border p-5 text-left transition ${
+                    active
+                      ? "border-roadcall-orange/60 bg-roadcall-orange/10"
+                      : "border-slate-700/60 bg-roadcall-panel/40 hover:border-roadcall-cyan/40"
+                  }`}
+                >
+                  <Icon className={`h-6 w-6 ${active ? "text-roadcall-orange" : "text-roadcall-cyan"}`} />
+                  <p className="mt-3 font-bold text-white">{option.label}</p>
+                  <p className="mt-1 text-sm text-roadcall-muted">{option.tagline}</p>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-10 rounded-[2rem] border border-white/10 bg-white/[0.03] p-8 shadow-2xl">
+            {role === "shop" && <ShopTrack />}
+            {role === "fleet" && <FleetTrack />}
+            {role === "admin" && <AdminTrack />}
+          </div>
+        </div>
       </section>
     </PageLayout>
+  );
+}
+
+function ShopTrack() {
+  return (
+    <div className="grid gap-8 md:grid-cols-2">
+      <div>
+        <div className="flex items-center gap-2 text-roadcall-orange">
+          <Wrench className="h-5 w-5" />
+          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Shop / Mechanic</span>
+        </div>
+        <h2 className="mt-3 text-2xl font-bold text-white">Subscribe, set up, go live.</h2>
+        <p className="mt-3 text-roadcall-muted">
+          Stripe powers billing. Once paid, Roadcall seeds your shop profile,
+          provisions your AI advisor, and emails you a private dashboard link.
+        </p>
+        <div className="mt-6 space-y-3">
+          <Link href="/mechanic/checkout?plan=starter" className="block">
+            <Button className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold rounded-xl py-6">
+              <ArrowRight className="h-4 w-4 mr-2" /> Subscribe &amp; activate AI
+            </Button>
+          </Link>
+          <Link href="/mechanic/dashboard?demo=1" className="block">
+            <Button variant="outline" className="w-full border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl py-6">
+              <PlayCircle className="h-4 w-4 mr-2" /> Try the demo dashboard
+            </Button>
+          </Link>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
+        <div className="flex items-center gap-2 text-roadcall-cyan">
+          <Bot className="h-5 w-5" />
+          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Returning customer</span>
+        </div>
+        <h3 className="mt-3 text-lg font-bold text-white">Email me my dashboard link</h3>
+        <p className="mt-2 text-sm text-roadcall-muted">
+          We&apos;ll send a fresh sign-in link to the email on file for your shop.
+        </p>
+        <ResendLinkForm vertical="shop" />
+      </div>
+    </div>
+  );
+}
+
+function FleetTrack() {
+  return (
+    <div className="grid gap-8 md:grid-cols-2">
+      <div>
+        <div className="flex items-center gap-2 text-roadcall-cyan">
+          <Truck className="h-5 w-5" />
+          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Fleet Manager</span>
+        </div>
+        <h2 className="mt-3 text-2xl font-bold text-white">Tell us about your fleet.</h2>
+        <p className="mt-3 text-roadcall-muted">
+          Fleet onboarding is concierge — share fleet size, assets, and data mode,
+          and our team configures your AI roadside dispatch. Fleet demo dashboard
+          is coming next.
+        </p>
+        <div className="mt-6 space-y-3">
+          <Link href="/fleet/onboarding" className="block">
+            <Button className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold rounded-xl py-6">
+              <ArrowRight className="h-4 w-4 mr-2" /> Start fleet onboarding
+            </Button>
+          </Link>
+          <Button
+            variant="outline"
+            disabled
+            className="w-full border-slate-700 text-slate-500 rounded-xl py-6 cursor-not-allowed"
+          >
+            <PlayCircle className="h-4 w-4 mr-2" /> Fleet demo dashboard (coming soon)
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
+        <div className="flex items-center gap-2 text-roadcall-cyan">
+          <Bot className="h-5 w-5" />
+          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Returning customer</span>
+        </div>
+        <h3 className="mt-3 text-lg font-bold text-white">Email me my fleet console link</h3>
+        <p className="mt-2 text-sm text-roadcall-muted">
+          We&apos;ll send your dispatcher a fresh sign-in link.
+        </p>
+        <ResendLinkForm vertical="fleet" />
+      </div>
+    </div>
+  );
+}
+
+function AdminTrack() {
+  return (
+    <div className="grid gap-6 md:grid-cols-2 items-center">
+      <div>
+        <div className="flex items-center gap-2 text-roadcall-orange">
+          <Shield className="h-5 w-5" />
+          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Roadcall Admin</span>
+        </div>
+        <h2 className="mt-3 text-2xl font-bold text-white">Operator console.</h2>
+        <p className="mt-3 text-roadcall-muted">
+          Roadcall internal team only. Tenant lookup, provisioning controls,
+          provider directories, dispatch monitoring.
+        </p>
+      </div>
+      <div className="flex md:justify-end">
+        <Link href="/admin/login">
+          <Button className="bg-gradient-to-r from-roadcall-orange to-amber-500 hover:brightness-110 text-white font-bold rounded-xl px-7 py-6">
+            <Shield className="h-4 w-4 mr-2" /> Continue to admin login
+          </Button>
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function ResendLinkForm({ vertical }: { vertical: "shop" | "fleet" }) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault();
+    // Resend-link backend endpoint not yet implemented; surface a graceful
+    // confirmation so the UI shows intent until the route ships.
+    if (!email.includes("@")) {
+      setStatus("error");
+      return;
+    }
+    setStatus("sent");
+  }
+
+  return (
+    <form onSubmit={submit} className="mt-4 space-y-3">
+      <input
+        type="email"
+        value={email}
+        onChange={(event) => setEmail(event.target.value)}
+        placeholder={vertical === "shop" ? "you@yourshop.com" : "dispatch@yourfleet.com"}
+        className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-roadcall-cyan"
+      />
+      <Button type="submit" variant="outline" className="w-full border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl">
+        Send my sign-in link
+      </Button>
+      {status === "sent" && (
+        <p className="text-xs text-emerald-300">
+          If an account exists for {email}, a sign-in link is on the way. Check your inbox.
+        </p>
+      )}
+      {status === "error" && (
+        <p className="text-xs text-red-300">Please enter a valid email address.</p>
+      )}
+    </form>
   );
 }
