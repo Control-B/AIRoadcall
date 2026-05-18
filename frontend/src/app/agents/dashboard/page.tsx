@@ -10,6 +10,9 @@ import {
   Building2,
   Check,
   Copy,
+  Database,
+  Eye,
+  EyeOff,
   FileAudio,
   Headphones,
   LifeBuoy,
@@ -125,6 +128,8 @@ export default function AgentDashboard() {
   const [sampleName, setSampleName] = useState("");
   const [outboundEnabled, setOutboundEnabled] = useState(agentType === "fleet");
   const [testNumber, setTestNumber] = useState("+1 ");
+  const [fleetDataUrl, setFleetDataUrl] = useState("");
+  const [showFleetDataUrl, setShowFleetDataUrl] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [testing, setTesting] = useState(false);
@@ -164,7 +169,9 @@ export default function AgentDashboard() {
 
   function saveSettings() {
     setError(null);
-    setMessage("Settings saved locally. Use Preview agent to talk to this agent in your browser before checkout.");
+    setMessage(agentType === "fleet" && fleetDataUrl.trim()
+      ? "Settings saved locally. Fleet vehicle data source is ready for Roadcall location sync."
+      : "Settings saved locally. Use Preview agent to talk to this agent in your browser before checkout.");
   }
 
   function hasPhoneValue(value: string) {
@@ -294,6 +301,15 @@ export default function AgentDashboard() {
   }
 
   const previewPhone = hasPhoneValue(phone) ? phone : hasPhoneValue(handoffPhone) ? handoffPhone : hasPhoneValue(testNumber) ? testNumber : "Not assigned";
+  const fleetDataHost = useMemo(() => {
+    const value = fleetDataUrl.trim();
+    if (!value) return "Not connected";
+    try {
+      return new URL(value).host || "Connected";
+    } catch {
+      return "Pending URL review";
+    }
+  }, [fleetDataUrl]);
 
   return (
     <PageLayout>
@@ -591,14 +607,62 @@ export default function AgentDashboard() {
                       </div>
 
                       {agentType === "fleet" ? (
-                        <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 lg:col-span-2">
-                          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                            <Field label="Your phone number" helper="Fleet preview will call this number through Retell for an outbound phone test." className="flex-1">
-                              <input value={testNumber} onChange={(event) => updateTestNumber(event.target.value)} className={inputClass} />
-                            </Field>
-                            <Button onClick={startTestCall} disabled={testing} className="h-12 rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:opacity-70">
-                              {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PhoneCall className="mr-2 h-4 w-4" />} Start test call
-                            </Button>
+                        <div className="space-y-5 lg:col-span-2">
+                          <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+                              <Field label="Your phone number" helper="Fleet preview will call this number through Retell for an outbound phone test." className="flex-1">
+                                <input value={testNumber} onChange={(event) => updateTestNumber(event.target.value)} className={inputClass} />
+                              </Field>
+                              <Button onClick={startTestCall} disabled={testing} className="h-12 rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:opacity-70">
+                                {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PhoneCall className="mr-2 h-4 w-4" />} Start test call
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="rounded-2xl border border-roadcall-cyan/20 bg-roadcall-cyan/10 p-5">
+                            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                              <div className="flex gap-3">
+                                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-roadcall-cyan/15 text-roadcall-cyan ring-1 ring-roadcall-cyan/25">
+                                  <Database className="h-5 w-5" />
+                                </span>
+                                <div>
+                                  <p className="font-bold text-white">Fleet vehicle database</p>
+                                  <p className="mt-1 max-w-2xl text-sm leading-6 text-roadcall-muted">
+                                    Add a secure API, database, or telematics link so Roadcall can sync live vehicle locations for dispatch views.
+                                  </p>
+                                </div>
+                              </div>
+                              <span className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-bold ${fleetDataUrl.trim() ? "bg-emerald-400/15 text-emerald-100 ring-1 ring-emerald-300/20" : "bg-white/10 text-slate-300 ring-1 ring-white/15"}`}>
+                                {fleetDataUrl.trim() ? "Source added" : "Not connected"}
+                              </span>
+                            </div>
+
+                            <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                              <Field label="Vehicle DB URL or API link" helper="Use a read-only endpoint or integration link for vehicle GPS/location sync." className="min-w-0">
+                                <div className="relative">
+                                  <input
+                                    value={fleetDataUrl}
+                                    onChange={(event) => setFleetDataUrl(event.target.value)}
+                                    type={showFleetDataUrl ? "text" : "password"}
+                                    placeholder="https://fleet.example.com/api/vehicles"
+                                    className={`${inputClass} pr-12`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowFleetDataUrl((current) => !current)}
+                                    className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-slate-300 transition hover:bg-white/10 hover:text-white"
+                                    aria-label={showFleetDataUrl ? "Hide vehicle database URL" : "Show vehicle database URL"}
+                                  >
+                                    {showFleetDataUrl ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                  </button>
+                                </div>
+                              </Field>
+                              <div className="rounded-xl border border-white/10 bg-slate-950/60 p-4">
+                                <p className="text-xs font-bold uppercase tracking-[0.18em] text-roadcall-muted">Map source</p>
+                                <p className="mt-2 truncate text-sm font-bold text-white">{fleetDataHost}</p>
+                                <p className="mt-2 text-xs leading-5 text-roadcall-muted">Vehicle locations will appear after the sync connector validates this source.</p>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       ) : (
@@ -673,6 +737,7 @@ export default function AgentDashboard() {
                   <PreviewRow label="Forward Number" value={hasPhoneValue(handoffPhone) ? handoffPhone : "Not assigned"} />
                   <PreviewRow label="Voice" value={voice === "clone" ? voiceCloneName || "Cloned voice" : voice === "female" ? "Female voice" : "Male voice"} />
                   <PreviewRow label="Outbound" value={agentType === "fleet" && outboundEnabled ? "Enabled" : "Off"} />
+                  {agentType === "fleet" ? <PreviewRow label="Vehicle DB" value={fleetDataHost} /> : null}
                 </div>
 
                 <Button onClick={previewActive ? stopPreviewCall : previewAgent} disabled={previewing} className="mt-5 w-full rounded-xl">

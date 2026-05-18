@@ -124,7 +124,7 @@ class RetellProvisioningService:
     def _voice_id_for_choice(self, voice: str | None) -> tuple[str, str | None]:
         normalized_voice = (voice or "female").strip().lower()
         if normalized_voice == "male":
-            return "male", (self.settings.RETELL_MALE_VOICE_ID or "11labs-Adrian").strip()
+            return "male", (self.settings.RETELL_MALE_VOICE_ID or "retell-Cimo").strip()
         if normalized_voice == "clone":
             cloned_voice_id = self.settings.RETELL_CLONED_VOICE_ID.strip()
             if cloned_voice_id:

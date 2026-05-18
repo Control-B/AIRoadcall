@@ -64,7 +64,7 @@ class Settings(BaseSettings):
     RETELL_TEST_FROM_NUMBER: str = ""
     RETELL_TEST_OUTBOUND_AGENT_ID: str = ""
     RETELL_FEMALE_VOICE_ID: str = "11labs-Lily"
-    RETELL_MALE_VOICE_ID: str = "11labs-Adrian"
+    RETELL_MALE_VOICE_ID: str = "retell-Cimo"
     RETELL_CLONED_VOICE_ID: str = ""
     # Fleet vertical routing (used by retell_dispatch.create_service_request to fork into RoadsideIncident)
     RETELL_FLEET_AGENT_ID: str = ""

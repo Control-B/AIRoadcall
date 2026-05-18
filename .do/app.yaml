@@ -100,7 +100,7 @@ services:
         value: 11labs-Lily
       - key: RETELL_MALE_VOICE_ID
         scope: RUN_TIME
-        value: 11labs-Adrian
+        value: retell-Cimo
       - key: RETELL_CLONED_VOICE_ID
         scope: RUN_TIME
         type: SECRET

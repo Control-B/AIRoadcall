@@ -29,7 +29,7 @@ class FakeRetellSettings:
     RETELL_TEST_FROM_NUMBER = "+17275550000"
     DEMO_PHONE_NUMBER = ""
     RETELL_FEMALE_VOICE_ID = "11labs-Lily"
-    RETELL_MALE_VOICE_ID = "11labs-Adrian"
+    RETELL_MALE_VOICE_ID = "retell-Cimo"
     RETELL_CLONED_VOICE_ID = ""
 
 
@@ -120,7 +120,7 @@ async def test_fleet_phone_test_call_uses_test_agent_and_voice_override():
     assert captured["path"] == "/v2/create-phone-call"
     assert captured["body"]["from_number"] == "+17275550000"
     assert captured["body"]["override_agent_id"] == "fleet-test-agent"
-    assert captured["body"]["agent_override"] == {"voice_id": "11labs-Adrian"}
+    assert captured["body"]["agent_override"] == {"voice_id": "retell-Cimo"}
     assert captured["body"]["metadata"]["voice"] == "male"
 
 
@@ -144,5 +144,5 @@ async def test_web_preview_uses_selected_voice_override():
     assert captured["method"] == "POST"
     assert captured["path"] == "/v2/create-web-call"
     assert captured["body"]["agent_id"] == "shop-agent"
-    assert captured["body"]["agent_override"] == {"voice_id": "11labs-Adrian"}
+    assert captured["body"]["agent_override"] == {"voice_id": "retell-Cimo"}
     assert captured["body"]["retell_llm_dynamic_variables"]["voice"] == "male"
