@@ -15,9 +15,7 @@ import {
   LifeBuoy,
   Loader2,
   Mic2,
-  Phone,
   PhoneCall,
-  RadioTower,
   Save,
   Settings2,
   ShieldCheck,
@@ -135,6 +133,31 @@ export default function AgentDashboard() {
     setMessage("Settings saved locally for preview. Live phone activation will connect after Roadcall provisioning.");
   }
 
+  async function copyInstallSnippet() {
+    setError(null);
+    const snippet = `<script src="https://roadcall.ai/agent-widget.js" data-roadcall-agent="${agentType}" data-roadcall-business="${businessName || "Roadcall"}"></script>`;
+    try {
+      await navigator.clipboard.writeText(snippet);
+      setMessage("Install snippet copied. Add it to the customer site after Roadcall activation is complete.");
+    } catch {
+      setError("Could not copy the snippet from this browser. Open the install step and copy it manually.");
+    }
+  }
+
+  function openVoiceSampleSetup() {
+    setActiveTab("voice");
+    setVoiceCloneEnabled(true);
+    setVoice("clone");
+    setError(null);
+    setMessage("Voice sample setup is open. Use Upload voice sample in the Voice tab to add the audio file.");
+  }
+
+  function openCallQualityChecklist() {
+    setActiveTab("advanced");
+    setError(null);
+    setMessage("Call quality checklist opened. Review the guardrails and roles before starting a live test call.");
+  }
+
   async function startTestCall() {
     setTesting(true);
     setMessage(null);
@@ -165,8 +188,8 @@ export default function AgentDashboard() {
   }
 
   function previewAgent() {
-    setError(null);
-    setMessage("Preview updated. Use Start test call on the Phone tab to speak with the shop agent.");
+    setActiveTab("telephony");
+    void startTestCall();
   }
 
   return (
@@ -223,13 +246,13 @@ export default function AgentDashboard() {
                   { href: "/shops/onboarding", label: "Shop profile", icon: Building2 },
                   { href: "/fleet/onboarding", label: "Fleet profile", icon: Truck },
                   { href: "/agents/dashboard", label: "AI Agent", icon: Bot, active: true },
-                  { href: "/ai-telephony", label: "AI Telephony", icon: RadioTower },
+                  { href: "/ai-telephony", label: "AI Telephony", icon: PhoneCall },
                   { href: "/ai-telephony", label: "Provisioning support", icon: LifeBuoy },
                 ].map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
-                      key={item.href}
+                      key={`${item.href}-${item.label}`}
                       href={item.href}
                       className={`flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition ${
                         item.active
@@ -546,51 +569,24 @@ export default function AgentDashboard() {
               </section>
 
               <section className="roadcall-surface rounded-2xl p-5">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-roadcall-orange/15 text-roadcall-orange">
-                    <RadioTower className="h-5 w-5" />
-                  </span>
-                  <div>
-                    <p className="font-bold text-white">Roadcall voice network</p>
-                    <p className="text-xs text-roadcall-muted">Managed provisioning for live calls</p>
-                  </div>
-                </div>
-                <div className="mt-5 space-y-3 text-sm">
-                  <StatusLine label="Voice agent" value="Pending" />
-                  <StatusLine label="Phone number" value={phone.trim() === "+1" ? "Not assigned" : phone} />
-                  <StatusLine label="Last sync" value="Not synced" />
-                </div>
-                <div className="mt-5 grid gap-3">
-                  <Button asChild variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10">
-                    <Link href="/ai-telephony">
-                      <Phone className="mr-2 h-4 w-4" /> Open telephony setup
-                    </Link>
-                  </Button>
-                  <Button asChild variant="outline" className="border-white/15 bg-white/5 text-white hover:bg-white/10">
-                    <Link href="/ai-telephony">
-                      <LifeBuoy className="mr-2 h-4 w-4" /> Request activation help
-                    </Link>
-                  </Button>
-                </div>
-              </section>
-
-              <section className="roadcall-surface rounded-2xl p-5">
                 <p className="text-xs font-bold uppercase tracking-[0.18em] text-roadcall-muted">Launch utilities</p>
                 <div className="mt-4 grid gap-3">
-                  {[
-                    { label: "Copy install snippet", icon: Copy },
-                    { label: "Upload voice sample", icon: FileAudio },
-                    { label: "Ask support to provision", icon: LifeBuoy },
-                    { label: "Call quality checklist", icon: Headphones },
-                  ].map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <button key={item.label} type="button" className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/[0.06]">
-                        <span className="inline-flex items-center gap-3"><Icon className="h-4 w-4 text-roadcall-cyan" /> {item.label}</span>
-                        <ArrowRight className="h-4 w-4 text-slate-500" />
-                      </button>
-                    );
-                  })}
+                  <button type="button" onClick={copyInstallSnippet} className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/[0.06]">
+                    <span className="inline-flex items-center gap-3"><Copy className="h-4 w-4 text-roadcall-cyan" /> Copy install snippet</span>
+                    <ArrowRight className="h-4 w-4 text-slate-500" />
+                  </button>
+                  <button type="button" onClick={openVoiceSampleSetup} className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/[0.06]">
+                    <span className="inline-flex items-center gap-3"><FileAudio className="h-4 w-4 text-roadcall-cyan" /> Upload voice sample</span>
+                    <ArrowRight className="h-4 w-4 text-slate-500" />
+                  </button>
+                  <Link href="/ai-telephony" className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/[0.06]">
+                    <span className="inline-flex items-center gap-3"><LifeBuoy className="h-4 w-4 text-roadcall-cyan" /> Ask support to provision</span>
+                    <ArrowRight className="h-4 w-4 text-slate-500" />
+                  </Link>
+                  <button type="button" onClick={openCallQualityChecklist} className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/[0.06]">
+                    <span className="inline-flex items-center gap-3"><Headphones className="h-4 w-4 text-roadcall-cyan" /> Call quality checklist</span>
+                    <ArrowRight className="h-4 w-4 text-slate-500" />
+                  </button>
                 </div>
               </section>
             </aside>
@@ -616,15 +612,6 @@ function PreviewRow({ label, value }: { label: string; value: string }) {
     <div className="flex items-center justify-between gap-3">
       <span className="text-roadcall-muted">{label}</span>
       <span className="truncate font-bold text-white">{value}</span>
-    </div>
-  );
-}
-
-function StatusLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3">
-      <span className="text-roadcall-muted">{label}</span>
-      <span className="font-bold text-white">{value}</span>
     </div>
   );
 }
