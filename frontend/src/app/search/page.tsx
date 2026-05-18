@@ -68,14 +68,22 @@ type Mechanic = {
   priority_score: number;
 };
 
+type MapBounds = {
+  min_lat: number;
+  max_lat: number;
+  min_lng: number;
+  max_lng: number;
+};
+
 function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: number; lng: number } {
   return typeof mechanic.lat === "number" && Number.isFinite(mechanic.lat) && typeof mechanic.lng === "number" && Number.isFinite(mechanic.lng);
 }
 
-function SearchResultsMap({ mechanics }: { mechanics: Mechanic[] }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
   const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
+  const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !configured || points.length === 0) return;
@@ -97,20 +105,44 @@ function SearchResultsMap({ mechanics }: { mechanics: Mechanic[] }) {
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
       map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
+      const updateVisibleBounds = () => {
+        const bounds = map.getBounds();
+        setVisibleBounds({
+          min_lat: bounds.getSouth(),
+          max_lat: bounds.getNorth(),
+          min_lng: bounds.getWest(),
+          max_lng: bounds.getEast(),
+        });
+      };
+      map.on("moveend", updateVisibleBounds);
+      map.once("idle", updateVisibleBounds);
+
       const bounds = new mapboxgl.LngLatBounds();
       points.forEach((mechanic, index) => {
         bounds.extend([mechanic.lng, mechanic.lat]);
         const popupNode = document.createElement("div");
-        popupNode.className = "space-y-1 text-sm";
+        popupNode.style.color = "#0f172a";
+        popupNode.style.fontSize = "14px";
+        popupNode.style.lineHeight = "1.35";
+        popupNode.style.maxWidth = "260px";
         const title = document.createElement("strong");
         title.textContent = mechanic.company_name;
+        title.style.display = "block";
+        title.style.color = "#0f172a";
+        title.style.fontSize = "15px";
+        title.style.fontWeight = "800";
         const location = document.createElement("div");
         location.textContent = [mechanic.city, mechanic.state].filter(Boolean).join(", ") || "Provider location";
+        location.style.marginTop = "4px";
+        location.style.color = "#334155";
+        location.style.fontWeight = "600";
         popupNode.append(title, location);
-        new mapboxgl.Marker({ color: index === 0 ? "#f97316" : "#2563eb" })
+        const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 18, maxWidth: "280px" }).setDOMContent(popupNode);
+        const marker = new mapboxgl.Marker({ color: index === 0 ? "#f97316" : "#2563eb" })
           .setLngLat([mechanic.lng, mechanic.lat])
-          .setPopup(new mapboxgl.Popup({ offset: 16 }).setDOMContent(popupNode))
           .addTo(map);
+        marker.getElement().addEventListener("mouseenter", () => popup.setLngLat([mechanic.lng, mechanic.lat]).addTo(map));
+        marker.getElement().addEventListener("mouseleave", () => popup.remove());
       });
       if (points.length > 1) {
         map.fitBounds(bounds, { padding: 64, maxZoom: 10, duration: 0 });
@@ -135,7 +167,21 @@ function SearchResultsMap({ mechanics }: { mechanics: Mechanic[] }) {
     return <div className="grid h-[520px] place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 px-6 text-center text-sm text-roadcall-muted">No mapped providers in these results yet. Try a state or city with geocoded mechanics.</div>;
   }
 
-  return <div ref={containerRef} className="h-[520px] min-h-[420px] w-full overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30" />;
+  return (
+    <div className="relative h-[520px] min-h-[420px] overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30">
+      <div ref={containerRef} className="h-full w-full" />
+      <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          disabled={!visibleBounds || searchingArea}
+          onClick={() => visibleBounds && onSearchArea(visibleBounds)}
+          className="rounded-full border border-slate-900/10 bg-white px-4 py-2 text-xs font-black text-slate-950 shadow-xl transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {searchingArea ? "Searching map area..." : "Search this map area"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
 type SearchResult = {
@@ -207,6 +253,34 @@ function MechanicCard({ m }: { m: Mechanic }) {
   );
 }
 
+function groupMechanicsByCity(mechanics: Mechanic[]) {
+  const groups = new Map<string, { label: string; providers: Mechanic[] }>();
+  mechanics.forEach((mechanic) => {
+    const label = [mechanic.city, mechanic.state].filter(Boolean).join(", ") || "Mapped providers";
+    const key = label.toLowerCase();
+    const group = groups.get(key) || { label, providers: [] };
+    group.providers.push(mechanic);
+    groups.set(key, group);
+  });
+  return Array.from(groups.values()).sort((a, b) => b.providers.length - a.providers.length || a.label.localeCompare(b.label));
+}
+
+function CityMechanicGroup({ label, providers }: { label: string; providers: Mechanic[] }) {
+  return (
+    <section className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 p-3">
+      <div className="mb-3 flex items-center justify-between gap-3 px-1">
+        <h3 className="min-w-0 truncate text-sm font-black text-white">{label}</h3>
+        <span className="shrink-0 rounded-full border border-roadcall-cyan/20 bg-roadcall-cyan/10 px-2.5 py-1 text-[11px] font-bold text-roadcall-cyan">
+          {providers.length} {providers.length === 1 ? "provider" : "providers"}
+        </span>
+      </div>
+      <div className="space-y-3">
+        {providers.map((mechanic) => <MechanicCard key={mechanic.id} m={mechanic} />)}
+      </div>
+    </section>
+  );
+}
+
 function SearchPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -224,21 +298,35 @@ function SearchPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [view, setView] = useState<"cards" | "map">("cards");
+  const [mapAreaSummary, setMapAreaSummary] = useState<string | null>(null);
+  const [searchingArea, setSearchingArea] = useState(false);
 
-  const doSearch = useCallback(async (resetPage = false) => {
-    const currentPage = resetPage ? 1 : page;
-    if (resetPage) setPage(1);
-    setLoading(true);
-    setError(null);
+  const buildSearchParams = useCallback((options?: { bounds?: MapBounds; pageOverride?: number; pageSize?: number }) => {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
     if (state) params.set("state", state);
-    if (city) params.set("city", city);
+    if (city && !options?.bounds) params.set("city", city);
     if (serviceType) params.set("service_type", serviceType);
     if (only24_7) params.set("is_24_7", "true");
     if (onlyMobile) params.set("mobile_only", "true");
-    params.set("page", String(currentPage));
-    params.set("page_size", "24");
+    if (options?.bounds) {
+      params.set("min_lat", String(options.bounds.min_lat));
+      params.set("max_lat", String(options.bounds.max_lat));
+      params.set("min_lng", String(options.bounds.min_lng));
+      params.set("max_lng", String(options.bounds.max_lng));
+    }
+    params.set("page", String(options?.pageOverride ?? page));
+    params.set("page_size", String(options?.pageSize ?? 24));
+    return params;
+  }, [city, only24_7, onlyMobile, page, query, serviceType, state]);
+
+  const doSearch = useCallback(async (resetPage = false, pageOverride?: number) => {
+    const currentPage = resetPage ? 1 : pageOverride ?? page;
+    if (resetPage || pageOverride) setPage(currentPage);
+    setLoading(true);
+    setError(null);
+    setMapAreaSummary(null);
+    const params = buildSearchParams({ pageOverride: currentPage });
 
     try {
       const res = await fetch(`${API_URL}/mechanics/search?${params}`);
@@ -252,7 +340,29 @@ function SearchPageInner() {
     } finally {
       setLoading(false);
     }
-  }, [query, state, city, serviceType, only24_7, onlyMobile, page]);
+  }, [buildSearchParams, page]);
+
+  const searchMapArea = useCallback(async (bounds: MapBounds) => {
+    setSearchingArea(true);
+    setLoading(true);
+    setError(null);
+    setPage(1);
+    const params = buildSearchParams({ bounds, pageOverride: 1, pageSize: 100 });
+
+    try {
+      const res = await fetch(`${API_URL}/mechanics/search?${params}`);
+      if (!res.ok) throw new Error("Search failed");
+      const data = await res.json();
+      setResults(data);
+      setMapAreaSummary(`Showing ${data.mechanics.length.toLocaleString()} mapped providers in the visible map area`);
+      setView("map");
+    } catch {
+      setError("Map area search unavailable — try zooming out or clearing filters.");
+    } finally {
+      setLoading(false);
+      setSearchingArea(false);
+    }
+  }, [buildSearchParams]);
 
   useEffect(() => {
     doSearch(true);
@@ -260,6 +370,7 @@ function SearchPageInner() {
   }, [state, city, serviceType, only24_7, onlyMobile]);
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
+  const cityGroups = useMemo(() => groupMechanicsByCity(results?.mechanics || []), [results]);
 
   return (
     <PageLayout>
@@ -354,6 +465,7 @@ function SearchPageInner() {
                 onClick={() => {
                   setQuery(""); setState(""); setCity(""); setServiceType("");
                   setOnly24_7(false); setOnlyMobile(false);
+                  setMapAreaSummary(null);
                 }}
                 className="flex items-center gap-1 text-xs text-roadcall-muted hover:text-white transition-colors"
               >
@@ -398,10 +510,13 @@ function SearchPageInner() {
             ) : error ? (
               <span className="flex items-center gap-1.5 text-sm text-amber-400"><AlertCircle className="h-4 w-4" />{error}</span>
             ) : results ? (
-              <span className="text-sm text-roadcall-muted">
-                <span className="text-white font-semibold">{results.total.toLocaleString()}</span> providers found
-                {state && ` in ${state}`}{city && `, ${city}`}
-              </span>
+              <div className="space-y-1">
+                <span className="block text-sm text-roadcall-muted">
+                  <span className="text-white font-semibold">{results.total.toLocaleString()}</span> providers found
+                  {state && ` in ${state}`}{city && !mapAreaSummary && `, ${city}`}
+                </span>
+                {mapAreaSummary ? <span className="block text-xs font-semibold text-roadcall-cyan">{mapAreaSummary}</span> : null}
+              </div>
             ) : null}
           </div>
           <div className="flex items-center gap-2">
@@ -441,9 +556,19 @@ function SearchPageInner() {
           </div>
         ) : results && results.mechanics.length > 0 && view === "map" ? (
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <SearchResultsMap mechanics={results.mechanics} />
-            <div className="max-h-[520px] space-y-3 overflow-y-auto pr-1">
-              {results.mechanics.map((m) => <MechanicCard key={m.id} m={m} />)}
+            <SearchResultsMap mechanics={results.mechanics} onSearchArea={searchMapArea} searchingArea={searchingArea} />
+            <div className="max-h-[520px] space-y-4 overflow-y-auto pr-1">
+              <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 p-4">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-muted">Visible cities</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {cityGroups.slice(0, 8).map((group) => (
+                    <span key={group.label} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-roadcall-silver">
+                      {group.label} · {group.providers.length}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              {cityGroups.map((group) => <CityMechanicGroup key={group.label} label={group.label} providers={group.providers} />)}
             </div>
           </div>
         ) : results && results.mechanics.length > 0 ? (
@@ -469,7 +594,7 @@ function SearchPageInner() {
           <div className="flex items-center justify-center gap-2 mt-10">
             <button
               disabled={page <= 1}
-              onClick={() => { setPage(page - 1); doSearch(); }}
+              onClick={() => doSearch(false, page - 1)}
               className="px-4 py-2 rounded-lg border border-roadcall-cyan/15 bg-roadcall-panel/40 text-sm text-roadcall-silver disabled:opacity-40 hover:border-roadcall-cyan/35 hover:text-white transition-all"
             >
               ← Prev
@@ -477,7 +602,7 @@ function SearchPageInner() {
             <span className="text-sm text-roadcall-muted">Page {page} of {totalPages}</span>
             <button
               disabled={page >= totalPages}
-              onClick={() => { setPage(page + 1); doSearch(); }}
+              onClick={() => doSearch(false, page + 1)}
               className="px-4 py-2 rounded-lg border border-roadcall-cyan/15 bg-roadcall-panel/40 text-sm text-roadcall-silver disabled:opacity-40 hover:border-roadcall-cyan/35 hover:text-white transition-all"
             >
               Next →

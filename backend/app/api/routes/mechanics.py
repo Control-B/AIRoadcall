@@ -125,6 +125,10 @@ async def public_search_mechanics(
     service_type: str | None = Query(default=None),
     is_24_7: bool | None = Query(default=None),
     mobile_only: bool | None = Query(default=None),
+    min_lat: float | None = Query(default=None, ge=-90, le=90),
+    max_lat: float | None = Query(default=None, ge=-90, le=90),
+    min_lng: float | None = Query(default=None, ge=-180, le=180),
+    max_lng: float | None = Query(default=None, ge=-180, le=180),
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=24, ge=1, le=100),
     db: AsyncSession = Depends(get_session),
@@ -138,17 +142,24 @@ async def public_search_mechanics(
     if state and len(state) != 2:
         state = None
     service_type = (service_type or "").strip() or None
+    has_bounds = all(value is not None for value in (min_lat, max_lat, min_lng, max_lng))
+    if has_bounds and (min_lat > max_lat or min_lng > max_lng):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid map bounds")
     await ensure_mechanic_admin_columns(db)
     result = await MechanicDataService.list_admin_mechanics(
         db,
         q=q,
-        city=city,
+        city=None if has_bounds else city,
         state=state,
         service_type=service_type,
         has_email=None,
         has_website=None,
         roadside_only=mobile_only or False,
         emergency_only=is_24_7 or False,
+        min_lat=min_lat,
+        max_lat=max_lat,
+        min_lng=min_lng,
+        max_lng=max_lng,
         limit=page_size,
         offset=(page - 1) * page_size,
     )

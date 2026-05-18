@@ -169,6 +169,10 @@ class MechanicDataService:
         emergency_only: bool = False,
         sort_by: str | None = None,
         sort_dir: str = "asc",
+        min_lat: float | None = None,
+        max_lat: float | None = None,
+        min_lng: float | None = None,
+        max_lng: float | None = None,
         limit: int = 50,
         offset: int = 0,
     ) -> MechanicAdminListResponse:
@@ -213,6 +217,14 @@ class MechanicDataService:
             filters.append(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
         if emergency_only:
             filters.append(Mechanic.emergency_service == True)  # noqa: E712
+        if min_lat is not None:
+            filters.append(Mechanic.base_lat >= min_lat)
+        if max_lat is not None:
+            filters.append(Mechanic.base_lat <= max_lat)
+        if min_lng is not None:
+            filters.append(Mechanic.base_lng >= min_lng)
+        if max_lng is not None:
+            filters.append(Mechanic.base_lng <= max_lng)
 
         count_query = select(func.count(Mechanic.id))
         list_columns = [
