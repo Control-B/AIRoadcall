@@ -9,6 +9,8 @@ UPDATES = {
     "APP_BASE_URL": "https://airoadcall-i76ba.ondigitalocean.app",
     "RETELL_AGENT_ID": "agent_c55f3b83dd7614ba0be6bec7e4",
     "RETELL_CONVERSATION_FLOW_ID": "conversation_flow_9830b2d0fa37",
+    "RETELL_SHOP_AGENT_ID": "agent_9edfdf87e375eeffba42912a6f",
+    "RETELL_SHOP_CONVERSATION_FLOW_ID": "conversation_flow_6765418d421c",
 }
 
 # Fetch current spec
