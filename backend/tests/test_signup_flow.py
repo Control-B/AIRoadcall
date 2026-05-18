@@ -157,3 +157,72 @@ def test_send_welcome_email_noop_without_api_key(monkeypatch):
     SubscriptionBillingService()._send_welcome_email(account, tenant, profile)
 
     assert calls == []
+
+
+class _FakeAccountDB:
+    """Lookup-by-email + tenant get stand-in for resend_dashboard_link."""
+
+    def __init__(self, account=None, tenant=None, profile=None):
+        self._account = account
+        self._tenant = tenant
+        self._profile = profile
+
+    async def execute(self, _statement):
+        # First call: MechanicAccount lookup. Second call: ShopProfile lookup.
+        # We don't introspect the statement; we return whatever is asked next
+        # in execution order by alternating the response.
+        if not hasattr(self, "_phase"):
+            self._phase = "profile"
+            payload = self._account
+        else:
+            payload = self._profile
+        return SimpleNamespace(
+            scalars=lambda: SimpleNamespace(first=lambda: payload),
+        )
+
+    async def get(self, _model, _id):
+        return self._tenant
+
+
+@pytest.mark.asyncio
+async def test_resend_dashboard_link_invokes_welcome_email(monkeypatch):
+    account = SimpleNamespace(email="OWNER@shop.com", tenant_id=uuid.uuid4(), dashboard_token="tok-1")
+    tenant = SimpleNamespace(id=account.tenant_id, name="Acme")
+    profile = _make_profile(email="owner@shop.com")
+
+    sent: list = []
+    monkeypatch.setattr(
+        SubscriptionBillingService,
+        "_send_welcome_email",
+        lambda self, acc, ten, prof: sent.append((acc, ten, prof)),
+    )
+
+    db = _FakeAccountDB(account=account, tenant=tenant, profile=profile)
+    ok = await SubscriptionBillingService().resend_dashboard_link(db, "owner@shop.com")
+
+    assert ok is True
+    assert len(sent) == 1
+    assert sent[0][0] is account
+
+
+@pytest.mark.asyncio
+async def test_resend_dashboard_link_returns_false_when_account_missing(monkeypatch):
+    sent: list = []
+    monkeypatch.setattr(
+        SubscriptionBillingService,
+        "_send_welcome_email",
+        lambda self, acc, ten, prof: sent.append((acc, ten, prof)),
+    )
+
+    db = _FakeAccountDB(account=None, tenant=None, profile=None)
+    ok = await SubscriptionBillingService().resend_dashboard_link(db, "ghost@shop.com")
+
+    assert ok is False
+    assert sent == []
+
+
+@pytest.mark.asyncio
+async def test_resend_dashboard_link_returns_false_for_empty_email():
+    db = _FakeAccountDB()
+    ok = await SubscriptionBillingService().resend_dashboard_link(db, "")
+    assert ok is False

@@ -37,6 +37,16 @@ class CustomerPortalCreateIn(BaseModel):
     dashboard_token: str
 
 
+class ResendDashboardLinkIn(BaseModel):
+    email: EmailStr
+    vertical: str = Field(default="shop", pattern="^(shop|fleet|admin)$")
+
+
+class ResendDashboardLinkOut(BaseModel):
+    status: str = "ok"
+    message: str
+
+
 class CustomerPortalCreateOut(BaseModel):
     portal_url: str
 

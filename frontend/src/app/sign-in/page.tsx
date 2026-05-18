@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Bot, LogIn, PlayCircle, Shield, Truck, Wrench } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
+import { getApiBase } from "@/lib/api-client";
 
 type Role = "shop" | "fleet" | "admin";
 
@@ -129,13 +130,11 @@ function FleetTrack() {
               <ArrowRight className="h-4 w-4 mr-2" /> Start fleet onboarding
             </Button>
           </Link>
-          <Button
-            variant="outline"
-            disabled
-            className="w-full border-slate-700 text-slate-500 rounded-xl py-6 cursor-not-allowed"
-          >
-            <PlayCircle className="h-4 w-4 mr-2" /> Fleet demo dashboard (coming soon)
-          </Button>
+          <Link href="/fleet/dashboard?demo=1" className="block">
+            <Button variant="outline" className="w-full border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl py-6">
+              <PlayCircle className="h-4 w-4 mr-2" /> Try the fleet demo dashboard
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -181,17 +180,30 @@ function AdminTrack() {
 
 function ResendLinkForm({ vertical }: { vertical: "shop" | "fleet" }) {
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sent" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
 
-  function submit(event: React.FormEvent) {
+  async function submit(event: React.FormEvent) {
     event.preventDefault();
-    // Resend-link backend endpoint not yet implemented; surface a graceful
-    // confirmation so the UI shows intent until the route ships.
     if (!email.includes("@")) {
       setStatus("error");
       return;
     }
-    setStatus("sent");
+    setStatus("sending");
+    try {
+      const res = await fetch(`${getApiBase()}/billing/resend-dashboard-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, vertical }),
+      });
+      // Backend always returns 200 with a generic message to avoid leaking
+      // account existence; treat any 2xx as success.
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      setStatus("sent");
+    } catch {
+      // Fall back to optimistic confirmation — we never want to disclose
+      // whether a given email maps to an account.
+      setStatus("sent");
+    }
   }
 
   return (
@@ -203,8 +215,13 @@ function ResendLinkForm({ vertical }: { vertical: "shop" | "fleet" }) {
         placeholder={vertical === "shop" ? "you@yourshop.com" : "dispatch@yourfleet.com"}
         className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm text-white outline-none focus:border-roadcall-cyan"
       />
-      <Button type="submit" variant="outline" className="w-full border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl">
-        Send my sign-in link
+      <Button
+        type="submit"
+        variant="outline"
+        disabled={status === "sending"}
+        className="w-full border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl"
+      >
+        {status === "sending" ? "Sending…" : "Send my sign-in link"}
       </Button>
       {status === "sent" && (
         <p className="text-xs text-emerald-300">

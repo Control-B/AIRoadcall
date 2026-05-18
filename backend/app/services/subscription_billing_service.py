@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import stripe
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.core.config import get_settings
 from app.core.plan_config import canonical_plan_id, get_plan_config, included_leads_for, plan_payload
@@ -203,6 +203,30 @@ class SubscriptionBillingService:
             "tenant_id": str(tenant.id),
             "dashboard_url": self.public_dashboard_url(tenant.id, account.dashboard_token),
         }
+
+    async def resend_dashboard_link(self, db, email: str) -> bool:
+        """Look up a MechanicAccount by email and re-send the welcome email
+        containing the dashboard magic link. Returns True if an email was
+        attempted, False if no account was found. Callers should not surface
+        the boolean to clients (avoid account-enumeration)."""
+        normalized = (email or "").strip().lower()
+        if not normalized:
+            return False
+        result = await db.execute(
+            select(MechanicAccount).where(func.lower(MechanicAccount.email) == normalized)
+        )
+        account = result.scalars().first()
+        if account is None:
+            return False
+        tenant = await db.get(Tenant, account.tenant_id)
+        if tenant is None:
+            return False
+        profile_result = await db.execute(
+            select(ShopProfile).where(ShopProfile.tenant_id == account.tenant_id)
+        )
+        profile = profile_result.scalars().first()
+        self._send_welcome_email(account, tenant, profile)
+        return True
 
     async def create_customer_portal(self, db, tenant_id: uuid.UUID, dashboard_token: str) -> str:
         account = await self.require_account(db, tenant_id, dashboard_token)

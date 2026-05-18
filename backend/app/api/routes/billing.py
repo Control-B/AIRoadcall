@@ -14,6 +14,8 @@ from app.schemas.billing import (
     CustomerPortalCreateIn,
     CustomerPortalCreateOut,
     MechanicDashboardView,
+    ResendDashboardLinkIn,
+    ResendDashboardLinkOut,
     ShopProfileUpdateIn,
 )
 from app.services.subscription_billing_service import SubscriptionBillingService
@@ -39,6 +41,22 @@ async def create_checkout_session(payload: CheckoutSessionCreateIn, db: AsyncSes
     except Exception as exc:
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Could not create Stripe checkout: {exc}") from exc
+
+
+@router.post("/resend-dashboard-link", response_model=ResendDashboardLinkOut)
+async def resend_dashboard_link(payload: ResendDashboardLinkIn, db: AsyncSession = Depends(get_db)):
+    generic_message = (
+        f"If an account exists for {payload.email}, we just re-sent the dashboard link."
+    )
+    # Fleet/admin do not have password-less magic-link dashboards yet; treat as no-op
+    # but still respond generically so we never disclose account existence.
+    if payload.vertical != "shop":
+        return ResendDashboardLinkOut(message=generic_message)
+    try:
+        await service.resend_dashboard_link(db, payload.email)
+    except Exception:  # noqa: BLE001 - never surface lookup/email errors to the caller
+        pass
+    return ResendDashboardLinkOut(message=generic_message)
 
 
 @router.post("/customer-portal", response_model=CustomerPortalCreateOut)
