@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Bot, CheckCircle2, Loader2, PhoneForwarded, PlayCircle, Save, ShieldAlert } from "lucide-react";
@@ -199,7 +200,13 @@ function MechanicDashboardContent() {
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-300">Mechanic AI Dashboard</p>
             <h1 className="mt-3 text-4xl font-black tracking-tight">{dashboard?.business_name}</h1>
           </div>
-          <button onClick={openPortal} disabled={saving} className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-white/10">Manage billing</button>
+          {isDemo ? (
+            <Link href="/mechanic/checkout?plan=growth" className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-white/10">
+              Manage billing
+            </Link>
+          ) : (
+            <button onClick={openPortal} disabled={saving} className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-white/10">Manage billing</button>
+          )}
         </div>
 
         {isDemo && (
@@ -281,7 +288,9 @@ function MechanicDashboardContent() {
               <p className="mt-4 text-sm text-slate-300">Attach the shop phone, set fallback rules, then create the AI advisor for this mechanic account.</p>
               <p className="mt-3 text-sm text-slate-300">Status: {dashboard?.ai_agent?.activation_status || "not_subscribed"}</p>
               {dashboard?.ai_agent?.[AI_AGENT_ID_KEY] && <p className="mt-2 break-all text-xs text-slate-500">Agent: {dashboard.ai_agent[AI_AGENT_ID_KEY]}</p>}
-              <button onClick={activateAi} disabled={saving} className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-400 px-5 py-3 text-sm font-bold text-slate-950"><PhoneForwarded className="h-4 w-4" /> Create AI advisor</button>
+              <Link href="/ai-telephony" className="mt-5 inline-flex items-center gap-2 rounded-full bg-orange-400 px-5 py-3 text-sm font-bold text-slate-950 hover:brightness-110">
+                <PhoneForwarded className="h-4 w-4" /> Create AI advisor
+              </Link>
               {!dashboard?.profile_complete && <p className="mt-3 flex gap-2 text-xs text-amber-200"><ShieldAlert className="h-4 w-4" /> Complete profile before activation.</p>}
             </div>
           </aside>
