@@ -247,7 +247,7 @@ export default function AgentDashboard() {
                   { href: "/fleet/onboarding", label: "Fleet profile", icon: Truck },
                   { href: "/agents/dashboard", label: "AI Agent", icon: Bot, active: true },
                   { href: "/ai-telephony", label: "AI Telephony", icon: PhoneCall },
-                  { href: "/ai-telephony", label: "Provisioning support", icon: LifeBuoy },
+                  { href: "mailto:support@roadcall.ai?subject=Roadcall%20agent%20provisioning%20help", label: "Provisioning support", icon: LifeBuoy },
                 ].map((item) => {
                   const Icon = item.icon;
                   return (
@@ -579,7 +579,7 @@ export default function AgentDashboard() {
                     <span className="inline-flex items-center gap-3"><FileAudio className="h-4 w-4 text-roadcall-cyan" /> Upload voice sample</span>
                     <ArrowRight className="h-4 w-4 text-slate-500" />
                   </button>
-                  <Link href="/ai-telephony" className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/[0.06]">
+                  <Link href="mailto:support@roadcall.ai?subject=Roadcall%20agent%20provisioning%20help" className="flex items-center justify-between rounded-xl border border-white/10 bg-slate-950/60 px-4 py-3 text-left text-sm font-semibold text-slate-200 transition hover:bg-white/[0.06]">
                     <span className="inline-flex items-center gap-3"><LifeBuoy className="h-4 w-4 text-roadcall-cyan" /> Ask support to provision</span>
                     <ArrowRight className="h-4 w-4 text-slate-500" />
                   </Link>
