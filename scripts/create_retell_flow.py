@@ -9,11 +9,12 @@ from pathlib import Path
 
 # ── Load .env ─────────────────────────────────────────────
 env_path = Path(__file__).parent.parent / ".env"
-for line in env_path.read_text().splitlines():
-    line = line.strip()
-    if line and not line.startswith("#") and "=" in line:
-        k, v = line.split("=", 1)
-        os.environ.setdefault(k.strip(), v.strip())
+if env_path.exists():
+    for line in env_path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
 
 RETELL_KEY    = os.environ["RETELL_API_KEY"]
 WEBHOOK_TOKEN = os.environ.get("RETELL_BACKEND_WEBHOOK_TOKEN", "local-dev-retell-token")
@@ -74,8 +75,8 @@ FLOW = {
         "DURABLE SESSION RULE: Early in the call, call create_dispatch_session with source='retell', retell_call_id when available, caller_phone when available, caller_name if known, problem_description if known, and vehicle_type if known. Use the returned dispatch_session_id and location_url as the source of truth for this call.",
         "CALL PHONE RULE: Use caller_phone from the Retell call metadata as callback_number whenever it is available. Do not ask the caller for their phone number unless the tool call has no caller_phone or callback_number.",
         "LOCATION TIMING RULE: Do not redirect the caller to roadcall.ai/go until they have answered with their name and what problem they need help with, and create_dispatch_session has returned a public_code or location_url.",
-        "WEBSITE-FIRST LOCATION: Prefer the returned location_url from create_dispatch_session. Say: 'I’m opening a Roadcall location session for this call. If you can open the link I send, tap Submit and share my location. I’ll stay on the line while it comes through.' If they cannot receive/open that link, say: 'Go to roadcall.ai/go and enter this Roadcall code: [public_code]. Then tap Submit and share my location.' Read the code slowly. Do not use phone-number lookup unless no public_code is available.",
-        "SESSION STATUS POLLING: If you have dispatch_session_id, poll get_dispatch_session_status every 8 to 10 seconds. Speak only the returned say field and verified best_match fields. If you do not have dispatch_session_id, fall back to check_go_dispatch using the 10-digit phone number.",
+        "WEBSITE-FIRST LOCATION: Prefer the returned location_url from create_dispatch_session. Say: 'I’m opening a Roadcall location session for this call. If you can open the link I send, tap Submit and share my location. I’ll stay on the line while it comes through.' If they cannot receive/open that link, say: 'Go to roadcall.ai/go and enter this Roadcall code: [public_code]. Then tap Submit and share my location.' Read the code slowly. Do not ask them to enter a phone number for location.",
+        "SESSION STATUS POLLING: If you have dispatch_session_id, poll get_dispatch_session_status every 8 to 10 seconds. Speak only the returned say field and verified best_match fields. If you do not have dispatch_session_id, create or reuse the dispatch session before sending the caller to roadcall.ai/go.",
         "PACING: Speak like a calm human dispatcher, not a robot. When you read match_mechanic.message, honor the ellipses (\"...\") and periods as real pauses — take a half-second breath at each ellipsis and a full beat at each period. Do not run sentences together. Read each numbered option as its own sentence: \"Number one ... Truck Tire LLC ... \" pause ... \"Number two ... Big Guy Truck ... \" pause ... \"Number three ... Bobby's Truck Shop.\" Then ask the question. Never list more than three local options.",
         "When reading results, ALWAYS prefer to speak match_mechanic.message exactly as returned — it is already worded for voice and may include up to three local options and one major vendor when one is nearby. Never list more than three local options. After reading the message, ask one short next-step question. Do not read phone numbers unless the caller asks or picks one.",
         "The major vendor is provided in match_mechanic.majorVendor with brandName, interstate, and exitNumber. You may speak its brandName, interstate, exit, and city verbatim — but only if majorVendor is present in the latest tool response. Never invent a major vendor.",
@@ -364,7 +365,7 @@ FLOW = {
                     "- If problem type missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
                     "- If vehicle type missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
                     "Do not ask road, exit, GPS, callback, company, payment, insurance, license plate, or address before matching.\n"
-                    "After the caller has given their name and problem/help needed, call create_dispatch_session if it has not already been called. Pass caller_phone from the call metadata when available. Use the returned location_url and public_code as the shared session identity. If they cannot use the link, tell them: 'Go to roadcall.ai/go and enter this Roadcall code: [public_code]. Then tap Submit and share my location.' Do not tell them to enter a phone number unless no public_code is available."
+                    "After the caller has given their name and problem/help needed, call create_dispatch_session if it has not already been called. Pass caller_phone from the call metadata when available. Use the returned location_url and public_code as the shared session identity. If they cannot use the link, tell them: 'Go to roadcall.ai/go and enter this Roadcall code: [public_code]. Then tap Submit and share my location.' Do not tell them to enter a phone number for location."
                 )
             },
             "edges": [
@@ -827,6 +828,16 @@ FLOW = {
 
     "start_node_id": "start-node"
 }
+
+EXPORT_JSON_PATH = os.environ.get("RETELL_EXPORT_JSON", "").strip()
+if EXPORT_JSON_PATH:
+    export_path = Path(EXPORT_JSON_PATH)
+    if not export_path.is_absolute():
+        export_path = Path(__file__).parent.parent / export_path
+    export_path.parent.mkdir(parents=True, exist_ok=True)
+    export_path.write_text(json.dumps(FLOW, indent=2, ensure_ascii=False) + "\n")
+    print(f"✅ Exported Sandy conversation flow JSON: {export_path}")
+    sys.exit(0)
 
 if EXISTING_FLOW_ID:
     print(f"Updating existing Roadcall.ai conversational flow: {EXISTING_FLOW_ID}")
