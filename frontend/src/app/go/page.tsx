@@ -4,7 +4,7 @@
  * roadcall.ai/go — website-first dispatch flow.
  *
  * Replaces SMS magic-link while carrier registration is pending.
- * Driver enters phone number or Roadcall case code, taps Submit, browser captures GPS,
+ * Driver enters phone number or Roadcall word code, taps Submit, browser captures GPS,
  * backend reverse-geocodes via Mapbox and returns top 3 mechanics.
  */
 
@@ -36,10 +36,19 @@ function digitsOnly(raw: string): string {
   return raw.replace(/\D/g, "").slice(0, 10);
 }
 function normalizeCaseCode(raw: string): string {
-  const cleaned = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const value = raw.trim().toUpperCase();
+  if (/[A-Z]/.test(value) && !value.startsWith("RC")) {
+    return value.replace(/[^A-Z0-9]+/g, " ").replace(/\s+/g, " ").trim();
+  }
+  const cleaned = value.replace(/[^A-Z0-9]/g, "");
   if (!cleaned) return "";
   const withoutPrefix = cleaned.startsWith("RC") ? cleaned.slice(2) : cleaned;
   return withoutPrefix ? `RC-${withoutPrefix}` : "RC-";
+}
+
+function looksLikeCaseCode(raw: string): boolean {
+  const value = raw.trim().toUpperCase();
+  return /^RC[-\s]?[A-Z0-9]{4,12}$/.test(value) || /^[A-Z]{3,12}(\s+[A-Z]{3,12}){0,2}$/.test(value);
 }
 function telHrefFor(raw?: string | null): string {
   if (!raw) return "#";
@@ -172,7 +181,7 @@ export default function GoPage() {
   const phoneDigits = useMemo(() => digitsOnly(phone), [phone]);
   const caseCode = useMemo(() => normalizeCaseCode(phone), [phone]);
   const phoneValid = phoneDigits.length === 10;
-  const caseCodeValid = /^RC-[A-Z0-9]{4,12}$/.test(caseCode);
+  const caseCodeValid = looksLikeCaseCode(phone);
   const tokenMode = Boolean(dispatchToken);
   const caseCodeMode = !tokenMode && caseCodeValid;
   const enteredLocationCode = useMemo(() => {
@@ -367,7 +376,7 @@ export default function GoPage() {
 
   const requestGpsThenDispatch = useCallback(async () => {
     if (!canSubmitIntake) {
-      setError("Enter the phone number from your call or the Roadcall code the agent gave you.");
+      setError("Enter the word code Sandy gave you, the live call code, or the phone number from your call.");
       return;
     }
     let linkedToken: string | undefined;
@@ -534,7 +543,7 @@ export default function GoPage() {
             ) : (
             <div>
               <label htmlFor="phone" className="mb-1 block text-sm font-medium text-slate-200">
-                Phone number or Roadcall code <span className="text-orange-400">*</span>
+                Roadcall word code or phone number <span className="text-orange-400">*</span>
               </label>
               <input
                 id="phone"
@@ -543,11 +552,11 @@ export default function GoPage() {
                 autoComplete="one-time-code"
                 value={caseCodeValid || phone.toUpperCase().startsWith("RC") || enteredLocationCode ? phone.toUpperCase() : formatPhonePretty(phone)}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="8421, (555) 123-4567, or RC-12345"
+                placeholder="BLUE ROAD or (555) 123-4567"
                 className="h-14 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-center text-xl font-semibold tracking-wider text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
               />
               <p className="mt-1 text-xs text-slate-400">
-                If you are on the phone with Roadcall AI, enter the code the agent gave you. Otherwise enter the phone number from your call.
+                If Sandy gave you two words, type them here. Otherwise enter the phone number from your call.
               </p>
               {caseCodeValid && (
                 <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100">
@@ -830,9 +839,9 @@ export default function GoPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="text-xs uppercase tracking-wider text-orange-400">
-                          Option {i + 1}
-                        </div>
-                        <div className="mt-1 text-base font-semibold text-white">
+                            <p className="mt-1 text-xs text-slate-400">
+                              If Sandy gave you two words, type them here. Otherwise enter the phone number from your call.
+                            </p>
                           {m.businessName}
                         </div>
                         <div className="mt-0.5 text-xs text-slate-400">

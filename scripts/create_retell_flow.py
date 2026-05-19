@@ -75,7 +75,7 @@ FLOW = {
         "DURABLE SESSION RULE: Early in the call, call create_dispatch_session with source='retell', retell_call_id when available, caller_phone when available, caller_name if known, problem_description if known, and vehicle_type if known. Use the returned dispatch_session_id and location_url as the source of truth for this call.",
         "CALL METADATA RULE: Use caller_phone from Retell call metadata when available. For caller location, use the Roadcall website code flow.",
         "LOCATION TIMING RULE: Do not redirect the caller to roadcall.ai/go until they have answered with their name and what problem they need help with, and create_dispatch_session has returned a public_code or location_url.",
-        "WEBSITE-FIRST LOCATION: Prefer the public_code from create_dispatch_session. Say: 'Please open roadcall.ai/go in your browser and enter code [public_code], then tap Share My Location. Stay on the line with me.' Read the code slowly.",
+        "WEBSITE-FIRST LOCATION: Prefer the public_code from create_dispatch_session. The code is a simple two-word phrase. Say: 'Please open roadcall.ai/go in your browser and enter the two words [public_code], then tap Share My Location. Stay on the line with me.' Read the two words slowly.",
         "SESSION STATUS POLLING: If you have dispatch_session_id, poll get_dispatch_session_status every 8 to 10 seconds. Speak only the returned say field and verified best_match fields. If you do not have dispatch_session_id, create or reuse the dispatch session before sending the caller to roadcall.ai/go.",
         "PACING: Speak like a calm human dispatcher, not a robot. When you read match_mechanic.message, honor the ellipses (\"...\") and periods as real pauses — take a half-second breath at each ellipsis and a full beat at each period. Do not run sentences together. Read each numbered option as its own sentence: \"Number one ... Truck Tire LLC ... \" pause ... \"Number two ... Big Guy Truck ... \" pause ... \"Number three ... Bobby's Truck Shop.\" Then ask the question. Never list more than three local options.",
         "When reading results, ALWAYS prefer to speak match_mechanic.message exactly as returned — it is already worded for voice and may include up to three local options and one major vendor when one is nearby. Never list more than three local options. After reading the message, ask one short next-step question. Do not read phone numbers unless the caller asks or picks one.",
@@ -315,7 +315,7 @@ FLOW = {
                     "- If problem type missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
                     "- If vehicle type missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
                     "Do not ask road, exit, GPS, callback, company, payment, insurance, license plate, or address before matching.\n"
-                    "After the caller has given their name and problem/help needed, call create_dispatch_session if it has not already been called. Pass caller_phone from the call metadata when available. Use the returned public_code as the shared session identity. Say: 'Please open roadcall.ai/go in your browser and enter code [public_code], then tap Share My Location. Stay on the line with me.'"
+                    "After the caller has given their name and problem/help needed, call create_dispatch_session if it has not already been called. Pass caller_phone from the call metadata when available. Use the returned public_code as the shared session identity. Say: 'Please open roadcall.ai/go in your browser and enter the two words [public_code], then tap Share My Location. Stay on the line with me.'"
                 )
             },
             "edges": [
@@ -494,7 +494,7 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "If create_dispatch_session has not been called, call it now. Use the returned public_code as the shared location code.\n"
-                    "Tell the driver exactly: 'Please open roadcall.ai/go in your browser and enter code [public_code], then tap Share My Location. Stay on the line with me.'\n"
+                    "Tell the driver exactly: 'Please open roadcall.ai/go in your browser and enter the two words [public_code], then tap Share My Location. Stay on the line with me.'\n"
                     "Use create_dispatch_session and get_dispatch_session_status for location.\n"
                     "While waiting, poll get_dispatch_session_status using dispatch_session_id every 8 to 10 seconds.\n"
                     "If the driver cannot use the website, ask for highway/interstate, mile marker or nearest exit, city and state, and nearby truck stop or landmark.\n"

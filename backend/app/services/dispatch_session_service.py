@@ -34,6 +34,15 @@ from app.utils.us_geo import infer_state_from_coordinates
 
 _PHONE_DIGITS = re.compile(r"\D")
 
+_CODE_ADJECTIVES = [
+    "BLUE", "GREEN", "GOLD", "SILVER", "BRIGHT", "CLEAR", "SAFE", "QUICK", "STEADY", "SOLID",
+    "CALM", "READY", "FRESH", "TRUE", "LUCKY", "NORTH", "SOUTH", "EAST", "WEST", "OPEN",
+]
+_CODE_NOUNS = [
+    "ROAD", "TRUCK", "TIRE", "WHEEL", "ENGINE", "DIESEL", "RIVER", "BRIDGE", "PILOT", "MILE",
+    "EXIT", "LANE", "SHOP", "WRENCH", "BEACON", "ROUTE", "TRAIL", "FLEET", "CAB", "SIGN",
+]
+
 
 def normalize_phone_us(value: str | None) -> str | None:
     if not value:
@@ -49,8 +58,14 @@ def phone_hash(value: str | None) -> str | None:
     return hash_token(phone10) if phone10 else None
 
 
+def normalize_public_code(value: str | None) -> str:
+    return re.sub(r"\s+", " ", (value or "").strip().upper().replace("-", " "))
+
+
 def _public_code() -> str:
-    return f"RC-{secrets.randbelow(90000) + 10000}"
+    adjective = secrets.choice(_CODE_ADJECTIVES)
+    noun = secrets.choice(_CODE_NOUNS)
+    return f"{adjective} {noun}"
 
 
 def _public_url(token: str) -> str:
@@ -298,7 +313,7 @@ class DispatchSessionService:
 
     @staticmethod
     async def link_case_code(db: AsyncSession, public_code: str, caller_phone_last4: str | None, expires_minutes: int) -> DispatchLinkCaseCodeResponse:
-        result = await db.execute(select(DispatchSession).where(DispatchSession.public_code == public_code.strip().upper()))
+        result = await db.execute(select(DispatchSession).where(DispatchSession.public_code == normalize_public_code(public_code)))
         session = result.scalar_one_or_none()
         if not session:
             raise ValueError("Dispatch session not found")
