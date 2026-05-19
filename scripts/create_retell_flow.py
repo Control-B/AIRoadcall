@@ -73,9 +73,9 @@ FLOW = {
         "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
         "DURABLE SESSION RULE: Early in the call, call create_dispatch_session with source='retell', retell_call_id when available, caller_phone when available, caller_name if known, problem_description if known, and vehicle_type if known. Use the returned dispatch_session_id and location_url as the source of truth for this call.",
-        "CALL PHONE RULE: Use caller_phone from the Retell call metadata as callback_number whenever it is available. Do not ask the caller for their phone number for location. The website code flow works without SMS.",
+        "CALL METADATA RULE: Use caller_phone from Retell call metadata when available. For caller location, use the Roadcall website code flow.",
         "LOCATION TIMING RULE: Do not redirect the caller to roadcall.ai/go until they have answered with their name and what problem they need help with, and create_dispatch_session has returned a public_code or location_url.",
-        "WEBSITE-FIRST LOCATION: Prefer the returned location_url from create_dispatch_session. Say: 'I’m opening a Roadcall location session for this call. If you can open the link I send, tap Submit and share my location. I’ll stay on the line while it comes through.' If they cannot receive/open that link, say: 'Go to roadcall.ai/go and enter this Roadcall code: [public_code]. Then tap Submit and share my location.' Read the code slowly. Do not ask them to enter a phone number for location.",
+        "WEBSITE-FIRST LOCATION: Prefer the public_code from create_dispatch_session. Say: 'Please open roadcall.ai/go in your browser and enter code [public_code], then tap Share My Location. Stay on the line with me.' Read the code slowly.",
         "SESSION STATUS POLLING: If you have dispatch_session_id, poll get_dispatch_session_status every 8 to 10 seconds. Speak only the returned say field and verified best_match fields. If you do not have dispatch_session_id, create or reuse the dispatch session before sending the caller to roadcall.ai/go.",
         "PACING: Speak like a calm human dispatcher, not a robot. When you read match_mechanic.message, honor the ellipses (\"...\") and periods as real pauses — take a half-second breath at each ellipsis and a full beat at each period. Do not run sentences together. Read each numbered option as its own sentence: \"Number one ... Truck Tire LLC ... \" pause ... \"Number two ... Big Guy Truck ... \" pause ... \"Number three ... Bobby's Truck Shop.\" Then ask the question. Never list more than three local options.",
         "When reading results, ALWAYS prefer to speak match_mechanic.message exactly as returned — it is already worded for voice and may include up to three local options and one major vendor when one is nearby. Never list more than three local options. After reading the message, ask one short next-step question. Do not read phone numbers unless the caller asks or picks one.",
@@ -145,7 +145,6 @@ FLOW = {
                     "language":            {"type": "string", "description": "BCP-47 language code"},
                     "driver_safe":         {"type": "boolean", "description": "Is the driver safe and off the roadway?"},
                     "driver_name":         {"type": "string",  "description": "Driver's full name"},
-                    "callback_number":     {"type": "string",  "description": "Driver's callback phone in E.164"},
                     "company_name":        {"type": "string",  "description": "Trucking company name if provided"},
                     "truck_type":          {"type": "string",  "description": "tractor|box_truck|straight_truck|bus|rv|pickup_hotshot|other"},
                     "trailer_type":        {"type": "string",  "description": "dry_van|reefer|flatbed|step_deck|tanker|lowboy|container_chassis|none|other"},
@@ -156,39 +155,6 @@ FLOW = {
                     "caller_phone":        {"type": "string",  "description": "Caller's phone from Retell if available"},
                 },
                 "required": ["retell_call_id", "driver_safe", "driver_name", "problem_type", "problem_description"]
-            }
-        },
-        {
-            "type": "custom",
-            "tool_id": "tool-roadcall-request-loc",
-            "name": "request_location",
-            "description": "Legacy fallback only. Do not call for normal location capture. Prefer create_dispatch_session and tell the caller to open roadcall.ai/go with the returned public_code.",
-            "url": f"{BACKEND_URL}/api/location/request",
-            "method": "POST",
-            "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "service_request_id": {"type": "string", "description": "The service_request_id returned by create_service_request"},
-                    "callback_number":    {"type": "string", "description": "Driver's phone number to SMS the location link"},
-                    "preferred_channel":  {"type": "string", "description": "Always 'sms'"},
-                    "sms_template_id":    {"type": "string", "description": "Always 'location_request'"},
-                    "manual_location_details": {
-                        "type": "object",
-                        "description": "Only fill if SMS failed — collect highway, mile marker, exit, city, state, truck stop, landmark, direction",
-                        "properties": {
-                            "interstate_or_highway": {"type": "string"},
-                            "mile_marker":           {"type": "string"},
-                            "nearest_exit":          {"type": "string"},
-                            "city":                  {"type": "string"},
-                            "state":                 {"type": "string"},
-                            "truck_stop":            {"type": "string"},
-                            "landmark":              {"type": "string"},
-                            "direction_of_travel":   {"type": "string"}
-                        }
-                    }
-                },
-                "required": ["service_request_id"]
             }
         },
         {
@@ -246,21 +212,6 @@ FLOW = {
         },
         {
             "type": "custom",
-            "tool_id": "tool-roadcall-go-status",
-            "name": "check_go_dispatch",
-            "description": "Fallback only: check whether the caller has submitted phone + GPS on roadcall.ai/go. Prefer get_dispatch_session_status when create_dispatch_session returned a dispatch_session_id. Use this only if no dispatch_session_id/public_code flow is available.",
-            "url": f"{BACKEND_URL}/api/go/status",
-            "method": "POST",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "phone": {"type": "string", "description": "Caller's 10-digit US phone number, digits only (e.g. 8635551212)"}
-                },
-                "required": ["phone"]
-            }
-        },
-        {
-            "type": "custom",
             "tool_id": "tool-roadcall-payment-req",
             "name": "request_payment",
             "description": "Ask the backend to create a Stripe payment authorization and send a secure payment link by SMS. Never collect card details by voice.",
@@ -271,11 +222,10 @@ FLOW = {
                 "type": "object",
                 "properties": {
                     "service_request_id": {"type": "string", "description": "The service_request_id"},
-                    "callback_number":    {"type": "string", "description": "Driver phone to SMS the payment link"},
                     "reason":             {"type": "string", "description": "diagnostic_fee|service_authorization|deposit"},
                     "sms_template_id":    {"type": "string", "description": "Always 'payment_authorization'"}
                 },
-                "required": ["service_request_id", "callback_number"]
+                "required": ["service_request_id"]
             }
         },
         {
@@ -365,7 +315,7 @@ FLOW = {
                     "- If problem type missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
                     "- If vehicle type missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
                     "Do not ask road, exit, GPS, callback, company, payment, insurance, license plate, or address before matching.\n"
-                    "After the caller has given their name and problem/help needed, call create_dispatch_session if it has not already been called. Pass caller_phone from the call metadata when available. Use the returned location_url and public_code as the shared session identity. If they cannot use the link, tell them: 'Go to roadcall.ai/go and enter this Roadcall code: [public_code]. Then tap Submit and share my location.' Do not tell them to enter a phone number for location."
+                    "After the caller has given their name and problem/help needed, call create_dispatch_session if it has not already been called. Pass caller_phone from the call metadata when available. Use the returned public_code as the shared session identity. Say: 'Please open roadcall.ai/go in your browser and enter code [public_code], then tap Share My Location. Stay on the line with me.'"
                 )
             },
             "edges": [
@@ -513,7 +463,7 @@ FLOW = {
                 "text": (
                     "Now collect only what is required to create the dispatch record, one question at a time:\n"
                     "This node is used after a mechanic match OR after automatic matching escalates to manual dispatch.\n"
-                    "1. If call.caller_phone is available, pass it as callback_number. Do not ask for a phone number for location.\n"
+                    "1. If call.caller_phone is available, pass it silently as caller_phone. Use the existing location session.\n"
                     "2. If driver_name is still missing: 'What name should I put on the request?'\n"
                     "3. If vehicle type is still missing: 'What are you driving — semi, box truck, trailer, RV, or something else?'\n"
                     "Do not ask for email, payment, company, insurance, license plate, or other unnecessary details.\n"
@@ -545,7 +495,7 @@ FLOW = {
                 "text": (
                     "If create_dispatch_session has not been called, call it now. Use the returned public_code as the shared location code.\n"
                     "Tell the driver exactly: 'Please open roadcall.ai/go in your browser and enter code [public_code], then tap Share My Location. Stay on the line with me.'\n"
-                    "Do not call request_location unless a supervisor explicitly asks for the legacy SMS fallback. Do not ask what number to text.\n"
+                    "Use create_dispatch_session and get_dispatch_session_status for location.\n"
                     "While waiting, poll get_dispatch_session_status using dispatch_session_id every 8 to 10 seconds.\n"
                     "If the driver cannot use the website, ask for highway/interstate, mile marker or nearest exit, city and state, and nearby truck stop or landmark.\n"
                     "Once GPS or manual location is collected, move to dispatch search."
@@ -646,7 +596,7 @@ FLOW = {
                 "text": (
                     "If the backend returned payment_required=true and payment_authorization_status is NOT 'authorized':\n"
                     "  Say: 'I found a provider — [mechanic_company] with an ETA of approximately [eta_text]. Before I can finalize, I need a payment authorization. I'm texting you a secure link now — please do not read any card numbers to me over the phone.'\n"
-                    "  Call request_payment with service_request_id and callback_number.\n"
+                    "  Use the current call record for payment authorization if required.\n"
                     "  Then poll get_dispatch_status every 10 seconds until authorization_status is 'authorized'.\n"
                     "  While waiting: 'Waiting on your payment authorization. Just tap the link and complete it there.'\n"
                     "  If authorization_status is 'declined': Say the authorization didn't go through, offer to resend.\n\n"
@@ -736,7 +686,7 @@ FLOW = {
                     "  Say: 'I'll connect you now. I'll brief them first so you don't have to repeat your breakdown details.'\n"
                     "  Then transfer the call to transfer_phone using the whisper_text from the response.\n"
                     "If transfer_approved=false:\n"
-                    "  Say: 'The mechanic has your details and callback number. They'll call if they need final directions.'\n"
+                    "  Say: 'The mechanic has your details. They'll call if they need final directions.'\n"
                     "  Move to success close."
                 )
             },
@@ -798,7 +748,7 @@ FLOW = {
             "display_position": {"x": 1900, "y": 100},
             "instruction": {
                 "type": "prompt",
-                "text": "Confirm the callback number, tell the driver the search stays active, and end the call professionally."
+                "text": "Tell the driver the search stays active and end the call professionally."
             }
         },
         {
@@ -818,7 +768,7 @@ FLOW = {
             "display_position": {"x": 1900, "y": 550},
             "instruction": {
                 "type": "prompt",
-                "text": "Tell the driver the request is pending payment authorization. Once the secure link is completed, dispatch will continue. Provide the callback number for questions."
+                "text": "Tell the driver the request is pending payment authorization. Once the secure link is completed, dispatch will continue."
             }
         }
     ],
