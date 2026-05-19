@@ -65,11 +65,6 @@ const navItems: NavItem[] = [
         href: "/search",
       },
       {
-        label: "Driver Help Center",
-        description: "Stranded? Get help fast — no app needed",
-        href: "/driver",
-      },
-      {
         label: "AI Marketplace",
         description: "AI-ranked providers matched to your exact problem",
         href: "/marketplace",
