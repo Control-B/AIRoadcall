@@ -41,7 +41,7 @@ except ImportError:
     print("       Run from the repo root or activate the backend venv first.")
     sys.exit(1)
 
-RETELL_BASE = "https://api.retellai.com/v2"
+RETELL_BASE = "https://api.retellai.com"
 
 # ─── known agent IDs (can be overridden by env vars) ──────────────────────────
 KNOWN_AGENTS: dict[str, dict] = {

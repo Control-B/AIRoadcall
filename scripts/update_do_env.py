@@ -5,15 +5,22 @@ Requires:
   - doctl CLI installed and authenticated (doctl auth init)
   - RETELL_BACKEND_WEBHOOK_TOKEN set in environment before running
 """
-import json, os, subprocess, sys
+import json, os, subprocess, sys, tempfile
+from pathlib import Path
 
 APP_ID = "8b291421-e807-4ad6-b00d-3217ebd3ee8e"
 
-import os
+def required_env(name: str) -> str:
+    value = os.environ.get(name, "").strip()
+    if not value:
+        print(f"Missing required env var: {name}")
+        sys.exit(1)
+    return value
+
 
 UPDATES = {
     # Read the token from env — never hardcode secrets in source files
-    "RETELL_BACKEND_WEBHOOK_TOKEN": os.environ["RETELL_BACKEND_WEBHOOK_TOKEN"],
+    "RETELL_BACKEND_WEBHOOK_TOKEN": required_env("RETELL_BACKEND_WEBHOOK_TOKEN"),
     "APP_BASE_URL": "https://airoadcall-i76ba.ondigitalocean.app",
     "RETELL_AGENT_ID": "agent_c55f3b83dd7614ba0be6bec7e4",
     "RETELL_CONVERSATION_FLOW_ID": "conversation_flow_9830b2d0fa37",
@@ -69,17 +76,25 @@ print("Changes:")
 for c in changed:
     print(c)
 
-spec_path = "/tmp/do_spec_updated.json"
-json.dump(spec, open(spec_path, "w"), indent=2)
-print(f"\nSpec written to {spec_path}")
+spec_file = tempfile.NamedTemporaryFile("w", delete=False, suffix=".json")
+spec_path = Path(spec_file.name)
+try:
+    json.dump(spec, spec_file, indent=2)
+    spec_file.close()
+    print("\nSpec prepared for DigitalOcean update")
 
-result = subprocess.run(
-    ["doctl", "apps", "update", APP_ID, "--spec", spec_path],
-    capture_output=True, text=True
-)
-if result.returncode == 0:
-    print("✅ DO app updated — deploy triggered")
-    print(result.stdout[:300])
-else:
-    print("❌ Error:", result.stderr[:500])
-    sys.exit(1)
+    result = subprocess.run(
+        ["doctl", "apps", "update", APP_ID, "--spec", str(spec_path)],
+        capture_output=True, text=True
+    )
+    if result.returncode == 0:
+        print("✅ DO app updated — deploy triggered")
+        print(result.stdout[:300])
+    else:
+        print("❌ Error:", result.stderr[:500])
+        sys.exit(1)
+finally:
+    try:
+        spec_path.unlink(missing_ok=True)
+    except Exception:
+        pass
