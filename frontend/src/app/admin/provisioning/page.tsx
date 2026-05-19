@@ -1,50 +1,33 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
-  BadgeCheck,
   Bot,
-  Building2,
+  CalendarClock,
   CheckCircle2,
-  Crown,
+  Database,
   ExternalLink,
   Loader2,
-  Lock,
-  Mic2,
-  Play,
   PhoneCall,
   RefreshCw,
-  ShieldCheck,
-  Square,
+  Save,
+  Settings2,
+  Sparkles,
   Truck,
-  Upload,
-  Workflow,
-  Zap,
+  Volume2,
+  Wrench,
 } from "lucide-react";
+import { VoiceCloneControls, type VoiceCloneSample } from "@/components/VoiceCloneControls";
 import { adminFetch } from "@/lib/admin-auth";
+
+type AgentType = "shops" | "fleet" | "roadside";
+type AgentTab = "conversation" | "voice" | "phone" | "calendar" | "advanced";
 
 interface PlanConfig {
   id: string;
   name: string;
   price_monthly: number;
   setup_fee: number;
-  enabled_features: string[];
-  ghl_snapshot_id: string;
-  allowed_modules: string[];
-  webhook_permissions: string[];
-  dashboard_permissions: string[];
-  dispatch_permissions: string[];
-  ai_feature_permissions: string[];
-}
-
-interface GHLConnectionView {
-  location_id?: string | null;
-  subaccount_name?: string | null;
-  snapshot_id?: string | null;
-  snapshot_status: string;
-  connection_status: string;
-  last_synced_at?: string | null;
 }
 
 interface RetellConnectionView {
@@ -63,89 +46,66 @@ interface TenantView {
   organization_id: string;
   name: string;
   slug: string;
-  vertical_type: "shops" | "fleet" | string;
+  vertical_type: AgentType | string;
   contact_email?: string | null;
   contact_phone?: string | null;
   current_plan: string;
   subscription_status: string;
   onboarding_status: string;
   setup_fee_status: string;
-  enabled_features: string[];
-  locked_features: string[];
-  ghl_connection?: GHLConnectionView | null;
   retell_connection?: RetellConnectionView | null;
   llm_model?: string | null;
   voice_id?: string | null;
   calls_handled: number;
-  leads_allocated: number;
   vehicle_count: number;
-  fleet_size?: number | null;
-  snapshot_status?: string | null;
   is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-interface ProvisioningSnapshotView {
-  vertical_type: "shops" | "fleet" | string;
-  label: string;
-  description: string;
-  tenant_count: number;
-  active_subscribers: number;
-  ai_phone_active: number;
-  calls_handled: number;
-  vehicle_count: number;
-  fleet_size: number;
-  snapshot_ready: number;
-  snapshot_pending: number;
-  llm_models: string[];
 }
 
 interface TenantListResponse {
   tenants: TenantView[];
   plans: PlanConfig[];
-  snapshots?: ProvisioningSnapshotView[];
 }
 
-interface DispatchEventView {
-  id: string;
-  tenant_id?: string | null;
-  event_type: string;
-  status: string;
-  created_at: string;
-  payload_json?: Record<string, unknown> | null;
-}
+const inputClass = "w-full rounded-xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-roadcall-cyan/70 focus:ring-2 focus:ring-roadcall-cyan/20";
+const textareaClass = `${inputClass} min-h-[142px] resize-y leading-6`;
 
-type VoiceSampleSource = "recorded" | "uploaded" | null;
+const profiles = {
+  shops: {
+    label: "Shop agent",
+    badge: "Inbound service advisor",
+    icon: Wrench,
+    agentName: "Roadcall Service Advisor",
+    businessName: "Diesel repair shop",
+    welcome: "Thanks for calling. I can help with roadside service, shop availability, location, truck details, and the best next step for your repair.",
+    instructions: "Act like a senior heavy-duty service advisor. Capture caller name, callback number, unit number, vehicle year/make/model, location, issue, urgency, warning lamps, and whether the unit is safe to move. Ask one diagnostic question at a time. Confirm scheduling availability before promising a slot and escalate safety issues, pricing disputes, or uncertain diagnosis to the shop owner.",
+  },
+  fleet: {
+    label: "Fleet agent",
+    badge: "Inbound and outbound dispatch",
+    icon: Truck,
+    agentName: "Roadcall Fleet Dispatcher",
+    businessName: "Fleet operations team",
+    welcome: "Roadcall dispatch here. I can help open a breakdown case, collect driver and asset details, contact approved vendors, and keep your team updated.",
+    instructions: "Act like a senior fleet breakdown dispatcher. Gather driver name, callback number, unit number, tractor/trailer type, loaded status, exact location, fault codes, warning lights, and mechanical symptoms. Decide whether the driver can safely move, limp to a shop, needs mobile repair, towing, or is out of service. For outbound vendor calls, confirm capability, ETA, pricing, tools, parts, and callback details.",
+  },
+  roadside: {
+    label: "Roadside agent",
+    badge: "Public dispatch",
+    icon: PhoneCall,
+    agentName: "Roadcall Roadside Dispatcher",
+    businessName: "Roadcall Dispatch",
+    welcome: "Roadcall dispatch. I can open a roadside case, capture your exact location, find nearby service, and keep you updated.",
+    instructions: "Act like Roadcall's public roadside dispatcher. Capture caller name, callback number, vehicle type, issue, warning lights, safety condition, city/state, highway, mile marker, direction, exit, truck stop, or landmark. Send the secure GPS link when exact location is needed. Escalate injuries, hazmat, police, fire, or unsafe roadside conditions immediately.",
+  },
+} satisfies Record<AgentType, { label: string; badge: string; icon: typeof Wrench; agentName: string; businessName: string; welcome: string; instructions: string }>;
 
-const FEATURE_LABELS: Record<string, string> = {
-  ai_answering: "AI answering",
-  missed_call_text_back: "Missed-call text back",
-  basic_crm_sync: "Basic CRM sync",
-  lead_capture: "Lead capture",
-  sms_follow_up: "SMS follow-up",
-  basic_ai_summaries: "AI summaries",
-  website_widget: "Website widget",
-  advanced_ai_workflows: "Advanced AI workflows",
-  appointment_scheduling: "Appointment scheduling",
-  smart_routing: "Smart routing",
-  advanced_analytics: "Advanced analytics",
-  team_notifications: "Team notifications",
-  multi_location_support: "Multi-location support",
-  gps_capture: "SMS GPS capture",
-  roadside_intake: "Roadside intake",
-  dispatch_workflow: "Dispatch workflows",
-  mechanic_assignment: "Mechanic assignment",
-  fleet_notification: "Fleet notifications",
-  dispatch_dashboard: "Dispatch dashboard",
-  emergency_routing: "Emergency routing",
-  real_time_roadside_status: "Real-time roadside status",
-  external_dispatch_api: "External dispatch API",
-};
-
-function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/85 to-slate-950 shadow-lg ${className}`}>{children}</div>;
-}
+const tabs: { id: AgentTab; label: string; icon: typeof Bot }[] = [
+  { id: "conversation", label: "Conversation", icon: Bot },
+  { id: "voice", label: "Voice", icon: Volume2 },
+  { id: "phone", label: "Phone", icon: PhoneCall },
+  { id: "calendar", label: "Cal.com", icon: CalendarClock },
+  { id: "advanced", label: "Advanced", icon: Settings2 },
+];
 
 function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?: "emerald" | "amber" | "red" | "blue" | "slate" | "orange" }) {
   const classes = {
@@ -156,305 +116,241 @@ function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?:
     orange: "bg-orange-500/15 text-orange-300 border-orange-500/20",
     slate: "bg-white/5 text-slate-300 border-white/10",
   }[tone];
-  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${classes}`}>{children}</span>;
-}
-
-function featureLabel(feature: string) {
-  return FEATURE_LABELS[feature] || feature.replaceAll("_", " ");
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${classes}`}>{children}</span>;
 }
 
 function statusTone(status?: string | null): "emerald" | "amber" | "red" | "slate" {
   if (!status) return "slate";
   if (["active", "connected", "installed", "paid", "activated", "healthy", "completed", "ready", "configured"].includes(status)) return "emerald";
-  if (["failed", "cancelled", "missing_snapshot_id"].includes(status)) return "red";
-  if (["pending", "not_started", "unpaid", "pending_location"].includes(status)) return "amber";
+  if (["failed", "cancelled", "missing_snapshot_id", "error"].includes(status)) return "red";
+  if (["pending", "not_started", "unpaid", "pending_location", "provisioning", "in_progress"].includes(status)) return "amber";
   return "slate";
-}
-
-function SnapshotPanel({ snapshot, selected, onSelect }: { snapshot: ProvisioningSnapshotView; selected: boolean; onSelect: () => void }) {
-  const isFleet = snapshot.vertical_type === "fleet";
-  const Icon = isFleet ? Truck : Building2;
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`group rounded-2xl border p-5 text-left transition ${selected ? "border-blue-400/45 bg-blue-500/10 shadow-lg shadow-blue-950/25" : "border-white/5 bg-slate-950/70 hover:border-white/15 hover:bg-white/[0.04]"}`}
-    >
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${isFleet ? "bg-orange-500/15 text-orange-300" : "bg-cyan-500/15 text-cyan-300"}`}>
-            <Icon className="h-5 w-5" />
-          </div>
-          <div>
-            <p className="font-semibold text-white">{snapshot.label}</p>
-            <p className="mt-1 text-xs text-slate-500">{snapshot.description}</p>
-          </div>
-        </div>
-        <Badge tone={snapshot.snapshot_pending ? "amber" : "emerald"}>{snapshot.snapshot_pending ? `${snapshot.snapshot_pending} pending` : "ready"}</Badge>
-      </div>
-      <div className="mt-5 grid grid-cols-2 gap-3 text-sm lg:grid-cols-4">
-        <div><p className="text-xl font-bold text-white">{snapshot.active_subscribers}</p><p className="text-xs text-slate-500">Active</p></div>
-        <div><p className="text-xl font-bold text-white">{snapshot.ai_phone_active}</p><p className="text-xs text-slate-500">AI phone</p></div>
-        <div><p className="text-xl font-bold text-white">{snapshot.calls_handled.toLocaleString()}</p><p className="text-xs text-slate-500">Calls</p></div>
-        <div><p className="text-xl font-bold text-white">{isFleet ? snapshot.vehicle_count.toLocaleString() : snapshot.tenant_count}</p><p className="text-xs text-slate-500">{isFleet ? "Vehicles" : "Accounts"}</p></div>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-2">
-        {(snapshot.llm_models.length ? snapshot.llm_models : ["Retell conversation flow"]).slice(0, 3).map((model) => <Badge key={model} tone="blue"><Bot className="mr-1 h-3 w-3" />{model}</Badge>)}
-      </div>
-    </button>
-  );
 }
 
 export default function ProvisioningPage() {
   const [tenants, setTenants] = useState<TenantView[]>([]);
   const [plans, setPlans] = useState<PlanConfig[]>([]);
-  const [snapshots, setSnapshots] = useState<ProvisioningSnapshotView[]>([]);
-  const [dispatchEvents, setDispatchEvents] = useState<DispatchEventView[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [savingPlan, setSavingPlan] = useState<string | null>(null);
-  const [provisioningRetell, setProvisioningRetell] = useState<string | null>(null);
-  const [creatingSubscriber, setCreatingSubscriber] = useState(false);
-  const [voiceCloneEnabled, setVoiceCloneEnabled] = useState(false);
-  const [voiceCloneName, setVoiceCloneName] = useState("Owner voice");
-  const [sampleName, setSampleName] = useState("");
-  const [sampleSource, setSampleSource] = useState<VoiceSampleSource>(null);
-  const [sampleUrl, setSampleUrl] = useState<string | null>(null);
-  const [recording, setRecording] = useState(false);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<BlobPart[]>([]);
-  const sampleUrlRef = useRef<string | null>(null);
-  const [newSubscriber, setNewSubscriber] = useState({
-    organization_name: "",
-    vertical_type: "shops",
+  const [saving, setSaving] = useState(false);
+  const [provisioning, setProvisioning] = useState(false);
+  const [agentType, setAgentType] = useState<AgentType>("shops");
+  const [activeTab, setActiveTab] = useState<AgentTab>("conversation");
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const profile = profiles[agentType];
+  const ProfileIcon = profile.icon;
+  const selectedTenant = useMemo(() => tenants.find((tenant) => tenant.id === selectedTenantId) || null, [selectedTenantId, tenants]);
+
+  const [form, setForm] = useState({
+    organization_name: profile.businessName,
     contact_email: "",
     contact_phone: "",
     plan_id: "growth",
+    agent_name: profile.agentName,
+    business_name: profile.businessName,
+    welcome_message: profile.welcome,
+    instructions: profile.instructions,
+    voice: "female",
+    voice_id: "11labs-Lily",
+    company_number: "",
+    handoff_phone: "",
+    retell_conversation_flow_id: "",
+    retell_phone_number_id: "",
+    outbound_enabled: false,
+    calcom_enabled: true,
+    calcom_base_url: "https://app.cal.com",
+    calcom_api_key: "",
+    calcom_username: "",
+    calcom_event_slug: "roadcall-service",
+    calcom_event_type_id: "",
+    calcom_calendar_url: "",
+    calcom_timezone: "America/New_York",
+    appointment_rules: "Offer the earliest available appointment, confirm caller name, callback number, vehicle details, problem, and preferred time before booking.",
     service_radius_miles: "50",
     supported_services: "tire, no_start, air_leak, dpf_derate, electrical, trailer_repair, overheating, towing, pm_service",
+    fleet_data_url: "",
   });
-  const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const selectedTenant = useMemo(() => tenants.find((tenant) => tenant.id === selectedTenantId) || tenants[0], [selectedTenantId, tenants]);
-  const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedTenant?.current_plan), [plans, selectedTenant]);
-  const activeSubscribers = tenants.filter((tenant) => tenant.is_active && tenant.subscription_status === "active").length;
-  const activeRetell = tenants.filter((tenant) => tenant.retell_connection?.provisioning_status === "active").length;
-  const totalCalls = tenants.reduce((sum, tenant) => sum + (tenant.calls_handled || 0), 0);
-  const totalVehicles = tenants.reduce((sum, tenant) => sum + (tenant.vehicle_count || 0), 0);
+  const [voiceClone, setVoiceClone] = useState<VoiceCloneSample | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [tenantData, dispatchData] = await Promise.all([
-        adminFetch<TenantListResponse>("/provisioning/admin/tenants"),
-        adminFetch<DispatchEventView[]>("/provisioning/admin/dispatch-events?limit=25"),
-      ]);
-      setTenants(tenantData.tenants);
-      setPlans(tenantData.plans);
-      setSnapshots(tenantData.snapshots || []);
-      setDispatchEvents(dispatchData);
-      if (!selectedTenantId && tenantData.tenants[0]) setSelectedTenantId(tenantData.tenants[0].id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not load provisioning status");
+      const data = await adminFetch<TenantListResponse>("/provisioning/admin/tenants");
+      setTenants(data.tenants || []);
+      setPlans(data.plans || []);
+      if (!selectedTenantId && data.tenants?.[0]) setSelectedTenantId(data.tenants[0].id);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Could not load provisioning data");
     } finally {
       setLoading(false);
     }
   }, [selectedTenantId]);
 
   useEffect(() => {
-    load();
+    void load();
   }, [load]);
 
   useEffect(() => {
-    return () => {
-      mediaRecorderRef.current?.stream.getTracks().forEach((track) => track.stop());
-      if (sampleUrlRef.current) URL.revokeObjectURL(sampleUrlRef.current);
+    if (!selectedTenant) return;
+    const selectedType = selectedTenant.vertical_type === "fleet" ? "fleet" : "shops";
+    const selectedProfile = profiles[selectedType];
+    const variables = selectedTenant.retell_connection?.dynamic_variables || {};
+    setAgentType(selectedType);
+    setForm((current) => ({
+      ...current,
+      organization_name: selectedTenant.name,
+      contact_email: selectedTenant.contact_email || "",
+      contact_phone: selectedTenant.contact_phone || "",
+      plan_id: selectedTenant.current_plan || current.plan_id,
+      agent_name: selectedTenant.retell_connection?.agent_name || selectedProfile.agentName,
+      business_name: selectedTenant.name || selectedProfile.businessName,
+      welcome_message: typeof variables.welcome_message === "string" ? variables.welcome_message : selectedProfile.welcome,
+      instructions: typeof variables.instructions === "string" ? variables.instructions : selectedProfile.instructions,
+      company_number: selectedTenant.contact_phone || current.company_number,
+      handoff_phone: selectedTenant.contact_phone || current.handoff_phone,
+      retell_conversation_flow_id: selectedTenant.retell_connection?.conversation_flow_id || "",
+      retell_phone_number_id: selectedTenant.retell_connection?.phone_number_id || "",
+      voice_id: selectedTenant.voice_id || current.voice_id,
+    }));
+  }, [selectedTenant]);
+
+  function switchAgentType(nextType: AgentType) {
+    const nextProfile = profiles[nextType];
+    setAgentType(nextType);
+    setForm((current) => ({
+      ...current,
+      organization_name: selectedTenant?.name || nextProfile.businessName,
+      agent_name: nextProfile.agentName,
+      business_name: selectedTenant?.name || nextProfile.businessName,
+      welcome_message: nextProfile.welcome,
+      instructions: nextProfile.instructions,
+      outbound_enabled: nextType === "fleet",
+    }));
+  }
+
+  function metadataPayload() {
+    return {
+      agent_name: form.agent_name,
+      business_name: form.business_name,
+      welcome_message: form.welcome_message,
+      instructions: form.instructions,
+      voice: form.voice,
+      voice_id: form.voice_id,
+      company_number: form.company_number,
+      handoff_phone: form.handoff_phone,
+      outbound_enabled: form.outbound_enabled,
+      service_radius_miles: Number(form.service_radius_miles) || 50,
+      supported_services: form.supported_services.split(",").map((item) => item.trim()).filter(Boolean),
+      dispatch_phone: form.handoff_phone || form.contact_phone || undefined,
+      fleet_data_url: form.fleet_data_url || undefined,
+      calcom: {
+        enabled: form.calcom_enabled,
+        base_url: form.calcom_base_url,
+        api_key_configured: Boolean(form.calcom_api_key),
+        username: form.calcom_username,
+        event_slug: form.calcom_event_slug,
+        event_type_id: form.calcom_event_type_id,
+        calendar_url: form.calcom_calendar_url,
+        timezone: form.calcom_timezone,
+        appointment_rules: form.appointment_rules,
+      },
+      ...(voiceClone
+        ? {
+            voice_clone_enabled: voiceClone.enabled,
+            voice_clone_name: voiceClone.cloneName,
+            voice_sample_name: voiceClone.sampleName,
+            voice_sample_source: voiceClone.sampleSource,
+          }
+        : {}),
     };
-  }, []);
-
-  function setVoiceSample(next: { name: string; source: Exclude<VoiceSampleSource, null>; url: string }) {
-    if (sampleUrlRef.current) URL.revokeObjectURL(sampleUrlRef.current);
-    sampleUrlRef.current = next.url;
-    setSampleUrl(next.url);
-    setSampleName(next.name);
-    setSampleSource(next.source);
-    setVoiceCloneEnabled(true);
-    setError(null);
   }
 
-  async function startVoiceRecording() {
-    setError(null);
-    if (!navigator.mediaDevices?.getUserMedia) {
-      setError("This browser cannot record audio here. Upload an audio sample instead.");
+  async function createClientAccount() {
+    if (!form.organization_name.trim()) {
+      setError("Client business name is required.");
       return;
     }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recordedChunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
-      };
-      recorder.onstop = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
-        if (!blob.size) {
-          setError("No audio was captured. Try recording again or upload a sample.");
-          return;
-        }
-        const url = URL.createObjectURL(blob);
-        const extension = recorder.mimeType.includes("mp4") ? "m4a" : "webm";
-        setVoiceSample({ name: `Recorded voice sample.${extension}`, source: "recorded", url });
-        setMessage("Voice sample recorded. Listen back, then save the clone when it sounds right.");
-      };
-      recorder.start();
-      setRecording(true);
-      setMessage("Recording voice sample. Speak naturally, then stop recording.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Microphone access was blocked. Upload an audio sample instead.");
-    }
-  }
-
-  function stopVoiceRecording() {
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-    }
-    setRecording(false);
-  }
-
-  function handleVoiceUpload(file?: File) {
-    if (!file) return;
-    if (!file.type.startsWith("audio/")) {
-      setError("Upload an audio file such as MP3, WAV, M4A, or WEBM.");
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setVoiceSample({ name: file.name, source: "uploaded", url });
-    setMessage("Voice sample uploaded. Listen back, then save the clone when it sounds right.");
-  }
-
-  function saveVoiceClone() {
-    if (!sampleName || !sampleSource) {
-      setError("Record or upload a voice sample before saving the clone.");
-      return;
-    }
-    setVoiceCloneEnabled(true);
-    setMessage(`${voiceCloneName || "Cloned voice"} saved from ${sampleSource === "recorded" ? "a recorded" : "an uploaded"} voice sample.`);
-    setError(null);
-  }
-
-  async function changePlan(tenantId: string, planId: string) {
-    setSavingPlan(tenantId);
+    setSaving(true);
     setError(null);
     setMessage(null);
     try {
-      await adminFetch(`/provisioning/admin/tenants/${tenantId}/plan`, {
-        method: "PATCH",
-        body: JSON.stringify({ plan_id: planId, subscription_status: "active" }),
-      });
-      setMessage("Subscriber plan updated. Sync the AI phone agent to apply telephony changes.");
-      await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update plan");
-    } finally {
-      setSavingPlan(null);
-    }
-  }
-
-  async function createSubscriber() {
-    if (!newSubscriber.organization_name.trim()) {
-      setError("Business name is required");
-      return;
-    }
-    setCreatingSubscriber(true);
-    setError(null);
-    setMessage(null);
-    try {
-      const metadata = {
-        service_radius_miles: Number(newSubscriber.service_radius_miles) || 50,
-        supported_services: newSubscriber.supported_services.split(",").map((item) => item.trim()).filter(Boolean),
-        mobile_service_available: true,
-        after_hours_mode: "capture_and_escalate",
-        dispatch_phone: newSubscriber.contact_phone || undefined,
-        vertical_type: newSubscriber.vertical_type,
-      };
       const result = await adminFetch<{ tenant: TenantView; warnings?: string[] }>("/provisioning/tenants", {
         method: "POST",
         body: JSON.stringify({
-          plan_id: newSubscriber.plan_id,
-          organization_name: newSubscriber.organization_name,
-          vertical_type: newSubscriber.vertical_type,
-          contact_email: newSubscriber.contact_email || null,
-          contact_phone: newSubscriber.contact_phone || null,
+          plan_id: form.plan_id,
+          organization_name: form.organization_name,
+          vertical_type: agentType === "roadside" ? "fleet" : agentType,
+          contact_email: form.contact_email || null,
+          contact_phone: form.contact_phone || null,
           subscription_status: "active",
           setup_fee_status: "paid",
           onboarding_status: "in_progress",
-          provision_retell: true,
-          metadata,
+          provision_retell: false,
+          retell_conversation_flow_id: form.retell_conversation_flow_id || null,
+          retell_phone_number_id: form.retell_phone_number_id || null,
+          retell_voice_id: form.voice_id,
+          metadata: metadataPayload(),
         }),
       });
-      setMessage(result.warnings?.length ? `Subscriber created. ${result.warnings.join(" ")}` : "Subscriber created and AI phone provisioning started.");
       setSelectedTenantId(result.tenant.id);
-      setNewSubscriber((current) => ({ ...current, organization_name: "", contact_email: "", contact_phone: "" }));
+      setMessage(result.warnings?.length ? `Client account created. ${result.warnings.join(" ")}` : "Client account created. Review settings, then create the Retell agent.");
       await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not create subscriber");
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "Could not create client account");
     } finally {
-      setCreatingSubscriber(false);
+      setSaving(false);
     }
   }
 
-  async function provisionSelectedRetell() {
-    if (!selectedTenant) return;
-    setProvisioningRetell(selectedTenant.id);
+  async function provisionRetellAgent() {
+    if (!selectedTenant) {
+      setError("Create or select a client account before provisioning Retell.");
+      return;
+    }
+    setProvisioning(true);
     setError(null);
     setMessage(null);
     try {
       await adminFetch(`/provisioning/admin/tenants/${selectedTenant.id}/retell/provision`, {
         method: "POST",
         body: JSON.stringify({
-          metadata: {
-            ...(selectedTenant.retell_connection?.dynamic_variables || {}),
-            ...(voiceCloneEnabled && sampleName
-              ? {
-                  voice_clone_enabled: true,
-                  voice_clone_name: voiceCloneName || "Cloned voice",
-                  voice_sample_name: sampleName,
-                  voice_sample_source: sampleSource,
-                }
-              : {}),
-          },
+          conversation_flow_id: form.retell_conversation_flow_id || null,
+          phone_number_id: form.retell_phone_number_id || null,
+          voice_id: form.voice_id,
+          metadata: metadataPayload(),
         }),
       });
-      setMessage("AI phone agent provisioned. The subscriber should now appear in the voice dashboard.");
+      setMessage("Retell agent created or synced from Roadcall. This page remains the source of truth.");
       await load();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not provision AI phone agent");
+    } catch (provisionError) {
+      setError(provisionError instanceof Error ? provisionError.message : "Could not provision Retell agent");
     } finally {
-      setProvisioningRetell(null);
+      setProvisioning(false);
     }
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
-          <h1 className="flex items-center gap-3 text-2xl font-bold text-white"><Crown className="h-7 w-7 text-orange-300" /> SaaS Provisioning</h1>
-          <p className="mt-1 max-w-3xl text-sm text-slate-400">
-            Provision shop and fleet accounts, manage subscriber plans, and track AI phone usage, LLM routing, calls, vehicles, and dispatch readiness from one SaaS control room.
+          <div className="inline-flex items-center gap-2 rounded-full border border-roadcall-cyan/25 bg-roadcall-cyan/10 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-roadcall-cyan">
+            <Sparkles className="h-3.5 w-3.5" /> Agent provisioning
+          </div>
+          <h1 className="mt-4 text-3xl font-black text-white">Configure and launch client AI agents</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
+            Build shop and fleet agents in Roadcall, including Retell voice settings, phone routing, Cal.com OSS scheduling, and subscriber context. Retell becomes the execution layer; Roadcall stays the control room.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <a href="https://dashboard.retellai.com/agents" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-blue-400/25 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/20">
-            <PhoneCall className="h-4 w-4" /> Retell Agents <ExternalLink className="h-3.5 w-3.5" />
-          </a>
           <button onClick={load} disabled={loading} className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-50">
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
           </button>
+          <a href="/admin" className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10">
+            Overview dashboard <ExternalLink className="h-3.5 w-3.5" />
+          </a>
         </div>
       </div>
 
@@ -464,246 +360,196 @@ export default function ProvisioningPage() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-5"><div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-cyan-300" /><div><p className="text-2xl font-bold text-white">{loading ? "—" : activeSubscribers}</p><p className="text-xs text-slate-400">Active subscribers</p></div></div></Card>
-        <Card className="p-5"><div className="flex items-center gap-3"><Workflow className="h-5 w-5 text-blue-300" /><div><p className="text-2xl font-bold text-white">{activeRetell}</p><p className="text-xs text-slate-400">AI phone active</p></div></div></Card>
-        <Card className="p-5"><div className="flex items-center gap-3"><PhoneCall className="h-5 w-5 text-emerald-300" /><div><p className="text-2xl font-bold text-white">{totalCalls.toLocaleString()}</p><p className="text-xs text-slate-400">Calls handled</p></div></div></Card>
-        <Card className="p-5"><div className="flex items-center gap-3"><Truck className="h-5 w-5 text-orange-300" /><div><p className="text-2xl font-bold text-white">{totalVehicles.toLocaleString()}</p><p className="text-xs text-slate-400">Fleet vehicles</p></div></div></Card>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        {(snapshots.length ? snapshots : [
-          { vertical_type: "shops", label: "Shop AI Snapshot", description: "Provision repair shop AI reception and follow-up workflows.", tenant_count: 0, active_subscribers: 0, ai_phone_active: 0, calls_handled: 0, vehicle_count: 0, fleet_size: 0, snapshot_ready: 0, snapshot_pending: 0, llm_models: [] },
-          { vertical_type: "fleet", label: "Fleet AI Snapshot", description: "Provision fleet dispatch, vehicles, and roadside workflows.", tenant_count: 0, active_subscribers: 0, ai_phone_active: 0, calls_handled: 0, vehicle_count: 0, fleet_size: 0, snapshot_ready: 0, snapshot_pending: 0, llm_models: [] },
-        ]).map((snapshot) => (
-          <SnapshotPanel
-            key={snapshot.vertical_type}
-            snapshot={snapshot}
-            selected={newSubscriber.vertical_type === snapshot.vertical_type}
-            onSelect={() => setNewSubscriber((current) => ({ ...current, vertical_type: snapshot.vertical_type }))}
-          />
-        ))}
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <Card>
-          <div className="border-b border-white/5 px-6 py-4">
-            <h2 className="font-semibold text-white">Subscriber Operations</h2>
-            <p className="mt-1 text-xs text-slate-500">Manage plans, AI agents, LLM routing, call volume, and fleet assets for every Roadcall subscriber.</p>
-          </div>
-          {loading ? (
-            <div className="flex items-center justify-center py-12 text-slate-400"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading tenants…</div>
-          ) : tenants.length === 0 ? (
-            <div className="py-12 text-center text-sm text-slate-500">No tenants provisioned yet.</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead><tr className="border-b border-white/5 text-left text-xs uppercase tracking-wide text-slate-500"><th className="px-4 py-3">Subscriber</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">LLM</th><th className="px-4 py-3">Calls</th><th className="px-4 py-3">Vehicles</th><th className="px-4 py-3">AI Phone</th><th className="px-4 py-3">Snapshot</th><th className="px-4 py-3">Change Plan</th></tr></thead>
-                <tbody className="divide-y divide-white/5">
-                  {tenants.map((tenant) => (
-                    <tr key={tenant.id} onClick={() => setSelectedTenantId(tenant.id)} className={`cursor-pointer hover:bg-white/[0.03] ${selectedTenant?.id === tenant.id ? "bg-blue-500/5" : ""}`}>
-                      <td className="px-4 py-3"><p className="font-medium text-slate-200">{tenant.name}</p><p className="text-xs text-slate-500">{tenant.contact_email || tenant.contact_phone || tenant.organization_id}</p></td>
-                      <td className="px-4 py-3"><Badge tone={tenant.vertical_type === "fleet" ? "orange" : "blue"}>{tenant.vertical_type}</Badge></td>
-                      <td className="px-4 py-3"><Badge tone={tenant.current_plan === "pro" ? "orange" : tenant.current_plan === "growth" ? "blue" : "slate"}>{tenant.current_plan}</Badge></td>
-                      <td className="px-4 py-3"><span className="max-w-[180px] truncate text-xs text-slate-300">{tenant.llm_model || "Retell conversation flow"}</span></td>
-                      <td className="px-4 py-3"><span className="font-semibold text-slate-200">{(tenant.calls_handled || 0).toLocaleString()}</span></td>
-                      <td className="px-4 py-3"><span className="font-semibold text-slate-200">{tenant.vertical_type === "fleet" ? (tenant.vehicle_count || tenant.fleet_size || 0).toLocaleString() : "—"}</span></td>
-                      <td className="px-4 py-3"><Badge tone={statusTone(tenant.retell_connection?.provisioning_status)}>{tenant.retell_connection?.provisioning_status || "not_provisioned"}</Badge></td>
-                      <td className="px-4 py-3"><Badge tone={statusTone(tenant.snapshot_status)}>{tenant.snapshot_status || "unknown"}</Badge></td>
-                      <td className="px-4 py-3">
-                        <select
-                          value={tenant.current_plan}
-                          disabled={savingPlan === tenant.id}
-                          onClick={(event) => event.stopPropagation()}
-                          onChange={(event) => changePlan(tenant.id, event.target.value)}
-                          className="rounded-lg border border-white/10 bg-slate-950 px-2 py-1 text-xs text-slate-200"
-                        >
-                          {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)_340px]">
+        <aside className="space-y-4">
+          <div className="rounded-2xl border border-white/5 bg-slate-950/80 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-white">Client accounts</p>
+                <p className="text-xs text-slate-500">Select or create</p>
+              </div>
+              <Badge tone="blue">{tenants.length}</Badge>
             </div>
-          )}
-        </Card>
+            <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto pr-1">
+              {loading ? <div className="py-8 text-center text-sm text-slate-500"><Loader2 className="mx-auto mb-2 h-5 w-5 animate-spin" />Loading clients</div> : null}
+              {tenants.map((tenant) => (
+                <button
+                  key={tenant.id}
+                  type="button"
+                  onClick={() => setSelectedTenantId(tenant.id)}
+                  className={`w-full rounded-xl border p-3 text-left transition ${selectedTenant?.id === tenant.id ? "border-roadcall-cyan/45 bg-roadcall-cyan/10" : "border-white/5 bg-white/[0.03] hover:bg-white/[0.06]"}`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-white">{tenant.name}</p>
+                      <p className="mt-1 text-xs text-slate-500">{tenant.vertical_type} · {tenant.current_plan}</p>
+                    </div>
+                    <Badge tone={statusTone(tenant.retell_connection?.provisioning_status)}>{tenant.retell_connection?.provisioning_status || "new"}</Badge>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
 
-        <div className="space-y-6">
-          <Card className="p-6">
-            <h2 className="font-semibold text-white">Provision Subscriber</h2>
-            <p className="mt-1 text-xs text-slate-500">Creates a shop or fleet tenant and provisions the matching AI service-desk agent.</p>
-            <div className="mt-4 grid gap-3">
-              <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-slate-950 p-1">
-                {[
-                  { value: "shops", label: "Shop", icon: Building2 },
-                  { value: "fleet", label: "Fleet", icon: Truck },
-                ].map((item) => (
+        <main className="overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-slate-950/80">
+          <div className="border-b border-white/5 p-5">
+            <div className="grid gap-3 lg:grid-cols-3">
+              {(Object.keys(profiles) as AgentType[]).map((type) => {
+                const agentProfile = profiles[type];
+                const Icon = agentProfile.icon;
+                const active = agentType === type;
+                return (
                   <button
-                    key={item.value}
+                    key={type}
                     type="button"
-                    onClick={() => setNewSubscriber((current) => ({ ...current, vertical_type: item.value }))}
-                    className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${newSubscriber.vertical_type === item.value ? "bg-blue-500 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}
+                    onClick={() => switchAgentType(type)}
+                    className={`flex items-center gap-3 rounded-xl border p-4 text-left transition ${active ? "border-roadcall-cyan bg-roadcall-cyan/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}
                   >
-                    <item.icon className="h-4 w-4" /> {item.label}
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-xl ${active ? "bg-roadcall-cyan/15 text-roadcall-cyan" : "bg-white/10 text-slate-400"}`}><Icon className="h-5 w-5" /></span>
+                    <span>
+                      <span className="block font-bold text-white">{agentProfile.label}</span>
+                      <span className="mt-1 block text-xs text-slate-400">{agentProfile.badge}</span>
+                    </span>
                   </button>
-                ))}
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="border-b border-white/5 px-5 py-4">
+            <div className="flex flex-wrap gap-2">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${activeTab === tab.id ? "bg-roadcall-cyan text-slate-950" : "bg-white/10 text-slate-300 hover:bg-white/15 hover:text-white"}`}
+                  >
+                    <Icon className="h-4 w-4" /> {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="p-5">
+            {activeTab === "conversation" && (
+              <div className="grid gap-5 lg:grid-cols-2">
+                <Field label="Client business name"><input value={form.organization_name} onChange={(event) => setForm((current) => ({ ...current, organization_name: event.target.value, business_name: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Agent name"><input value={form.agent_name} onChange={(event) => setForm((current) => ({ ...current, agent_name: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Contact email"><input value={form.contact_email} onChange={(event) => setForm((current) => ({ ...current, contact_email: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Contact phone"><input value={form.contact_phone} onChange={(event) => setForm((current) => ({ ...current, contact_phone: event.target.value, company_number: event.target.value, handoff_phone: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Welcome message" className="lg:col-span-2"><textarea value={form.welcome_message} onChange={(event) => setForm((current) => ({ ...current, welcome_message: event.target.value }))} className={textareaClass} rows={4} /></Field>
+                <Field label="Agent instructions" className="lg:col-span-2"><textarea value={form.instructions} onChange={(event) => setForm((current) => ({ ...current, instructions: event.target.value }))} className={textareaClass} rows={8} /></Field>
               </div>
-              <input value={newSubscriber.organization_name} onChange={(event) => setNewSubscriber((current) => ({ ...current, organization_name: event.target.value }))} placeholder="Shop / subscriber name" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
-              <input value={newSubscriber.contact_email} onChange={(event) => setNewSubscriber((current) => ({ ...current, contact_email: event.target.value }))} placeholder="Contact email" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
-              <input value={newSubscriber.contact_phone} onChange={(event) => setNewSubscriber((current) => ({ ...current, contact_phone: event.target.value }))} placeholder="Dispatch phone" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
-              <div className="grid grid-cols-2 gap-3">
-                <select value={newSubscriber.plan_id} onChange={(event) => setNewSubscriber((current) => ({ ...current, plan_id: event.target.value }))} className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200">
-                  {plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}
-                </select>
-                <input value={newSubscriber.service_radius_miles} onChange={(event) => setNewSubscriber((current) => ({ ...current, service_radius_miles: event.target.value }))} placeholder="Radius miles" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
+            )}
+
+            {activeTab === "voice" && (
+              <div className="grid gap-5 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)]">
+                <div className="space-y-3">
+                  {[{ id: "female", label: "Female voice", voiceId: "11labs-Lily" }, { id: "male", label: "Male voice", voiceId: "11labs-Adrian" }, { id: "clone", label: "Cloned voice", voiceId: form.voice_id }].map((option) => (
+                    <button key={option.id} type="button" onClick={() => setForm((current) => ({ ...current, voice: option.id, voice_id: option.voiceId }))} className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition ${form.voice === option.id ? "border-roadcall-cyan bg-roadcall-cyan/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}>
+                      <Volume2 className="h-5 w-5 text-roadcall-cyan" />
+                      <span><span className="block font-bold text-white">{option.label}</span><span className="mt-1 block text-xs text-slate-500">{option.voiceId || "Saved custom voice"}</span></span>
+                    </button>
+                  ))}
+                  <Field label="Retell voice ID"><input value={form.voice_id} onChange={(event) => setForm((current) => ({ ...current, voice_id: event.target.value }))} className={inputClass} /></Field>
+                </div>
+                <VoiceCloneControls
+                  enabled={form.voice === "clone"}
+                  initialName={voiceClone?.cloneName || "Owner voice"}
+                  onEnabledChange={(enabled) => enabled && setForm((current) => ({ ...current, voice: "clone" }))}
+                  onSave={(sample) => { setVoiceClone(sample); setForm((current) => ({ ...current, voice: "clone" })); }}
+                  onError={setError}
+                  onMessage={setMessage}
+                />
               </div>
-              <textarea value={newSubscriber.supported_services} onChange={(event) => setNewSubscriber((current) => ({ ...current, supported_services: event.target.value }))} rows={3} placeholder="Supported services" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
-              <button onClick={createSubscriber} disabled={creatingSubscriber || loading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400 disabled:opacity-50">
-                {creatingSubscriber && <Loader2 className="h-4 w-4 animate-spin" />} Provision {newSubscriber.vertical_type === "fleet" ? "Fleet" : "Shop"} Account
+            )}
+
+            {activeTab === "phone" && (
+              <div className="grid gap-5 lg:grid-cols-2">
+                <Field label="Company number"><input value={form.company_number} onChange={(event) => setForm((current) => ({ ...current, company_number: event.target.value }))} className={inputClass} placeholder="+1" /></Field>
+                <Field label="Human handoff number"><input value={form.handoff_phone} onChange={(event) => setForm((current) => ({ ...current, handoff_phone: event.target.value }))} className={inputClass} placeholder="+1" /></Field>
+                <Field label="Retell conversation flow ID"><input value={form.retell_conversation_flow_id} onChange={(event) => setForm((current) => ({ ...current, retell_conversation_flow_id: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Retell phone number ID"><input value={form.retell_phone_number_id} onChange={(event) => setForm((current) => ({ ...current, retell_phone_number_id: event.target.value }))} className={inputClass} /></Field>
+                <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm font-semibold text-slate-200"><input type="checkbox" checked={form.outbound_enabled} onChange={(event) => setForm((current) => ({ ...current, outbound_enabled: event.target.checked }))} className="h-4 w-4 accent-roadcall-cyan" /> Enable outbound vendor / driver calls</label>
+              </div>
+            )}
+
+            {activeTab === "calendar" && (
+              <div className="grid gap-5 lg:grid-cols-2">
+                <label className="flex items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-semibold text-emerald-100 lg:col-span-2"><input type="checkbox" checked={form.calcom_enabled} onChange={(event) => setForm((current) => ({ ...current, calcom_enabled: event.target.checked }))} className="h-4 w-4 accent-emerald-400" /> Enable Cal.com OSS appointment scheduling</label>
+                <Field label="Cal.com base URL"><input value={form.calcom_base_url} onChange={(event) => setForm((current) => ({ ...current, calcom_base_url: event.target.value }))} className={inputClass} placeholder="https://cal.yourdomain.com" /></Field>
+                <Field label="Cal.com API key"><input type="password" value={form.calcom_api_key} onChange={(event) => setForm((current) => ({ ...current, calcom_api_key: event.target.value }))} className={inputClass} placeholder="Stored when backend secrets are connected" /></Field>
+                <Field label="Cal.com username"><input value={form.calcom_username} onChange={(event) => setForm((current) => ({ ...current, calcom_username: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Event slug"><input value={form.calcom_event_slug} onChange={(event) => setForm((current) => ({ ...current, calcom_event_slug: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Event type ID"><input value={form.calcom_event_type_id} onChange={(event) => setForm((current) => ({ ...current, calcom_event_type_id: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Public booking URL"><input value={form.calcom_calendar_url} onChange={(event) => setForm((current) => ({ ...current, calcom_calendar_url: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Default timezone"><input value={form.calcom_timezone} onChange={(event) => setForm((current) => ({ ...current, calcom_timezone: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Appointment rules" className="lg:col-span-2"><textarea value={form.appointment_rules} onChange={(event) => setForm((current) => ({ ...current, appointment_rules: event.target.value }))} className={textareaClass} rows={5} /></Field>
+              </div>
+            )}
+
+            {activeTab === "advanced" && (
+              <div className="grid gap-5 lg:grid-cols-2">
+                <Field label="Plan"><select value={form.plan_id} onChange={(event) => setForm((current) => ({ ...current, plan_id: event.target.value }))} className={inputClass}>{plans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}</option>)}</select></Field>
+                <Field label="Service radius miles"><input value={form.service_radius_miles} onChange={(event) => setForm((current) => ({ ...current, service_radius_miles: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Supported services" className="lg:col-span-2"><textarea value={form.supported_services} onChange={(event) => setForm((current) => ({ ...current, supported_services: event.target.value }))} className={textareaClass} rows={4} /></Field>
+                <Field label="Fleet data URL"><input value={form.fleet_data_url} onChange={(event) => setForm((current) => ({ ...current, fleet_data_url: event.target.value }))} className={inputClass} placeholder="Private vehicle data source or API URL" /></Field>
+              </div>
+            )}
+          </div>
+        </main>
+
+        <aside className="space-y-4">
+          <div className="rounded-2xl border border-roadcall-cyan/15 bg-slate-950/85 p-5 shadow-xl shadow-blue-950/20">
+            <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-roadcall-cyan/25 bg-roadcall-cyan/10 text-roadcall-cyan">
+              <ProfileIcon className="h-9 w-9" />
+            </div>
+            <h2 className="mt-5 text-center text-xl font-black text-white">{form.agent_name}</h2>
+            <p className="mt-2 text-center text-sm text-slate-400">{profile.badge}</p>
+            <div className="mt-5 space-y-3 rounded-xl border border-white/10 bg-black/25 p-4 text-sm">
+              <PreviewRow label="Client" value={form.business_name || form.organization_name} />
+              <PreviewRow label="Voice" value={form.voice === "clone" ? voiceClone?.cloneName || "Cloned voice" : form.voice === "male" ? "Male voice" : "Female voice"} />
+              <PreviewRow label="Phone" value={form.company_number || "Not assigned"} />
+              <PreviewRow label="Calendar" value={form.calcom_enabled ? form.calcom_event_slug || "Enabled" : "Off"} />
+              <PreviewRow label="Retell" value={selectedTenant?.retell_connection?.provisioning_status || "Not provisioned"} />
+            </div>
+            {selectedTenant?.retell_connection?.agent_id ? <p className="mt-3 break-all font-mono text-xs text-slate-500">{selectedTenant.retell_connection.agent_id}</p> : null}
+            {selectedTenant?.retell_connection?.last_error ? <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-200">{selectedTenant.retell_connection.last_error}</p> : null}
+            <div className="mt-5 grid gap-2">
+              <button onClick={createClientAccount} disabled={saving} className="inline-flex items-center justify-center gap-2 rounded-xl border border-roadcall-cyan/30 bg-roadcall-cyan/10 px-4 py-3 text-sm font-bold text-roadcall-cyan hover:bg-roadcall-cyan/20 disabled:opacity-50">
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save / create client
+              </button>
+              <button onClick={provisionRetellAgent} disabled={provisioning || !selectedTenant} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-4 py-3 text-sm font-bold text-white hover:brightness-110 disabled:opacity-50">
+                {provisioning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />} Create / sync Retell agent
               </button>
             </div>
-          </Card>
-
-          <Card className="p-6">
-            <h2 className="font-semibold text-white">Current Plan</h2>
-            {selectedTenant && selectedPlan ? (
-              <div className="mt-4 space-y-4">
-                <div className="rounded-xl border border-white/5 bg-white/[0.03] p-4">
-                  <div className="flex items-start justify-between gap-3"><div><p className="text-lg font-bold text-white">{selectedTenant.name}</p><p className="text-sm text-slate-400">{selectedPlan.name} · ${selectedPlan.price_monthly}/mo · ${selectedPlan.setup_fee} setup</p></div><Badge tone={selectedTenant.is_active ? "emerald" : "red"}>{selectedTenant.subscription_status}</Badge></div>
-                </div>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl border border-white/5 bg-slate-950/70 p-3"><p className="text-xl font-bold text-white">{(selectedTenant.calls_handled || 0).toLocaleString()}</p><p className="text-xs text-slate-500">Calls handled</p></div>
-                  <div className="rounded-xl border border-white/5 bg-slate-950/70 p-3"><p className="text-xl font-bold text-white">{selectedTenant.vertical_type === "fleet" ? (selectedTenant.vehicle_count || selectedTenant.fleet_size || 0).toLocaleString() : (selectedTenant.leads_allocated || 0).toLocaleString()}</p><p className="text-xs text-slate-500">{selectedTenant.vertical_type === "fleet" ? "Vehicles" : "Leads"}</p></div>
-                </div>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <Badge tone={selectedTenant.vertical_type === "fleet" ? "orange" : "blue"}>Type: {selectedTenant.vertical_type}</Badge>
-                  <Badge tone={statusTone(selectedTenant.snapshot_status)}>Snapshot: {selectedTenant.snapshot_status || "unknown"}</Badge>
-                  <Badge tone={statusTone(selectedTenant.onboarding_status)}>Onboarding: {selectedTenant.onboarding_status}</Badge>
-                  <Badge tone={statusTone(selectedTenant.setup_fee_status)}>Setup: {selectedTenant.setup_fee_status}</Badge>
-                  <Badge tone={statusTone(selectedTenant.retell_connection?.provisioning_status)}>AI Phone: {selectedTenant.retell_connection?.provisioning_status || "not_provisioned"}</Badge>
-                  <Badge tone={selectedTenant.retell_connection?.agent_id ? "emerald" : "amber"}>Agent: {selectedTenant.retell_connection?.agent_id ? "created" : "missing"}</Badge>
-                </div>
-                <div className="rounded-xl border border-white/5 bg-slate-950/70 p-3 text-xs text-slate-400">
-                  <p className="font-semibold text-slate-300">LLM / voice routing</p>
-                  <p className="mt-1">{selectedTenant.llm_model || "Retell conversation flow"}{selectedTenant.voice_id ? ` · ${selectedTenant.voice_id}` : ""}</p>
-                </div>
-                <div className="rounded-xl border border-violet-300/20 bg-violet-500/10 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-400/15 text-violet-200">
-                        <Mic2 className="h-5 w-5" />
-                      </span>
-                      <div>
-                        <p className="font-semibold text-white">Voice cloning</p>
-                        <p className="mt-1 text-xs text-slate-400">Record through this computer or upload an existing voice sample.</p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setVoiceCloneEnabled((enabled) => !enabled)}
-                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${voiceCloneEnabled ? "bg-violet-400 text-white" : "bg-white/10 text-slate-200 ring-1 ring-white/15"}`}
-                    >
-                      {voiceCloneEnabled ? "Enabled" : "Enable"}
-                    </button>
-                  </div>
-                  {voiceCloneEnabled && (
-                    <div className="mt-4 space-y-4">
-                      <input
-                        value={voiceCloneName}
-                        onChange={(event) => setVoiceCloneName(event.target.value)}
-                        placeholder="Clone name"
-                        className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-300"
-                      />
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-xl border border-dashed border-violet-300/35 bg-slate-950/70 p-4">
-                          <div className="flex items-center gap-2 text-sm font-semibold text-violet-100"><Mic2 className="h-4 w-4" /> Speak to computer</div>
-                          <button
-                            type="button"
-                            onClick={recording ? stopVoiceRecording : startVoiceRecording}
-                            className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${recording ? "bg-red-400 text-slate-950 hover:bg-red-300" : "bg-slate-900 text-white ring-1 ring-white/10 hover:bg-white/10"}`}
-                          >
-                            {recording ? <Square className="h-4 w-4" /> : <Mic2 className="h-4 w-4" />}
-                            {recording ? "Stop recording" : "Record sample"}
-                          </button>
-                        </div>
-                        <label className="flex cursor-pointer flex-col rounded-xl border border-dashed border-violet-300/35 bg-slate-950/70 p-4 transition hover:bg-white/[0.04]">
-                          <span className="flex items-center gap-2 text-sm font-semibold text-violet-100"><Upload className="h-4 w-4" /> Upload voice</span>
-                          <span className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10">Choose audio file</span>
-                          <input type="file" accept="audio/*" className="sr-only" onChange={(event) => handleVoiceUpload(event.target.files?.[0])} />
-                        </label>
-                      </div>
-                      {sampleName && (
-                        <div className="rounded-xl border border-white/10 bg-slate-950/80 p-3">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div>
-                              <p className="text-sm font-semibold text-white">{sampleName}</p>
-                              <p className="mt-1 text-xs capitalize text-slate-500">{sampleSource} voice sample ready.</p>
-                            </div>
-                            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200"><BadgeCheck className="h-4 w-4" /> Ready</span>
-                          </div>
-                          {sampleUrl && <audio controls src={sampleUrl} className="mt-3 w-full" aria-label="Voice sample playback" />}
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        disabled={!sampleName || recording}
-                        onClick={saveVoiceClone}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-violet-400 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-                      >
-                        <Play className="h-4 w-4" /> Save voice clone
-                      </button>
-                    </div>
-                  )}
-                </div>
-                <button onClick={provisionSelectedRetell} disabled={provisioningRetell === selectedTenant.id} className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/20 disabled:opacity-50">
-                  {provisioningRetell === selectedTenant.id && <Loader2 className="h-4 w-4 animate-spin" />} Sync / Provision AI Agent
-                </button>
-                {selectedTenant.retell_connection?.agent_id && <p className="font-mono text-xs text-slate-500">{selectedTenant.retell_connection.agent_id}</p>}
-                {selectedTenant.retell_connection?.last_error && <p className="rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-200">{selectedTenant.retell_connection.last_error}</p>}
-                <div>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Onboarding checklist</p>
-                  {["Setup fee paid", "AI agent created", "Phone routing configured", "Service advisor prompt ready", "Calendar scheduling pending", selectedTenant.current_plan === "pro" ? "Dispatch enabled" : "Dispatch locked until Pro"].map((item) => (
-                    <div key={item} className="mb-2 flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
-                  ))}
-                </div>
-              </div>
-            ) : <p className="mt-4 text-sm text-slate-500">Select a tenant to inspect plan status.</p>}
-          </Card>
-
-          <Card className="p-6">
-            <h2 className="font-semibold text-white">System Status</h2>
-            <div className="mt-4 grid gap-2 text-sm">
-              <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-400"><PhoneCall className="h-4 w-4" /> AI phone</span><Badge tone={selectedTenant?.enabled_features.includes("ai_answering") ? "emerald" : "red"}>{selectedTenant?.enabled_features.includes("ai_answering") ? "enabled" : "locked"}</Badge></div>
-              <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-400"><Zap className="h-4 w-4" /> Widget</span><Badge tone={selectedTenant?.enabled_features.includes("website_widget") ? "emerald" : "red"}>{selectedTenant?.enabled_features.includes("website_widget") ? "enabled" : "locked"}</Badge></div>
-              <div className="flex items-center justify-between"><span className="flex items-center gap-2 text-slate-400"><Truck className="h-4 w-4" /> Dispatch</span><Badge tone={selectedTenant?.current_plan === "pro" ? "emerald" : "amber"}>{selectedTenant?.current_plan === "pro" ? "pro enabled" : "upgrade required"}</Badge></div>
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {selectedTenant && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="p-6">
-            <h2 className="font-semibold text-white">Enabled Features</h2>
-            <div className="mt-4 flex flex-wrap gap-2">{selectedTenant.enabled_features.map((feature) => <Badge key={feature} tone="emerald">{featureLabel(feature)}</Badge>)}</div>
-          </Card>
-          <Card className="p-6">
-            <h2 className="font-semibold text-white">Locked Features</h2>
-            <div className="mt-4 flex flex-wrap gap-2">{selectedTenant.locked_features.slice(0, 18).map((feature) => <Badge key={feature} tone="slate"><Lock className="mr-1 h-3 w-3" />{featureLabel(feature)}</Badge>)}</div>
-            {selectedTenant.locked_features.length > 18 && <p className="mt-3 text-xs text-slate-500">+{selectedTenant.locked_features.length - 18} more locked features</p>}
-          </Card>
-        </div>
-      )}
-
-      <Card>
-        <div className="border-b border-white/5 px-6 py-4"><h2 className="font-semibold text-white">Pro Dispatch Activity</h2><p className="text-xs text-slate-500">Visible for Pro tenants and admin operations.</p></div>
-        {dispatchEvents.length === 0 ? <div className="py-8 text-center text-sm text-slate-500"><AlertTriangle className="mx-auto mb-2 h-5 w-5" />No dispatch events recorded yet.</div> : (
-          <div className="divide-y divide-white/5">
-            {dispatchEvents.map((event) => <div key={event.id} className="flex items-center justify-between gap-3 px-6 py-3 text-sm"><div><p className="font-medium text-slate-200">{event.event_type}</p><p className="text-xs text-slate-500">{new Date(event.created_at).toLocaleString()}</p></div><Badge tone={statusTone(event.status)}>{event.status}</Badge></div>)}
           </div>
-        )}
-      </Card>
+
+          <div className="rounded-2xl border border-white/5 bg-slate-950/80 p-5">
+            <div className="mb-4 flex items-center gap-2"><Database className="h-5 w-5 text-blue-300" /><h2 className="font-bold text-white">Roadcall source of truth</h2></div>
+            {[
+              "Client account and plan",
+              "Retell agent metadata",
+              "Cal.com OSS scheduling settings",
+              "Voice clone sample metadata",
+              "Phone routing and handoff rules",
+            ].map((item) => <div key={item} className="mb-2 flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{item}</div>)}
+          </div>
+        </aside>
+      </div>
     </div>
   );
+}
+
+function Field({ label, children, className = "" }: { label: string; children: React.ReactNode; className?: string }) {
+  return <label className={`space-y-2 text-sm font-semibold text-slate-300 ${className}`}><span>{label}</span>{children}</label>;
+}
+
+function PreviewRow({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between gap-4"><span className="text-slate-400">{label}</span><span className="truncate text-right font-bold text-white">{value || "Not assigned"}</span></div>;
 }

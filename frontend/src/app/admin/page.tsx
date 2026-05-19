@@ -266,7 +266,7 @@ export default function AdminDashboard() {
             <StatusPill value={`${activeSubscribers} active`} tone="green" />
             <StatusPill value={`${aiPhoneActive} AI phone active`} tone="blue" />
             <a href="/admin/provisioning" className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-slate-300 hover:bg-white/10 hover:text-white">
-              Manage provisioning <ExternalLink className="h-3 w-3" />
+              Configure agents <ExternalLink className="h-3 w-3" />
             </a>
             <a href="https://dashboard.retellai.com/agents" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-blue-400/25 bg-blue-500/10 px-3 py-1.5 text-blue-200 hover:bg-blue-500/20">
               Retell agents <ExternalLink className="h-3 w-3" />
