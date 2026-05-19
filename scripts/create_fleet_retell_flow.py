@@ -84,16 +84,16 @@ GLOBAL_PROMPT = "\n".join([
     "For no-start: separate no-crank from crank-no-start, then ask about battery voltage or jump attempts, starter click, fuel level, recent filter work, and whether lights dim while cranking. For DPF/DEF/derate: ask about check-engine or stop-engine lights, DEF warnings, regen attempts, speed-limit derate, smoke, and whether it can limp safely.",
     "For air/brake issues: ask current PSI, whether air builds above 90 PSI, tractor vs trailer leak, spring brakes locked, and whether the unit is safe to move. For overheating/oil pressure: ask gauge behavior, coolant leak or steam, fan operation, oil pressure warning, and whether the engine has been shut down. For tires/trailers/reefers: ask tire position and size if visible, brake lockup, air line/electrical issue, reefer fuel, box temperature, and alarm code.",
     "Classify the next operational state as safe_to_drive, can_limp_to_shop, mobile_repair, tow_required, or out_of_service, but do not give repair instructions beyond basic safety guidance.",
-    "Once safety is confirmed, capture in this order, one turn each: driver_name, callback_number only if caller_phone is not available from Retell call metadata, truck_type, trailer_type if applicable, problem_type, a short problem_description, and any fault_codes the driver can read off the dash.",
-    "CALL PHONE RULE: Use caller_phone from the Retell call metadata as callback_number whenever it is available. Do not ask the driver to repeat the phone number unless the tool call has no caller_phone or callback_number.",
+    "Once safety is confirmed, capture in this order, one turn each: driver_name, truck_type, trailer_type if applicable, problem_type, a short problem_description, and any fault_codes the driver can read off the dash.",
+    "CALL PHONE RULE: Use caller_phone from the Retell call metadata as callback_number whenever it is available. Do not ask the driver for a phone number for location. The website code flow works without SMS.",
     "Then say 'I'm pulling up help now' and call create_dispatch_session early so a secure location link can be sent.",
-    "Call create_service_request as soon as you have driver_safe + driver_name + callback_number + problem_type + problem_description. The backend will recognize this as a fleet call (no payment authorization is required for fleet customers — they are billed on account).",
-    "Immediately after create_service_request, call request_location with the service_request_id and callback_number to text the driver a GPS link. If the driver can't receive SMS, fall back to manual_location_details (highway, mile marker, exit, nearest truck stop, direction of travel).",
+    "Call create_service_request as soon as you have driver_safe + driver_name + problem_type + problem_description. The backend will recognize this as a fleet call (no payment authorization is required for fleet customers — they are billed on account).",
+    "For location, use create_dispatch_session and tell the driver: 'Please open roadcall.ai/go in your browser and enter code [public_code], then tap Share My Location. Stay on the line with me.' Do not say you will text a link and do not call request_location for normal location capture.",
     "While waiting for the driver to share location, poll get_dispatch_session_status every 8–10 seconds. Speak ONLY the verified say field and best_match fields the tool returns. Never invent a mechanic name, ETA, or price.",
     "Once a mechanic is matched and confirmed, summarize: mechanic name, ETA, what they'll bring. Tell the driver the carrier dispatcher will get the same update by text.",
     "If matching fails or no mechanic is available in range, say so honestly: 'I can't find a mechanic in your area right now — I'm escalating to the on-call dispatcher who'll call you back within 5 minutes.' Do not hang up until you've called save_call_summary.",
     "Always pass tenant_id={{tenant_id}} (the carrier's organization_id) to every tool call.",
-    "Voice style: warm, calm, professional. Sound like a senior fleet dispatcher who's been doing this for twenty years. Half-second pause between sentences. Never read URLs character-by-character — say 'I'll text you the link.'",
+    "Voice style: warm, calm, professional. Sound like a senior fleet dispatcher who's been doing this for twenty years. Half-second pause between sentences. Say 'open roadcall dot ai slash go' and read the code slowly.",
     f"Backend base URL: {BACKEND_URL}",
 ])
 
@@ -141,7 +141,7 @@ TOOLS = [
         "type": "custom",
         "tool_id": "tool-fleet-create-sr",
         "name": "create_service_request",
-        "description": "Create the backend fleet RoadsideIncident. Call once driver_safe + driver_name + callback_number + problem_type + problem_description are known. The backend recognizes the Fleet agent_id and forks into the fleet path — no payment auth required.",
+        "description": "Create the backend fleet RoadsideIncident. Call once driver_safe + driver_name + problem_type + problem_description are known. The backend recognizes the Fleet agent_id and forks into the fleet path — no payment auth required.",
         "url": f"{BACKEND_URL}/api/calls/create-service-request",
         "method": "POST",
         "headers": AUTH_HEADERS,
@@ -164,14 +164,14 @@ TOOLS = [
                 "fault_codes":         {"type": "array", "items": {"type": "string"}, "description": "Any fault/error codes the driver can read off the dash"},
                 "caller_phone":        {"type": "string", "description": "Caller phone from Retell metadata if available"},
             },
-            "required": ["retell_call_id", "driver_safe", "driver_name", "callback_number", "problem_type", "problem_description"],
+            "required": ["retell_call_id", "driver_safe", "driver_name", "problem_type", "problem_description"],
         },
     },
     {
         "type": "custom",
         "tool_id": "tool-fleet-request-loc",
         "name": "request_location",
-        "description": "Ask backend to generate a secure GPS location link and text it to the driver. Call immediately after create_service_request. If SMS fails, supply manual_location_details instead.",
+        "description": "Legacy fallback only. Do not call for normal location capture. Prefer create_dispatch_session and tell the driver to open roadcall.ai/go with the returned public_code.",
         "url": f"{BACKEND_URL}/api/location/request",
         "method": "POST",
         "headers": AUTH_HEADERS,
@@ -197,7 +197,7 @@ TOOLS = [
                     },
                 },
             },
-            "required": ["service_request_id", "callback_number"],
+            "required": ["service_request_id"],
         },
     },
     {
@@ -338,14 +338,14 @@ NODES = [
             "type": "prompt",
             "text": (
                 "One question at a time: 'Got it — glad you're safe. Who am I speaking with?' "
-                "Then: 'And the best callback number for you in case we drop?' Capture driver_name and callback_number (E.164)."
+                "Capture driver_name. Do not ask for a callback number for location."
             ),
         },
         "edges": [
             {
                 "id": "edge-driver-to-vehicle",
                 "destination_node_id": "collect-vehicle",
-                "transition_condition": {"type": "prompt", "prompt": "Have driver_name and callback_number."},
+                "transition_condition": {"type": "prompt", "prompt": "Have driver_name."},
             }
         ],
     },
@@ -419,7 +419,7 @@ NODES = [
             "type": "prompt",
             "text": (
                 "Invoke create_service_request with retell_call_id, agent_id={{agent_id}}, driver_safe=true, driver_name, "
-                "callback_number, company_name={{company_name}}, truck_type, trailer_type, loaded_status, problem_type, "
+                "callback_number if call metadata has one, company_name={{company_name}}, truck_type, trailer_type, loaded_status, problem_type, "
                 "problem_description, fault_codes, and caller_phone. Remember the returned service_request_id."
             ),
         },
@@ -439,17 +439,16 @@ NODES = [
         "instruction": {
             "type": "prompt",
             "text": (
-                "Tell the driver: 'I'm texting you a secure link — tap it once and it'll share your exact GPS with the mechanic.' "
-                "Invoke request_location with service_request_id, callback_number, preferred_channel='sms', sms_template_id='location_request'. "
-                "If the driver says they can't receive SMS, collect manual location details (highway, mile marker, exit, nearest truck stop, "
-                "direction of travel) and pass them as manual_location_details in the same call."
+                "Do not call request_location for normal location capture. Use the dispatch_session_id and public_code returned by create_dispatch_session. "
+                "Tell the driver: 'Please open roadcall.ai/go in your browser and enter code [public_code], then tap Share My Location. Stay on the line with me.' "
+                "If the driver cannot use the website, collect manual location details: highway, mile marker, exit, nearest truck stop, city, state, and direction of travel."
             ),
         },
         "edges": [
             {
                 "id": "edge-loc-to-poll",
                 "destination_node_id": "poll-status",
-                "transition_condition": {"type": "prompt", "prompt": "request_location returned a response."},
+                "transition_condition": {"type": "prompt", "prompt": "Location code was spoken or manual location collected."},
             }
         ],
     },

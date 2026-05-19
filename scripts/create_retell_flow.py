@@ -73,7 +73,7 @@ FLOW = {
         "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
         "DURABLE SESSION RULE: Early in the call, call create_dispatch_session with source='retell', retell_call_id when available, caller_phone when available, caller_name if known, problem_description if known, and vehicle_type if known. Use the returned dispatch_session_id and location_url as the source of truth for this call.",
-        "CALL PHONE RULE: Use caller_phone from the Retell call metadata as callback_number whenever it is available. Do not ask the caller for their phone number unless the tool call has no caller_phone or callback_number.",
+        "CALL PHONE RULE: Use caller_phone from the Retell call metadata as callback_number whenever it is available. Do not ask the caller for their phone number for location. The website code flow works without SMS.",
         "LOCATION TIMING RULE: Do not redirect the caller to roadcall.ai/go until they have answered with their name and what problem they need help with, and create_dispatch_session has returned a public_code or location_url.",
         "WEBSITE-FIRST LOCATION: Prefer the returned location_url from create_dispatch_session. Say: 'I’m opening a Roadcall location session for this call. If you can open the link I send, tap Submit and share my location. I’ll stay on the line while it comes through.' If they cannot receive/open that link, say: 'Go to roadcall.ai/go and enter this Roadcall code: [public_code]. Then tap Submit and share my location.' Read the code slowly. Do not ask them to enter a phone number for location.",
         "SESSION STATUS POLLING: If you have dispatch_session_id, poll get_dispatch_session_status every 8 to 10 seconds. Speak only the returned say field and verified best_match fields. If you do not have dispatch_session_id, create or reuse the dispatch session before sending the caller to roadcall.ai/go.",
@@ -155,14 +155,14 @@ FLOW = {
                     "fault_codes":         {"type": "array", "items": {"type": "string"}, "description": "Any fault/error codes mentioned"},
                     "caller_phone":        {"type": "string",  "description": "Caller's phone from Retell if available"},
                 },
-                "required": ["retell_call_id", "driver_safe", "driver_name", "callback_number", "problem_type", "problem_description"]
+                "required": ["retell_call_id", "driver_safe", "driver_name", "problem_type", "problem_description"]
             }
         },
         {
             "type": "custom",
             "tool_id": "tool-roadcall-request-loc",
             "name": "request_location",
-            "description": "Ask backend to generate a secure GPS location link and send it by SMS to the driver. Use this after creating the service request. If driver cannot receive SMS, pass manual_location_details instead.",
+            "description": "Legacy fallback only. Do not call for normal location capture. Prefer create_dispatch_session and tell the caller to open roadcall.ai/go with the returned public_code.",
             "url": f"{BACKEND_URL}/api/location/request",
             "method": "POST",
             "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
@@ -188,7 +188,7 @@ FLOW = {
                         }
                     }
                 },
-                "required": ["service_request_id", "callback_number"]
+                "required": ["service_request_id"]
             }
         },
         {
@@ -513,10 +513,9 @@ FLOW = {
                 "text": (
                     "Now collect only what is required to create the dispatch record, one question at a time:\n"
                     "This node is used after a mechanic match OR after automatic matching escalates to manual dispatch.\n"
-                    "1. If call.caller_phone is available, use it as callback_number and do not ask for phone again.\n"
-                    "2. If no caller phone or callback number is available, ask: 'What number can I text for the secure GPS location link?'\n"
-                    "3. If driver_name is still missing: 'What name should I put on the request?'\n"
-                    "4. If vehicle type is still missing: 'What are you driving — semi, box truck, trailer, RV, or something else?'\n"
+                    "1. If call.caller_phone is available, pass it as callback_number. Do not ask for a phone number for location.\n"
+                    "2. If driver_name is still missing: 'What name should I put on the request?'\n"
+                    "3. If vehicle type is still missing: 'What are you driving — semi, box truck, trailer, RV, or something else?'\n"
                     "Do not ask for email, payment, company, insurance, license plate, or other unnecessary details.\n"
                     "Then call create_service_request using the already captured location/problem/match context."
                 )
@@ -544,14 +543,12 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "If create_dispatch_session has not been called, call it now and use its location_url first. Only call request_location when SMS is needed as a fallback or when the legacy service_request flow requires it.\n"
-                    "Use call.caller_phone as callback_number when available. If no callback_number is available and SMS is needed, ask for the SMS number before calling request_location.\n"
-                    "After calling the tool:\n"
-                    "- If create_dispatch_session returned location_url: Tell the driver to open that secure Roadcall link, tap Submit, and share location. If they cannot open the link, tell them to go to roadcall.ai/go and enter public_code. Then poll get_dispatch_session_status using dispatch_session_id.\n"
-                    "- If location_status is 'sms_sent': Tell the driver: 'I just texted you a location link. Tap it and hit Allow so I can find mechanics near you. Takes about 10 seconds.'\n"
-                    "- If location_status is 'sms_failed': Say the text couldn't go through and ask for their highway/interstate, mile marker or nearest exit, city and state, and any nearby truck stop or landmark.\n"
-                    "  Then call request_location again with manual_location_details filled in.\n"
-                    "Once location is sent or manually collected, move to dispatch search."
+                    "If create_dispatch_session has not been called, call it now. Use the returned public_code as the shared location code.\n"
+                    "Tell the driver exactly: 'Please open roadcall.ai/go in your browser and enter code [public_code], then tap Share My Location. Stay on the line with me.'\n"
+                    "Do not call request_location unless a supervisor explicitly asks for the legacy SMS fallback. Do not ask what number to text.\n"
+                    "While waiting, poll get_dispatch_session_status using dispatch_session_id every 8 to 10 seconds.\n"
+                    "If the driver cannot use the website, ask for highway/interstate, mile marker or nearest exit, city and state, and nearby truck stop or landmark.\n"
+                    "Once GPS or manual location is collected, move to dispatch search."
                 )
             },
             "edges": [

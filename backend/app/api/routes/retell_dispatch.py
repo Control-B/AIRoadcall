@@ -105,7 +105,7 @@ class CreateServiceRequestIn(BaseModel):
     language: str = "en-US"
     driver_safe: bool = True
     driver_name: str
-    callback_number: str
+    callback_number: str | None = None
     company_name: str | None = None
     truck_type: str | None = None
     trailer_type: str | None = None
@@ -330,9 +330,11 @@ async def _create_fleet_service_request(
     if payload.company_name:
         notes = f"[{payload.company_name}] {notes}"
 
+    contact_number = payload.callback_number or payload.caller_phone or "unknown"
+
     incident = RoadsideIncident(
         caller_name=payload.driver_name,
-        caller_phone=payload.callback_number,
+        caller_phone=contact_number,
         vehicle_description=vehicle_desc,
         issue_description=notes,
         status=IncidentStatus.open,
@@ -404,9 +406,11 @@ async def create_service_request(
     if payload.fault_codes:
         issue_summary += f" | Fault codes: {', '.join(payload.fault_codes)}"
 
+    contact_number = payload.callback_number or payload.caller_phone or "unknown"
+
     req = JobCreateRequest(
         driver_name=payload.driver_name,
-        driver_phone=payload.callback_number,
+        driver_phone=contact_number,
         vehicle_type=vehicle,
         issue_type=_map_problem_type(payload.problem_type),
         issue_summary=issue_summary,
