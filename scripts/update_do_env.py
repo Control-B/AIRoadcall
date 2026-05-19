@@ -1,11 +1,19 @@
 #!/usr/bin/env python3
-"""Update DigitalOcean app env vars and re-deploy."""
-import json, subprocess, sys
+"""Update DigitalOcean app env vars and re-deploy.
+
+Requires:
+  - doctl CLI installed and authenticated (doctl auth init)
+  - RETELL_BACKEND_WEBHOOK_TOKEN set in environment before running
+"""
+import json, os, subprocess, sys
 
 APP_ID = "8b291421-e807-4ad6-b00d-3217ebd3ee8e"
 
+import os
+
 UPDATES = {
-    "RETELL_BACKEND_WEBHOOK_TOKEN": "pFskGKL-SZpTkDBuswNLDtJlpMCgva5vXg2gnloFRhw",
+    # Read the token from env — never hardcode secrets in source files
+    "RETELL_BACKEND_WEBHOOK_TOKEN": os.environ["RETELL_BACKEND_WEBHOOK_TOKEN"],
     "APP_BASE_URL": "https://airoadcall-i76ba.ondigitalocean.app",
     "RETELL_AGENT_ID": "agent_c55f3b83dd7614ba0be6bec7e4",
     "RETELL_CONVERSATION_FLOW_ID": "conversation_flow_9830b2d0fa37",
