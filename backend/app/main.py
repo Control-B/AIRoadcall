@@ -80,7 +80,7 @@ app.add_middleware(SessionCorrelationMiddleware)
 # Retell custom-function tools POST {"name": ..., "args": {...}, "call": {...}}.
 # Our endpoints expect the args at the top level. This middleware detects that
 # envelope on /api/* POSTs and rewrites the body to be just the args (with
-# call.from_number folded in as caller_phone / callerPhone if not already set).
+# call.from_number folded in as caller_phone / callerPhone / callback_number if not already set).
 _RETELL_UNWRAP_PREFIXES = ("/api/",)
 
 @app.middleware("http")
@@ -104,6 +104,8 @@ async def unwrap_retell_envelope(request: Request, call_next):
                     if from_num:
                         args.setdefault("caller_phone", from_num)
                         args.setdefault("callerPhone", from_num)
+                        args.setdefault("callback_number", from_num)
+                        args.setdefault("callbackNumber", from_num)
                     call_id = call.get("call_id")
                     if call_id:
                         args.setdefault("retell_call_id", call_id)

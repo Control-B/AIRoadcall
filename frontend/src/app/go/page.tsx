@@ -4,7 +4,7 @@
  * roadcall.ai/go — website-first dispatch flow.
  *
  * Replaces SMS magic-link while carrier registration is pending.
- * Driver enters phone number, taps Submit, browser captures GPS,
+ * Driver enters phone number or Roadcall case code, taps Submit, browser captures GPS,
  * backend reverse-geocodes via Mapbox and returns top 3 mechanics.
  */
 
@@ -34,6 +34,12 @@ function formatPhonePretty(raw: string): string {
 }
 function digitsOnly(raw: string): string {
   return raw.replace(/\D/g, "").slice(0, 10);
+}
+function normalizeCaseCode(raw: string): string {
+  const cleaned = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (!cleaned) return "";
+  const withoutPrefix = cleaned.startsWith("RC") ? cleaned.slice(2) : cleaned;
+  return withoutPrefix ? `RC-${withoutPrefix}` : "RC-";
 }
 function telHrefFor(raw?: string | null): string {
   if (!raw) return "#";
@@ -147,8 +153,12 @@ export default function GoPage() {
   const pollRef = useRef<number | null>(null);
 
   const phoneDigits = useMemo(() => digitsOnly(phone), [phone]);
+  const caseCode = useMemo(() => normalizeCaseCode(phone), [phone]);
   const phoneValid = phoneDigits.length === 10;
+  const caseCodeValid = /^RC-[A-Z0-9]{4,12}$/.test(caseCode);
   const tokenMode = Boolean(dispatchToken);
+  const caseCodeMode = !tokenMode && caseCodeValid;
+  const canSubmitIntake = tokenMode || phoneValid || caseCodeValid;
 
   useEffect(() => {
     const token = new URLSearchParams(window.location.search).get("t");
@@ -159,8 +169,9 @@ export default function GoPage() {
   }, []);
 
   const submitTokenLocation = useCallback(
-    async (opts: { latitude: number; longitude: number; accuracy_m?: number }) => {
-      if (!dispatchToken) return;
+    async (opts: { latitude: number; longitude: number; accuracy_m?: number }, tokenOverride?: string) => {
+      const token = tokenOverride || dispatchToken;
+      if (!token) return;
       setSubmitting(true);
       setError(null);
       setStep("matching");
@@ -170,7 +181,7 @@ export default function GoPage() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            token: dispatchToken,
+            token,
             latitude: opts.latitude,
             longitude: opts.longitude,
             accuracy_m: opts.accuracy_m ?? null,
@@ -196,6 +207,21 @@ export default function GoPage() {
     },
     [dispatchToken, problem, vehicleType],
   );
+
+  const linkCaseCode = useCallback(async () => {
+    const res = await fetch(`${API_URL}/dispatch/link-case-code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ public_code: caseCode }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(body?.detail || "We could not find that Roadcall case code.");
+    }
+    setDispatchToken(body.location_token);
+    setProgressMsg(`Case ${body.public_code} found. Share your GPS to attach it to the live call.`);
+    return body.location_token as string;
+  }, [caseCode]);
 
   const submitDispatch = useCallback(
     async (opts: {
@@ -246,10 +272,23 @@ export default function GoPage() {
     [phoneDigits, problem, vehicleType, name],
   );
 
-  const requestGpsThenDispatch = useCallback(() => {
-    if (!tokenMode && !phoneValid) {
-      setError("Please enter a 10-digit phone number.");
+  const requestGpsThenDispatch = useCallback(async () => {
+    if (!canSubmitIntake) {
+      setError("Enter the phone number from your call or the Roadcall code the agent gave you.");
       return;
+    }
+    let linkedToken: string | undefined;
+    if (caseCodeMode) {
+      try {
+        setSubmitting(true);
+        linkedToken = await linkCaseCode();
+      } catch (err: any) {
+        setError(err?.message || "We could not find that Roadcall case code.");
+        setSubmitting(false);
+        return;
+      } finally {
+        setSubmitting(false);
+      }
     }
     if (!("geolocation" in navigator)) {
       setStep("manual_fallback");
@@ -266,8 +305,8 @@ export default function GoPage() {
           longitude: pos.coords.longitude,
           accuracy_m: pos.coords.accuracy,
         };
-        if (tokenMode) {
-          submitTokenLocation(coords);
+        if (tokenMode || linkedToken) {
+          submitTokenLocation(coords, linkedToken);
         } else {
           submitDispatch(coords);
         }
@@ -285,7 +324,7 @@ export default function GoPage() {
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
-  }, [phoneValid, submitDispatch, submitTokenLocation, tokenMode]);
+  }, [canSubmitIntake, caseCodeMode, linkCaseCode, submitDispatch, submitTokenLocation, tokenMode]);
 
   const handleSubmitForm = (e: FormEvent) => {
     e.preventDefault();
@@ -294,7 +333,7 @@ export default function GoPage() {
 
   const handleManualSubmit = (e: FormEvent) => {
     e.preventDefault();
-    if (tokenMode) {
+    if (tokenMode || caseCodeMode) {
       setError("This secure call link needs GPS. If GPS will not work, tell the Roadcall dispatcher your city, state, highway, exit, or nearest landmark while staying on the call.");
       return;
     }
@@ -375,21 +414,26 @@ export default function GoPage() {
             ) : (
             <div>
               <label htmlFor="phone" className="mb-1 block text-sm font-medium text-slate-200">
-                Your phone number <span className="text-orange-400">*</span>
+                Phone number or Roadcall code <span className="text-orange-400">*</span>
               </label>
               <input
                 id="phone"
-                type="tel"
-                inputMode="tel"
-                autoComplete="tel"
-                value={formatPhonePretty(phone)}
+                type="text"
+                inputMode="text"
+                autoComplete="one-time-code"
+                value={caseCodeValid || phone.toUpperCase().startsWith("RC") ? phone.toUpperCase() : formatPhonePretty(phone)}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="(555) 123-4567"
-                className="h-14 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-center text-2xl font-semibold tracking-wider text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
+                placeholder="(555) 123-4567 or RC-12345"
+                className="h-14 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-center text-xl font-semibold tracking-wider text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
               />
               <p className="mt-1 text-xs text-slate-400">
-                This is your work order — we'll text you updates and the mechanic will call this number.
+                If you are on the phone with Roadcall AI, enter the code the agent gave you. Otherwise enter the phone number from your call.
               </p>
+              {caseCodeValid && (
+                <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100">
+                  We&apos;ll attach your GPS to case <span className="font-mono font-semibold">{caseCode}</span>.
+                </div>
+              )}
             </div>
             )}
 
@@ -434,7 +478,7 @@ export default function GoPage() {
 
             <button
               type="submit"
-              disabled={(!tokenMode && !phoneValid) || submitting}
+              disabled={!canSubmitIntake || submitting}
               className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 text-lg font-bold text-slate-950 shadow-lg transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
             >
               {submitting ? (

@@ -74,6 +74,7 @@ async def test_retell_envelope_is_unwrapped(monkeypatch):
     assert req.state == "FL"
     assert req.problemType == "tire"
     assert req.callerPhone == "+15555551212"
+    assert req.callbackNumber == "+15555551212"
 
 
 @pytest.mark.asyncio
@@ -162,6 +163,8 @@ async def test_retell_envelope_creates_dispatch_session(monkeypatch):
     assert body["location_url"].endswith("/go?t=signed-token")
     assert captured["payload"].retell_call_id == "call_session_123"
     assert captured["payload"].caller_phone == "+18135551212"
+
+
 
 
 @pytest.mark.asyncio
