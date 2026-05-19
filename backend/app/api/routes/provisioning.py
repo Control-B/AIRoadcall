@@ -9,7 +9,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_admin_api_key
 from app.api.routes.admin_auth import verify_admin
 from app.core.plan_config import get_plan_config, get_plan_configs, plan_payload
-from app.models.tenant_provisioning import DispatchEvent, GHLConnection, ProvisioningEvent, RetellConnection, Tenant
+from app.models.tenant_provisioning import (
+    DispatchEvent,
+    GHLConnection,
+    ProvisioningEvent,
+    RetellConnection,
+    ShopAutomationWorkflow,
+    ShopMessagingConfig,
+    ShopOnboardingTask,
+    ShopProvisioningSnapshot,
+    Tenant,
+)
 from app.schemas.provisioning import (
     DispatchEventView,
     FeatureFlagUpdateIn,
@@ -20,6 +30,12 @@ from app.schemas.provisioning import (
     ProvisionTenantOut,
     ProvisioningEventView,
     RetellConnectionView,
+    ShopAutomationWorkflowView,
+    ShopMessagingConfigView,
+    ShopOnboardingTaskView,
+    ShopSnapshotProvisionIn,
+    ShopSnapshotProvisionOut,
+    ShopSnapshotRecordView,
     TenantGHLRepairIn,
     TenantListResponse,
     TenantPlanUpdateIn,
@@ -27,9 +43,11 @@ from app.schemas.provisioning import (
     TenantView,
 )
 from app.services.provisioning_service import ProvisioningService, all_feature_values, locked_features_for
+from app.services.shop_snapshot_service import ShopSnapshotService
 
 router = APIRouter(prefix="/provisioning", tags=["provisioning"])
 service = ProvisioningService()
+shop_snapshot_service = ShopSnapshotService()
 
 
 def _connection_view(connection: GHLConnection | None) -> GHLConnectionView | None:
@@ -105,6 +123,67 @@ def _event_view(event: ProvisioningEvent) -> ProvisioningEventView:
     )
 
 
+def _shop_snapshot_view(snapshot: ShopProvisioningSnapshot) -> ShopSnapshotRecordView:
+    return ShopSnapshotRecordView(
+        id=str(snapshot.id),
+        snapshot_key=snapshot.snapshot_key,
+        snapshot_version=snapshot.snapshot_version,
+        status=snapshot.status,
+        snapshot_json=snapshot.snapshot_json or {},
+        readiness_json=snapshot.readiness_json or {},
+        updated_at=snapshot.updated_at,
+    )
+
+
+def _shop_messaging_view(messaging: ShopMessagingConfig) -> ShopMessagingConfigView:
+    return ShopMessagingConfigView(
+        provider=messaging.provider,
+        from_number=messaging.from_number,
+        messaging_service_sid=messaging.messaging_service_sid,
+        status=messaging.status,
+        templates_json=messaging.templates_json or {},
+    )
+
+
+def _shop_workflow_view(workflow: ShopAutomationWorkflow) -> ShopAutomationWorkflowView:
+    return ShopAutomationWorkflowView(
+        id=str(workflow.id),
+        workflow_key=workflow.workflow_key,
+        name=workflow.name,
+        trigger_event=workflow.trigger_event,
+        channel=workflow.channel,
+        enabled=workflow.enabled,
+        status=workflow.status,
+        config_json=workflow.config_json or {},
+    )
+
+
+def _shop_task_view(task: ShopOnboardingTask) -> ShopOnboardingTaskView:
+    return ShopOnboardingTaskView(
+        id=str(task.id),
+        task_key=task.task_key,
+        title=task.title,
+        category=task.category,
+        status=task.status,
+        manual_required=task.manual_required,
+        instructions=task.instructions,
+        metadata_json=task.metadata_json or {},
+        completed_at=task.completed_at,
+    )
+
+
+def _shop_snapshot_response(bundle: dict) -> ShopSnapshotProvisionOut:
+    return ShopSnapshotProvisionOut(
+        tenant=_tenant_view(bundle["tenant"], None, bundle.get("retell_connection")),
+        snapshot=_shop_snapshot_view(bundle["snapshot"]),
+        messaging=_shop_messaging_view(bundle["messaging"]),
+        retell_connection=_retell_connection_view(bundle.get("retell_connection")),
+        workflows=[_shop_workflow_view(workflow) for workflow in bundle.get("workflows", [])],
+        onboarding_tasks=[_shop_task_view(task) for task in bundle.get("tasks", [])],
+        readiness=bundle.get("readiness", {}),
+    )
+
+
 @router.get("/plans", response_model=list[PlanConfigView])
 async def list_plans():
     return [PlanConfigView(**plan_payload(config)) for config in get_plan_configs().values()]
@@ -138,6 +217,36 @@ async def provision_tenant(payload: ProvisionTenantIn, db: AsyncSession = Depend
     except Exception as exc:
         await db.rollback()
         raise HTTPException(status_code=500, detail=f"Provisioning failed: {exc}") from exc
+
+
+@router.post("/admin/shops/snapshot", response_model=ShopSnapshotProvisionOut, dependencies=[Depends(verify_admin)])
+async def provision_shop_snapshot(payload: ShopSnapshotProvisionIn, db: AsyncSession = Depends(get_db)):
+    try:
+        bundle = await shop_snapshot_service.provision_shop_snapshot(db, payload)
+        await db.commit()
+        return _shop_snapshot_response(bundle)
+    except Exception as exc:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Shop snapshot provisioning failed: {exc}") from exc
+
+
+@router.get("/admin/shops/{tenant_id}/snapshot", response_model=ShopSnapshotProvisionOut, dependencies=[Depends(verify_admin)])
+async def get_shop_snapshot(tenant_id: str, db: AsyncSession = Depends(get_db)):
+    bundle = await shop_snapshot_service.get_shop_snapshot(db, uuid.UUID(tenant_id))
+    if not bundle or not bundle.get("snapshot") or not bundle.get("messaging"):
+        raise HTTPException(status_code=404, detail="Shop snapshot not found")
+    return _shop_snapshot_response(bundle)
+
+
+@router.post("/admin/shops/{tenant_id}/snapshot/readiness", response_model=dict[str, object], dependencies=[Depends(verify_admin)])
+async def refresh_shop_snapshot_readiness(tenant_id: str, db: AsyncSession = Depends(get_db)):
+    try:
+        readiness = await shop_snapshot_service.refresh_readiness(db, uuid.UUID(tenant_id))
+        await db.commit()
+        return readiness
+    except ValueError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
 @router.get("/admin/tenants", response_model=TenantListResponse, dependencies=[Depends(verify_admin)])

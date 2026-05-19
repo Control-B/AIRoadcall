@@ -47,6 +47,8 @@ class ShopProfile(Base):
     services_offered: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     service_area: Mapped[str | None] = mapped_column(Text, nullable=True)
     service_radius_miles: Mapped[int] = mapped_column(Integer, default=50, nullable=False)
+    business_hours: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    intake_qualification: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     offers_mobile_service: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     offers_247_service: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     hourly_rate: Mapped[str | None] = mapped_column(String(80), nullable=True)

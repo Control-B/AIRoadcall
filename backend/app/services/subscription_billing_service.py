@@ -18,7 +18,9 @@ from app.models.mechanic_subscription import AIAgent, MechanicAccount, PlanUsage
 from app.models.organization import Organization, VerticalType
 from app.models.tenant_provisioning import GHLConnection, Tenant
 from app.schemas.billing import CheckoutSessionCreateIn, ShopProfileUpdateIn
+from app.schemas.provisioning import ShopSnapshotProvisionIn
 from app.services.provisioning_service import ProvisioningService, slugify
+from app.services.shop_snapshot_service import DEFAULT_BUSINESS_HOURS, DEFAULT_INTAKE_QUALIFICATION, ShopSnapshotService
 
 settings = get_settings()
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -48,6 +50,7 @@ def _from_timestamp(value: int | None) -> datetime | None:
 class SubscriptionBillingService:
     def __init__(self) -> None:
         self.provisioning = ProvisioningService()
+        self.shop_snapshots = ShopSnapshotService()
 
     def public_dashboard_url(self, tenant_id: uuid.UUID, dashboard_token: str) -> str:
         return f"{settings.public_app_base_url}/mechanic/dashboard?tenant={tenant_id}&token={dashboard_token}"
@@ -165,6 +168,21 @@ class SubscriptionBillingService:
         org, tenant = await self._get_or_create_tenant(db, payload, plan_id)
         account = await self._get_or_create_account(db, tenant, org, payload)
         await self._get_or_create_profile(db, tenant, org, payload)
+        await self.shop_snapshots.provision_shop_snapshot(
+            db,
+            ShopSnapshotProvisionIn(
+                plan_id=plan_id,
+                business_name=payload.business_name,
+                owner_name=payload.owner_name,
+                owner_email=payload.email,
+                owner_phone=payload.phone,
+                shop_phone=payload.phone,
+                website=payload.website,
+                subscription_status=tenant.subscription_status,
+                setup_fee_status=tenant.setup_fee_status,
+                metadata={"source": "stripe_checkout_created"},
+            ),
+        )
         await db.flush()
 
         checkout_payload = {
@@ -303,6 +321,8 @@ class SubscriptionBillingService:
                 "services_offered": profile.services_offered,
                 "service_area": profile.service_area,
                 "service_radius_miles": profile.service_radius_miles,
+                "business_hours": profile.business_hours,
+                "intake_qualification": profile.intake_qualification,
                 "offers_mobile_service": profile.offers_mobile_service,
                 "offers_247_service": profile.offers_247_service,
                 "hourly_rate": profile.hourly_rate,
@@ -453,8 +473,12 @@ class SubscriptionBillingService:
 
         # ── Roadcall-direct provisioning (Stripe-only, no GHL required) ──────
         # 1. Seed the shop profile with sensible defaults using Stripe-collected
-        #    billing address + phone. This is the "snapshot" replacement.
+        #    billing address + phone, then refresh the backend-native shop snapshot.
         profile = await self._seed_tenant_defaults(db, tenant, session)
+        try:
+            await self.shop_snapshots.refresh_readiness(db, tenant.id)
+        except Exception as exc:  # noqa: BLE001 - webhook must never fail on readiness bookkeeping
+            logger.warning("shop snapshot readiness refresh failed for tenant %s: %s", tenant.id, exc)
         # 2. Auto-trigger Retell agent provisioning so the AI is live the moment
         #    the customer logs into the dashboard. Best-effort; surfaces error
         #    on AIAgent.last_error if Retell rejects.
@@ -571,6 +595,10 @@ class SubscriptionBillingService:
                 profile.address = joined
         if not profile.services_offered:
             profile.services_offered = list(_DEFAULT_SHOP_SERVICES)
+        if not getattr(profile, "business_hours", None):
+            profile.business_hours = dict(DEFAULT_BUSINESS_HOURS)
+        if not getattr(profile, "intake_qualification", None):
+            profile.intake_qualification = dict(DEFAULT_INTAKE_QUALIFICATION)
         # Sensible business defaults; owner can change in dashboard.
         if profile.offers_mobile_service is None:
             profile.offers_mobile_service = True

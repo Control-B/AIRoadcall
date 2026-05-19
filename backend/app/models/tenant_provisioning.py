@@ -149,3 +149,73 @@ class DispatchEvent(Base):
     status: Mapped[str] = mapped_column(String(40), default="recorded", nullable=False, index=True)
     payload_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+
+
+class ShopProvisioningSnapshot(Base):
+    __tablename__ = "shop_provisioning_snapshots"
+    __table_args__ = (UniqueConstraint("tenant_id", name="uq_shop_provisioning_snapshots_tenant"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    snapshot_key: Mapped[str] = mapped_column(String(80), default="shop_ai_intake_v1", nullable=False, index=True)
+    snapshot_version: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    status: Mapped[str] = mapped_column(String(40), default="draft", nullable=False, index=True)
+    snapshot_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    readiness_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class ShopMessagingConfig(Base):
+    __tablename__ = "shop_messaging_configs"
+    __table_args__ = (UniqueConstraint("tenant_id", name="uq_shop_messaging_configs_tenant"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    provider: Mapped[str] = mapped_column(String(40), default="twilio", nullable=False, index=True)
+    from_number: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    messaging_service_sid: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(40), default="not_configured", nullable=False, index=True)
+    templates_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class ShopAutomationWorkflow(Base):
+    __tablename__ = "shop_automation_workflows"
+    __table_args__ = (UniqueConstraint("tenant_id", "workflow_key", name="uq_shop_automation_workflows_tenant_key"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    workflow_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(String(160), nullable=False)
+    trigger_event: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    channel: Mapped[str] = mapped_column(String(40), default="system", nullable=False, index=True)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(40), default="configured", nullable=False, index=True)
+    config_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class ShopOnboardingTask(Base):
+    __tablename__ = "shop_onboarding_tasks"
+    __table_args__ = (UniqueConstraint("tenant_id", "task_key", name="uq_shop_onboarding_tasks_tenant_key"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False, index=True)
+    organization_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
+    task_key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(String(180), nullable=False)
+    category: Mapped[str] = mapped_column(String(60), default="setup", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(40), default="pending", nullable=False, index=True)
+    manual_required: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    instructions: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metadata_json: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)

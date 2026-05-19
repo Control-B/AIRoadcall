@@ -49,6 +49,10 @@ from app.models.tenant_provisioning import (
     FeatureFlag,
     RoadsideSession,
     DispatchEvent,
+    ShopAutomationWorkflow,
+    ShopMessagingConfig,
+    ShopOnboardingTask,
+    ShopProvisioningSnapshot,
 )
 from app.models.mechanic_subscription import (
     AIAgent,

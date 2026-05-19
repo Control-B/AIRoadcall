@@ -5,14 +5,14 @@ Retell Shop Receptionist can read live availability and create real
 bookings on behalf of the caller.
 
 Revision ID: a1b2c3d4e5f7
-Revises: f9a0b1c2d3e4
+Revises: a9b0c1d2e3f4
 Create Date: 2026-05-18
 """
 from alembic import op
 import sqlalchemy as sa
 
 revision = "a1b2c3d4e5f7"
-down_revision = "f9a0b1c2d3e4"
+down_revision = "a9b0c1d2e3f4"
 branch_labels = None
 depends_on = None
 

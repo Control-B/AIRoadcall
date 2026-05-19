@@ -62,6 +62,8 @@ class ShopProfileUpdateIn(BaseModel):
     services_offered: list[str] = Field(default_factory=list)
     service_area: str | None = None
     service_radius_miles: int = Field(default=50, ge=1, le=500)
+    business_hours: dict[str, Any] | None = None
+    intake_qualification: dict[str, Any] | None = None
     offers_mobile_service: bool = True
     offers_247_service: bool = False
     hourly_rate: str | None = Field(default=None, max_length=80)
