@@ -120,15 +120,42 @@ class DashboardCallSummaryView(BaseModel):
     created_at: datetime
 
 
+class DashboardServiceRequestView(BaseModel):
+    id: str
+    customer_name: str | None = None
+    phone: str | None = None
+    service_type: str | None = None
+    urgency: str | None = None
+    ai_status: str
+    ghl_pipeline_stage: str | None = None
+    status: str
+    created_at: datetime
+
+
+class GHLStatusView(BaseModel):
+    sub_account_connected: bool = False
+    location_id: str | None = None
+    website_funnel_status: str = "not_configured"
+    calendar_status: str = "not_configured"
+    crm_pipeline_status: str = "not_configured"
+    workflow_status: str = "not_configured"
+    last_synced_at: datetime | None = None
+
+
 class MechanicDashboardView(BaseModel):
     tenant_id: str
     business_name: str
     account_status: str
+    primary_dashboard: str = "gohighlevel"
+    roadcall_dashboard_role: str = "ai_operations_and_roadside_intelligence"
     subscription: SubscriptionView | None = None
     profile: dict[str, Any] | None = None
     profile_complete: bool
     ai_agent: AIAgentView | None = None
+    ghl_status: GHLStatusView | None = None
     usage: UsageView | None = None
+    metrics: dict[str, int] = Field(default_factory=dict)
+    recent_service_requests: list[DashboardServiceRequestView] = Field(default_factory=list)
     call_summaries: list[DashboardCallSummaryView] = Field(default_factory=list)
     activation_steps: list[dict[str, str | bool]]
 

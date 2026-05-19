@@ -1,0 +1,74 @@
+{
+  "tools": [
+    {
+      "name": "create_call_session",
+      "description": "Create or refresh an active Roadcall location session for an inbound or outbound AI call.",
+      "method": "POST",
+      "url": "https://roadcall.ai/api/calls/start",
+      "headers": {
+        "Authorization": "Bearer {{RETELL_BACKEND_WEBHOOK_TOKEN}}"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "call_provider": { "type": "string", "enum": ["retell", "twilio", "ghl"], "default": "retell" },
+          "provider_call_id": { "type": "string" },
+          "caller_phone": { "type": "string" }
+        },
+        "required": ["provider_call_id"]
+      }
+    },
+    {
+      "name": "check_location_status",
+      "description": "Check whether the caller submitted GPS or manual location for a live call.",
+      "method": "GET",
+      "url": "https://roadcall.ai/api/calls/{{provider_call_id}}/location-status",
+      "headers": {
+        "Authorization": "Bearer {{RETELL_BACKEND_WEBHOOK_TOKEN}}"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "provider_call_id": { "type": "string" }
+        },
+        "required": ["provider_call_id"]
+      }
+    },
+    {
+      "name": "match_mechanics",
+      "description": "Find the best nearby mechanics after caller location is confirmed.",
+      "method": "POST",
+      "url": "https://roadcall.ai/api/match-mechanics",
+      "headers": {
+        "Authorization": "Bearer {{RETELL_BACKEND_WEBHOOK_TOKEN}}"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "provider_call_id": { "type": "string" },
+          "service_type": { "type": "string" },
+          "vehicle_type": { "type": "string" },
+          "urgency": { "type": "string" }
+        },
+        "required": ["provider_call_id", "service_type", "vehicle_type"]
+      }
+    },
+    {
+      "name": "save_manual_location",
+      "description": "Save and geocode a manual fallback location when browser GPS fails.",
+      "method": "POST",
+      "url": "https://roadcall.ai/api/location/manual",
+      "headers": {
+        "Authorization": "Bearer {{RETELL_BACKEND_WEBHOOK_TOKEN}}"
+      },
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "provider_call_id": { "type": "string" },
+          "location_text": { "type": "string" }
+        },
+        "required": ["provider_call_id", "location_text"]
+      }
+    }
+  ]
+}

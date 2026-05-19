@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, JSON, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -23,8 +23,12 @@ class MechanicAccount(Base):
     owner_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    ghl_location_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    ghl_company_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
     dashboard_token: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    plan: Mapped[str] = mapped_column(String(40), default="standard", nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(40), default="pending_checkout", nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
@@ -53,6 +57,8 @@ class ShopProfile(Base):
     offers_247_service: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     hourly_rate: Mapped[str | None] = mapped_column(String(80), nullable=True)
     fallback_phone: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    ghl_calendar_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    ghl_calendar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     calcom_calendar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Cal.com OSS / SaaS API integration so the Retell shop agent can book in real time.
     calcom_api_key: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -181,6 +187,32 @@ class LeadAllocation(Base):
     status: Mapped[str] = mapped_column(String(40), default="allocated", nullable=False, index=True)
     metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+
+
+class ServiceRequest(Base):
+    __tablename__ = "service_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="SET NULL"), nullable=True, index=True)
+    mechanic_account_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("mechanic_accounts.id", ondelete="SET NULL"), nullable=True, index=True)
+    ghl_contact_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    ghl_opportunity_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    caller_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    caller_phone: Mapped[str | None] = mapped_column(String(30), nullable=True, index=True)
+    vehicle_type: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    service_type: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    urgency: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
+    location_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    call_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    transcript_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    ai_status: Mapped[str] = mapped_column(String(60), default="pending", nullable=False, index=True)
+    ghl_pipeline_stage: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(60), default="new", nullable=False, index=True)
+    metadata_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
 
 class PlanUsage(Base):

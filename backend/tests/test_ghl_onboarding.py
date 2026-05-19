@@ -59,6 +59,11 @@ async def test_onboarding_setup_uses_api_key_and_upserts_mapping(monkeypatch):
             subaccount_name=subaccount_name,
             pipeline_id=pipeline_id,
             default_workflow_id=default_workflow_id,
+            agency_id=None,
+            ghl_user_id=None,
+            token_expires_at=None,
+            scopes=None,
+            token_source=None,
             is_active=True,
         )
 

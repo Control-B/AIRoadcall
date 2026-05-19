@@ -133,6 +133,19 @@ type DispatchSessionStatus = {
   say: string;
 };
 
+type CallLocationResult = {
+  ok: boolean;
+  status: string;
+  provider_call_id: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  accuracy?: number | null;
+  confidence?: number | null;
+};
+
 type Step = "intake" | "locating" | "matching" | "results" | "manual_fallback";
 
 // ───────── component ─────────
@@ -144,9 +157,13 @@ export default function GoPage() {
   const [name, setName] = useState("");
   const [manualCity, setManualCity] = useState("");
   const [manualState, setManualState] = useState("");
+  const [manualLocationText, setManualLocationText] = useState("");
+  const [liveCallCode, setLiveCallCode] = useState("");
+  const [phoneLast4, setPhoneLast4] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<DispatchResponse | null>(null);
   const [sessionResult, setSessionResult] = useState<DispatchSessionStatus | null>(null);
+  const [callLocationResult, setCallLocationResult] = useState<CallLocationResult | null>(null);
   const [dispatchToken, setDispatchToken] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [progressMsg, setProgressMsg] = useState<string>("");
@@ -158,15 +175,91 @@ export default function GoPage() {
   const caseCodeValid = /^RC-[A-Z0-9]{4,12}$/.test(caseCode);
   const tokenMode = Boolean(dispatchToken);
   const caseCodeMode = !tokenMode && caseCodeValid;
-  const canSubmitIntake = tokenMode || phoneValid || caseCodeValid;
+  const enteredLocationCode = useMemo(() => {
+    const normalized = phone.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (tokenMode || caseCodeValid || phoneValid) return "";
+    return /^[A-Z0-9]{4,8}$/.test(normalized) ? normalized : "";
+  }, [caseCodeValid, phone, phoneValid, tokenMode]);
+  const activeCallCode = liveCallCode || enteredLocationCode;
+  const liveCallMode = Boolean(activeCallCode);
+  const canSubmitIntake = tokenMode || liveCallMode || phoneValid || caseCodeValid;
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get("t");
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("t");
+    const code = params.get("code");
     if (token) {
       setDispatchToken(token);
       setProgressMsg("This secure Roadcall link will attach your GPS to the live call.");
     }
+    if (code) {
+      setLiveCallCode(code.trim().toUpperCase());
+      setPhone(code.trim().toUpperCase());
+      setProgressMsg("This code will attach your GPS to the live Roadcall AI call.");
+    }
   }, []);
+
+  const submitLiveCallLocation = useCallback(
+    async (opts: { latitude: number; longitude: number; accuracy_m?: number }) => {
+      const code = activeCallCode;
+      if (!code) return;
+      setSubmitting(true);
+      setError(null);
+      setStep("matching");
+      setProgressMsg("Sending your location to the Roadcall AI agent…");
+      try {
+        const res = await fetch(`${API_URL}/location/submit`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            location_code: code,
+            phone_last4: phoneLast4 || null,
+            latitude: opts.latitude,
+            longitude: opts.longitude,
+            accuracy: opts.accuracy_m ?? null,
+          }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body?.detail || `Location submit failed (${res.status})`);
+        setCallLocationResult(body as CallLocationResult);
+        setResult(null);
+        setSessionResult(null);
+        setStep("results");
+      } catch (err: any) {
+        setError(err?.message || "We could not send your location to the Roadcall AI agent.");
+        setStep("manual_fallback");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [activeCallCode, phoneLast4],
+  );
+
+  const submitLiveCallManualLocation = useCallback(async () => {
+    const code = activeCallCode;
+    if (!code || !manualLocationText.trim()) {
+      setError("Enter the code from the agent and your city, highway, exit, mile marker, or landmark.");
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    setProgressMsg("Sending your manual location to Roadcall…");
+    try {
+      const res = await fetch(`${API_URL}/location/manual`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ location_code: code, location_text: manualLocationText.trim() }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.detail || `Manual location failed (${res.status})`);
+      setCallLocationResult(body as CallLocationResult);
+      setStep("results");
+    } catch (err: any) {
+      setError(err?.message || "Roadcall could not resolve that location. Tell the AI agent your nearest city, highway, exit, or landmark.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [activeCallCode, manualLocationText]);
 
   const submitTokenLocation = useCallback(
     async (opts: { latitude: number; longitude: number; accuracy_m?: number }, tokenOverride?: string) => {
@@ -307,6 +400,8 @@ export default function GoPage() {
         };
         if (tokenMode || linkedToken) {
           submitTokenLocation(coords, linkedToken);
+        } else if (liveCallMode) {
+          submitLiveCallLocation(coords);
         } else {
           submitDispatch(coords);
         }
@@ -324,7 +419,7 @@ export default function GoPage() {
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
-  }, [canSubmitIntake, caseCodeMode, linkCaseCode, submitDispatch, submitTokenLocation, tokenMode]);
+  }, [canSubmitIntake, caseCodeMode, linkCaseCode, liveCallMode, submitDispatch, submitLiveCallLocation, submitTokenLocation, tokenMode]);
 
   const handleSubmitForm = (e: FormEvent) => {
     e.preventDefault();
@@ -335,6 +430,10 @@ export default function GoPage() {
     e.preventDefault();
     if (tokenMode || caseCodeMode) {
       setError("This secure call link needs GPS. If GPS will not work, tell the Roadcall dispatcher your city, state, highway, exit, or nearest landmark while staying on the call.");
+      return;
+    }
+    if (liveCallMode) {
+      submitLiveCallManualLocation();
       return;
     }
     if (!manualCity.trim() || !manualState) {
@@ -369,6 +468,7 @@ export default function GoPage() {
     setStep("intake");
     setResult(null);
     setSessionResult(null);
+    setCallLocationResult(null);
     setError(null);
     setProgressMsg("");
   };
@@ -395,7 +495,9 @@ export default function GoPage() {
           </div>
           <h1 className="text-3xl font-bold tracking-tight">I need help now</h1>
           <p className="mt-2 text-sm leading-6 text-slate-300">
-            {tokenMode
+            {liveCallMode
+              ? "Share your location so Roadcall can find the closest mechanic. Stay on the line with the AI agent."
+              : tokenMode
               ? "Tap submit and share your GPS. This links your exact location to the live Roadcall dispatch session."
               : "Enter your phone number and tap submit. We'll find the closest mechanic to your exact GPS location and call them for you."}
           </p>
@@ -407,7 +509,25 @@ export default function GoPage() {
             onSubmit={handleSubmitForm}
             className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl"
           >
-            {tokenMode ? (
+            {liveCallMode ? (
+              <div className="space-y-3">
+                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-center text-sm text-emerald-100">
+                  Live Roadcall code <span className="font-mono text-lg font-bold text-white">{activeCallCode}</span> detected.
+                </div>
+                <label htmlFor="phoneLast4" className="mb-1 block text-sm font-medium text-slate-200">
+                  Phone last 4 digits <span className="text-slate-500">optional</span>
+                </label>
+                <input
+                  id="phoneLast4"
+                  type="text"
+                  inputMode="numeric"
+                  value={phoneLast4}
+                  onChange={(e) => setPhoneLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  placeholder="1234"
+                  className="h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-center text-lg font-semibold tracking-widest text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
+                />
+              </div>
+            ) : tokenMode ? (
               <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
                 Secure Roadcall session link detected. You do not need to enter your phone number here.
               </div>
@@ -421,9 +541,9 @@ export default function GoPage() {
                 type="text"
                 inputMode="text"
                 autoComplete="one-time-code"
-                value={caseCodeValid || phone.toUpperCase().startsWith("RC") ? phone.toUpperCase() : formatPhonePretty(phone)}
+                value={caseCodeValid || phone.toUpperCase().startsWith("RC") || enteredLocationCode ? phone.toUpperCase() : formatPhonePretty(phone)}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="(555) 123-4567 or RC-12345"
+                placeholder="8421, (555) 123-4567, or RC-12345"
                 className="h-14 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-center text-xl font-semibold tracking-wider text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
               />
               <p className="mt-1 text-xs text-slate-400">
@@ -432,6 +552,11 @@ export default function GoPage() {
               {caseCodeValid && (
                 <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100">
                   We&apos;ll attach your GPS to case <span className="font-mono font-semibold">{caseCode}</span>.
+                </div>
+              )}
+              {enteredLocationCode && (
+                <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100">
+                  We&apos;ll attach your GPS to live call code <span className="font-mono font-semibold">{enteredLocationCode}</span>.
                 </div>
               )}
             </div>
@@ -485,14 +610,14 @@ export default function GoPage() {
                 <Loader2 className="h-5 w-5 animate-spin" />
               ) : (
                 <>
-                  Submit & share my location
+                  {liveCallMode ? "Share My Location" : "Submit & share my location"}
                   <ArrowRight className="h-5 w-5" />
                 </>
               )}
             </button>
 
             <p className="text-center text-xs text-slate-500">
-              Tapping submit asks your browser for your GPS location.
+              {liveCallMode ? "Your location is used for this live Roadcall call only." : "Tapping submit asks your browser for your GPS location."}
             </p>
           </form>
         )}
@@ -521,25 +646,39 @@ export default function GoPage() {
               <span>{error || "GPS didn’t come through — enter city/state and we’ll still find help."}</span>
             </div>
             <p className="text-xs leading-5 text-slate-400">
-              This keeps your work order moving even if your browser blocks location. If you prefer GPS, allow Location for roadcall.ai and tap Try GPS again.
+              {liveCallMode
+                ? "If GPS will not work, enter your city, highway, exit number, mile marker, truck stop, or nearest landmark. Stay on the line while Roadcall resolves it."
+                : "This keeps your work order moving even if your browser blocks location. If you prefer GPS, allow Location for roadcall.ai and tap Try GPS again."}
             </p>
-            <input
-              type="text"
-              value={manualCity}
-              onChange={(e) => setManualCity(e.target.value)}
-              placeholder="City"
-              className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
-            />
-            <select
-              value={manualState}
-              onChange={(e) => setManualState(e.target.value)}
-              className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-orange-400 focus:outline-none"
-            >
-              <option value="">State…</option>
-              {US_STATES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            {liveCallMode ? (
+              <textarea
+                value={manualLocationText}
+                onChange={(e) => setManualLocationText(e.target.value)}
+                placeholder="Example: I-75 northbound exit 341 near the Pilot, Ocala FL"
+                rows={4}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
+              />
+            ) : (
+              <>
+                <input
+                  type="text"
+                  value={manualCity}
+                  onChange={(e) => setManualCity(e.target.value)}
+                  placeholder="City"
+                  className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
+                />
+                <select
+                  value={manualState}
+                  onChange={(e) => setManualState(e.target.value)}
+                  className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-orange-400 focus:outline-none"
+                >
+                  <option value="">State…</option>
+                  {US_STATES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+              </>
+            )}
             <button
               type="submit"
               disabled={submitting}
@@ -558,6 +697,40 @@ export default function GoPage() {
         )}
 
         {/* RESULTS */}
+        {step === "results" && callLocationResult && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 text-sm text-emerald-100">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-400" />
+                <div>
+                  <div className="text-base font-semibold">Location received.</div>
+                  <div className="mt-1 text-emerald-200/90">
+                    {callLocationResult.address || [callLocationResult.city, callLocationResult.state].filter(Boolean).join(", ") || "Roadcall has your location."}
+                  </div>
+                  {typeof callLocationResult.accuracy === "number" && (
+                    <div className="mt-1 text-xs text-emerald-300/80">
+                      GPS accuracy about {Math.round(callLocationResult.accuracy)} meters.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <GoResultsMap
+              caller={{
+                latitude: callLocationResult.latitude,
+                longitude: callLocationResult.longitude,
+                label: callLocationResult.address || [callLocationResult.city, callLocationResult.state].filter(Boolean).join(", ") || "Roadcall GPS location",
+              }}
+            />
+
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-sm text-slate-300">
+              <Wrench className="mb-2 h-6 w-6 text-orange-400" />
+              Location received. Stay on the line while Roadcall finds help.
+            </div>
+          </div>
+        )}
+
         {step === "results" && sessionResult && (
           <div className="space-y-4">
             <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-100">

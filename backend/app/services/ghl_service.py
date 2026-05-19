@@ -110,9 +110,14 @@ class GHLService:
         *,
         organization_id: str,
         location_id: str,
+        agency_id: str | None = None,
+        ghl_user_id: str | None = None,
         subaccount_name: str | None = None,
         access_token: str | None = None,
         refresh_token: str | None = None,
+        token_expires_at: datetime | None = None,
+        scopes: list[str] | None = None,
+        token_source: str | None = None,
         webhook_secret: str | None = None,
         pipeline_id: str | None = None,
         default_workflow_id: str | None = None,
@@ -124,6 +129,8 @@ class GHLService:
             mapping = GHLTenantMapping(organization_id=org_uuid, location_id=location_id)
             db.add(mapping)
         mapping.location_id = location_id
+        mapping.agency_id = agency_id or mapping.agency_id or self.settings.GHL_AGENCY_ID or None
+        mapping.ghl_user_id = ghl_user_id or mapping.ghl_user_id
         mapping.subaccount_name = subaccount_name or mapping.subaccount_name
         mapping.pipeline_id = pipeline_id or mapping.pipeline_id
         mapping.default_workflow_id = default_workflow_id or mapping.default_workflow_id
@@ -131,6 +138,12 @@ class GHLService:
             mapping.encrypted_access_token = self.encrypt_secret(access_token)
         if refresh_token:
             mapping.encrypted_refresh_token = self.encrypt_secret(refresh_token)
+        if token_expires_at:
+            mapping.token_expires_at = token_expires_at
+        if scopes is not None:
+            mapping.scopes = scopes
+        if token_source:
+            mapping.token_source = token_source
         if webhook_secret:
             mapping.encrypted_webhook_secret = self.encrypt_secret(webhook_secret)
         mapping.is_active = True
@@ -248,7 +261,61 @@ class GHLService:
         await self.audit(db, mapping, f"retry.queued.{action}", "outbound", "queued", payload=payload, error=error)
         return item
 
-    def _auth_headers(self, mapping: GHLTenantMapping) -> dict[str, str]:
+    async def get_location_access_token(self, db: AsyncSession, mapping: GHLTenantMapping) -> str:
+        if mapping.token_expires_at:
+            expires_at = mapping.token_expires_at
+            if expires_at.tzinfo is None:
+                expires_at = expires_at.replace(tzinfo=timezone.utc)
+            if expires_at <= datetime.now(timezone.utc) + timedelta(minutes=2):
+                await self.refresh_expired_token(db, mapping)
+        token = self.decrypt_secret(mapping.encrypted_access_token)
+        if not token:
+            raise RuntimeError("GHL access token is not configured for this tenant")
+        return token
+
+    async def refresh_expired_token(self, db: AsyncSession, mapping: GHLTenantMapping) -> GHLTenantMapping:
+        refresh_token = self.decrypt_secret(mapping.encrypted_refresh_token)
+        if not refresh_token:
+            raise RuntimeError("GHL refresh token is not configured for this tenant")
+        client_id = self.settings.GHL_OAUTH_CLIENT_ID.strip()
+        client_secret = self.settings.GHL_OAUTH_CLIENT_SECRET.strip()
+        if not client_id or not client_secret:
+            raise RuntimeError("GHL OAuth client credentials are not configured")
+        payload = {
+            "grant_type": "refresh_token",
+            "client_id": client_id,
+            "client_secret": client_secret,
+            "refresh_token": refresh_token,
+        }
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            response = await client.post(f"{self.base_url}/oauth/token", data=payload)
+        if response.status_code >= 400:
+            await self.audit(db, mapping, "oauth.refresh", "outbound", "failed", error=response.text[:500])
+            raise RuntimeError(f"GHL OAuth refresh failed: HTTP {response.status_code}")
+        body = response.json()
+        access_token = body.get("access_token")
+        new_refresh_token = body.get("refresh_token") or refresh_token
+        expires_in = int(body.get("expires_in") or 3600)
+        if not access_token:
+            raise RuntimeError("GHL OAuth refresh did not return an access token")
+        mapping.encrypted_access_token = self.encrypt_secret(access_token)
+        mapping.encrypted_refresh_token = self.encrypt_secret(new_refresh_token)
+        mapping.token_expires_at = datetime.now(timezone.utc) + timedelta(seconds=max(60, expires_in - 60))
+        mapping.scopes = body.get("scope", mapping.scopes or []) if isinstance(body.get("scope"), list) else mapping.scopes or []
+        mapping.token_source = "oauth"
+        await self.audit(db, mapping, "oauth.refresh", "outbound", "success")
+        await db.flush()
+        return mapping
+
+    async def _auth_headers(self, db: AsyncSession, mapping: GHLTenantMapping) -> dict[str, str]:
+        token = await self.get_location_access_token(db, mapping)
+        return {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            "Version": "2021-07-28",
+        }
+
+    def _legacy_auth_headers(self, mapping: GHLTenantMapping) -> dict[str, str]:
         token = self.decrypt_secret(mapping.encrypted_access_token)
         if not token:
             raise RuntimeError("GHL access token is not configured for this tenant")
@@ -372,7 +439,7 @@ class GHLService:
     async def _post(self, db: AsyncSession, mapping: GHLTenantMapping, endpoint: str, payload: dict[str, Any], action: str) -> dict[str, Any]:
         url = f"{self.base_url}{endpoint}"
         try:
-            headers = self._auth_headers(mapping)
+            headers = await self._auth_headers(db, mapping)
             async with httpx.AsyncClient(timeout=20.0) as client:
                 response = await client.post(url, headers=headers, json=payload)
             if response.status_code >= 400:
@@ -385,6 +452,20 @@ class GHLService:
             await self.queue_retry(db, mapping, action, endpoint, payload, headers={}, error=str(exc))
             await self.audit(db, mapping, action, "outbound", "queued", payload=payload, error=str(exc))
             return {"queued": True, "error": str(exc)}
+
+    async def _get(self, db: AsyncSession, mapping: GHLTenantMapping, endpoint: str, action: str) -> dict[str, Any]:
+        url = f"{self.base_url}{endpoint}"
+        try:
+            headers = await self._auth_headers(db, mapping)
+            async with httpx.AsyncClient(timeout=20.0) as client:
+                response = await client.get(url, headers=headers)
+            if response.status_code >= 400:
+                raise RuntimeError(f"GHL HTTP {response.status_code}: {response.text[:500]}")
+            await self.audit(db, mapping, action, "outbound", "success")
+            return response.json() if response.text else {"success": True}
+        except Exception as exc:
+            await self.audit(db, mapping, action, "outbound", "failed", error=str(exc))
+            return {"failed": True, "error": str(exc)}
 
     async def sync_contact(self, db: AsyncSession, mapping: GHLTenantMapping, contact: dict[str, Any], entity_type: str, entity_id: str) -> dict[str, Any]:
         payload = {
@@ -403,6 +484,70 @@ class GHLService:
         if contact_id:
             await self.upsert_contact_link(db, mapping, contact_id, entity_type, entity_id, contact.get("email"), contact.get("phone"))
         return result
+
+    async def create_note(self, db: AsyncSession, mapping: GHLTenantMapping, contact_id: str, body: str, metadata: dict[str, Any] | None = None) -> dict[str, Any]:
+        payload = {
+            "locationId": mapping.location_id,
+            "contactId": contact_id,
+            "body": body,
+            "metadata": metadata or {},
+        }
+        return await self._post(db, mapping, f"/contacts/{contact_id}/notes", payload, "contact.note.create")
+
+    async def create_opportunity(self, db: AsyncSession, mapping: GHLTenantMapping, payload: dict[str, Any]) -> dict[str, Any]:
+        body = {
+            "locationId": mapping.location_id,
+            "pipelineId": payload.get("pipeline_id") or mapping.pipeline_id,
+            "contactId": payload.get("contact_id") or payload.get("ghl_contact_id"),
+            "name": payload.get("name") or payload.get("title") or "Roadcall service request",
+            "status": payload.get("status") or "open",
+            "stageId": payload.get("stage_id"),
+            "monetaryValue": payload.get("monetary_value"),
+            "source": payload.get("source") or "Roadcall AI",
+            "customFields": payload.get("custom_fields") or [],
+        }
+        return await self._post(db, mapping, "/opportunities/", {k: v for k, v in body.items() if v is not None}, "opportunity.create")
+
+    async def update_pipeline_stage(self, db: AsyncSession, mapping: GHLTenantMapping, opportunity_id: str, stage_id: str, status: str | None = None) -> dict[str, Any]:
+        payload = {"locationId": mapping.location_id, "stageId": stage_id}
+        if status:
+            payload["status"] = status
+        return await self._post(db, mapping, f"/opportunities/{opportunity_id}", payload, "opportunity.stage.update")
+
+    async def add_contact_tags(self, db: AsyncSession, mapping: GHLTenantMapping, contact_id: str, tags: list[str]) -> dict[str, Any]:
+        payload = {"locationId": mapping.location_id, "tags": sorted({tag for tag in tags if tag})}
+        return await self._post(db, mapping, f"/contacts/{contact_id}/tags", payload, "contact.tags.add")
+
+    async def fetch_calendars(self, db: AsyncSession, mapping: GHLTenantMapping) -> dict[str, Any]:
+        return await self._get(db, mapping, f"/calendars/?locationId={mapping.location_id}", "calendar.list")
+
+    async def create_appointment(self, db: AsyncSession, mapping: GHLTenantMapping, payload: dict[str, Any]) -> dict[str, Any]:
+        body = {"locationId": mapping.location_id, **payload}
+        return await self._post(db, mapping, "/calendars/events/appointments", body, "calendar.appointment.create")
+
+    async def send_custom_webhook_event(self, db: AsyncSession, mapping: GHLTenantMapping, event: str, payload: dict[str, Any]) -> dict[str, Any]:
+        return await self.trigger_workflow(db, mapping, event, payload)
+
+    async def sync_ai_call_outcome(self, db: AsyncSession, mapping: GHLTenantMapping, payload: dict[str, Any]) -> dict[str, Any]:
+        contact_id = payload.get("ghl_contact_id") or payload.get("contact_id")
+        tags = payload.get("tags") or []
+        results: dict[str, Any] = {}
+        if contact_id:
+            summary = payload.get("summary") or payload.get("call_summary") or "Roadcall AI call completed."
+            results["note"] = await self.create_note(db, mapping, str(contact_id), summary, payload)
+            if tags:
+                results["tags"] = await self.add_contact_tags(db, mapping, str(contact_id), list(tags))
+        if payload.get("ghl_opportunity_id") and payload.get("stage_id"):
+            results["opportunity"] = await self.update_pipeline_stage(
+                db,
+                mapping,
+                str(payload["ghl_opportunity_id"]),
+                str(payload["stage_id"]),
+                payload.get("status"),
+            )
+        if not results:
+            results["workflow"] = await self.trigger_workflow(db, mapping, "call.summary", payload)
+        return results
 
     async def upsert_contact_link(
         self,
@@ -508,7 +653,7 @@ class GHLService:
                 failed += 1
                 continue
             try:
-                headers = self._auth_headers(mapping)
+                headers = await self._auth_headers(db, mapping)
                 async with httpx.AsyncClient(timeout=20.0) as client:
                     response = await client.request(item.method, f"{self.base_url}{item.endpoint}", headers=headers, json=item.payload_json)
                 if response.status_code < 400:

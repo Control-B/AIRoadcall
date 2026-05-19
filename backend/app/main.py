@@ -45,6 +45,8 @@ from app.api.routes import (
     go,
     agent_dashboard,
     support_router,
+    roadcall_orchestrator,
+    caller_location,
 )
 
 settings = get_settings()
@@ -163,6 +165,8 @@ app.include_router(billing.router, prefix="/api")
 app.include_router(go.router, prefix="/api")
 app.include_router(agent_dashboard.router, prefix="/api")
 app.include_router(support_router, prefix="/api")
+app.include_router(roadcall_orchestrator.router, prefix="/api")
+app.include_router(caller_location.router, prefix="/api")
 
 
 @app.on_event("startup")
@@ -261,6 +265,59 @@ async def ensure_database_schema() -> None:
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_retell_connections_agent_id ON retell_connections (agent_id)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_retell_connections_conversation_flow_id ON retell_connections (conversation_flow_id)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_retell_connections_provisioning_status ON retell_connections (provisioning_status)"))
+        await conn.execute(text("ALTER TABLE ghl_tenant_mappings ADD COLUMN IF NOT EXISTS agency_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE ghl_tenant_mappings ADD COLUMN IF NOT EXISTS ghl_user_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE ghl_tenant_mappings ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMPTZ"))
+        await conn.execute(text("ALTER TABLE ghl_tenant_mappings ADD COLUMN IF NOT EXISTS scopes JSONB NOT NULL DEFAULT '[]'::jsonb"))
+        await conn.execute(text("ALTER TABLE ghl_tenant_mappings ADD COLUMN IF NOT EXISTS token_source VARCHAR(40) NOT NULL DEFAULT 'manual'"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS agency_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS ghl_user_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS calendar_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS calendar_url TEXT"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS pipeline_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS workflow_status VARCHAR(40) NOT NULL DEFAULT 'not_configured'"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS website_status VARCHAR(40) NOT NULL DEFAULT 'not_configured'"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS encrypted_access_token TEXT"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS encrypted_refresh_token TEXT"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS token_expires_at TIMESTAMPTZ"))
+        await conn.execute(text("ALTER TABLE ghl_connections ADD COLUMN IF NOT EXISTS scopes JSONB NOT NULL DEFAULT '[]'::jsonb"))
+        await conn.execute(text("ALTER TABLE mechanic_accounts ADD COLUMN IF NOT EXISTS ghl_location_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE mechanic_accounts ADD COLUMN IF NOT EXISTS ghl_company_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE mechanic_accounts ADD COLUMN IF NOT EXISTS stripe_subscription_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE mechanic_accounts ADD COLUMN IF NOT EXISTS plan VARCHAR(40) NOT NULL DEFAULT 'standard'"))
+        await conn.execute(text("ALTER TABLE shop_profiles ADD COLUMN IF NOT EXISTS ghl_calendar_id VARCHAR(120)"))
+        await conn.execute(text("ALTER TABLE shop_profiles ADD COLUMN IF NOT EXISTS ghl_calendar_url TEXT"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_mechanic_accounts_ghl_location_id ON mechanic_accounts (ghl_location_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_mechanic_accounts_stripe_subscription_id ON mechanic_accounts (stripe_subscription_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_service_requests_tenant_id ON service_requests (tenant_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_service_requests_status ON service_requests (status)"))
+        await conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS active_call_sessions (
+                id UUID PRIMARY KEY,
+                call_provider VARCHAR(40) NOT NULL DEFAULT 'retell',
+                provider_call_id VARCHAR(255) NOT NULL UNIQUE,
+                caller_phone VARCHAR(30),
+                location_code VARCHAR(12) NOT NULL UNIQUE,
+                status VARCHAR(40) NOT NULL DEFAULT 'waiting_for_location',
+                latitude DOUBLE PRECISION,
+                longitude DOUBLE PRECISION,
+                accuracy DOUBLE PRECISION,
+                address TEXT,
+                city VARCHAR(120),
+                state VARCHAR(10),
+                highway_or_exit TEXT,
+                manual_location_text TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+                expires_at TIMESTAMPTZ NOT NULL,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            )
+        """))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_active_call_sessions_call_provider ON active_call_sessions (call_provider)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_active_call_sessions_provider_call_id ON active_call_sessions (provider_call_id)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_active_call_sessions_caller_phone ON active_call_sessions (caller_phone)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_active_call_sessions_location_code ON active_call_sessions (location_code)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_active_call_sessions_status ON active_call_sessions (status)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_active_call_sessions_expires_at ON active_call_sessions (expires_at)"))
     logger.info("Database schema verified")
 
 

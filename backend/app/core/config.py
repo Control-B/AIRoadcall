@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     # GoHighLevel (CRM/workflow automation only; Roadcall remains source of truth)
     GHL_BASE_URL: str = "https://services.leadconnectorhq.com"
     GHL_API_KEY: str = ""
+    GHL_AGENCY_ID: str = ""
+    GHL_OAUTH_CLIENT_ID: str = ""
+    GHL_OAUTH_CLIENT_SECRET: str = ""
+    GHL_OAUTH_REDIRECT_URI: str = ""
     GHL_LOCATION_ID: str = ""
     GHL_FROM_NUMBER: str = ""
     GHL_ENCRYPTION_KEY: str = ""

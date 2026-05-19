@@ -6,6 +6,7 @@ from app.models.audit_event import AuditEvent
 from app.models.shop_customer import ShopCustomer
 from app.models.shop_call_log import ShopCallLog
 from app.models.call_summary import CallSummary
+from app.models.active_call_session import ActiveCallSession
 from app.models.outreach_campaign import OutreachCampaign, OutreachMessage
 from app.models.organization import Organization, VerticalType
 from app.models.fleet_profile import FleetProfile
@@ -61,6 +62,7 @@ from app.models.mechanic_subscription import (
     MechanicAccount,
     PlanUsage,
     RetellNumber,
+    ServiceRequest,
     ShopCall,
     ShopCallSummary,
     ShopProfile,

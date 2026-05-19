@@ -14,7 +14,7 @@ from sqlalchemy import func, select
 
 from app.core.config import get_settings
 from app.core.plan_config import canonical_plan_id, get_plan_config, included_leads_for, plan_payload
-from app.models.mechanic_subscription import AIAgent, MechanicAccount, PlanUsage, ShopCall, ShopCallSummary, ShopProfile, StripeSubscription
+from app.models.mechanic_subscription import AIAgent, MechanicAccount, PlanUsage, ServiceRequest, ShopCall, ShopCallSummary, ShopProfile, StripeSubscription
 from app.models.organization import Organization, VerticalType
 from app.models.tenant_provisioning import GHLConnection, Tenant
 from app.schemas.billing import CheckoutSessionCreateIn, ShopProfileUpdateIn
@@ -125,6 +125,7 @@ class SubscriptionBillingService:
                 email=str(payload.email).lower(),
                 phone=payload.phone,
                 dashboard_token=secrets.token_urlsafe(32),
+                plan=tenant.current_plan,
                 status="pending_checkout",
             )
             db.add(account)
@@ -132,6 +133,7 @@ class SubscriptionBillingService:
             account.owner_name = payload.owner_name or account.owner_name
             account.email = str(payload.email).lower()
             account.phone = payload.phone or account.phone
+            account.plan = tenant.current_plan
             account.updated_at = datetime.now(timezone.utc)
         await db.flush()
         return account
@@ -289,9 +291,11 @@ class SubscriptionBillingService:
         profile = (await db.execute(select(ShopProfile).where(ShopProfile.tenant_id == tenant_id))).scalar_one_or_none()
         subscription = await self._latest_subscription(db, tenant_id)
         agent = (await db.execute(select(AIAgent).where(AIAgent.tenant_id == tenant_id))).scalar_one_or_none()
+        ghl_connection = (await db.execute(select(GHLConnection).where(GHLConnection.tenant_id == tenant_id))).scalar_one_or_none()
         usage_month = datetime.now(timezone.utc).strftime("%Y-%m")
         usage = (await db.execute(select(PlanUsage).where(PlanUsage.tenant_id == tenant_id, PlanUsage.usage_month == usage_month))).scalar_one_or_none()
         call_summaries = await self._dashboard_call_summaries(db, tenant_id)
+        service_requests = await self._dashboard_service_requests(db, tenant_id)
         profile_complete = self._profile_complete(profile)
         active_subscription = bool(subscription and subscription.status in ACTIVE_SUBSCRIPTION_STATUSES)
         steps = [
@@ -305,6 +309,8 @@ class SubscriptionBillingService:
             "tenant_id": str(tenant_id),
             "business_name": tenant.name if tenant else account.email,
             "account_status": account.status,
+            "primary_dashboard": "gohighlevel",
+            "roadcall_dashboard_role": "ai_operations_and_roadside_intelligence",
             "subscription": None if not subscription else {
                 "plan_id": subscription.plan_id,
                 "status": subscription.status,
@@ -328,6 +334,9 @@ class SubscriptionBillingService:
                 "offers_247_service": profile.offers_247_service,
                 "hourly_rate": profile.hourly_rate,
                 "fallback_phone": profile.fallback_phone,
+                "ghl_calendar_id": profile.ghl_calendar_id,
+                "ghl_calendar_url": profile.ghl_calendar_url,
+                "scheduling_provider": "gohighlevel" if (profile.ghl_calendar_id or profile.ghl_calendar_url or (ghl_connection and ghl_connection.calendar_id)) else "manual",
                 "calcom_calendar_url": profile.calcom_calendar_url,
                 "profile_status": profile.profile_status,
             },
@@ -339,6 +348,15 @@ class SubscriptionBillingService:
                 "agent_name": agent.agent_name,
                 "last_error": agent.last_error,
             },
+            "ghl_status": None if not ghl_connection else {
+                "sub_account_connected": bool(ghl_connection.location_id),
+                "location_id": ghl_connection.location_id,
+                "website_funnel_status": ghl_connection.website_status,
+                "calendar_status": "connected" if ghl_connection.calendar_id or ghl_connection.calendar_url else "not_configured",
+                "crm_pipeline_status": "connected" if ghl_connection.pipeline_id else "not_configured",
+                "workflow_status": ghl_connection.workflow_status,
+                "last_synced_at": ghl_connection.last_synced_at,
+            },
             "usage": None if not usage else {
                 "usage_month": usage.usage_month,
                 "calls_handled": usage.calls_handled,
@@ -346,9 +364,48 @@ class SubscriptionBillingService:
                 "included_leads": usage.included_leads,
                 "overage_leads": usage.overage_leads,
             },
+            "metrics": self._dashboard_metrics(service_requests, call_summaries),
+            "recent_service_requests": service_requests,
             "call_summaries": call_summaries,
             "activation_steps": steps,
         }
+
+    def _dashboard_metrics(self, service_requests: list[dict[str, Any]], call_summaries: list[dict[str, Any]]) -> dict[str, int]:
+        return {
+            "new_leads": sum(1 for item in service_requests if item["status"] in {"new", "open"}),
+            "ai_calls_completed": len(call_summaries),
+            "missed_calls_recovered": sum(1 for item in service_requests if item.get("ai_status") == "completed" and item.get("status") != "no_answer"),
+            "appointments_booked": sum(1 for item in service_requests if item["status"] == "booked"),
+            "open_roadside_requests": sum(1 for item in service_requests if item["status"] not in {"completed", "lost", "cancelled"}),
+            "urgent_roadside_requests": sum(1 for item in service_requests if item.get("urgency") in {"urgent", "high", "emergency"}),
+            "estimated_revenue_opportunities": sum(int(item.get("estimated_value_cents") or 0) for item in service_requests),
+        }
+
+    async def _dashboard_service_requests(self, db, tenant_id: uuid.UUID, limit: int = 25) -> list[dict[str, Any]]:
+        result = await db.execute(
+            select(ServiceRequest)
+            .where(ServiceRequest.tenant_id == tenant_id)
+            .order_by(ServiceRequest.created_at.desc())
+            .limit(limit)
+        )
+        items: list[dict[str, Any]] = []
+        for request in result.scalars().all():
+            metadata = request.metadata_json if isinstance(request.metadata_json, dict) else {}
+            items.append(
+                {
+                    "id": str(request.id),
+                    "customer_name": request.caller_name,
+                    "phone": request.caller_phone,
+                    "service_type": request.service_type,
+                    "urgency": request.urgency,
+                    "ai_status": request.ai_status,
+                    "ghl_pipeline_stage": request.ghl_pipeline_stage,
+                    "status": request.status,
+                    "estimated_value_cents": int(metadata.get("estimated_value_cents") or 0),
+                    "created_at": request.created_at,
+                }
+            )
+        return items
 
     async def _dashboard_call_summaries(self, db, tenant_id: uuid.UUID, limit: int = 50) -> list[dict[str, Any]]:
         result = await db.execute(
@@ -502,6 +559,8 @@ class SubscriptionBillingService:
         account = await db.get(MechanicAccount, uuid.UUID(metadata["mechanic_account_id"]))
         if account:
             account.stripe_customer_id = str(session.get("customer") or account.stripe_customer_id or "") or None
+            account.stripe_subscription_id = str(session.get("subscription") or account.stripe_subscription_id or "") or None
+            account.plan = canonical_plan_id(metadata.get("plan_id") or account.plan)
             account.status = "payment_active"
             account.updated_at = datetime.now(timezone.utc)
         tenant = await db.get(Tenant, tenant_id)
@@ -591,6 +650,8 @@ class SubscriptionBillingService:
                 await self._apply_plan_to_tenant(db, tenant)
         if account:
             account.stripe_customer_id = customer_id or account.stripe_customer_id
+            account.stripe_subscription_id = stripe_subscription_id or account.stripe_subscription_id
+            account.plan = plan_id
             account.status = "payment_active" if record.status in ACTIVE_SUBSCRIPTION_STATUSES else record.status
             account.updated_at = datetime.now(timezone.utc)
         await self._ensure_usage_row(db, tenant_id, plan_id)

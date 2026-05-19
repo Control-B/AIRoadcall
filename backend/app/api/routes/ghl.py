@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -26,9 +27,14 @@ lifecycle_service = LifecycleService()
 class TenantMappingIn(BaseModel):
     organization_id: str
     location_id: str
+    agency_id: str | None = None
+    ghl_user_id: str | None = None
     subaccount_name: str | None = None
     access_token: str | None = Field(default=None, repr=False)
     refresh_token: str | None = Field(default=None, repr=False)
+    token_expires_at: datetime | None = None
+    scopes: list[str] = Field(default_factory=list)
+    token_source: str | None = None
     webhook_secret: str | None = Field(default=None, repr=False)
     pipeline_id: str | None = None
     default_workflow_id: str | None = None
@@ -37,10 +43,14 @@ class TenantMappingIn(BaseModel):
 class TenantMappingOut(BaseModel):
     id: str
     organization_id: str
+    agency_id: str | None = None
     location_id: str
+    ghl_user_id: str | None = None
     subaccount_name: str | None
     pipeline_id: str | None
     default_workflow_id: str | None
+    scopes: list[str] = Field(default_factory=list)
+    token_source: str | None = None
     is_active: bool
 
 
@@ -182,10 +192,14 @@ async def upsert_tenant_mapping(payload: TenantMappingIn, db: AsyncSession = Dep
     return TenantMappingOut(
         id=str(mapping.id),
         organization_id=str(mapping.organization_id),
+        agency_id=mapping.agency_id,
         location_id=mapping.location_id,
+        ghl_user_id=mapping.ghl_user_id,
         subaccount_name=mapping.subaccount_name,
         pipeline_id=mapping.pipeline_id,
         default_workflow_id=mapping.default_workflow_id,
+        scopes=mapping.scopes or [],
+        token_source=mapping.token_source,
         is_active=mapping.is_active,
     )
 
@@ -238,10 +252,14 @@ async def setup_onboarding_with_api_key(payload: OnboardingSetupIn, db: AsyncSes
     mapping_out = TenantMappingOut(
         id=str(mapping.id),
         organization_id=str(mapping.organization_id),
+        agency_id=mapping.agency_id,
         location_id=mapping.location_id,
+        ghl_user_id=mapping.ghl_user_id,
         subaccount_name=mapping.subaccount_name,
         pipeline_id=mapping.pipeline_id,
         default_workflow_id=mapping.default_workflow_id,
+        scopes=mapping.scopes or [],
+        token_source=mapping.token_source,
         is_active=mapping.is_active,
     )
     return OnboardingSetupOut(
@@ -263,10 +281,14 @@ async def list_tenant_mappings(db: AsyncSession = Depends(get_db)):
             TenantMappingOut(
                 id=str(mapping.id),
                 organization_id=str(mapping.organization_id),
+                agency_id=mapping.agency_id,
                 location_id=mapping.location_id,
+                ghl_user_id=mapping.ghl_user_id,
                 subaccount_name=mapping.subaccount_name,
                 pipeline_id=mapping.pipeline_id,
                 default_workflow_id=mapping.default_workflow_id,
+                scopes=mapping.scopes or [],
+                token_source=mapping.token_source,
                 is_active=mapping.is_active,
             )
             for mapping in mappings
