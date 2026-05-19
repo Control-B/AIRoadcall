@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, Bot, ClipboardList, Clock, Loader2, MessageSquare, Phone, PlayCircle, Save } from "lucide-react";
+import { VoiceCloneControls } from "@/components/VoiceCloneControls";
 import { getApiBase } from "@/lib/api-client";
 
 type Dashboard = {
@@ -410,6 +411,21 @@ function MechanicDashboardContent() {
                   {label}
                 </label>
               ))}
+            </div>
+            <div className="mt-5">
+              <VoiceCloneControls
+                title="Shop voice cloning"
+                description="Record through this computer or upload the shop owner's voice sample."
+                onError={setError}
+                onMessage={setMessage}
+                onSave={(sample) => setForm((current) => ({
+                  ...current,
+                  voice_clone_enabled: sample.enabled,
+                  voice_clone_name: sample.cloneName,
+                  voice_sample_name: sample.sampleName,
+                  voice_sample_source: sample.sampleSource,
+                }))}
+              />
             </div>
             <button disabled={saving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-bold text-slate-950"><Save className="h-4 w-4" /> Submit profile</button>
           </form>

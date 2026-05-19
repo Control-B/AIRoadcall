@@ -14,21 +14,19 @@ import {
   LifeBuoy,
   Loader2,
   Mic2,
-  Play,
   PhoneCall,
   Save,
   Settings2,
   ShieldCheck,
   Sparkles,
-  Square,
   TestTube2,
   Truck,
-  Upload,
   Volume2,
   Wrench,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
+import { VoiceCloneControls } from "@/components/VoiceCloneControls";
 import { getApiBase } from "@/lib/api-client";
 
 type AgentType = "mechanic" | "fleet" | "roadside";
@@ -38,8 +36,6 @@ type RetellWebClientLike = {
   startCall: (config: { accessToken: string }) => Promise<void>;
   stopCall: () => void;
 };
-
-type VoiceSampleSource = "recorded" | "uploaded" | null;
 
 const inputClass =
   "w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-roadcall-cyan/70 focus:ring-2 focus:ring-roadcall-cyan/20";
@@ -125,10 +121,6 @@ export default function AgentDashboard() {
   const [voice, setVoice] = useState<"female" | "male" | "clone">("female");
   const [voiceCloneEnabled, setVoiceCloneEnabled] = useState(false);
   const [voiceCloneName, setVoiceCloneName] = useState("Owner voice");
-  const [sampleName, setSampleName] = useState("");
-  const [sampleSource, setSampleSource] = useState<VoiceSampleSource>(null);
-  const [sampleUrl, setSampleUrl] = useState<string | null>(null);
-  const [recording, setRecording] = useState(false);
   const [outboundEnabled, setOutboundEnabled] = useState(agentType === "fleet");
   const [testNumber, setTestNumber] = useState("+1 ");
   const [fleetDataUrl, setFleetDataUrl] = useState("");
@@ -139,9 +131,6 @@ export default function AgentDashboard() {
   const [previewing, setPreviewing] = useState(false);
   const [previewActive, setPreviewActive] = useState(false);
   const retellClientRef = useRef<RetellWebClientLike | null>(null);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<BlobPart[]>([]);
-  const sampleUrlRef = useRef<string | null>(null);
 
   const activeRoles = useMemo(
     () => roleOptions.filter((role) => agentType !== "mechanic" || role !== "Vendor coordination"),
@@ -158,85 +147,8 @@ export default function AgentDashboard() {
   useEffect(() => {
     return () => {
       retellClientRef.current?.stopCall();
-      mediaRecorderRef.current?.stream.getTracks().forEach((track) => track.stop());
-      if (sampleUrlRef.current) URL.revokeObjectURL(sampleUrlRef.current);
     };
   }, []);
-
-  function setVoiceSample(next: { name: string; source: Exclude<VoiceSampleSource, null>; url: string }) {
-    if (sampleUrlRef.current) URL.revokeObjectURL(sampleUrlRef.current);
-    sampleUrlRef.current = next.url;
-    setSampleUrl(next.url);
-    setSampleName(next.name);
-    setSampleSource(next.source);
-    setVoiceCloneEnabled(true);
-    setVoice("clone");
-    setError(null);
-  }
-
-  async function startVoiceRecording() {
-    setError(null);
-    if (!("mediaDevices" in navigator) || !navigator.mediaDevices?.getUserMedia) {
-      setError("This browser cannot record audio here. Upload an audio sample instead.");
-      return;
-    }
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      recordedChunksRef.current = [];
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
-      };
-      recorder.onstop = () => {
-        stream.getTracks().forEach((track) => track.stop());
-        const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
-        if (!blob.size) {
-          setError("No audio was captured. Try recording again or upload a sample.");
-          return;
-        }
-        const url = URL.createObjectURL(blob);
-        const extension = recorder.mimeType.includes("mp4") ? "m4a" : "webm";
-        setVoiceSample({ name: `Recorded voice sample.${extension}`, source: "recorded", url });
-        setMessage("Voice sample recorded. Listen back, then save the clone when it sounds right.");
-      };
-      recorder.start();
-      setRecording(true);
-      setMessage("Recording voice sample. Speak naturally for 10 to 20 seconds, then stop.");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Microphone access was blocked. Upload an audio sample instead.");
-    }
-  }
-
-  function stopVoiceRecording() {
-    const recorder = mediaRecorderRef.current;
-    if (recorder && recorder.state !== "inactive") {
-      recorder.stop();
-    }
-    setRecording(false);
-  }
-
-  function handleVoiceUpload(file?: File) {
-    if (!file) return;
-    if (!file.type.startsWith("audio/")) {
-      setError("Upload an audio file such as MP3, WAV, M4A, or WEBM.");
-      return;
-    }
-    const url = URL.createObjectURL(file);
-    setVoiceSample({ name: file.name, source: "uploaded", url });
-    setMessage("Voice sample uploaded. Listen back, then save the clone when it sounds right.");
-  }
-
-  function saveVoiceClone() {
-    if (!sampleName || !sampleSource) {
-      setError("Record or upload a voice sample before saving the clone.");
-      return;
-    }
-    setVoiceCloneEnabled(true);
-    setVoice("clone");
-    setMessage(`${voiceCloneName || "Cloned voice"} saved from ${sampleSource === "recorded" ? "a recorded" : "an uploaded"} voice sample.`);
-    setError(null);
-  }
 
   function switchAgentType(nextType: AgentType) {
     stopPreviewCall();
@@ -573,101 +485,21 @@ export default function AgentDashboard() {
                         })}
                       </div>
 
-                      <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5">
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-start gap-3">
-                            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-400/15 text-violet-200">
-                              <Mic2 className="h-5 w-5" />
-                            </span>
-                            <div>
-                              <p className="font-bold text-white">Voice cloning</p>
-                              <p className="mt-1 text-sm leading-5 text-roadcall-muted">Upload or record a short sample to use a custom voice.</p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const enabled = !voiceCloneEnabled;
-                              setVoiceCloneEnabled(enabled);
-                              if (enabled) setVoice("clone");
-                            }}
-                            className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                              voiceCloneEnabled ? "bg-violet-400 text-white" : "bg-white/10 text-slate-200 ring-1 ring-white/15"
-                            }`}
-                          >
-                            {voiceCloneEnabled ? "Enabled" : "Enable"}
-                          </button>
-                        </div>
-
-                        {voiceCloneEnabled ? (
-                          <div className="mt-5 space-y-4">
-                            <Field label="Clone name" helper="Shown internally when selecting the saved voice.">
-                              <input value={voiceCloneName} onChange={(event) => setVoiceCloneName(event.target.value)} className={inputClass} />
-                            </Field>
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              <div className="rounded-xl border border-dashed border-violet-300/35 bg-violet-400/10 p-4">
-                                <div className="flex items-center gap-2 text-sm font-bold text-violet-100">
-                                  <Mic2 className="h-4 w-4" /> Record sample
-                                </div>
-                                <p className="mt-2 text-xs leading-5 text-roadcall-muted">Speak naturally for 10 to 20 seconds, then listen back.</p>
-                                <button
-                                  type="button"
-                                  onClick={recording ? stopVoiceRecording : startVoiceRecording}
-                                  className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold transition ${
-                                    recording ? "bg-red-400 text-slate-950 hover:bg-red-300" : "bg-slate-950 text-white ring-1 ring-white/10 hover:bg-white/10"
-                                  }`}
-                                >
-                                  {recording ? <Square className="h-4 w-4" /> : <Mic2 className="h-4 w-4" />}
-                                  {recording ? "Stop recording" : "Record sample"}
-                                </button>
-                              </div>
-
-                              <label className="flex cursor-pointer flex-col rounded-xl border border-dashed border-violet-300/35 bg-violet-400/10 p-4 transition hover:bg-violet-400/15">
-                                <span className="flex items-center gap-2 text-sm font-bold text-violet-100">
-                                  <Upload className="h-4 w-4" /> Upload sample
-                                </span>
-                                <span className="mt-2 text-xs leading-5 text-roadcall-muted">Use MP3, WAV, M4A, or WEBM from another recording tool.</span>
-                                <span className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-bold text-white ring-1 ring-white/10">
-                                  Choose audio file
-                                </span>
-                                <input
-                                  type="file"
-                                  accept="audio/*"
-                                  className="sr-only"
-                                  onChange={(event) => handleVoiceUpload(event.target.files?.[0])}
-                                />
-                              </label>
-                            </div>
-
-                            {sampleName ? (
-                              <div className="rounded-xl border border-white/10 bg-slate-950/80 p-4">
-                                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                                  <div>
-                                    <p className="text-sm font-bold text-white">{sampleName}</p>
-                                    <p className="mt-1 text-xs capitalize text-roadcall-muted">{sampleSource} voice sample ready for clone preview.</p>
-                                  </div>
-                                  <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-bold text-emerald-200">
-                                    <BadgeCheck className="h-4 w-4" /> Ready
-                                  </span>
-                                </div>
-                                {sampleUrl ? (
-                                  <audio controls src={sampleUrl} className="mt-4 w-full" aria-label="Voice sample playback" />
-                                ) : null}
-                              </div>
-                            ) : null}
-
-                            <button
-                              type="button"
-                              disabled={!sampleName || recording}
-                              onClick={saveVoiceClone}
-                              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-violet-400 px-4 py-3 text-sm font-bold text-white transition hover:bg-violet-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
-                            >
-                              <Play className="h-4 w-4" /> Save clone
-                            </button>
-                            <p className="text-xs leading-5 text-roadcall-muted">Both recorded and uploaded samples stay in preview until backend voice-clone storage is connected.</p>
-                          </div>
-                        ) : null}
-                      </div>
+                      <VoiceCloneControls
+                        enabled={voiceCloneEnabled}
+                        initialName={voiceCloneName}
+                        onEnabledChange={(enabled) => {
+                          setVoiceCloneEnabled(enabled);
+                          if (enabled) setVoice("clone");
+                        }}
+                        onSave={(sample) => {
+                          setVoiceCloneName(sample.cloneName);
+                          setVoiceCloneEnabled(true);
+                          setVoice("clone");
+                        }}
+                        onError={setError}
+                        onMessage={setMessage}
+                      />
                     </div>
                   ) : null}
 

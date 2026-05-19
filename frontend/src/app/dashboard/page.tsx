@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Bot, LifeBuoy, PlayCircle, Truck, Wrench } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
+import { VoiceCloneControls } from "@/components/VoiceCloneControls";
 
 const cards = [
   {
@@ -69,6 +70,17 @@ export default function DashboardPage() {
                 </Link>
               );
             })}
+          </div>
+
+          <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <div className="rounded-2xl border border-white/10 bg-slate-950/65 p-6">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-violet-200">Voice setup</p>
+              <h2 className="mt-3 text-2xl font-black text-white">Clone your Roadcall AI voice</h2>
+              <p className="mt-3 text-sm leading-6 text-roadcall-muted">
+                Save a voice sample here, then use Agent Configuration to assign it to a shop or fleet agent.
+              </p>
+            </div>
+            <VoiceCloneControls />
           </div>
 
           <div className="mt-8 rounded-2xl border border-roadcall-orange/25 bg-roadcall-orange/10 p-6">

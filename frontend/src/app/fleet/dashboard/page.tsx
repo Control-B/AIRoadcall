@@ -14,6 +14,7 @@ import {
   Truck,
   Users,
 } from "lucide-react";
+import { VoiceCloneControls } from "@/components/VoiceCloneControls";
 
 type FleetCallSummary = {
   id: string;
@@ -291,6 +292,14 @@ function FleetDashboardContent() {
                 Edit agent prompt
               </button>
             </div>
+
+            <VoiceCloneControls
+              title="Fleet voice cloning"
+              description="Record through this computer or upload a dispatcher voice sample."
+              onError={setToast}
+              onMessage={setToast}
+              onSave={(sample) => setToast(`${sample.cloneName} saved for fleet voice cloning.`)}
+            />
 
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6">
               <h2 className="text-xl font-bold">Vendor coverage</h2>
