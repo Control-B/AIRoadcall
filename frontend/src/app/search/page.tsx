@@ -21,6 +21,12 @@ import {
   Shield,
   Map as MapIcon,
   LayoutGrid,
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  PanelRightOpen,
+  RectangleHorizontal,
+  Rows3,
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
@@ -75,12 +81,15 @@ type MapBounds = {
   max_lng: number;
 };
 
+type MapWorkspaceMode = "split" | "wide" | "fullscreen" | "minimized";
+
 function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: number; lng: number } {
   return typeof mechanic.lat === "number" && Number.isFinite(mechanic.lat) && typeof mechanic.lng === "number" && Number.isFinite(mechanic.lng);
 }
 
-function SearchResultsMap({ mechanics, onSearchArea, searchingArea }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
   const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
   const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
@@ -102,6 +111,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea }: { mechanic
         center: [first.lng, first.lat],
         zoom: points.length === 1 ? 10 : 4,
       });
+      mapRef.current = map;
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
       map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
@@ -152,23 +162,29 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea }: { mechanic
     return () => {
       cancelled = true;
       if (map) map.remove();
+      mapRef.current = null;
     };
   }, [configured, points, token]);
 
+  useEffect(() => {
+    const timeout = window.setTimeout(() => mapRef.current?.resize(), 120);
+    return () => window.clearTimeout(timeout);
+  }, [layoutKey]);
+
   if (loading) {
-    return <div className="grid h-[520px] place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 text-sm text-roadcall-muted">Loading map…</div>;
+    return <div className={`grid place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 text-sm text-roadcall-muted ${className}`}>Loading map…</div>;
   }
 
   if (!configured) {
-    return <div className="grid h-[520px] place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 px-6 text-center text-sm text-roadcall-muted">Map view needs a configured Mapbox public token.</div>;
+    return <div className={`grid place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 px-6 text-center text-sm text-roadcall-muted ${className}`}>Map view needs a configured Mapbox public token.</div>;
   }
 
   if (points.length === 0) {
-    return <div className="grid h-[520px] place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 px-6 text-center text-sm text-roadcall-muted">No mapped providers in these results yet. Try a state or city with geocoded mechanics.</div>;
+    return <div className={`grid place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 px-6 text-center text-sm text-roadcall-muted ${className}`}>No mapped providers in these results yet. Try a state or city with geocoded mechanics.</div>;
   }
 
   return (
-    <div className="relative h-[520px] min-h-[420px] overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30">
+    <div className={`relative overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30 ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
       <div className="absolute left-4 top-4 flex flex-wrap gap-2">
         <button
@@ -281,6 +297,53 @@ function CityMechanicGroup({ label, providers }: { label: string; providers: Mec
   );
 }
 
+function MapWorkspaceControls({
+  mode,
+  sidePanelOpen,
+  onModeChange,
+  onToggleSidePanel,
+}: {
+  mode: MapWorkspaceMode;
+  sidePanelOpen: boolean;
+  onModeChange: (mode: MapWorkspaceMode) => void;
+  onToggleSidePanel: () => void;
+}) {
+  const controls = [
+    { id: "split" as const, label: "Split map and list", icon: Rows3 },
+    { id: "wide" as const, label: "Focus map", icon: RectangleHorizontal },
+    { id: "fullscreen" as const, label: "Expand map workspace", icon: Maximize2 },
+    { id: "minimized" as const, label: "Minimize map", icon: Minimize2 },
+  ];
+  return (
+    <div className="inline-flex items-center rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/80 p-1 shadow-2xl shadow-black/30 backdrop-blur-md">
+      <button
+        type="button"
+        onClick={onToggleSidePanel}
+        title={sidePanelOpen ? "Hide provider panel" : "Show provider panel"}
+        className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${sidePanelOpen ? "text-roadcall-cyan hover:bg-white/10" : "bg-roadcall-cyan text-slate-950"}`}
+      >
+        {sidePanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+      </button>
+      <span className="mx-1 h-5 w-px bg-white/10" />
+      {controls.map((control) => {
+        const Icon = control.icon;
+        const active = mode === control.id;
+        return (
+          <button
+            key={control.id}
+            type="button"
+            onClick={() => onModeChange(control.id)}
+            title={control.label}
+            className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function SearchPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -298,6 +361,8 @@ function SearchPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [view, setView] = useState<"cards" | "map">("cards");
+  const [mapWorkspaceMode, setMapWorkspaceMode] = useState<MapWorkspaceMode>("split");
+  const [mapSidePanelOpen, setMapSidePanelOpen] = useState(true);
   const [mapAreaSummary, setMapAreaSummary] = useState<string | null>(null);
   const [searchingArea, setSearchingArea] = useState(false);
 
@@ -371,6 +436,20 @@ function SearchPageInner() {
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const cityGroups = useMemo(() => groupMechanicsByCity(results?.mechanics || []), [results]);
+  const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide" && mapWorkspaceMode !== "minimized";
+  const mapShellClass = mapWorkspaceMode === "fullscreen"
+    ? "fixed inset-3 z-50 overflow-hidden rounded-3xl border border-roadcall-cyan/25 bg-[#02050c]/95 p-4 shadow-2xl shadow-black/70 backdrop-blur-xl sm:inset-6"
+    : "";
+  const mapGridClass = mapWorkspaceMode === "minimized"
+    ? "grid gap-4"
+    : showMapSidePanel
+      ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
+      : "grid gap-4";
+  const mapHeightClass = mapWorkspaceMode === "fullscreen"
+    ? "h-[calc(100vh-9.5rem)] min-h-[420px]"
+    : mapWorkspaceMode === "wide"
+      ? "h-[680px] min-h-[520px]"
+      : "h-[520px] min-h-[420px]";
 
   return (
     <PageLayout>
@@ -555,20 +634,63 @@ function SearchPageInner() {
             ))}
           </div>
         ) : results && results.mechanics.length > 0 && view === "map" ? (
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
-            <SearchResultsMap mechanics={results.mechanics} onSearchArea={searchMapArea} searchingArea={searchingArea} />
-            <div className="max-h-[520px] space-y-4 overflow-y-auto pr-1">
-              <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 p-4">
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-muted">Visible cities</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {cityGroups.slice(0, 8).map((group) => (
-                    <span key={group.label} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-roadcall-silver">
-                      {group.label} · {group.providers.length}
-                    </span>
-                  ))}
-                </div>
+          <div className={mapShellClass}>
+            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-cyan">Map workspace</p>
+                <p className="mt-1 text-sm text-roadcall-muted">
+                  {mapWorkspaceMode === "minimized" ? "Map is minimized. Provider panels stay available." : mapWorkspaceMode === "fullscreen" ? "Expanded map workspace with optional provider panels." : "Use the controls to focus, expand, minimize, or hide panels."}
+                </p>
               </div>
-              {cityGroups.map((group) => <CityMechanicGroup key={group.label} label={group.label} providers={group.providers} />)}
+              <MapWorkspaceControls
+                mode={mapWorkspaceMode}
+                sidePanelOpen={mapSidePanelOpen}
+                onToggleSidePanel={() => setMapSidePanelOpen((open) => !open)}
+                onModeChange={(mode) => {
+                  setMapWorkspaceMode(mode);
+                  if (mode === "fullscreen") setMapSidePanelOpen(true);
+                }}
+              />
+            </div>
+            <div className={mapGridClass}>
+              {mapWorkspaceMode !== "minimized" ? (
+                <SearchResultsMap
+                  mechanics={results.mechanics}
+                  onSearchArea={searchMapArea}
+                  searchingArea={searchingArea}
+                  className={mapHeightClass}
+                  layoutKey={`${mapWorkspaceMode}-${mapSidePanelOpen}`}
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setMapWorkspaceMode("split")}
+                  className="flex min-h-24 items-center justify-between gap-4 rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/50 px-5 py-4 text-left transition hover:border-roadcall-cyan/35 hover:bg-roadcall-panel/70"
+                >
+                  <span>
+                    <span className="block text-sm font-black text-white">Map minimized</span>
+                    <span className="mt-1 block text-xs text-roadcall-muted">Restore the map when you need the geographic view again.</span>
+                  </span>
+                  <Maximize2 className="h-5 w-5 shrink-0 text-roadcall-cyan" />
+                </button>
+              )}
+              {showMapSidePanel || mapWorkspaceMode === "minimized" ? (
+                <div className={`${mapWorkspaceMode === "fullscreen" ? "max-h-[calc(100vh-9.5rem)]" : "max-h-[520px]"} space-y-4 overflow-y-auto pr-1`}>
+                  <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-muted">Visible cities</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {cityGroups.slice(0, 8).map((group) => (
+                        <span key={group.label} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-roadcall-silver">
+                          {group.label} · {group.providers.length}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className={mapWorkspaceMode === "minimized" ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-4"}>
+                    {cityGroups.map((group) => <CityMechanicGroup key={group.label} label={group.label} providers={group.providers} />)}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         ) : results && results.mechanics.length > 0 ? (
