@@ -34,32 +34,21 @@ const TRACKS: { id: Track; label: string; icon: typeof Wrench; tagline: string }
 
 const SHOP_PLANS = [
   {
-    id: "standard",
-    name: "Standard",
-    price: "$197/mo",
-    setup: "$99 AI setup",
-    bullets: ["24/7 AI phone answering", "Missed-call text-back", "Basic CRM pipeline", "Website AI widget"],
-    cta: "Start Standard",
-    accent: false,
-  },
-  {
     id: "professional",
-    name: "Professional",
-    price: "$297/mo",
-    setup: "$99 AI setup",
-    bullets: ["Everything in Standard", "Appointment scheduling", "Advanced analytics", "Priority onboarding"],
-    cta: "Start Professional",
+    name: "Mechanic Shop AI",
+    price: "$299/mo",
+    setup: "One MVP shop plan",
+    bullets: ["24/7 AI phone answering", "Missed-call text-back", "AI call summaries", "Appointment scheduling", "Voice clone option", "Cal.com scheduling support"],
+    cta: "Start Shop Plan",
     accent: true,
   },
-  {
-    id: "premium",
-    name: "Premium",
-    price: "$497/mo",
-    setup: "$99 AI setup",
-    bullets: ["Everything in Professional", "AI roadside intake", "SMS GPS capture", "Dispatch dashboard"],
-    cta: "Start Premium",
-    accent: false,
-  },
+];
+
+const FLEET_PLANS = [
+  { name: "Small Fleet", price: "$499/mo", range: "1-100 vehicles" },
+  { name: "Medium Fleet", price: "$799/mo", range: "101-499 vehicles" },
+  { name: "Large Fleet", price: "$1,299/mo", range: "500-2,000 vehicles" },
+  { name: "Enterprise Fleet", price: "Custom + usage", range: "2,001+ vehicles" },
 ];
 
 export default function GetStartedPage() {
@@ -195,27 +184,24 @@ function FleetSubscribe() {
       <div className="rounded-[1.75rem] border border-roadcall-orange/40 bg-gradient-to-b from-roadcall-orange/10 to-transparent p-7">
         <div className="flex items-center gap-2 text-roadcall-orange">
           <Truck className="h-5 w-5" />
-          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Concierge Onboarding</span>
+          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Fleet MVP Pricing</span>
         </div>
-        <h2 className="mt-3 text-2xl font-bold text-white">Built around your fleet.</h2>
+        <h2 className="mt-3 text-2xl font-bold text-white">Priced by fleet size.</h2>
         <p className="mt-3 text-roadcall-muted">
-          Fleet pricing is custom. Tell us your fleet size, asset database state,
-          and data mode (hosted, private tenant, or hybrid). Our team configures
-          your AI roadside dispatcher and approved vendor network.
+          Choose the fleet tier by vehicle count. Fleets above 2,000 vehicles move
+          into a custom platform fee with pay-per-use AI calls and outbound usage.
         </p>
-        <ul className="mt-5 space-y-2 text-sm text-slate-300">
-          {[
-            "AI driver hotline + dispatch",
-            "Approved vendor network mapping",
-            "Telematics + TMS integration",
-            "Hosted, private tenant, or hybrid data mode",
-          ].map((bullet) => (
-            <li key={bullet} className="flex items-start gap-2">
-              <CheckCircle2 className="h-4 w-4 text-emerald-300 mt-0.5 flex-shrink-0" />
-              <span>{bullet}</span>
-            </li>
+        <div className="mt-5 grid gap-3">
+          {FLEET_PLANS.map((plan) => (
+            <div key={plan.name} className="rounded-xl border border-white/10 bg-black/25 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <p className="font-bold text-white">{plan.name}</p>
+                <p className="font-black text-roadcall-orange">{plan.price}</p>
+              </div>
+              <p className="mt-1 text-sm text-roadcall-muted">{plan.range}</p>
+            </div>
           ))}
-        </ul>
+        </div>
         <Link href="/fleet/onboarding" className="mt-6 block">
           <Button className="w-full bg-gradient-to-r from-roadcall-orange to-amber-500 hover:brightness-110 text-white font-bold rounded-xl py-5">
             <ArrowRight className="h-4 w-4 mr-2" /> Start fleet onboarding

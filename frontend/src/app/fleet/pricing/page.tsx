@@ -6,9 +6,9 @@ import { HELP_PHONE } from "@/lib/phone";
 
 const TIERS = [
   {
-    name: "Dispatch MVP",
-    tag: "Small fleets · up to 25 vehicles",
-    price: "Contact Sales",
+    name: "Small Fleet",
+    tag: "1 to 100 vehicles",
+    price: "$499/mo",
     highlight: false,
     color: "border-white/10 bg-slate-950/70",
     cta: "Book Fleet Demo",
@@ -16,58 +16,77 @@ const TIERS = [
     features: [
       "AI call answering for roadside incidents",
       "One-time GPS location capture links",
-      "Manual vendor dispatch via SMS",
+      "Driver and unit detail capture",
+      "Basic vendor coordination notes",
       "Incident log with call summaries",
-      "Up to 25 vehicles",
-      "Up to 100 incidents/mo",
+      "Up to 100 vehicles",
+      "Dispatcher notifications",
       "Hosted multi-tenant",
     ],
   },
   {
-    name: "Fleet Ops",
-    tag: "Growing carriers · up to 250 vehicles",
-    price: "Contact Sales",
+    name: "Medium Fleet",
+    tag: "101 to 499 vehicles",
+    price: "$799/mo",
     highlight: true,
     color: "border-roadcall-cyan/60 bg-roadcall-cyan/10 ring-2 ring-roadcall-cyan/30",
     cta: "Book Fleet Demo",
     ctaHref: "/fleet/onboarding",
     features: [
-      "Everything in Dispatch MVP",
-      "Geo-matched vendor dispatch",
+      "Everything in Small Fleet",
+      "Higher incident volume",
       "Driver & vehicle database",
-      "GPS/telematics integration",
-      "Maintenance system webhook",
-      "Up to 250 vehicles",
-      "Unlimited incidents",
-      "Priority support + SLA",
+      "Approved vendor notes",
+      "Outbound vendor calls",
+      "Maintenance handoff notes",
+      "Priority support",
+      "Advanced reporting",
     ],
   },
   {
-    name: "Enterprise",
-    tag: "Large carriers · private or hybrid",
-    price: "Custom",
+    name: "Large Fleet",
+    tag: "500 to 2,000 vehicles",
+    price: "$1,299/mo",
+    highlight: false,
+    color: "border-white/10 bg-slate-950/70",
+    cta: "Book Fleet Demo",
+    ctaHref: "/fleet/onboarding",
+    features: [
+      "Everything in Medium Fleet",
+      "Large-fleet call handling",
+      "Approved vendor network enforcement",
+      "Custom AI voice & call flows",
+      "Full API access + webhooks",
+      "Multi-region dispatch notes",
+      "Dedicated onboarding engineer",
+      "Priority launch support",
+    ],
+  },
+  {
+    name: "Enterprise Fleet",
+    tag: "2,001+ vehicles",
+    price: "Custom + usage",
     highlight: false,
     color: "border-white/10 bg-slate-950/70",
     cta: "Contact Sales",
     ctaHref: `tel:${HELP_PHONE}`,
     features: [
-      "Everything in Fleet Ops",
+      "Custom monthly platform fee",
+      "Pay-per-use AI call minutes",
+      "Pay-per-use outbound calls",
+      "Telematics + TMS integration",
       "Private tenant or hybrid in-house",
-      "Approved vendor network enforcement",
-      "Custom AI voice & call flows",
-      "Full API access + webhooks",
-      "Unlimited vehicles",
-      "Dedicated onboarding engineer",
+      "Dedicated implementation plan",
       "24/7 support + uptime SLA",
     ],
   },
 ];
 
 const DIMENSIONS = [
-  { label: "Vehicles", desc: "Priced per vehicle tier — not per seat." },
-  { label: "Incidents / month", desc: "Capped on MVP; unlimited on Fleet Ops+." },
-  { label: "AI call minutes", desc: "Included allocation per tier; overage billed at cost." },
-  { label: "SMS / location captures", desc: "Per-message pricing above monthly include." },
+  { label: "Vehicles", desc: "Small is 1-100, Medium is 101-499, Large is 500-2,000, and Enterprise starts above 2,000." },
+  { label: "Incidents / month", desc: "Usage scales with the fleet tier and moves to metered pricing for enterprise fleets." },
+  { label: "AI call minutes", desc: "Included allocation by tier; enterprise fleets use negotiated pay-per-use pricing." },
+  { label: "SMS / location captures", desc: "Included allocation by tier with usage-based overage for higher volume." },
   { label: "Integrations", desc: "Standard integrations included; custom API work quoted separately." },
   { label: "Private tenant", desc: "Available on Enterprise with dedicated infrastructure pricing." },
   { label: "Support / SLA", desc: "Email on MVP, priority on Fleet Ops, 24/7 on Enterprise." },
@@ -88,14 +107,14 @@ export default function FleetPricingPage() {
         <div className="max-w-3xl mx-auto">
           <span className="inline-block bg-white/20 text-sm font-medium px-4 py-1 rounded-full mb-6">Roadcall Fleet — Pricing</span>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">Pricing built for fleet operations</h1>
-          <p className="text-blue-200 text-lg">Flexible tiers from small fleets to enterprise carriers. All plans start with a live demo.</p>
+          <p className="text-blue-200 text-lg">Clear monthly tiers by fleet size, with pay-per-use pricing for fleets above 2,000 vehicles.</p>
         </div>
       </section>
 
       {/* Tier Cards */}
       <section className="py-20 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
             {TIERS.map((t) => (
               <div key={t.name} className={`rounded-2xl border-2 p-8 flex flex-col ${t.color}`}>
                 {t.highlight && (

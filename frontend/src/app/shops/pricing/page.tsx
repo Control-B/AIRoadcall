@@ -42,74 +42,106 @@ const TRUST = [
 
 const PLANS = [
   {
-    name: "Standard",
-    price: "$197",
-    setup: "$99 AI setup",
-    target: "Small mechanics and mobile roadside businesses",
+    name: "Mechanic Shop AI",
+    price: "$299",
+    setup: "One shop plan for MVP",
+    target: "Independent repair shops, diesel shops, mobile mechanics, and roadside service providers",
     icon: Headphones,
     accent: "from-sky-400 to-blue-500",
-    cta: "Start Standard Plan",
-    href: "/mechanic/checkout?plan=standard",
-    features: [
-      "24/7 AI phone answering",
-      "Missed call text back",
-      "AI call summaries",
-      "Multilingual support",
-      "Basic CRM pipeline",
-      "SMS follow-up",
-      "Website AI widget",
-      "Business hours automation",
-      "Lead capture",
-      "Customer intake automation",
-    ],
-  },
-  {
-    name: "Professional",
-    price: "$297",
-    setup: "$99 AI setup",
-    target: "Growing diesel shops, towing companies, and repair teams",
-    icon: Mic2,
-    accent: "from-roadcall-orange via-amber-400 to-blue-400",
-    badge: "Most Popular",
-    cta: "Start Professional Plan",
+    cta: "Start Shop Plan",
     href: "/mechanic/checkout?plan=professional",
     features: [
-      "Everything in Standard",
-      "Advanced AI voice workflows",
+      "24/7 AI phone answering",
+      "Missed-call text back",
+      "AI call summaries",
+      "Roadside and shop intake",
       "Appointment scheduling",
       "Smart call routing",
-      "Website voice assistant",
-      "AI lead qualification",
-      "Advanced analytics",
-      "Team notifications",
-      "Custom workflows",
-      "AI customer follow-up",
-      "Review automation",
-      "Multi-location support",
-      "Priority onboarding",
+      "Voice clone option",
+      "Customer follow-up",
+      "Owner dashboard",
+      "Cal.com scheduling support",
     ],
   },
   {
-    name: "Premium",
-    price: "$497",
-    setup: "$99 AI setup",
-    target: "Roadside service providers ready to operationalize dispatch",
-    icon: Radio,
-    accent: "from-roadcall-orange to-roadcall-blue",
-    cta: "Start Premium Plan",
-    href: "/mechanic/checkout?plan=premium",
+    name: "Small Fleet",
+    price: "$499",
+    setup: "Up to 100 vehicles",
+    target: "Owner-operators and smaller fleets that need consistent breakdown intake",
+    icon: Mic2,
+    accent: "from-roadcall-orange via-amber-400 to-blue-400",
+    cta: "Book Fleet Demo",
+    href: "/fleet/onboarding",
     features: [
-      "Everything in Professional",
-      "AI roadside intake",
-      "SMS GPS capture",
-      "Dispatch workflows",
-      "Driver intake automation",
-      "Mechanic assignment workflows",
-      "Fleet notifications",
-      "Dispatch dashboard",
-      "Emergency call routing",
-      "Real-time roadside workflows",
+      "AI driver hotline",
+      "Breakdown case intake",
+      "Driver and unit capture",
+      "GPS location link",
+      "Call summaries",
+      "Basic vendor coordination",
+      "Dispatcher notifications",
+      "Fleet dashboard",
+    ],
+  },
+  {
+    name: "Medium Fleet",
+    price: "$799",
+    setup: "101 to 499 vehicles",
+    target: "Regional fleets with steady breakdown volume and dispatch coordination",
+    icon: Radio,
+    accent: "from-roadcall-orange via-amber-400 to-blue-400",
+    badge: "Most Popular",
+    cta: "Book Fleet Demo",
+    href: "/fleet/onboarding",
+    features: [
+      "Everything in Small Fleet",
+      "Higher incident volume",
+      "Approved vendor notes",
+      "Outbound vendor calls",
+      "Maintenance handoff notes",
+      "Priority support",
+      "Advanced reporting",
+      "Workflow configuration",
+    ],
+  },
+  {
+    name: "Large Fleet",
+    price: "$1,299",
+    setup: "500 to 2,000 vehicles",
+    target: "Larger operations that need structured AI dispatch and vendor workflows",
+    icon: Truck,
+    accent: "from-roadcall-orange to-roadcall-blue",
+    cta: "Book Fleet Demo",
+    href: "/fleet/onboarding",
+    features: [
+      "Everything in Medium Fleet",
+      "Large-fleet call handling",
+      "Custom escalation rules",
+      "Multi-region dispatch notes",
+      "Vendor network workflows",
       "API-ready infrastructure",
+      "Dedicated onboarding",
+      "Priority launch support",
+    ],
+  },
+  {
+    name: "Enterprise Fleet",
+    price: "Custom",
+    setup: "2,001+ vehicles · pay-per-use",
+    target: "High-volume fleets that need usage-based pricing and deeper integrations",
+    icon: Network,
+    accent: "from-blue-400 to-cyan-300",
+    cta: "Talk to Sales",
+    href: "/fleet/onboarding",
+    features: [
+      "Custom monthly platform fee",
+      "Usage-based AI call minutes",
+      "Usage-based outbound calls",
+      "Telematics and TMS integrations",
+      "Private or hybrid deployment options",
+      "Custom SLA and support model",
+      "Dedicated implementation plan",
+      "Volume pricing review",
     ],
   },
 ];
@@ -278,11 +310,11 @@ export default function ShopsPricingPage() {
       <section id="pricing" className="relative z-10 px-4 py-16 sm:px-6 lg:py-24">
         <motion.div {...fadeUp()} className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-roadcall-orange">Roadside AI Pricing</p>
-          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Plans built for mechanics, towers, and mobile repair operators.</h2>
-          <p className="mt-5 text-roadcall-muted">Start with AI answering, then scale into telephony workflows and dispatch infrastructure when your operation is ready.</p>
+          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Simple MVP pricing for shops and fleets.</h2>
+          <p className="mt-5 text-roadcall-muted">One plan for mechanic shops. Fleet plans scale by vehicle count, with pay-per-use pricing for enterprise fleets above 2,000 vehicles.</p>
         </motion.div>
 
-        <div className="mx-auto mt-12 grid max-w-7xl gap-5 lg:grid-cols-3">
+        <div className="mx-auto mt-12 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-5">
           {PLANS.map((plan, index) => {
             const Icon = plan.icon;
             return (
@@ -309,7 +341,7 @@ export default function ShopsPricingPage() {
                   <div className="mt-7">
                     <span className="text-5xl font-black tracking-[-0.05em]">{plan.price}</span>
                     <span className="ml-2 text-roadcall-muted">/month</span>
-                    <p className="mt-3 text-sm font-medium text-roadcall-orange">Setup: {plan.setup}</p>
+                    <p className="mt-3 text-sm font-medium text-roadcall-orange">{plan.setup}</p>
                   </div>
                   <a
                     href={plan.href}

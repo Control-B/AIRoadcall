@@ -7,9 +7,7 @@ import { ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { getApiBase } from "@/lib/api-client";
 
 const PLANS = {
-  standard: { name: "Standard", price: "$197/mo", leads: "10 included leads", setup: "$99 AI setup" },
-  professional: { name: "Professional", price: "$297/mo", leads: "35 included leads", setup: "$99 AI setup" },
-  premium: { name: "Premium", price: "$497/mo", leads: "100 included leads", setup: "$99 AI setup" },
+  professional: { name: "Mechanic Shop AI", price: "$299/mo", leads: "All shop AI features", setup: "MVP shop plan" },
 } as const;
 
 type PlanId = keyof typeof PLANS;
@@ -17,8 +15,8 @@ type PlanId = keyof typeof PLANS;
 function MechanicCheckoutContent() {
   const params = useSearchParams();
   const rawPlan = params.get("plan") || "standard";
-  const initialPlan = ({ starter: "standard", growth: "professional", pro: "premium" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
-  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "standard");
+  const initialPlan = ({ starter: "professional", standard: "professional", growth: "professional", premium: "professional", pro: "professional" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
+  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "professional");
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
@@ -67,7 +65,7 @@ function MechanicCheckoutContent() {
         </section>
 
         <form onSubmit={startCheckout} className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6 shadow-2xl">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3">
             {(Object.keys(PLANS) as PlanId[]).map((id) => (
               <button
                 key={id}
