@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bot, CheckCircle2, Loader2, PhoneForwarded, PlayCircle, Save, ShieldAlert } from "lucide-react";
+import { Bot, Clock, Loader2, Phone, PlayCircle, Save } from "lucide-react";
 import { getApiBase } from "@/lib/api-client";
 
 type Dashboard = {
@@ -15,6 +15,24 @@ type Dashboard = {
   profile_complete: boolean;
   ai_agent: { activation_status: string; agent_name?: string | null; last_error?: string | null } & Record<string, string | null | undefined> | null;
   usage: { usage_month: string; calls_handled: number; leads_allocated: number; included_leads: number; overage_leads: number } | null;
+  call_summaries: CallSummary[];
+};
+
+type CallSummary = {
+  id: string;
+  call_id?: string | null;
+  retell_call_id?: string | null;
+  caller_phone?: string | null;
+  caller_name?: string | null;
+  call_status?: string | null;
+  lead_status?: string | null;
+  summary?: string | null;
+  key_points: string[];
+  problem_type?: string | null;
+  vehicle_type?: string | null;
+  urgency?: string | null;
+  duration_seconds?: number | null;
+  created_at: string;
 };
 
 const AI_AGENT_ID_KEY = `ret${"ell"}_agent_id`;
@@ -59,7 +77,51 @@ const DEMO_DASHBOARD: Dashboard = {
     [AI_AGENT_ID_KEY]: "agent_demo_9edfdf87e375eeffba42912a",
   },
   usage: { usage_month: new Date().toISOString().slice(0, 7), calls_handled: 47, leads_allocated: 18, included_leads: 35, overage_leads: 0 },
+  call_summaries: [
+    {
+      id: "sum_demo_1",
+      retell_call_id: "call_demo_1042",
+      caller_phone: "+1 (512) 555-0184",
+      caller_name: "Mark H.",
+      call_status: "completed",
+      lead_status: "qualified",
+      summary: "Mark called about a Freightliner Cascadia in limp mode with DPF and check-engine lights on. He can limp to the shop before 4 PM and asked for a same-day diagnostic slot.",
+      key_points: ["Freightliner Cascadia in limp mode", "DPF and check-engine lights", "Can limp to shop", "Requested same-day diagnostics"],
+      problem_type: "dpf_derate",
+      vehicle_type: "Class 8 tractor",
+      urgency: "high",
+      duration_seconds: 312,
+      created_at: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+    },
+    {
+      id: "sum_demo_2",
+      retell_call_id: "call_demo_1041",
+      caller_phone: "+1 (737) 555-0138",
+      caller_name: "Sarah P.",
+      call_status: "completed",
+      lead_status: "captured",
+      summary: "Sarah requested pricing and availability for a trailer brake inspection next week. The AI texted the Cal.com booking link and captured trailer details for follow-up.",
+      key_points: ["Trailer brake inspection", "Asked for next-week availability", "Booking link texted", "Follow-up requested"],
+      problem_type: "scheduling",
+      vehicle_type: "53 ft dry van",
+      urgency: "normal",
+      duration_seconds: 184,
+      created_at: new Date(Date.now() - 1000 * 60 * 74).toISOString(),
+    },
+  ],
 };
+
+function formatWhen(value: string) {
+  const date = new Date(value);
+  return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} · ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+}
+
+function formatDuration(seconds?: number | null) {
+  if (!seconds) return "Duration n/a";
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+}
 
 function MechanicDashboardContent() {
   const router = useRouter();
@@ -219,7 +281,51 @@ function MechanicDashboardContent() {
 
         {(error || message) && <div className={`mt-6 rounded-xl border px-4 py-3 text-sm ${error ? "border-red-400/20 bg-red-400/10 text-red-100" : "border-emerald-400/20 bg-emerald-400/10 text-emerald-100"}`}>{error || message}</div>}
 
-        <section className="mt-8 max-w-2xl mx-auto">
+        <section className="mt-8 grid gap-4 lg:grid-cols-[1.4fr_0.6fr]">
+          <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-300">Call summaries</p>
+                <h2 className="mt-2 text-2xl font-black">Every AI-handled call</h2>
+              </div>
+              <p className="text-sm text-slate-400">{dashboard?.call_summaries?.length || 0} recent calls</p>
+            </div>
+            <div className="mt-5 space-y-4">
+              {(dashboard?.call_summaries || []).length === 0 ? (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-300">
+                  No call summaries yet. Once Retell calls `save_call_summary`, each call appears here with caller metadata and key points.
+                </div>
+              ) : (
+                dashboard?.call_summaries.map((call) => (
+                  <article key={call.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+                      <span className="inline-flex items-center gap-2"><Clock className="h-4 w-4 text-blue-300" /> {formatWhen(call.created_at)}</span>
+                      <span>{formatDuration(call.duration_seconds)}</span>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-sm font-bold text-white"><Phone className="h-4 w-4" /> {call.caller_name || "Unknown caller"}</span>
+                      {call.caller_phone && <span className="rounded-full bg-white/5 px-3 py-1 text-sm text-slate-300">{call.caller_phone}</span>}
+                      {call.urgency && <span className="rounded-full bg-orange-400/15 px-3 py-1 text-xs font-bold uppercase text-orange-200">{call.urgency}</span>}
+                    </div>
+                    <p className="mt-4 text-sm leading-6 text-slate-200">{call.summary || "No summary text captured."}</p>
+                    {call.key_points?.length > 0 && (
+                      <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                        {call.key_points.map((point) => (
+                          <li key={point} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-300">{point}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
+                      {call.problem_type && <span>Type: {call.problem_type}</span>}
+                      {call.vehicle_type && <span>Vehicle: {call.vehicle_type}</span>}
+                      {call.retell_call_id && <span>Call ID: {call.retell_call_id}</span>}
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          </div>
+
           <form onSubmit={saveProfile} className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6">
             <h2 className="text-xl font-bold">Mechanics AI Profile</h2>
             <div className="mt-5 grid gap-4 sm:grid-cols-2">

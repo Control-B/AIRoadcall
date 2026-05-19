@@ -31,7 +31,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session
 from app.core.config import get_settings
-from app.models.mechanic_subscription import ShopProfile
+from app.models.mechanic_subscription import CallTranscript, ShopCall, ShopCallSummary, ShopProfile
 from app.models.tenant_provisioning import Tenant
 from app.services.calcom_service import CalComError, service_from_profile
 from app.services.lifecycle_service import LifecycleService
@@ -119,9 +119,14 @@ class SaveCallSummaryIn(BaseModel):
     tenant_id: str
     retell_call_id: str
     caller_phone: str | None = None
+    caller_name: str | None = None
     summary: str
     intent: str | None = None
     urgency: str | None = None
+    problem_type: str | None = None
+    vehicle_type: str | None = None
+    duration_seconds: int | None = None
+    key_points: list[str] = Field(default_factory=list)
     transcript: str | None = None
 
 
@@ -139,6 +144,69 @@ async def save_call_summary(
     payload: SaveCallSummaryIn, db: AsyncSession = Depends(get_session)
 ) -> SaveCallSummaryOut:
     tenant = await _load_tenant(db, payload.tenant_id)
+    call_result = await db.execute(
+        select(ShopCall).where(
+            ShopCall.tenant_id == tenant.id,
+            ShopCall.retell_call_id == payload.retell_call_id,
+        )
+    )
+    call = call_result.scalar_one_or_none()
+    if call is None:
+        call = ShopCall(
+            tenant_id=tenant.id,
+            retell_call_id=payload.retell_call_id,
+            caller_phone=payload.caller_phone,
+            call_status="completed",
+            lead_status="qualified" if payload.urgency in {"high", "emergency"} else "captured",
+            duration_seconds=payload.duration_seconds,
+            metadata_json={
+                "caller_name": payload.caller_name,
+                "intent": payload.intent,
+                "urgency": payload.urgency,
+                "key_points": payload.key_points,
+                "source": "retell_shop",
+            },
+        )
+        db.add(call)
+        await db.flush()
+    else:
+        call.caller_phone = payload.caller_phone or call.caller_phone
+        call.call_status = "completed"
+        call.lead_status = "qualified" if payload.urgency in {"high", "emergency"} else call.lead_status
+        call.duration_seconds = payload.duration_seconds or call.duration_seconds
+        call.metadata_json = {
+            **(call.metadata_json or {}),
+            "caller_name": payload.caller_name or (call.metadata_json or {}).get("caller_name"),
+            "intent": payload.intent or (call.metadata_json or {}).get("intent"),
+            "urgency": payload.urgency or (call.metadata_json or {}).get("urgency"),
+            "key_points": payload.key_points or (call.metadata_json or {}).get("key_points") or [],
+            "source": "retell_shop",
+        }
+
+    summary_result = await db.execute(
+        select(ShopCallSummary).where(
+            ShopCallSummary.tenant_id == tenant.id,
+            ShopCallSummary.call_id == call.id,
+        )
+    )
+    call_summary = summary_result.scalar_one_or_none()
+    if call_summary is None:
+        call_summary = ShopCallSummary(tenant_id=tenant.id, call_id=call.id)
+        db.add(call_summary)
+    call_summary.summary = payload.summary
+    call_summary.problem_type = payload.problem_type or payload.intent
+    call_summary.vehicle_type = payload.vehicle_type
+    call_summary.urgency = payload.urgency
+
+    if payload.transcript:
+        transcript = CallTranscript(
+            call_id=call.id,
+            tenant_id=tenant.id,
+            transcript_text=payload.transcript,
+            transcript_json={"source": "retell_shop", "retell_call_id": payload.retell_call_id},
+        )
+        db.add(transcript)
+
     event = await lifecycle_service.emit_event(
         db,
         event_type="shop_ai.call_summary",

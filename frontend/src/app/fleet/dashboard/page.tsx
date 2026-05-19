@@ -7,25 +7,27 @@ import {
   AlertTriangle,
   Bot,
   CheckCircle2,
+  Clock,
   Loader2,
   MapPin,
-  PhoneCall,
   PlayCircle,
   Truck,
   Users,
-  Wrench,
 } from "lucide-react";
 
-type Incident = {
+type FleetCallSummary = {
   id: string;
-  status: "open" | "dispatched" | "on_site" | "resolved";
-  driver: string;
+  caller: string;
+  phone: string;
   vehicle: string;
   issue: string;
   location: string;
-  opened_minutes_ago: number;
-  vendor: string | null;
-  eta_minutes: number | null;
+  summary: string;
+  key_points: string[];
+  urgency: "normal" | "high" | "emergency";
+  call_status: string;
+  created_at: string;
+  duration_seconds: number;
 };
 
 type FleetDashboard = {
@@ -34,7 +36,7 @@ type FleetDashboard = {
   ai_agent: { activation_status: string; agent_name: string; calls_handled_today: number };
   fleet: { vehicles: number; trailers: number; drivers: number; active_incidents: number };
   coverage: { approved_vendors: number; states_covered: number; avg_response_minutes: number };
-  incidents: Incident[];
+  call_summaries: FleetCallSummary[];
 };
 
 const DEMO_DASHBOARD: FleetDashboard = {
@@ -47,61 +49,47 @@ const DEMO_DASHBOARD: FleetDashboard = {
   },
   fleet: { vehicles: 62, trailers: 87, drivers: 74, active_incidents: 3 },
   coverage: { approved_vendors: 412, states_covered: 31, avg_response_minutes: 47 },
-  incidents: [
+  call_summaries: [
     {
-      id: "RC-104821",
-      status: "dispatched",
-      driver: "Marcus T.",
+      id: "fleet-call-104821",
+      caller: "Marcus T.",
+      phone: "+1 (903) 555-0188",
       vehicle: "Truck #441 (Freightliner Cascadia)",
       issue: "DPF derate, limp mode",
       location: "I-10 MM 187, Beaumont TX",
-      opened_minutes_ago: 28,
-      vendor: "Lone Star Diesel (4.8 \u2605)",
-      eta_minutes: 35,
+      summary: "Marcus reported a DPF derate with check-engine and stop-engine warnings. The AI confirmed he was safe, captured mile marker and direction, classified the unit as can-limp-to-shop, and matched Lone Star Diesel for dispatch review.",
+      key_points: ["Driver safe on shoulder", "DPF and warning lights", "Location captured at I-10 MM 187", "Vendor match queued"],
+      urgency: "high",
+      call_status: "dispatched",
+      created_at: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
+      duration_seconds: 421,
     },
     {
-      id: "RC-104819",
-      status: "on_site",
-      driver: "Lisa P.",
+      id: "fleet-call-104819",
+      caller: "Lisa P.",
+      phone: "+1 (912) 555-0164",
       vehicle: "Truck #207 (Peterbilt 579)",
       issue: "Steer tire blowout",
       location: "I-95 N, exit 67, Savannah GA",
-      opened_minutes_ago: 71,
-      vendor: "Coastal Tire Service",
-      eta_minutes: 0,
-    },
-    {
-      id: "RC-104815",
-      status: "open",
-      driver: "Devon R.",
-      vehicle: "Trailer T-318 (53' dry van)",
-      issue: "Air leak, brake chamber",
-      location: "TA Atlanta South, Jackson GA",
-      opened_minutes_ago: 6,
-      vendor: null,
-      eta_minutes: null,
+      summary: "Lisa called after a steer tire blowout. The AI confirmed no injury, captured exit and truck position, marked the event unsafe-to-drive, and escalated to Coastal Tire Service, now on site.",
+      key_points: ["No injury reported", "Steer tire blowout", "Unsafe to drive", "Vendor on site"],
+      urgency: "emergency",
+      call_status: "on_site",
+      created_at: new Date(Date.now() - 1000 * 60 * 71).toISOString(),
+      duration_seconds: 366,
     },
   ],
 };
 
-function statusPill(status: Incident["status"]) {
-  const styles: Record<Incident["status"], string> = {
-    open: "bg-amber-400/20 text-amber-200 border-amber-400/30",
-    dispatched: "bg-blue-400/20 text-blue-200 border-blue-400/30",
-    on_site: "bg-emerald-400/20 text-emerald-200 border-emerald-400/30",
-    resolved: "bg-slate-400/20 text-slate-200 border-slate-400/30",
-  };
-  const labels: Record<Incident["status"], string> = {
-    open: "Open",
-    dispatched: "Dispatched",
-    on_site: "On site",
-    resolved: "Resolved",
-  };
-  return (
-    <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${styles[status]}`}>
-      {labels[status]}
-    </span>
-  );
+function formatWhen(value: string) {
+  const date = new Date(value);
+  return `${date.toLocaleDateString([], { month: "short", day: "numeric" })} · ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+}
+
+function formatDuration(seconds: number) {
+  const minutes = Math.floor(seconds / 60);
+  const remainder = seconds % 60;
+  return `${minutes}:${remainder.toString().padStart(2, "0")}`;
 }
 
 function FleetDashboardContent() {
@@ -189,69 +177,51 @@ function FleetDashboardContent() {
         <section className="mt-8 grid gap-6 lg:grid-cols-[1.4fr_1fr]">
           <div className="rounded-[2rem] border border-white/10 bg-slate-950/80 p-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold">Active incidents</h2>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-300">Call summaries</p>
+                <h2 className="mt-2 text-xl font-bold">Every fleet hotline call</h2>
+              </div>
               <button
                 onClick={() => demoOnly("Open the live incident feed")}
                 className="rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/15"
               >
-                Open live feed
+                Open call log
               </button>
             </div>
             <div className="mt-5 space-y-4">
-              {dashboard.incidents.map((incident) => (
+              {dashboard.call_summaries.map((call) => (
                 <article
-                  key={incident.id}
+                  key={call.id}
                   className="rounded-2xl border border-white/10 bg-white/[0.03] p-5"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-xs text-slate-400">{incident.id}</span>
-                      {statusPill(incident.status)}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="font-mono text-xs text-slate-400">{call.id}</span>
+                      <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-semibold capitalize text-slate-200">{call.call_status}</span>
+                      <span className="rounded-full border border-orange-400/20 bg-orange-400/10 px-3 py-1 text-xs font-semibold uppercase text-orange-200">{call.urgency}</span>
                     </div>
-                    <span className="text-xs text-slate-400">
-                      Opened {incident.opened_minutes_ago} min ago
+                    <span className="inline-flex items-center gap-2 text-xs text-slate-400">
+                      <Clock className="h-4 w-4 text-blue-300" /> {formatWhen(call.created_at)} · {formatDuration(call.duration_seconds)}
                     </span>
                   </div>
-                  <p className="mt-3 text-lg font-bold">{incident.issue}</p>
+                  <p className="mt-3 text-lg font-bold">{call.issue}</p>
+                  <p className="mt-3 text-sm leading-6 text-slate-300">{call.summary}</p>
                   <div className="mt-3 grid gap-3 sm:grid-cols-2 text-sm text-slate-300">
                     <div className="flex items-center gap-2">
-                      <Truck className="h-4 w-4 text-blue-300" /> {incident.vehicle}
+                      <Truck className="h-4 w-4 text-blue-300" /> {call.vehicle}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Users className="h-4 w-4 text-blue-300" /> {incident.driver}
+                      <Users className="h-4 w-4 text-blue-300" /> {call.caller} · {call.phone}
                     </div>
                     <div className="flex items-center gap-2 sm:col-span-2">
-                      <MapPin className="h-4 w-4 text-blue-300" /> {incident.location}
+                      <MapPin className="h-4 w-4 text-blue-300" /> {call.location}
                     </div>
-                    {incident.vendor ? (
-                      <div className="flex items-center gap-2 sm:col-span-2">
-                        <Wrench className="h-4 w-4 text-emerald-300" /> {incident.vendor}
-                        {incident.eta_minutes !== null && (
-                          <span className="text-emerald-200">
-                            — {incident.eta_minutes === 0 ? "on site" : `ETA ${incident.eta_minutes} min`}
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2 sm:col-span-2 text-amber-200">
-                        <Wrench className="h-4 w-4" /> Searching approved vendors…
-                      </div>
-                    )}
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => demoOnly(`Call ${incident.driver}`)}
-                      className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/15"
-                    >
-                      <PhoneCall className="h-3.5 w-3.5" /> Call driver
-                    </button>
-                    <button
-                      onClick={() => demoOnly(`Reassign ${incident.id}`)}
-                      className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/15"
-                    >
-                      Reassign vendor
-                    </button>
-                  </div>
+                  <ul className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {call.key_points.map((point) => (
+                      <li key={point} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-300">{point}</li>
+                    ))}
+                  </ul>
                 </article>
               ))}
             </div>

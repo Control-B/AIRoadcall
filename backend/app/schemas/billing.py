@@ -98,6 +98,23 @@ class UsageView(BaseModel):
     overage_leads: int
 
 
+class DashboardCallSummaryView(BaseModel):
+    id: str
+    call_id: str | None = None
+    retell_call_id: str | None = None
+    caller_phone: str | None = None
+    caller_name: str | None = None
+    call_status: str | None = None
+    lead_status: str | None = None
+    summary: str | None = None
+    key_points: list[str] = Field(default_factory=list)
+    problem_type: str | None = None
+    vehicle_type: str | None = None
+    urgency: str | None = None
+    duration_seconds: int | None = None
+    created_at: datetime
+
+
 class MechanicDashboardView(BaseModel):
     tenant_id: str
     business_name: str
@@ -107,6 +124,7 @@ class MechanicDashboardView(BaseModel):
     profile_complete: bool
     ai_agent: AIAgentView | None = None
     usage: UsageView | None = None
+    call_summaries: list[DashboardCallSummaryView] = Field(default_factory=list)
     activation_steps: list[dict[str, str | bool]]
 
 

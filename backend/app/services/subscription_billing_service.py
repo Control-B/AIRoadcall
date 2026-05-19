@@ -14,7 +14,7 @@ from sqlalchemy import func, select
 
 from app.core.config import get_settings
 from app.core.plan_config import canonical_plan_id, get_plan_config, included_leads_for, plan_payload
-from app.models.mechanic_subscription import AIAgent, MechanicAccount, PlanUsage, ShopProfile, StripeSubscription
+from app.models.mechanic_subscription import AIAgent, MechanicAccount, PlanUsage, ShopCall, ShopCallSummary, ShopProfile, StripeSubscription
 from app.models.organization import Organization, VerticalType
 from app.models.tenant_provisioning import GHLConnection, Tenant
 from app.schemas.billing import CheckoutSessionCreateIn, ShopProfileUpdateIn
@@ -291,6 +291,7 @@ class SubscriptionBillingService:
         agent = (await db.execute(select(AIAgent).where(AIAgent.tenant_id == tenant_id))).scalar_one_or_none()
         usage_month = datetime.now(timezone.utc).strftime("%Y-%m")
         usage = (await db.execute(select(PlanUsage).where(PlanUsage.tenant_id == tenant_id, PlanUsage.usage_month == usage_month))).scalar_one_or_none()
+        call_summaries = await self._dashboard_call_summaries(db, tenant_id)
         profile_complete = self._profile_complete(profile)
         active_subscription = bool(subscription and subscription.status in ACTIVE_SUBSCRIPTION_STATUSES)
         steps = [
@@ -345,8 +346,43 @@ class SubscriptionBillingService:
                 "included_leads": usage.included_leads,
                 "overage_leads": usage.overage_leads,
             },
+            "call_summaries": call_summaries,
             "activation_steps": steps,
         }
+
+    async def _dashboard_call_summaries(self, db, tenant_id: uuid.UUID, limit: int = 50) -> list[dict[str, Any]]:
+        result = await db.execute(
+            select(ShopCallSummary, ShopCall)
+            .join(ShopCall, ShopCall.id == ShopCallSummary.call_id, isouter=True)
+            .where(ShopCallSummary.tenant_id == tenant_id)
+            .order_by(ShopCallSummary.created_at.desc())
+            .limit(limit)
+        )
+        summaries: list[dict[str, Any]] = []
+        for summary, call in result.all():
+            call_metadata = call.metadata_json if call and isinstance(call.metadata_json, dict) else {}
+            key_points = call_metadata.get("key_points") or []
+            if not key_points and summary.summary:
+                key_points = [part.strip(" -") for part in summary.summary.replace("\n", ". ").split(".") if part.strip()][:4]
+            summaries.append(
+                {
+                    "id": str(summary.id),
+                    "call_id": str(summary.call_id) if summary.call_id else None,
+                    "retell_call_id": call.retell_call_id if call else None,
+                    "caller_phone": call.caller_phone if call else None,
+                    "caller_name": call_metadata.get("caller_name"),
+                    "call_status": call.call_status if call else None,
+                    "lead_status": call.lead_status if call else None,
+                    "summary": summary.summary,
+                    "key_points": key_points,
+                    "problem_type": summary.problem_type,
+                    "vehicle_type": summary.vehicle_type,
+                    "urgency": summary.urgency,
+                    "duration_seconds": call.duration_seconds if call else None,
+                    "created_at": summary.created_at,
+                }
+            )
+        return summaries
 
     async def update_profile(self, db, tenant_id: uuid.UUID, dashboard_token: str, payload: ShopProfileUpdateIn) -> ShopProfile:
         account = await self.require_account(db, tenant_id, dashboard_token)
