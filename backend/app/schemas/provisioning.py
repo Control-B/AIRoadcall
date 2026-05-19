@@ -72,6 +72,7 @@ class TenantView(BaseModel):
     organization_id: str
     name: str
     slug: str
+    vertical_type: str = "shops"
     contact_email: str | None = None
     contact_phone: str | None = None
     current_plan: str
@@ -85,6 +86,13 @@ class TenantView(BaseModel):
     latest_activity_type: str | None = None
     latest_activity_status: str | None = None
     latest_activity_at: datetime | None = None
+    llm_model: str | None = None
+    voice_id: str | None = None
+    calls_handled: int = 0
+    leads_allocated: int = 0
+    vehicle_count: int = 0
+    fleet_size: int | None = None
+    snapshot_status: str | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -100,9 +108,25 @@ class ProvisionTenantOut(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class ProvisioningSnapshotView(BaseModel):
+    vertical_type: str
+    label: str
+    description: str
+    tenant_count: int
+    active_subscribers: int
+    ai_phone_active: int
+    calls_handled: int
+    vehicle_count: int
+    fleet_size: int
+    snapshot_ready: int
+    snapshot_pending: int
+    llm_models: list[str] = Field(default_factory=list)
+
+
 class TenantListResponse(BaseModel):
     tenants: list[TenantView]
     plans: list[PlanConfigView]
+    snapshots: list[ProvisioningSnapshotView] = Field(default_factory=list)
 
 
 class TenantPlanUpdateIn(BaseModel):

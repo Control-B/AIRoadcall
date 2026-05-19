@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
+  Bot,
+  Building2,
   CheckCircle2,
   Crown,
   ExternalLink,
@@ -56,6 +58,9 @@ interface TenantView {
   organization_id: string;
   name: string;
   slug: string;
+  vertical_type: "shops" | "fleet" | string;
+  contact_email?: string | null;
+  contact_phone?: string | null;
   current_plan: string;
   subscription_status: string;
   onboarding_status: string;
@@ -64,14 +69,37 @@ interface TenantView {
   locked_features: string[];
   ghl_connection?: GHLConnectionView | null;
   retell_connection?: RetellConnectionView | null;
+  llm_model?: string | null;
+  voice_id?: string | null;
+  calls_handled: number;
+  leads_allocated: number;
+  vehicle_count: number;
+  fleet_size?: number | null;
+  snapshot_status?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 }
 
+interface ProvisioningSnapshotView {
+  vertical_type: "shops" | "fleet" | string;
+  label: string;
+  description: string;
+  tenant_count: number;
+  active_subscribers: number;
+  ai_phone_active: number;
+  calls_handled: number;
+  vehicle_count: number;
+  fleet_size: number;
+  snapshot_ready: number;
+  snapshot_pending: number;
+  llm_models: string[];
+}
+
 interface TenantListResponse {
   tenants: TenantView[];
   plans: PlanConfig[];
+  snapshots?: ProvisioningSnapshotView[];
 }
 
 interface DispatchEventView {
@@ -130,15 +158,50 @@ function featureLabel(feature: string) {
 
 function statusTone(status?: string | null): "emerald" | "amber" | "red" | "slate" {
   if (!status) return "slate";
-  if (["active", "connected", "installed", "paid", "activated", "healthy", "completed"].includes(status)) return "emerald";
+  if (["active", "connected", "installed", "paid", "activated", "healthy", "completed", "ready", "configured"].includes(status)) return "emerald";
   if (["failed", "cancelled", "missing_snapshot_id"].includes(status)) return "red";
   if (["pending", "not_started", "unpaid", "pending_location"].includes(status)) return "amber";
   return "slate";
 }
 
+function SnapshotPanel({ snapshot, selected, onSelect }: { snapshot: ProvisioningSnapshotView; selected: boolean; onSelect: () => void }) {
+  const isFleet = snapshot.vertical_type === "fleet";
+  const Icon = isFleet ? Truck : Building2;
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`group rounded-2xl border p-5 text-left transition ${selected ? "border-blue-400/45 bg-blue-500/10 shadow-lg shadow-blue-950/25" : "border-white/5 bg-slate-950/70 hover:border-white/15 hover:bg-white/[0.04]"}`}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${isFleet ? "bg-orange-500/15 text-orange-300" : "bg-cyan-500/15 text-cyan-300"}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="font-semibold text-white">{snapshot.label}</p>
+            <p className="mt-1 text-xs text-slate-500">{snapshot.description}</p>
+          </div>
+        </div>
+        <Badge tone={snapshot.snapshot_pending ? "amber" : "emerald"}>{snapshot.snapshot_pending ? `${snapshot.snapshot_pending} pending` : "ready"}</Badge>
+      </div>
+      <div className="mt-5 grid grid-cols-2 gap-3 text-sm lg:grid-cols-4">
+        <div><p className="text-xl font-bold text-white">{snapshot.active_subscribers}</p><p className="text-xs text-slate-500">Active</p></div>
+        <div><p className="text-xl font-bold text-white">{snapshot.ai_phone_active}</p><p className="text-xs text-slate-500">AI phone</p></div>
+        <div><p className="text-xl font-bold text-white">{snapshot.calls_handled.toLocaleString()}</p><p className="text-xs text-slate-500">Calls</p></div>
+        <div><p className="text-xl font-bold text-white">{isFleet ? snapshot.vehicle_count.toLocaleString() : snapshot.tenant_count}</p><p className="text-xs text-slate-500">{isFleet ? "Vehicles" : "Accounts"}</p></div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {(snapshot.llm_models.length ? snapshot.llm_models : ["Retell conversation flow"]).slice(0, 3).map((model) => <Badge key={model} tone="blue"><Bot className="mr-1 h-3 w-3" />{model}</Badge>)}
+      </div>
+    </button>
+  );
+}
+
 export default function ProvisioningPage() {
   const [tenants, setTenants] = useState<TenantView[]>([]);
   const [plans, setPlans] = useState<PlanConfig[]>([]);
+  const [snapshots, setSnapshots] = useState<ProvisioningSnapshotView[]>([]);
   const [dispatchEvents, setDispatchEvents] = useState<DispatchEventView[]>([]);
   const [selectedTenantId, setSelectedTenantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -147,6 +210,7 @@ export default function ProvisioningPage() {
   const [creatingSubscriber, setCreatingSubscriber] = useState(false);
   const [newSubscriber, setNewSubscriber] = useState({
     organization_name: "",
+    vertical_type: "shops",
     contact_email: "",
     contact_phone: "",
     plan_id: "growth",
@@ -158,8 +222,10 @@ export default function ProvisioningPage() {
 
   const selectedTenant = useMemo(() => tenants.find((tenant) => tenant.id === selectedTenantId) || tenants[0], [selectedTenantId, tenants]);
   const selectedPlan = useMemo(() => plans.find((plan) => plan.id === selectedTenant?.current_plan), [plans, selectedTenant]);
-  const proTenants = tenants.filter((tenant) => tenant.current_plan === "pro").length;
+  const activeSubscribers = tenants.filter((tenant) => tenant.is_active && tenant.subscription_status === "active").length;
   const activeRetell = tenants.filter((tenant) => tenant.retell_connection?.provisioning_status === "active").length;
+  const totalCalls = tenants.reduce((sum, tenant) => sum + (tenant.calls_handled || 0), 0);
+  const totalVehicles = tenants.reduce((sum, tenant) => sum + (tenant.vehicle_count || 0), 0);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -171,6 +237,7 @@ export default function ProvisioningPage() {
       ]);
       setTenants(tenantData.tenants);
       setPlans(tenantData.plans);
+      setSnapshots(tenantData.snapshots || []);
       setDispatchEvents(dispatchData);
       if (!selectedTenantId && tenantData.tenants[0]) setSelectedTenantId(tenantData.tenants[0].id);
     } catch (err) {
@@ -217,12 +284,14 @@ export default function ProvisioningPage() {
         mobile_service_available: true,
         after_hours_mode: "capture_and_escalate",
         dispatch_phone: newSubscriber.contact_phone || undefined,
+        vertical_type: newSubscriber.vertical_type,
       };
       const result = await adminFetch<{ tenant: TenantView; warnings?: string[] }>("/provisioning/tenants", {
         method: "POST",
         body: JSON.stringify({
           plan_id: newSubscriber.plan_id,
           organization_name: newSubscriber.organization_name,
+          vertical_type: newSubscriber.vertical_type,
           contact_email: newSubscriber.contact_email || null,
           contact_phone: newSubscriber.contact_phone || null,
           subscription_status: "active",
@@ -270,7 +339,7 @@ export default function ProvisioningPage() {
         <div>
           <h1 className="flex items-center gap-3 text-2xl font-bold text-white"><Crown className="h-7 w-7 text-orange-300" /> SaaS Provisioning</h1>
           <p className="mt-1 max-w-3xl text-sm text-slate-400">
-            Provision mechanic subscribers in Roadcall and mirror their AI telephony agent into the voice system. Roadcall stays the operating system for profiles, quotas, leads, and dispatch.
+            Provision shop and fleet accounts, manage subscriber plans, and track AI phone usage, LLM routing, calls, vehicles, and dispatch readiness from one SaaS control room.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -290,17 +359,31 @@ export default function ProvisioningPage() {
       )}
 
       <div className="grid gap-4 md:grid-cols-4">
-        <Card className="p-5"><div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-cyan-300" /><div><p className="text-2xl font-bold text-white">{loading ? "—" : tenants.length}</p><p className="text-xs text-slate-400">Tenants</p></div></div></Card>
+        <Card className="p-5"><div className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-cyan-300" /><div><p className="text-2xl font-bold text-white">{loading ? "—" : activeSubscribers}</p><p className="text-xs text-slate-400">Active subscribers</p></div></div></Card>
         <Card className="p-5"><div className="flex items-center gap-3"><Workflow className="h-5 w-5 text-blue-300" /><div><p className="text-2xl font-bold text-white">{activeRetell}</p><p className="text-xs text-slate-400">AI phone active</p></div></div></Card>
-        <Card className="p-5"><div className="flex items-center gap-3"><Truck className="h-5 w-5 text-orange-300" /><div><p className="text-2xl font-bold text-white">{proTenants}</p><p className="text-xs text-slate-400">Pro dispatch</p></div></div></Card>
-        <Card className="p-5"><div className="flex items-center gap-3"><CheckCircle2 className="h-5 w-5 text-emerald-300" /><div><p className="text-2xl font-bold text-white">Healthy</p><p className="text-xs text-slate-400">Backend status</p></div></div></Card>
+        <Card className="p-5"><div className="flex items-center gap-3"><PhoneCall className="h-5 w-5 text-emerald-300" /><div><p className="text-2xl font-bold text-white">{totalCalls.toLocaleString()}</p><p className="text-xs text-slate-400">Calls handled</p></div></div></Card>
+        <Card className="p-5"><div className="flex items-center gap-3"><Truck className="h-5 w-5 text-orange-300" /><div><p className="text-2xl font-bold text-white">{totalVehicles.toLocaleString()}</p><p className="text-xs text-slate-400">Fleet vehicles</p></div></div></Card>
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        {(snapshots.length ? snapshots : [
+          { vertical_type: "shops", label: "Shop AI Snapshot", description: "Provision repair shop AI reception and follow-up workflows.", tenant_count: 0, active_subscribers: 0, ai_phone_active: 0, calls_handled: 0, vehicle_count: 0, fleet_size: 0, snapshot_ready: 0, snapshot_pending: 0, llm_models: [] },
+          { vertical_type: "fleet", label: "Fleet AI Snapshot", description: "Provision fleet dispatch, vehicles, and roadside workflows.", tenant_count: 0, active_subscribers: 0, ai_phone_active: 0, calls_handled: 0, vehicle_count: 0, fleet_size: 0, snapshot_ready: 0, snapshot_pending: 0, llm_models: [] },
+        ]).map((snapshot) => (
+          <SnapshotPanel
+            key={snapshot.vertical_type}
+            snapshot={snapshot}
+            selected={newSubscriber.vertical_type === snapshot.vertical_type}
+            onSelect={() => setNewSubscriber((current) => ({ ...current, vertical_type: snapshot.vertical_type }))}
+          />
+        ))}
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
         <Card>
           <div className="border-b border-white/5 px-6 py-4">
-            <h2 className="font-semibold text-white">Tenant Plans</h2>
-            <p className="mt-1 text-xs text-slate-500">Upgrade/downgrade subscribers and verify AI telephony provisioning state.</p>
+            <h2 className="font-semibold text-white">Subscriber Operations</h2>
+            <p className="mt-1 text-xs text-slate-500">Manage plans, AI agents, LLM routing, call volume, and fleet assets for every Roadcall subscriber.</p>
           </div>
           {loading ? (
             <div className="flex items-center justify-center py-12 text-slate-400"><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading tenants…</div>
@@ -309,15 +392,18 @@ export default function ProvisioningPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead><tr className="border-b border-white/5 text-left text-xs uppercase tracking-wide text-slate-500"><th className="px-4 py-3">Subscriber</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">Setup</th><th className="px-4 py-3">AI Phone</th><th className="px-4 py-3">Agent</th><th className="px-4 py-3">Change Plan</th></tr></thead>
+                <thead><tr className="border-b border-white/5 text-left text-xs uppercase tracking-wide text-slate-500"><th className="px-4 py-3">Subscriber</th><th className="px-4 py-3">Type</th><th className="px-4 py-3">Plan</th><th className="px-4 py-3">LLM</th><th className="px-4 py-3">Calls</th><th className="px-4 py-3">Vehicles</th><th className="px-4 py-3">AI Phone</th><th className="px-4 py-3">Snapshot</th><th className="px-4 py-3">Change Plan</th></tr></thead>
                 <tbody className="divide-y divide-white/5">
                   {tenants.map((tenant) => (
                     <tr key={tenant.id} onClick={() => setSelectedTenantId(tenant.id)} className={`cursor-pointer hover:bg-white/[0.03] ${selectedTenant?.id === tenant.id ? "bg-blue-500/5" : ""}`}>
-                      <td className="px-4 py-3"><p className="font-medium text-slate-200">{tenant.name}</p><p className="font-mono text-xs text-slate-500">{tenant.organization_id}</p></td>
+                      <td className="px-4 py-3"><p className="font-medium text-slate-200">{tenant.name}</p><p className="text-xs text-slate-500">{tenant.contact_email || tenant.contact_phone || tenant.organization_id}</p></td>
+                      <td className="px-4 py-3"><Badge tone={tenant.vertical_type === "fleet" ? "orange" : "blue"}>{tenant.vertical_type}</Badge></td>
                       <td className="px-4 py-3"><Badge tone={tenant.current_plan === "pro" ? "orange" : tenant.current_plan === "growth" ? "blue" : "slate"}>{tenant.current_plan}</Badge></td>
-                      <td className="px-4 py-3"><Badge tone={statusTone(tenant.setup_fee_status)}>{tenant.setup_fee_status}</Badge></td>
+                      <td className="px-4 py-3"><span className="max-w-[180px] truncate text-xs text-slate-300">{tenant.llm_model || "Retell conversation flow"}</span></td>
+                      <td className="px-4 py-3"><span className="font-semibold text-slate-200">{(tenant.calls_handled || 0).toLocaleString()}</span></td>
+                      <td className="px-4 py-3"><span className="font-semibold text-slate-200">{tenant.vertical_type === "fleet" ? (tenant.vehicle_count || tenant.fleet_size || 0).toLocaleString() : "—"}</span></td>
                       <td className="px-4 py-3"><Badge tone={statusTone(tenant.retell_connection?.provisioning_status)}>{tenant.retell_connection?.provisioning_status || "not_provisioned"}</Badge></td>
-                      <td className="px-4 py-3"><span className="font-mono text-xs text-slate-400">{tenant.retell_connection?.agent_id || "—"}</span></td>
+                      <td className="px-4 py-3"><Badge tone={statusTone(tenant.snapshot_status)}>{tenant.snapshot_status || "unknown"}</Badge></td>
                       <td className="px-4 py-3">
                         <select
                           value={tenant.current_plan}
@@ -340,8 +426,23 @@ export default function ProvisioningPage() {
         <div className="space-y-6">
           <Card className="p-6">
             <h2 className="font-semibold text-white">Provision Subscriber</h2>
-            <p className="mt-1 text-xs text-slate-500">Creates the Roadcall tenant and provisions an AI service-desk agent.</p>
+            <p className="mt-1 text-xs text-slate-500">Creates a shop or fleet tenant and provisions the matching AI service-desk agent.</p>
             <div className="mt-4 grid gap-3">
+              <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-slate-950 p-1">
+                {[
+                  { value: "shops", label: "Shop", icon: Building2 },
+                  { value: "fleet", label: "Fleet", icon: Truck },
+                ].map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => setNewSubscriber((current) => ({ ...current, vertical_type: item.value }))}
+                    className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${newSubscriber.vertical_type === item.value ? "bg-blue-500 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"}`}
+                  >
+                    <item.icon className="h-4 w-4" /> {item.label}
+                  </button>
+                ))}
+              </div>
               <input value={newSubscriber.organization_name} onChange={(event) => setNewSubscriber((current) => ({ ...current, organization_name: event.target.value }))} placeholder="Shop / subscriber name" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
               <input value={newSubscriber.contact_email} onChange={(event) => setNewSubscriber((current) => ({ ...current, contact_email: event.target.value }))} placeholder="Contact email" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
               <input value={newSubscriber.contact_phone} onChange={(event) => setNewSubscriber((current) => ({ ...current, contact_phone: event.target.value }))} placeholder="Dispatch phone" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
@@ -353,7 +454,7 @@ export default function ProvisioningPage() {
               </div>
               <textarea value={newSubscriber.supported_services} onChange={(event) => setNewSubscriber((current) => ({ ...current, supported_services: event.target.value }))} rows={3} placeholder="Supported services" className="rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-blue-400" />
               <button onClick={createSubscriber} disabled={creatingSubscriber || loading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400 disabled:opacity-50">
-                {creatingSubscriber && <Loader2 className="h-4 w-4 animate-spin" />} Provision AI Phone
+                {creatingSubscriber && <Loader2 className="h-4 w-4 animate-spin" />} Provision {newSubscriber.vertical_type === "fleet" ? "Fleet" : "Shop"} Account
               </button>
             </div>
           </Card>
@@ -365,11 +466,21 @@ export default function ProvisioningPage() {
                 <div className="rounded-xl border border-white/5 bg-white/[0.03] p-4">
                   <div className="flex items-start justify-between gap-3"><div><p className="text-lg font-bold text-white">{selectedTenant.name}</p><p className="text-sm text-slate-400">{selectedPlan.name} · ${selectedPlan.price_monthly}/mo · ${selectedPlan.setup_fee} setup</p></div><Badge tone={selectedTenant.is_active ? "emerald" : "red"}>{selectedTenant.subscription_status}</Badge></div>
                 </div>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl border border-white/5 bg-slate-950/70 p-3"><p className="text-xl font-bold text-white">{(selectedTenant.calls_handled || 0).toLocaleString()}</p><p className="text-xs text-slate-500">Calls handled</p></div>
+                  <div className="rounded-xl border border-white/5 bg-slate-950/70 p-3"><p className="text-xl font-bold text-white">{selectedTenant.vertical_type === "fleet" ? (selectedTenant.vehicle_count || selectedTenant.fleet_size || 0).toLocaleString() : (selectedTenant.leads_allocated || 0).toLocaleString()}</p><p className="text-xs text-slate-500">{selectedTenant.vertical_type === "fleet" ? "Vehicles" : "Leads"}</p></div>
+                </div>
                 <div className="grid grid-cols-2 gap-2 text-xs">
+                  <Badge tone={selectedTenant.vertical_type === "fleet" ? "orange" : "blue"}>Type: {selectedTenant.vertical_type}</Badge>
+                  <Badge tone={statusTone(selectedTenant.snapshot_status)}>Snapshot: {selectedTenant.snapshot_status || "unknown"}</Badge>
                   <Badge tone={statusTone(selectedTenant.onboarding_status)}>Onboarding: {selectedTenant.onboarding_status}</Badge>
                   <Badge tone={statusTone(selectedTenant.setup_fee_status)}>Setup: {selectedTenant.setup_fee_status}</Badge>
                   <Badge tone={statusTone(selectedTenant.retell_connection?.provisioning_status)}>AI Phone: {selectedTenant.retell_connection?.provisioning_status || "not_provisioned"}</Badge>
                   <Badge tone={selectedTenant.retell_connection?.agent_id ? "emerald" : "amber"}>Agent: {selectedTenant.retell_connection?.agent_id ? "created" : "missing"}</Badge>
+                </div>
+                <div className="rounded-xl border border-white/5 bg-slate-950/70 p-3 text-xs text-slate-400">
+                  <p className="font-semibold text-slate-300">LLM / voice routing</p>
+                  <p className="mt-1">{selectedTenant.llm_model || "Retell conversation flow"}{selectedTenant.voice_id ? ` · ${selectedTenant.voice_id}` : ""}</p>
                 </div>
                 <button onClick={provisionSelectedRetell} disabled={provisioningRetell === selectedTenant.id} className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/20 disabled:opacity-50">
                   {provisioningRetell === selectedTenant.id && <Loader2 className="h-4 w-4 animate-spin" />} Sync / Provision AI Agent
