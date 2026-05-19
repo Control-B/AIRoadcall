@@ -24,6 +24,11 @@ type FleetCallSummary = {
   location: string;
   summary: string;
   key_points: string[];
+  vehicle_intake: Record<string, any>;
+  triage: Record<string, any>;
+  post_call_automation: Record<string, any>;
+  handoff_requested: boolean;
+  handoff_reason?: string;
   urgency: "normal" | "high" | "emergency";
   call_status: string;
   created_at: string;
@@ -59,6 +64,11 @@ const DEMO_DASHBOARD: FleetDashboard = {
       location: "I-10 MM 187, Beaumont TX",
       summary: "Marcus reported a DPF derate with check-engine and stop-engine warnings. The AI confirmed he was safe, captured mile marker and direction, classified the unit as can-limp-to-shop, and matched Lone Star Diesel for dispatch review.",
       key_points: ["Driver safe on shoulder", "DPF and warning lights", "Location captured at I-10 MM 187", "Vendor match queued"],
+      vehicle_intake: { unit_number: "441", make: "Freightliner", model: "Cascadia", truck_type: "tractor", trailer_type: "reefer", loaded_status: "loaded", fault_codes: ["SPN 3719", "FMI 16"] },
+      triage: { symptom_category: "dpf_derate", classification: "can_limp_to_shop", safe_to_drive: true, emergency_flags: ["stop_engine_light"] },
+      post_call_automation: { notify_fleet_manager: true, handoff_summary_sent: true },
+      handoff_requested: true,
+      handoff_reason: "Stop-engine warning needs dispatcher review before movement.",
       urgency: "high",
       call_status: "dispatched",
       created_at: new Date(Date.now() - 1000 * 60 * 28).toISOString(),
@@ -73,6 +83,11 @@ const DEMO_DASHBOARD: FleetDashboard = {
       location: "I-95 N, exit 67, Savannah GA",
       summary: "Lisa called after a steer tire blowout. The AI confirmed no injury, captured exit and truck position, marked the event unsafe-to-drive, and escalated to Coastal Tire Service, now on site.",
       key_points: ["No injury reported", "Steer tire blowout", "Unsafe to drive", "Vendor on site"],
+      vehicle_intake: { unit_number: "207", make: "Peterbilt", model: "579", truck_type: "tractor", trailer_type: "dry van", loaded_status: "loaded" },
+      triage: { symptom_category: "tire", classification: "out_of_service", safe_to_drive: false, emergency_flags: ["steer_tire_blowout"] },
+      post_call_automation: { notify_fleet_manager: true, handoff_summary_sent: true },
+      handoff_requested: true,
+      handoff_reason: "Steer tire blowout marked unsafe to drive.",
       urgency: "emergency",
       call_status: "on_site",
       created_at: new Date(Date.now() - 1000 * 60 * 71).toISOString(),
@@ -90,6 +105,12 @@ function formatDuration(seconds: number) {
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds % 60;
   return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+}
+
+function enabledActions(actions: Record<string, any>) {
+  return Object.entries(actions)
+    .filter(([, value]) => value === true)
+    .map(([key]) => key.replaceAll("_", " "));
 }
 
 function FleetDashboardContent() {
@@ -217,6 +238,28 @@ function FleetDashboardContent() {
                       <MapPin className="h-4 w-4 text-blue-300" /> {call.location}
                     </div>
                   </div>
+                  <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
+                      <p className="text-xs font-bold uppercase text-blue-200">Structured unit</p>
+                      <p className="mt-2">Unit {call.vehicle_intake.unit_number || "n/a"} · {call.vehicle_intake.truck_type || "truck"}</p>
+                      <p className="mt-1 text-xs text-slate-500">{[call.vehicle_intake.trailer_type, call.vehicle_intake.loaded_status, call.vehicle_intake.fault_codes?.join(", ")].filter(Boolean).join(" · ") || "No extra unit data"}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
+                      <p className="text-xs font-bold uppercase text-orange-200">Safety triage</p>
+                      <p className="mt-2 capitalize">{(call.triage.classification || call.triage.symptom_category || "unclassified").replaceAll("_", " ")}</p>
+                      <p className="mt-1 text-xs text-slate-500">{call.triage.safe_to_drive ? "Safe to move" : "Unsafe to drive"}</p>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
+                      <p className="text-xs font-bold uppercase text-emerald-200">Handoff + updates</p>
+                      <p className="mt-2">{call.handoff_requested ? "Dispatcher handoff queued" : "AI resolved"}</p>
+                      <p className="mt-1 text-xs text-slate-500">{call.handoff_reason || enabledActions(call.post_call_automation).join(" · ") || "No notifications logged"}</p>
+                    </div>
+                  </div>
+                  {call.triage.emergency_flags?.length > 0 && (
+                    <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-100">
+                      Emergency flags: {call.triage.emergency_flags.join(", ")}
+                    </div>
+                  )}
                   <ul className="mt-4 grid gap-2 sm:grid-cols-2">
                     {call.key_points.map((point) => (
                       <li key={point} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-slate-300">{point}</li>

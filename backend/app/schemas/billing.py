@@ -108,6 +108,11 @@ class DashboardCallSummaryView(BaseModel):
     lead_status: str | None = None
     summary: str | None = None
     key_points: list[str] = Field(default_factory=list)
+    vehicle_intake: dict[str, Any] = Field(default_factory=dict)
+    triage: dict[str, Any] = Field(default_factory=dict)
+    post_call_automation: dict[str, Any] = Field(default_factory=dict)
+    handoff_requested: bool = False
+    handoff_reason: str | None = None
     problem_type: str | None = None
     vehicle_type: str | None = None
     urgency: str | None = None

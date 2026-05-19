@@ -12,6 +12,7 @@ events to the correct tenant.
 Tools:
   POST /api/shop-ai/save-lead
   POST /api/shop-ai/save-call-summary
+    POST /api/shop-ai/intake-guide
   POST /api/shop-ai/check-availability
   POST /api/shop-ai/book-appointment
   POST /api/shop-ai/send-sms-followup
@@ -42,6 +43,167 @@ settings = get_settings()
 lifecycle_service = LifecycleService()
 
 router = APIRouter(prefix="/shop-ai", tags=["shop-ai"])
+
+
+SYMPTOM_GUIDES: dict[str, dict[str, object]] = {
+    "no_start": {
+        "label": "No-start / hard-start",
+        "questions": [
+            "Is it no-crank, or does it crank but not start?",
+            "Do the dash lights dim while cranking?",
+            "Has anyone tried a jump start, and did it change anything?",
+            "How much fuel is in the tank, and were filters recently changed?",
+        ],
+        "ticket_fields": ["battery_voltage", "jump_attempted", "starter_click", "fuel_level", "recent_filter_work"],
+        "emergency_flags": ["unsafe_location", "fuel_leak", "fire_smell"],
+    },
+    "dpf_derate": {
+        "label": "DPF / DEF / derate",
+        "questions": [
+            "Is the check-engine or stop-engine light on?",
+            "Is the truck speed-limited or in limp mode?",
+            "Have you attempted a parked regen?",
+            "Any DEF level or DEF quality warning?",
+        ],
+        "ticket_fields": ["warning_lights", "speed_limit_mph", "regen_attempted", "def_warning", "can_limp"],
+        "emergency_flags": ["stop_engine_light", "cannot_move", "unsafe_location"],
+    },
+    "brakes_air": {
+        "label": "Air / brake issue",
+        "questions": [
+            "What is the current air PSI?",
+            "Does pressure build above 90 PSI?",
+            "Do you hear the leak at the tractor or trailer?",
+            "Are the spring brakes locked or dragging?",
+        ],
+        "ticket_fields": ["current_psi", "builds_above_90", "leak_location", "brakes_locked"],
+        "emergency_flags": ["brake_failure", "brakes_locked", "cannot_build_air"],
+    },
+    "overheating": {
+        "label": "Overheating / coolant / oil pressure",
+        "questions": [
+            "Is the engine shut down now?",
+            "Is there steam, coolant on the ground, or an oil pressure warning?",
+            "What does the temperature gauge show?",
+            "Can you see whether the fan is running?",
+        ],
+        "ticket_fields": ["engine_shutdown", "steam_or_leak", "temperature_gauge", "oil_pressure_warning", "fan_running"],
+        "emergency_flags": ["overheating", "oil_pressure_warning", "active_leak"],
+    },
+    "tire": {
+        "label": "Tire / wheel-end",
+        "questions": [
+            "Which tire position is affected?",
+            "Is it a blowout, flat, low pressure, or tread separation?",
+            "Can you read the tire size?",
+            "Is the vehicle safely off the road?",
+        ],
+        "ticket_fields": ["tire_position", "failure_type", "tire_size", "safe_location"],
+        "emergency_flags": ["steer_tire_blowout", "unsafe_location", "wheel_fire"],
+    },
+    "general": {
+        "label": "General service intake",
+        "questions": [
+            "What changed right before the issue started?",
+            "Is the vehicle safe to drive?",
+            "Are any warning lights or fault codes showing?",
+            "What year, make, model, mileage, and VIN can you provide?",
+        ],
+        "ticket_fields": ["symptom_summary", "safe_to_drive", "warning_lights", "fault_codes", "year_make_model", "mileage", "vin"],
+        "emergency_flags": ["unsafe_to_drive", "fire", "injury"],
+    },
+}
+
+
+def _symptom_category(text: str | None) -> str:
+    normalized = (text or "").lower()
+    if any(term in normalized for term in ("no start", "won't start", "wont start", "crank", "starter", "battery")):
+        return "no_start"
+    if any(term in normalized for term in ("dpf", "def", "derate", "regen", "limp")):
+        return "dpf_derate"
+    if any(term in normalized for term in ("brake", "air leak", "psi", "spring brake", "locked")):
+        return "brakes_air"
+    if any(term in normalized for term in ("overheat", "coolant", "oil pressure", "steam", "temperature")):
+        return "overheating"
+    if any(term in normalized for term in ("tire", "flat", "blowout", "wheel")):
+        return "tire"
+    return "general"
+
+
+def _emergency_flags(text: str | None) -> list[str]:
+    normalized = (text or "").lower()
+    flags: list[str] = []
+    for term, flag in (
+        ("fire", "fire"),
+        ("injur", "injury"),
+        ("crash", "crash"),
+        ("accident", "accident"),
+        ("brake fail", "brake_failure"),
+        ("no brakes", "brake_failure"),
+        ("stop engine", "stop_engine_light"),
+        ("oil pressure", "oil_pressure_warning"),
+        ("unsafe", "unsafe_location"),
+        ("shoulder", "roadside_exposure"),
+    ):
+        if term in normalized and flag not in flags:
+            flags.append(flag)
+    return flags
+
+
+def _split_key_points(summary: str | None) -> list[str]:
+    if not summary:
+        return []
+    return [part.strip(" -") for part in summary.replace("\n", ". ").split(".") if part.strip()][:4]
+
+
+class VehicleIntake(BaseModel):
+    year: str | None = None
+    make: str | None = None
+    model: str | None = None
+    mileage: str | None = None
+    vin: str | None = None
+    unit_number: str | None = None
+    truck_type: str | None = None
+    trailer_type: str | None = None
+    loaded_status: str | None = None
+    engine_make: str | None = None
+    fault_codes: list[str] = Field(default_factory=list)
+
+
+class TriageAssessment(BaseModel):
+    symptom_category: str | None = None
+    classification: str | None = None
+    safe_to_drive: bool | None = None
+    emergency_flags: list[str] = Field(default_factory=list)
+    handoff_required: bool = False
+    handoff_reason: str | None = None
+
+
+class PostCallAutomation(BaseModel):
+    send_booking_confirmation: bool = False
+    send_directions: bool = False
+    send_review_request: bool = False
+    notify_owner: bool = False
+    notify_fleet_manager: bool = False
+    handoff_summary_sent: bool = False
+
+
+class IntakeGuideIn(BaseModel):
+    tenant_id: str
+    complaint: str = Field(..., min_length=2)
+    vehicle_type: str | None = None
+    caller_type: Literal["shop", "fleet"] = "shop"
+
+
+class IntakeGuideOut(BaseModel):
+    ok: bool = True
+    symptom_category: str
+    label: str
+    questions: list[str]
+    ticket_fields: list[str]
+    emergency_flags: list[str]
+    handoff_required: bool
+    driver_message: str
 
 
 def require_retell_auth(authorization: str | None = Header(default=None)) -> None:
@@ -78,6 +240,9 @@ class SaveLeadIn(BaseModel):
         "new_lead", "appointment_request", "existing_customer", "quote_request", "other"
     ] = "new_lead"
     urgency: Literal["low", "normal", "high", "emergency"] = "normal"
+    vehicle_intake: VehicleIntake | None = None
+    triage: TriageAssessment | None = None
+    requested_handoff: bool = False
     notes: str | None = None
 
 
@@ -115,6 +280,45 @@ async def save_lead(payload: SaveLeadIn, db: AsyncSession = Depends(get_session)
 
 # ── Save Call Summary ───────────────────────────────────────────────────────
 
+@router.post(
+    "/intake-guide",
+    response_model=IntakeGuideOut,
+    dependencies=[Depends(require_retell_auth)],
+)
+async def intake_guide(payload: IntakeGuideIn, db: AsyncSession = Depends(get_session)) -> IntakeGuideOut:
+    tenant = await _load_tenant(db, payload.tenant_id)
+    category = _symptom_category(payload.complaint)
+    guide = SYMPTOM_GUIDES[category]
+    flags = sorted(set([*_emergency_flags(payload.complaint), *(guide.get("emergency_flags") or [])]))
+    handoff_required = bool(_emergency_flags(payload.complaint))
+    await lifecycle_service.emit_event(
+        db,
+        event_type="shop_ai.intake_guided",
+        source="retell_shop" if payload.caller_type == "shop" else "retell_fleet",
+        organization_id=tenant.organization_id,
+        entity_type="tenant",
+        entity_id=str(tenant.id),
+        payload={
+            "complaint": payload.complaint,
+            "vehicle_type": payload.vehicle_type,
+            "caller_type": payload.caller_type,
+            "symptom_category": category,
+            "handoff_required": handoff_required,
+        },
+        idempotency_key=None,
+    )
+    await db.commit()
+    return IntakeGuideOut(
+        symptom_category=category,
+        label=str(guide["label"]),
+        questions=list(guide["questions"]),
+        ticket_fields=list(guide["ticket_fields"]),
+        emergency_flags=flags,
+        handoff_required=handoff_required,
+        driver_message="Ask one targeted question at a time, then save the structured ticket and call summary.",
+    )
+
+
 class SaveCallSummaryIn(BaseModel):
     tenant_id: str
     retell_call_id: str
@@ -127,6 +331,11 @@ class SaveCallSummaryIn(BaseModel):
     vehicle_type: str | None = None
     duration_seconds: int | None = None
     key_points: list[str] = Field(default_factory=list)
+    vehicle_intake: VehicleIntake | None = None
+    triage: TriageAssessment | None = None
+    post_call_automation: PostCallAutomation = Field(default_factory=PostCallAutomation)
+    handoff_requested: bool = False
+    handoff_reason: str | None = None
     transcript: str | None = None
 
 
@@ -144,6 +353,14 @@ async def save_call_summary(
     payload: SaveCallSummaryIn, db: AsyncSession = Depends(get_session)
 ) -> SaveCallSummaryOut:
     tenant = await _load_tenant(db, payload.tenant_id)
+    triage = payload.triage or TriageAssessment(
+        symptom_category=_symptom_category(" ".join(item for item in (payload.problem_type, payload.summary) if item)),
+        emergency_flags=_emergency_flags(payload.summary),
+        handoff_required=payload.handoff_requested,
+        handoff_reason=payload.handoff_reason,
+    )
+    handoff_required = payload.handoff_requested or triage.handoff_required or bool(triage.emergency_flags)
+    key_points = payload.key_points or _split_key_points(payload.summary)
     call_result = await db.execute(
         select(ShopCall).where(
             ShopCall.tenant_id == tenant.id,
@@ -156,14 +373,19 @@ async def save_call_summary(
             tenant_id=tenant.id,
             retell_call_id=payload.retell_call_id,
             caller_phone=payload.caller_phone,
-            call_status="completed",
-            lead_status="qualified" if payload.urgency in {"high", "emergency"} else "captured",
+            call_status="handoff_requested" if handoff_required else "completed",
+            lead_status="qualified" if payload.urgency in {"high", "emergency"} or triage.emergency_flags else "captured",
             duration_seconds=payload.duration_seconds,
             metadata_json={
                 "caller_name": payload.caller_name,
                 "intent": payload.intent,
                 "urgency": payload.urgency,
-                "key_points": payload.key_points,
+                "key_points": key_points,
+                "vehicle_intake": payload.vehicle_intake.model_dump(exclude_none=True) if payload.vehicle_intake else {},
+                "triage": triage.model_dump(exclude_none=True),
+                "post_call_automation": payload.post_call_automation.model_dump(),
+                "handoff_requested": handoff_required,
+                "handoff_reason": payload.handoff_reason or triage.handoff_reason,
                 "source": "retell_shop",
             },
         )
@@ -171,15 +393,20 @@ async def save_call_summary(
         await db.flush()
     else:
         call.caller_phone = payload.caller_phone or call.caller_phone
-        call.call_status = "completed"
-        call.lead_status = "qualified" if payload.urgency in {"high", "emergency"} else call.lead_status
+        call.call_status = "handoff_requested" if handoff_required else "completed"
+        call.lead_status = "qualified" if payload.urgency in {"high", "emergency"} or triage.emergency_flags else call.lead_status
         call.duration_seconds = payload.duration_seconds or call.duration_seconds
         call.metadata_json = {
             **(call.metadata_json or {}),
             "caller_name": payload.caller_name or (call.metadata_json or {}).get("caller_name"),
             "intent": payload.intent or (call.metadata_json or {}).get("intent"),
             "urgency": payload.urgency or (call.metadata_json or {}).get("urgency"),
-            "key_points": payload.key_points or (call.metadata_json or {}).get("key_points") or [],
+            "key_points": key_points or (call.metadata_json or {}).get("key_points") or [],
+            "vehicle_intake": payload.vehicle_intake.model_dump(exclude_none=True) if payload.vehicle_intake else (call.metadata_json or {}).get("vehicle_intake") or {},
+            "triage": triage.model_dump(exclude_none=True),
+            "post_call_automation": payload.post_call_automation.model_dump(),
+            "handoff_requested": handoff_required,
+            "handoff_reason": payload.handoff_reason or triage.handoff_reason or (call.metadata_json or {}).get("handoff_reason"),
             "source": "retell_shop",
         }
 
@@ -194,9 +421,9 @@ async def save_call_summary(
         call_summary = ShopCallSummary(tenant_id=tenant.id, call_id=call.id)
         db.add(call_summary)
     call_summary.summary = payload.summary
-    call_summary.problem_type = payload.problem_type or payload.intent
-    call_summary.vehicle_type = payload.vehicle_type
-    call_summary.urgency = payload.urgency
+    call_summary.problem_type = payload.problem_type or triage.symptom_category or payload.intent
+    call_summary.vehicle_type = payload.vehicle_type or (payload.vehicle_intake.truck_type if payload.vehicle_intake else None)
+    call_summary.urgency = "emergency" if triage.emergency_flags else payload.urgency
 
     if payload.transcript:
         transcript = CallTranscript(
@@ -217,6 +444,38 @@ async def save_call_summary(
         payload=payload.model_dump(exclude_none=True),
         idempotency_key=f"shop_ai_summary:{payload.retell_call_id}",
     )
+    if handoff_required:
+        profile = (await db.execute(select(ShopProfile).where(ShopProfile.tenant_id == tenant.id))).scalar_one_or_none()
+        advisor_phone = (profile.fallback_phone or profile.phone) if profile else tenant.contact_phone
+        advisor_body = (
+            f"Roadcall handoff: {payload.caller_name or 'Caller'} {payload.caller_phone or ''}. "
+            f"{payload.summary[:220]}"
+        ).strip()
+        sms_sent = False
+        if advisor_phone:
+            try:
+                sms_sent = await SMSService.send_sms(advisor_phone, advisor_body)
+            except Exception as exc:  # pragma: no cover - provider/network errors
+                logger.warning("handoff SMS failed tenant=%s: %s", tenant.id, exc)
+        await lifecycle_service.emit_event(
+            db,
+            event_type="shop_ai.handoff_requested",
+            source="retell_shop",
+            organization_id=tenant.organization_id,
+            entity_type="tenant",
+            entity_id=str(tenant.id),
+            payload={
+                "retell_call_id": payload.retell_call_id,
+                "caller_phone": payload.caller_phone,
+                "caller_name": payload.caller_name,
+                "reason": payload.handoff_reason or triage.handoff_reason,
+                "emergency_flags": triage.emergency_flags,
+                "advisor_phone_configured": bool(advisor_phone),
+                "sms_sent": sms_sent,
+                "summary": payload.summary,
+            },
+            idempotency_key=f"shop_ai_handoff:{payload.retell_call_id}",
+        )
     await db.commit()
     return SaveCallSummaryOut(ok=True, event_id=str(event.id))
 

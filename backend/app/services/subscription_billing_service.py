@@ -364,6 +364,7 @@ class SubscriptionBillingService:
             key_points = call_metadata.get("key_points") or []
             if not key_points and summary.summary:
                 key_points = [part.strip(" -") for part in summary.summary.replace("\n", ". ").split(".") if part.strip()][:4]
+            triage = call_metadata.get("triage") if isinstance(call_metadata.get("triage"), dict) else {}
             summaries.append(
                 {
                     "id": str(summary.id),
@@ -375,6 +376,11 @@ class SubscriptionBillingService:
                     "lead_status": call.lead_status if call else None,
                     "summary": summary.summary,
                     "key_points": key_points,
+                    "vehicle_intake": call_metadata.get("vehicle_intake") if isinstance(call_metadata.get("vehicle_intake"), dict) else {},
+                    "triage": triage,
+                    "post_call_automation": call_metadata.get("post_call_automation") if isinstance(call_metadata.get("post_call_automation"), dict) else {},
+                    "handoff_requested": bool(call_metadata.get("handoff_requested") or triage.get("handoff_required")),
+                    "handoff_reason": call_metadata.get("handoff_reason") or triage.get("handoff_reason"),
                     "problem_type": summary.problem_type,
                     "vehicle_type": summary.vehicle_type,
                     "urgency": summary.urgency,

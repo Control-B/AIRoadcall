@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Bot, Clock, Loader2, Phone, PlayCircle, Save } from "lucide-react";
+import { AlertTriangle, Bot, ClipboardList, Clock, Loader2, MessageSquare, Phone, PlayCircle, Save } from "lucide-react";
 import { getApiBase } from "@/lib/api-client";
 
 type Dashboard = {
@@ -28,6 +28,11 @@ type CallSummary = {
   lead_status?: string | null;
   summary?: string | null;
   key_points: string[];
+  vehicle_intake?: Record<string, any>;
+  triage?: Record<string, any>;
+  post_call_automation?: Record<string, any>;
+  handoff_requested?: boolean;
+  handoff_reason?: string | null;
   problem_type?: string | null;
   vehicle_type?: string | null;
   urgency?: string | null;
@@ -87,6 +92,9 @@ const DEMO_DASHBOARD: Dashboard = {
       lead_status: "qualified",
       summary: "Mark called about a Freightliner Cascadia in limp mode with DPF and check-engine lights on. He can limp to the shop before 4 PM and asked for a same-day diagnostic slot.",
       key_points: ["Freightliner Cascadia in limp mode", "DPF and check-engine lights", "Can limp to shop", "Requested same-day diagnostics"],
+      vehicle_intake: { year: "2020", make: "Freightliner", model: "Cascadia", mileage: "642k", engine_make: "Detroit", fault_codes: ["SPN 3719", "FMI 16"] },
+      triage: { symptom_category: "dpf_derate", classification: "can_limp_to_shop", safe_to_drive: true, emergency_flags: [], handoff_required: false },
+      post_call_automation: { send_booking_confirmation: true, send_directions: true },
       problem_type: "dpf_derate",
       vehicle_type: "Class 8 tractor",
       urgency: "high",
@@ -102,6 +110,9 @@ const DEMO_DASHBOARD: Dashboard = {
       lead_status: "captured",
       summary: "Sarah requested pricing and availability for a trailer brake inspection next week. The AI texted the Cal.com booking link and captured trailer details for follow-up.",
       key_points: ["Trailer brake inspection", "Asked for next-week availability", "Booking link texted", "Follow-up requested"],
+      vehicle_intake: { trailer_type: "53 ft dry van", loaded_status: "empty" },
+      triage: { symptom_category: "brakes_air", classification: "scheduled_service", safe_to_drive: true, emergency_flags: [] },
+      post_call_automation: { send_booking_confirmation: true },
       problem_type: "scheduling",
       vehicle_type: "53 ft dry van",
       urgency: "normal",
@@ -121,6 +132,17 @@ function formatDuration(seconds?: number | null) {
   const minutes = Math.floor(seconds / 60);
   const remainder = seconds % 60;
   return `${minutes}:${remainder.toString().padStart(2, "0")}`;
+}
+
+function compactValues(values: (string | number | null | undefined)[]) {
+  return values.filter(Boolean).join(" ");
+}
+
+function enabledActions(actions?: Record<string, any>) {
+  if (!actions) return [];
+  return Object.entries(actions)
+    .filter(([, value]) => value === true)
+    .map(([key]) => key.replaceAll("_", " "));
 }
 
 function MechanicDashboardContent() {
@@ -308,6 +330,32 @@ function MechanicDashboardContent() {
                       {call.urgency && <span className="rounded-full bg-orange-400/15 px-3 py-1 text-xs font-bold uppercase text-orange-200">{call.urgency}</span>}
                     </div>
                     <p className="mt-4 text-sm leading-6 text-slate-200">{call.summary || "No summary text captured."}</p>
+                    {(call.vehicle_intake || call.triage || call.handoff_requested) && (
+                      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+                        <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
+                          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-blue-200"><ClipboardList className="h-4 w-4" /> Structured intake</div>
+                          <p>{compactValues([call.vehicle_intake?.year, call.vehicle_intake?.make, call.vehicle_intake?.model]) || call.vehicle_type || "Vehicle details pending"}</p>
+                          <p className="mt-1 text-xs text-slate-500">
+                            {[call.vehicle_intake?.mileage && `${call.vehicle_intake.mileage} mi`, call.vehicle_intake?.vin && `VIN ${call.vehicle_intake.vin}`, call.vehicle_intake?.unit_number && `Unit ${call.vehicle_intake.unit_number}`].filter(Boolean).join(" · ") || "Mileage / VIN not captured"}
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
+                          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-orange-200"><AlertTriangle className="h-4 w-4" /> Triage</div>
+                          <p className="capitalize">{(call.triage?.classification || call.triage?.symptom_category || call.problem_type || "unclassified").replaceAll("_", " ")}</p>
+                          <p className="mt-1 text-xs text-slate-500">{call.triage?.safe_to_drive === false ? "Not safe to drive" : call.triage?.safe_to_drive === true ? "Marked safe to move" : "Safety status pending"}</p>
+                        </div>
+                        <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm text-slate-300">
+                          <div className="mb-2 flex items-center gap-2 text-xs font-bold uppercase text-emerald-200"><MessageSquare className="h-4 w-4" /> Follow-up</div>
+                          <p>{call.handoff_requested ? "Human handoff requested" : "AI handled call"}</p>
+                          <p className="mt-1 text-xs text-slate-500">{call.handoff_reason || enabledActions(call.post_call_automation).join(" · ") || "No post-call action logged"}</p>
+                        </div>
+                      </div>
+                    )}
+                    {call.triage?.emergency_flags?.length > 0 && (
+                      <div className="mt-3 rounded-xl border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-100">
+                        Emergency flags: {call.triage?.emergency_flags?.join(", ")}
+                      </div>
+                    )}
                     {call.key_points?.length > 0 && (
                       <ul className="mt-4 grid gap-2 sm:grid-cols-2">
                         {call.key_points.map((point) => (
