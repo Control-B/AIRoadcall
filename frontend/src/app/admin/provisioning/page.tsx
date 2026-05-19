@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
+  BadgeCheck,
   Bot,
   Building2,
   CheckCircle2,
@@ -10,10 +11,14 @@ import {
   ExternalLink,
   Loader2,
   Lock,
+  Mic2,
+  Play,
   PhoneCall,
   RefreshCw,
   ShieldCheck,
+  Square,
   Truck,
+  Upload,
   Workflow,
   Zap,
 } from "lucide-react";
@@ -110,6 +115,8 @@ interface DispatchEventView {
   created_at: string;
   payload_json?: Record<string, unknown> | null;
 }
+
+type VoiceSampleSource = "recorded" | "uploaded" | null;
 
 const FEATURE_LABELS: Record<string, string> = {
   ai_answering: "AI answering",
@@ -208,6 +215,15 @@ export default function ProvisioningPage() {
   const [savingPlan, setSavingPlan] = useState<string | null>(null);
   const [provisioningRetell, setProvisioningRetell] = useState<string | null>(null);
   const [creatingSubscriber, setCreatingSubscriber] = useState(false);
+  const [voiceCloneEnabled, setVoiceCloneEnabled] = useState(false);
+  const [voiceCloneName, setVoiceCloneName] = useState("Owner voice");
+  const [sampleName, setSampleName] = useState("");
+  const [sampleSource, setSampleSource] = useState<VoiceSampleSource>(null);
+  const [sampleUrl, setSampleUrl] = useState<string | null>(null);
+  const [recording, setRecording] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<BlobPart[]>([]);
+  const sampleUrlRef = useRef<string | null>(null);
   const [newSubscriber, setNewSubscriber] = useState({
     organization_name: "",
     vertical_type: "shops",
@@ -250,6 +266,86 @@ export default function ProvisioningPage() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    return () => {
+      mediaRecorderRef.current?.stream.getTracks().forEach((track) => track.stop());
+      if (sampleUrlRef.current) URL.revokeObjectURL(sampleUrlRef.current);
+    };
+  }, []);
+
+  function setVoiceSample(next: { name: string; source: Exclude<VoiceSampleSource, null>; url: string }) {
+    if (sampleUrlRef.current) URL.revokeObjectURL(sampleUrlRef.current);
+    sampleUrlRef.current = next.url;
+    setSampleUrl(next.url);
+    setSampleName(next.name);
+    setSampleSource(next.source);
+    setVoiceCloneEnabled(true);
+    setError(null);
+  }
+
+  async function startVoiceRecording() {
+    setError(null);
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("This browser cannot record audio here. Upload an audio sample instead.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordedChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordedChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(recordedChunksRef.current, { type: recorder.mimeType || "audio/webm" });
+        if (!blob.size) {
+          setError("No audio was captured. Try recording again or upload a sample.");
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        const extension = recorder.mimeType.includes("mp4") ? "m4a" : "webm";
+        setVoiceSample({ name: `Recorded voice sample.${extension}`, source: "recorded", url });
+        setMessage("Voice sample recorded. Listen back, then save the clone when it sounds right.");
+      };
+      recorder.start();
+      setRecording(true);
+      setMessage("Recording voice sample. Speak naturally, then stop recording.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Microphone access was blocked. Upload an audio sample instead.");
+    }
+  }
+
+  function stopVoiceRecording() {
+    const recorder = mediaRecorderRef.current;
+    if (recorder && recorder.state !== "inactive") {
+      recorder.stop();
+    }
+    setRecording(false);
+  }
+
+  function handleVoiceUpload(file?: File) {
+    if (!file) return;
+    if (!file.type.startsWith("audio/")) {
+      setError("Upload an audio file such as MP3, WAV, M4A, or WEBM.");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setVoiceSample({ name: file.name, source: "uploaded", url });
+    setMessage("Voice sample uploaded. Listen back, then save the clone when it sounds right.");
+  }
+
+  function saveVoiceClone() {
+    if (!sampleName || !sampleSource) {
+      setError("Record or upload a voice sample before saving the clone.");
+      return;
+    }
+    setVoiceCloneEnabled(true);
+    setMessage(`${voiceCloneName || "Cloned voice"} saved from ${sampleSource === "recorded" ? "a recorded" : "an uploaded"} voice sample.`);
+    setError(null);
+  }
 
   async function changePlan(tenantId: string, planId: string) {
     setSavingPlan(tenantId);
@@ -321,7 +417,17 @@ export default function ProvisioningPage() {
       await adminFetch(`/provisioning/admin/tenants/${selectedTenant.id}/retell/provision`, {
         method: "POST",
         body: JSON.stringify({
-          metadata: selectedTenant.retell_connection?.dynamic_variables || {},
+          metadata: {
+            ...(selectedTenant.retell_connection?.dynamic_variables || {}),
+            ...(voiceCloneEnabled && sampleName
+              ? {
+                  voice_clone_enabled: true,
+                  voice_clone_name: voiceCloneName || "Cloned voice",
+                  voice_sample_name: sampleName,
+                  voice_sample_source: sampleSource,
+                }
+              : {}),
+          },
         }),
       });
       setMessage("AI phone agent provisioned. The subscriber should now appear in the voice dashboard.");
@@ -481,6 +587,74 @@ export default function ProvisioningPage() {
                 <div className="rounded-xl border border-white/5 bg-slate-950/70 p-3 text-xs text-slate-400">
                   <p className="font-semibold text-slate-300">LLM / voice routing</p>
                   <p className="mt-1">{selectedTenant.llm_model || "Retell conversation flow"}{selectedTenant.voice_id ? ` · ${selectedTenant.voice_id}` : ""}</p>
+                </div>
+                <div className="rounded-xl border border-violet-300/20 bg-violet-500/10 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-400/15 text-violet-200">
+                        <Mic2 className="h-5 w-5" />
+                      </span>
+                      <div>
+                        <p className="font-semibold text-white">Voice cloning</p>
+                        <p className="mt-1 text-xs text-slate-400">Record through this computer or upload an existing voice sample.</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setVoiceCloneEnabled((enabled) => !enabled)}
+                      className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${voiceCloneEnabled ? "bg-violet-400 text-white" : "bg-white/10 text-slate-200 ring-1 ring-white/15"}`}
+                    >
+                      {voiceCloneEnabled ? "Enabled" : "Enable"}
+                    </button>
+                  </div>
+                  {voiceCloneEnabled && (
+                    <div className="mt-4 space-y-4">
+                      <input
+                        value={voiceCloneName}
+                        onChange={(event) => setVoiceCloneName(event.target.value)}
+                        placeholder="Clone name"
+                        className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-sm text-slate-200 outline-none focus:border-violet-300"
+                      />
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border border-dashed border-violet-300/35 bg-slate-950/70 p-4">
+                          <div className="flex items-center gap-2 text-sm font-semibold text-violet-100"><Mic2 className="h-4 w-4" /> Speak to computer</div>
+                          <button
+                            type="button"
+                            onClick={recording ? stopVoiceRecording : startVoiceRecording}
+                            className={`mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${recording ? "bg-red-400 text-slate-950 hover:bg-red-300" : "bg-slate-900 text-white ring-1 ring-white/10 hover:bg-white/10"}`}
+                          >
+                            {recording ? <Square className="h-4 w-4" /> : <Mic2 className="h-4 w-4" />}
+                            {recording ? "Stop recording" : "Record sample"}
+                          </button>
+                        </div>
+                        <label className="flex cursor-pointer flex-col rounded-xl border border-dashed border-violet-300/35 bg-slate-950/70 p-4 transition hover:bg-white/[0.04]">
+                          <span className="flex items-center gap-2 text-sm font-semibold text-violet-100"><Upload className="h-4 w-4" /> Upload voice</span>
+                          <span className="mt-3 inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white ring-1 ring-white/10">Choose audio file</span>
+                          <input type="file" accept="audio/*" className="sr-only" onChange={(event) => handleVoiceUpload(event.target.files?.[0])} />
+                        </label>
+                      </div>
+                      {sampleName && (
+                        <div className="rounded-xl border border-white/10 bg-slate-950/80 p-3">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-white">{sampleName}</p>
+                              <p className="mt-1 text-xs capitalize text-slate-500">{sampleSource} voice sample ready.</p>
+                            </div>
+                            <span className="inline-flex items-center gap-2 rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-200"><BadgeCheck className="h-4 w-4" /> Ready</span>
+                          </div>
+                          {sampleUrl && <audio controls src={sampleUrl} className="mt-3 w-full" aria-label="Voice sample playback" />}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        disabled={!sampleName || recording}
+                        onClick={saveVoiceClone}
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-violet-400 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+                      >
+                        <Play className="h-4 w-4" /> Save voice clone
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <button onClick={provisionSelectedRetell} disabled={provisioningRetell === selectedTenant.id} className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-blue-400/30 bg-blue-500/10 px-3 py-2 text-sm font-semibold text-blue-200 hover:bg-blue-500/20 disabled:opacity-50">
                   {provisioningRetell === selectedTenant.id && <Loader2 className="h-4 w-4 animate-spin" />} Sync / Provision AI Agent
