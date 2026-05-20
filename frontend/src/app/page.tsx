@@ -214,20 +214,6 @@ export default function HomePage() {
 
   return (
     <PageLayout>
-      {/* Floating "I Need Help Now" SOS button — visible on every scroll position
-          for stranded drivers who only remember roadcall.ai */}
-      <Link
-        href="/go"
-        aria-label="I need roadside help now"
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-orange-500 px-5 py-3 text-sm font-bold text-slate-950 shadow-2xl ring-2 ring-orange-300/60 transition hover:scale-105 hover:bg-orange-400 sm:bottom-8 sm:right-8 sm:px-6 sm:py-4 sm:text-base"
-      >
-        <span className="relative flex h-3 w-3">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-          <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
-        </span>
-        I Need Help Now
-      </Link>
-
       {/* ═══════════════════════════════════════════════════════════════
           HERO — Full-viewport cinematic truck section.
           Video uses object-contain so the entire frame fits — never cut,
@@ -249,6 +235,17 @@ export default function HomePage() {
         {/* Sound toggle button + Hero CTAs — top-right corner, stacked */}
         <div className="absolute top-20 right-4 sm:right-6 z-30 flex flex-col items-end gap-2">
           {/* Hero CTAs — above the sound button */}
+          <Link
+            href="/go"
+            aria-label="I need roadside help now"
+            className="flex items-center justify-center gap-2 rounded-xl border border-orange-300/60 bg-orange-500 px-5 py-2.5 text-sm font-bold text-slate-950 shadow-2xl ring-2 ring-orange-300/30 transition hover:bg-orange-400 hover:scale-[1.02] backdrop-blur-md"
+          >
+            <span className="relative flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-red-500" />
+            </span>
+            I Need Help Now
+          </Link>
           <Link href="/search" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/20 transition-colors backdrop-blur-md">
             Find Service <ArrowRight className="h-4 w-4" />
           </Link>
