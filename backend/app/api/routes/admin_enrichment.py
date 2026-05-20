@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -30,6 +30,7 @@ JobKind = Literal["emails", "email_sync", "mechanics"]
 # Last-run state, in-memory. Acceptable for a single-process admin SaaS dashboard.
 _last_run: dict[str, dict] = {}
 _running: set[str] = set()
+_tasks: set[asyncio.Task[None]] = set()
 
 
 class EnrichmentStartRequest(BaseModel):
@@ -133,7 +134,6 @@ async def _run_enrichment_subprocess(kind: JobKind, args: list[str]) -> None:
 )
 async def start_enrichment(
     payload: EnrichmentStartRequest,
-    background: BackgroundTasks,
     db: AsyncSession = Depends(get_session),
 ):
     if payload.kind in _running:
@@ -155,13 +155,24 @@ async def start_enrichment(
         args.append("--dry-run" if payload.dry_run else "--apply")
 
     _running.add(payload.kind)
-    background.add_task(_run_enrichment_subprocess, payload.kind, args)
+    started_at = datetime.now(timezone.utc).isoformat()
+    _last_run[payload.kind] = {
+        "kind": payload.kind,
+        "running": True,
+        "started_at": started_at,
+        "finished_at": None,
+        "exit_code": None,
+        "log_tail": ["Job queued..."],
+    }
+    task = asyncio.create_task(_run_enrichment_subprocess(payload.kind, args))
+    _tasks.add(task)
+    task.add_done_callback(_tasks.discard)
 
     enriched, pending = await _coverage_counts(db)
     return EnrichmentStatus(
         kind=payload.kind,
         running=True,
-        started_at=datetime.now(timezone.utc).isoformat(),
+        started_at=started_at,
         log_tail=["Job queued..."],
         enriched_total=enriched,
         pending_total=pending,
