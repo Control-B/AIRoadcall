@@ -79,6 +79,12 @@ export default function RootLayout({
         </main>
         <SiteFooterChrome />
         <CookieConsent />
+        <script
+          src="https://widgets.leadconnectorhq.com/loader.js"
+          data-resources-url="https://widgets.leadconnectorhq.com/chat-widget/loader.js"
+          data-widget-id="6a0d59ed0732dc337617ecf6"
+          data-source="WEB_USER"
+        ></script>
       </body>
     </html>
   );
