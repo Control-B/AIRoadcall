@@ -63,13 +63,6 @@ const SHOP_PLANS = [
   },
 ];
 
-const FLEET_PLANS = [
-  { name: "Small Fleet", price: "$499/mo", range: "1-100 vehicles" },
-  { name: "Medium Fleet", price: "$799/mo", range: "101-499 vehicles" },
-  { name: "Large Fleet", price: "$1,299/mo", range: "500-2,000 vehicles" },
-  { name: "Enterprise Fleet", price: "Custom + usage", range: "2,001+ vehicles" },
-];
-
 export default function GetStartedPage() {
   const [track, setTrack] = useState<Track>("shop");
 
@@ -203,27 +196,18 @@ function FleetSubscribe() {
       <div className="rounded-[1.75rem] border border-roadcall-orange/40 bg-gradient-to-b from-roadcall-orange/10 to-transparent p-7">
         <div className="flex items-center gap-2 text-roadcall-orange">
           <Truck className="h-5 w-5" />
-          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Fleet MVP Pricing</span>
+          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Fleet subscriptions paused</span>
         </div>
-        <h2 className="mt-3 text-2xl font-bold text-white">Priced by fleet size.</h2>
+        <h2 className="mt-3 text-2xl font-bold text-white">Fleet plans are on hold for now.</h2>
         <p className="mt-3 text-roadcall-muted">
-          Choose the fleet tier by vehicle count. Fleets above 2,000 vehicles move
-          into a custom platform fee with pay-per-use AI calls and outbound usage.
+          Roadcall is focusing on AI roadside support and mechanic shop growth before opening fleet subscriptions more broadly.
         </p>
-        <div className="mt-5 grid gap-3">
-          {FLEET_PLANS.map((plan) => (
-            <div key={plan.name} className="rounded-xl border border-white/10 bg-black/25 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="font-bold text-white">{plan.name}</p>
-                <p className="font-black text-roadcall-orange">{plan.price}</p>
-              </div>
-              <p className="mt-1 text-sm text-roadcall-muted">{plan.range}</p>
-            </div>
-          ))}
+        <div className="mt-5 rounded-xl border border-white/10 bg-black/25 p-4 text-sm leading-6 text-slate-300">
+          Existing fleet product pages, demos, and internal workflows remain available for validation, but public fleet pricing is not being offered yet.
         </div>
         <Link href="/fleet/onboarding" className="mt-6 block">
-          <Button className="w-full bg-gradient-to-r from-roadcall-orange to-amber-500 hover:brightness-110 text-white font-bold rounded-xl py-5">
-            <ArrowRight className="h-4 w-4 mr-2" /> Start fleet onboarding
+          <Button variant="outline" className="w-full border-roadcall-orange/40 text-orange-100 hover:bg-roadcall-orange/10 font-bold rounded-xl py-5">
+            <ArrowRight className="h-4 w-4 mr-2" /> Request fleet waitlist review
           </Button>
         </Link>
       </div>

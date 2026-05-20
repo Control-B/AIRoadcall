@@ -1,95 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { CheckCircle2, ArrowRight, HelpCircle } from "lucide-react";
-import { HELP_PHONE } from "@/lib/phone";
+import { CheckCircle2, ArrowRight, HelpCircle, PauseCircle } from "lucide-react";
 
-const TIERS = [
-  {
-    name: "Small Fleet",
-    tag: "1 to 100 vehicles",
-    price: "$499/mo",
-    highlight: false,
-    color: "border-white/10 bg-slate-950/70",
-    cta: "Book Fleet Demo",
-    ctaHref: "/fleet/onboarding",
-    features: [
-      "AI call answering for roadside incidents",
-      "One-time GPS location capture links",
-      "Driver and unit detail capture",
-      "Basic vendor coordination notes",
-      "Incident log with call summaries",
-      "Up to 100 vehicles",
-      "Dispatcher notifications",
-      "Hosted multi-tenant",
-    ],
-  },
-  {
-    name: "Medium Fleet",
-    tag: "101 to 499 vehicles",
-    price: "$799/mo",
-    highlight: true,
-    color: "border-roadcall-cyan/60 bg-roadcall-cyan/10 ring-2 ring-roadcall-cyan/30",
-    cta: "Book Fleet Demo",
-    ctaHref: "/fleet/onboarding",
-    features: [
-      "Everything in Small Fleet",
-      "Higher incident volume",
-      "Driver & vehicle database",
-      "Approved vendor notes",
-      "Outbound vendor calls",
-      "Maintenance handoff notes",
-      "Priority support",
-      "Advanced reporting",
-    ],
-  },
-  {
-    name: "Large Fleet",
-    tag: "500 to 2,000 vehicles",
-    price: "$1,299/mo",
-    highlight: false,
-    color: "border-white/10 bg-slate-950/70",
-    cta: "Book Fleet Demo",
-    ctaHref: "/fleet/onboarding",
-    features: [
-      "Everything in Medium Fleet",
-      "Large-fleet call handling",
-      "Approved vendor network enforcement",
-      "Custom AI voice & call flows",
-      "Full API access + webhooks",
-      "Multi-region dispatch notes",
-      "Dedicated onboarding engineer",
-      "Priority launch support",
-    ],
-  },
-  {
-    name: "Enterprise Fleet",
-    tag: "2,001+ vehicles",
-    price: "Custom + usage",
-    highlight: false,
-    color: "border-white/10 bg-slate-950/70",
-    cta: "Contact Sales",
-    ctaHref: `tel:${HELP_PHONE}`,
-    features: [
-      "Custom monthly platform fee",
-      "Pay-per-use AI call minutes",
-      "Pay-per-use outbound calls",
-      "Telematics + TMS integration",
-      "Private tenant or hybrid in-house",
-      "Dedicated implementation plan",
-      "24/7 support + uptime SLA",
-    ],
-  },
-];
-
-const DIMENSIONS = [
-  { label: "Vehicles", desc: "Small is 1-100, Medium is 101-499, Large is 500-2,000, and Enterprise starts above 2,000." },
-  { label: "Incidents / month", desc: "Usage scales with the fleet tier and moves to metered pricing for enterprise fleets." },
-  { label: "AI call minutes", desc: "Included allocation by tier; enterprise fleets use negotiated pay-per-use pricing." },
-  { label: "SMS / location captures", desc: "Included allocation by tier with usage-based overage for higher volume." },
-  { label: "Integrations", desc: "Standard integrations included; custom API work quoted separately." },
-  { label: "Private tenant", desc: "Available on Enterprise with dedicated infrastructure pricing." },
-  { label: "Support / SLA", desc: "Email on MVP, priority on Fleet Ops, 24/7 on Enterprise." },
+const FLEET_FOCUS = [
+  { label: "AI roadside support", desc: "Continue validating caller location, triage, outbound calls, and mechanic matching before selling fleet subscriptions." },
+  { label: "Mechanic shop growth", desc: "Prioritize GHL-backed mechanic shop plans and provider onboarding while the fleet package stays private." },
+  { label: "Fleet product stays intact", desc: "Fleet demos, onboarding, dashboards, and backend workflows remain available for testing and future rollout." },
 ];
 
 const FAQS = [
@@ -105,56 +22,43 @@ export default function FleetPricingPage() {
       {/* Hero */}
       <section className="bg-gradient-to-br from-slate-800 via-blue-900 to-cyan-900 text-white py-16 px-4 text-center">
         <div className="max-w-3xl mx-auto">
-          <span className="inline-block bg-white/20 text-sm font-medium px-4 py-1 rounded-full mb-6">Roadcall Fleet — Pricing</span>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Pricing built for fleet operations</h1>
-          <p className="text-blue-200 text-lg">Clear monthly tiers by fleet size, with pay-per-use pricing for fleets above 2,000 vehicles.</p>
+          <span className="inline-block bg-white/20 text-sm font-medium px-4 py-1 rounded-full mb-6">Roadcall Fleet — On Hold</span>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Fleet subscriptions are paused.</h1>
+          <p className="text-blue-200 text-lg">Roadcall is focusing on AI roadside support performance and mechanic shop growth before opening fleet pricing.</p>
         </div>
       </section>
 
-      {/* Tier Cards */}
+      {/* Hold Notice */}
       <section className="py-20 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-8">
-            {TIERS.map((t) => (
-              <div key={t.name} className={`rounded-2xl border-2 p-8 flex flex-col ${t.color}`}>
-                {t.highlight && (
-                  <span className="inline-block bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white text-xs font-bold px-3 py-1 rounded-full mb-4 self-start">MOST POPULAR</span>
-                )}
-                <div className="text-sm text-roadcall-muted mb-2">{t.tag}</div>
-                <div className="text-3xl font-bold text-white mb-2">{t.price}</div>
-                <div className="font-semibold text-xl text-white mb-6">{t.name}</div>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {t.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2 text-sm text-slate-300">
-                      <CheckCircle2 className="w-4 h-4 text-roadcall-cyan flex-shrink-0 mt-0.5" />{f}
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  href={t.ctaHref}
-                  className={`w-full text-center font-semibold py-3 rounded-lg transition-colors ${
-                    t.highlight ? "bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white hover:brightness-110" : "border border-roadcall-cyan/35 text-roadcall-cyan hover:bg-roadcall-cyan/10"
-                  }`}
-                >
-                  {t.cta}
-                </Link>
+        <div className="max-w-4xl mx-auto rounded-2xl border border-roadcall-cyan/20 bg-slate-950/70 p-8 text-center">
+          <PauseCircle className="mx-auto h-10 w-10 text-roadcall-cyan" />
+          <h2 className="mt-5 text-2xl font-bold text-white">No public fleet pricing right now</h2>
+          <p className="mx-auto mt-3 max-w-2xl text-roadcall-muted">
+            The fleet product remains available internally for demos and validation, but Roadcall is not selling fleet subscriptions until roadside support performance is proven at the level we want.
+          </p>
+          <div className="mt-8 grid gap-4 text-left md:grid-cols-3">
+            {FLEET_FOCUS.map((item) => (
+              <div key={item.label} className="rounded-xl border border-white/10 bg-black/25 p-4">
+                <CheckCircle2 className="mb-4 h-5 w-5 text-roadcall-cyan" />
+                <p className="font-semibold text-white">{item.label}</p>
+                <p className="mt-2 text-sm leading-6 text-roadcall-muted">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Pricing Dimensions */}
+      {/* Current Focus */}
       <section className="py-16 px-4 bg-slate-950/35 border-y border-white/10">
         <div className="max-w-3xl mx-auto">
-          <h2 className="text-2xl font-bold text-white mb-8 text-center">How pricing is measured</h2>
+          <h2 className="text-2xl font-bold text-white mb-8 text-center">What Roadcall is prioritizing first</h2>
           <div className="space-y-4">
-            {DIMENSIONS.map((d) => (
-              <div key={d.label} className="flex gap-4 p-4 bg-slate-950/70 rounded-xl border border-white/10">
+            {FLEET_FOCUS.map((item) => (
+              <div key={item.label} className="flex gap-4 p-4 bg-slate-950/70 rounded-xl border border-white/10">
                 <CheckCircle2 className="w-5 h-5 text-roadcall-cyan flex-shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold text-white">{d.label}</span>
-                  <span className="text-roadcall-muted"> — {d.desc}</span>
+                  <span className="font-semibold text-white">{item.label}</span>
+                  <span className="text-roadcall-muted"> — {item.desc}</span>
                 </div>
               </div>
             ))}
@@ -183,13 +87,13 @@ export default function FleetPricingPage() {
       {/* CTA */}
       <section className="py-16 px-4 bg-gradient-to-r from-slate-800 to-blue-900 text-white text-center">
         <div className="max-w-xl mx-auto">
-          <h2 className="text-2xl font-bold mb-4">Book a Fleet Demo</h2>
-          <p className="text-blue-200 mb-6">30-minute live walkthrough of AI call handling, incident management, and vendor dispatch.</p>
+          <h2 className="text-2xl font-bold mb-4">Fleet access is waitlist-only</h2>
+          <p className="text-blue-200 mb-6">Fleet pages and demos stay available while subscriptions are paused.</p>
           <Link
             href="/fleet/onboarding"
             className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold px-8 py-3 rounded-lg hover:brightness-110 transition-colors inline-flex items-center gap-2"
           >
-            Book Fleet Demo <ArrowRight className="w-4 h-4" />
+            Request Fleet Review <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </section>

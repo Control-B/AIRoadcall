@@ -19,10 +19,8 @@ import {
   HelpCircle,
   MapPin,
   MessageSquare,
-  Mic2,
   Network,
   Phone,
-  Radio,
   Route,
   ShieldCheck,
   Sparkles,
@@ -91,87 +89,6 @@ const PLANS = [
       "Social Media Marketing",
       "Funnels",
       "Email Marketing",
-    ],
-  },
-  {
-    name: "Small Fleet",
-    price: "$499",
-    setup: "Up to 100 vehicles",
-    target: "Owner-operators and smaller fleets that need consistent breakdown intake",
-    icon: Mic2,
-    accent: "from-roadcall-orange via-amber-400 to-blue-400",
-    cta: "Book Fleet Demo",
-    href: "/fleet/onboarding",
-    features: [
-      "AI driver hotline",
-      "Breakdown case intake",
-      "Driver and unit capture",
-      "GPS location link",
-      "Call summaries",
-      "Basic vendor coordination",
-      "Dispatcher notifications",
-      "Fleet dashboard",
-    ],
-  },
-  {
-    name: "Medium Fleet",
-    price: "$799",
-    setup: "101 to 499 vehicles",
-    target: "Regional fleets with steady breakdown volume and dispatch coordination",
-    icon: Radio,
-    accent: "from-roadcall-orange via-amber-400 to-blue-400",
-    badge: "Most Popular",
-    cta: "Book Fleet Demo",
-    href: "/fleet/onboarding",
-    features: [
-      "Everything in Small Fleet",
-      "Higher incident volume",
-      "Approved vendor notes",
-      "Outbound vendor calls",
-      "Maintenance handoff notes",
-      "Priority support",
-      "Advanced reporting",
-      "Workflow configuration",
-    ],
-  },
-  {
-    name: "Large Fleet",
-    price: "$1,299",
-    setup: "500 to 2,000 vehicles",
-    target: "Larger operations that need structured AI dispatch and vendor workflows",
-    icon: Truck,
-    accent: "from-roadcall-orange to-roadcall-blue",
-    cta: "Book Fleet Demo",
-    href: "/fleet/onboarding",
-    features: [
-      "Everything in Medium Fleet",
-      "Large-fleet call handling",
-      "Custom escalation rules",
-      "Multi-region dispatch notes",
-      "Vendor network workflows",
-      "API-ready infrastructure",
-      "Dedicated onboarding",
-      "Priority launch support",
-    ],
-  },
-  {
-    name: "Enterprise Fleet",
-    price: "Custom",
-    setup: "2,001+ vehicles · pay-per-use",
-    target: "High-volume fleets that need usage-based pricing and deeper integrations",
-    icon: Network,
-    accent: "from-blue-400 to-cyan-300",
-    cta: "Talk to Sales",
-    href: "/fleet/onboarding",
-    features: [
-      "Custom monthly platform fee",
-      "Usage-based AI call minutes",
-      "Usage-based outbound calls",
-      "Telematics and TMS integrations",
-      "Private or hybrid deployment options",
-      "Custom SLA and support model",
-      "Dedicated implementation plan",
-      "Volume pricing review",
     ],
   },
 ];
@@ -340,11 +257,11 @@ export default function ShopsPricingPage() {
       <section id="pricing" className="relative z-10 px-4 py-16 sm:px-6 lg:py-24">
         <motion.div {...fadeUp()} className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-roadcall-orange">Roadside AI Pricing</p>
-          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Simple pricing for shops and fleets.</h2>
-          <p className="mt-5 text-roadcall-muted">Mechanic shops get three GHL-powered growth plans. Fleet plans scale by vehicle count, with pay-per-use pricing for enterprise fleets above 2,000 vehicles.</p>
+          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Simple pricing for mechanic shops.</h2>
+          <p className="mt-5 text-roadcall-muted">Mechanic shops get three GHL-powered growth plans while Roadcall focuses on AI roadside support performance and shop adoption.</p>
         </motion.div>
 
-        <div className="mx-auto mt-12 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mx-auto mt-12 grid max-w-6xl gap-5 md:grid-cols-3">
           {PLANS.map((plan, index) => {
             const Icon = plan.icon;
             return (
