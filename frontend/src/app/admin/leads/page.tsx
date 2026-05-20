@@ -24,21 +24,10 @@ interface MechanicItem {
   id: string; company_name: string; contact_name: string; phone: string;
   email_quality: string | null;
   email: string | null; website: string | null; city: string | null;
-  state: string | null; rating: number | null; source: string | null; last_enriched_at: string | null;
+  state: string | null; rating: number | null; source: string | null;
 }
 interface MechanicListResponse { total: number; limit: number; offset: number; items: MechanicItem[]; }
 interface MechanicStats { total_mechanics: number; total_with_email: number; }
-interface EnrichmentStatus {
-  kind: "emails" | "email_sync" | "mechanics";
-  running: boolean;
-  started_at: string | null;
-  finished_at: string | null;
-  exit_code: number | null;
-  log_tail: string[];
-  enriched_total: number;
-  pending_total: number;
-}
-
 const VERTICAL_COLORS: Record<string, string> = {
   shops:   "bg-orange-500/15 text-orange-300 border border-orange-500/25",
   fleet:   "bg-blue-500/15 text-blue-300 border border-blue-500/25",
@@ -117,7 +106,7 @@ export default function LeadsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-white">Email List</h1>
-        <p className="text-slate-400 text-sm mt-1">Website sign-ups and enriched mechanic contacts. Outreach stays separate from live driver-to-mechanic dispatch matching.</p>
+        <p className="text-slate-400 text-sm mt-1">Website sign-ups and mechanic contacts. Outreach stays separate from live driver-to-mechanic dispatch matching.</p>
       </div>
       <div className="flex gap-1 rounded-xl border border-white/5 bg-slate-900/60 p-1 w-fit">
         {([["signups", Mail, "Sign-ups"], ["mechanics", Wrench, "Mechanic Emails"]] as const).map(([id, Icon, label]) => (
@@ -242,17 +231,14 @@ function SignupsTab() {
 function MechanicEmailsTab() {
   const [data, setData] = useState<MechanicListResponse | null>(null);
   const [stats, setStats] = useState<MechanicStats | null>(null);
-  const [enrichStatus, setEnrichStatus] = useState<EnrichmentStatus | null>(null);
-  const [enrichStatusKind, setEnrichStatusKind] = useState<EnrichmentStatus["kind"]>("emails");
   const [loading, setLoading] = useState(true);
-  const [enrichBusy, setEnrichBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState("");
   const [offset, setOffset] = useState(0);
   const PAGE_SIZE = 50;
 
-  const load = useCallback(async (statusKind: EnrichmentStatus["kind"] = enrichStatusKind) => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -260,70 +246,25 @@ function MechanicEmailsTab() {
         has_email: "true",
         limit: String(PAGE_SIZE),
         offset: String(offset),
-        sort_by: "last_enriched_at",
+        sort_by: "company_name",
         sort_dir: "desc",
       });
       if (search) params.set("q", search);
       if (stateFilter) params.set("state", stateFilter);
-      const [listData, statsData, statusData] = await Promise.all([
+      const [listData, statsData] = await Promise.all([
         adminFetch<MechanicListResponse>(`/mechanics/admin/list?${params}`),
         adminFetch<MechanicStats>("/mechanics/admin/stats"),
-        adminFetch<EnrichmentStatus>(`/admin/enrichment/status?kind=${statusKind}`),
       ]);
       setData(listData);
       setStats(statsData);
-      setEnrichStatus(statusData);
     } catch (e) {
       console.error(e);
       setError(e instanceof Error ? e.message : "Failed to load mechanic emails");
     } finally { setLoading(false); }
-  }, [offset, search, stateFilter, enrichStatusKind]);
+  }, [offset, search, stateFilter]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { setOffset(0); }, [search, stateFilter]);
-  useEffect(() => {
-    if (!enrichStatus?.running) return;
-    const id = window.setInterval(load, 5000);
-    return () => window.clearInterval(id);
-  }, [enrichStatus?.running, load]);
-
-  async function startEmailEnrichment() {
-    setEnrichStatusKind("emails");
-    setEnrichBusy(true);
-    setError(null);
-    try {
-      const status = await adminFetch<EnrichmentStatus>("/admin/enrichment/start", {
-        method: "POST",
-        body: JSON.stringify({ kind: "emails", limit: 200, batch: 20, dry_run: false }),
-      });
-      setEnrichStatus(status);
-      await load("emails");
-    } catch (e) {
-      console.error(e);
-      setError(e instanceof Error ? e.message : "Failed to start Apify email enrichment");
-    } finally {
-      setEnrichBusy(false);
-    }
-  }
-
-  async function syncApifyDatasets() {
-    setEnrichStatusKind("email_sync");
-    setEnrichBusy(true);
-    setError(null);
-    try {
-      const status = await adminFetch<EnrichmentStatus>("/admin/enrichment/start", {
-        method: "POST",
-        body: JSON.stringify({ kind: "email_sync", runs: 100, dry_run: false }),
-      });
-      setEnrichStatus(status);
-      await load("email_sync");
-    } catch (e) {
-      console.error(e);
-      setError(e instanceof Error ? e.message : "Failed to sync Apify email datasets");
-    } finally {
-      setEnrichBusy(false);
-    }
-  }
 
   function exportCSV() {
     if (!data?.items.length) return;
@@ -336,14 +277,14 @@ function MechanicEmailsTab() {
   const page = Math.floor(offset / PAGE_SIZE) + 1;
   const totalPages = data ? Math.ceil(data.total / PAGE_SIZE) : 1;
   const totalMechanics = stats?.total_mechanics ?? 0;
-  const enriched = enrichStatus?.enriched_total ?? stats?.total_with_email ?? data?.total ?? 0;
-  const pending = enrichStatus?.pending_total ?? Math.max(0, totalMechanics - enriched);
-  const coverage = totalMechanics > 0 ? `${((enriched / totalMechanics) * 100).toFixed(1)}%` : "0.0%";
+  const withEmail = stats?.total_with_email ?? data?.total ?? 0;
+  const pending = Math.max(0, totalMechanics - withEmail);
+  const coverage = totalMechanics > 0 ? `${((withEmail / totalMechanics) * 100).toFixed(1)}%` : "0.0%";
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-        <StatCard icon={Wrench} color="text-orange-400"  value={enriched || "—"} label="Mechanics with Email" />
+        <StatCard icon={Wrench} color="text-orange-400"  value={withEmail || "—"} label="Mechanics with Email" />
         <StatCard icon={Mail}   color="text-blue-400"    value={pending || "—"} label="Websites Pending" />
         <StatCard icon={Users}  color="text-emerald-400" value={coverage} label="Coverage" />
       </div>
@@ -362,21 +303,6 @@ function MechanicEmailsTab() {
             className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 disabled:opacity-40">
             <RefreshCw className={`h-4 w-4 ${loading?"animate-spin":""}`}/>
           </button>
-          <button onClick={startEmailEnrichment} disabled={enrichBusy || enrichStatus?.running}
-            className="flex items-center gap-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 px-3 py-2 text-sm text-blue-200 hover:bg-blue-500/20 disabled:opacity-40">
-            <RefreshCw className={`h-4 w-4 ${enrichStatus?.running?"animate-spin":""}`}/>{enrichStatus?.running ? "Apify running" : "Run crawl (200)"}
-          </button>
-          <button onClick={syncApifyDatasets} disabled={enrichBusy || enrichStatus?.running}
-            className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-40">
-            <RefreshCw className={`h-4 w-4 ${enrichStatus?.running?"animate-spin":""}`}/>Sync Apify datasets
-          </button>
-        </div>
-        <div className="mt-3 rounded-lg border border-white/5 bg-black/30 p-3 text-xs text-slate-400">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>Apify email enrichment ({enrichStatus?.kind ?? enrichStatusKind}): {enrichStatus?.running ? "running" : enrichStatus?.exit_code === 0 ? "last run completed" : enrichStatus?.exit_code != null ? `last run error (${enrichStatus.exit_code})` : "idle"}</span>
-            {enrichStatus?.finished_at && <span>Finished {new Date(enrichStatus.finished_at).toLocaleString()}</span>}
-          </div>
-          {enrichStatus?.log_tail?.length ? <pre className="mt-2 max-h-24 overflow-auto whitespace-pre-wrap text-slate-500">{enrichStatus.log_tail.slice(-6).join("\n")}</pre> : null}
         </div>
       </DarkCard>
       {error && <div className="rounded-xl border border-red-500/30 bg-red-950/40 p-3 text-sm text-red-200">{error}</div>}
@@ -386,12 +312,12 @@ function MechanicEmailsTab() {
           <Pagination page={page} totalPages={totalPages} onChange={p=>setOffset((p-1)*PAGE_SIZE)} />
         </div>
         {loading ? <LoadingRow /> : !data?.items.length
-          ? <EmptyRow icon={Wrench} message="No enriched emails yet." sub="The Apify enrichment job is still running." />
+          ? <EmptyRow icon={Wrench} message="No mechanic emails yet." sub="Mechanic contacts with emails will appear here." />
           : <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-white/5">
-                    {["Business","Email","Quality","Location","Phone","Website","Enriched"].map(h=>(
+                    {["Business","Email","Quality","Location","Phone","Website"].map(h=>(
                       <th key={h} className="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">{h}</th>
                     ))}
                   </tr>
@@ -405,7 +331,6 @@ function MechanicEmailsTab() {
                       <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">{[m.city,m.state].filter(Boolean).join(", ")||"—"}</td>
                       <td className="px-4 py-3 text-slate-400 text-xs">{m.phone}</td>
                       <td className="px-4 py-3">{m.website?<a href={m.website} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-blue-400"><ExternalLink className="h-3 w-3"/>Visit</a>:<span className="text-slate-600">—</span>}</td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{m.last_enriched_at?new Date(m.last_enriched_at).toLocaleDateString("en-US",{month:"short",day:"numeric"}):"—"}</td>
                     </tr>
                   ))}
                 </tbody>
