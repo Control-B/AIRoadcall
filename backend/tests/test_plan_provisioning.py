@@ -127,7 +127,7 @@ async def test_provisioning_endpoint_accepts_all_three_plans(monkeypatch):
             "id": payload.plan_id,
             "name": payload.plan_id.title(),
             "price_monthly": get_plan_config(payload.plan_id).price_monthly,
-            "setup_fee": 99,
+            "setup_fee": get_plan_config(payload.plan_id).setup_fee,
             "enabled_features": tenant.enabled_features,
             "ghl_snapshot_id": "snap_test",
             "allowed_modules": [],

@@ -77,26 +77,29 @@ const plans = [
     name: "Standard",
     price: "$299",
     period: "/mo",
+    setup: "$99 setup",
     description: "AI telephony essentials for solo mechanics and small shops",
     features: ["AI Telephony", "Leads", "Calendar", "CRM", "Form Builder", "Missed Call Text Back"],
     cta: "Start Standard",
     highlighted: false,
   },
   {
-    name: "Premium",
+    name: "Professional",
     price: "$499",
     period: "/mo",
+    setup: "$199 setup",
     description: "For shops ready to connect phones, website, chat, email, and surveys",
     features: ["Everything in Standard", "Website", "Web Chat", "Email Marketing", "Survey Builder"],
-    cta: "Start Premium",
+    cta: "Start Professional",
     highlighted: true,
   },
   {
     name: "Advanced",
     price: "$999",
     period: "/mo",
+    setup: "$299 setup",
     description: "For shops that want funnels, social marketing, and deeper email automation",
-    features: ["Everything in Premium", "Social Media Marketing", "Funnels", "Email Marketing"],
+    features: ["Everything in Professional", "Social Media Marketing", "Funnels", "Email Marketing"],
     cta: "Start Advanced",
     highlighted: false,
   },
@@ -228,6 +231,7 @@ export default function ShopsPage() {
                       <span className="text-4xl font-bold text-white">{plan.price}</span>
                       <span className="text-roadcall-muted mb-1">{plan.period}</span>
                     </div>
+                    <div className="text-sm font-medium text-roadcall-orange mt-2">{plan.setup}</div>
                     <div className="text-sm text-roadcall-muted mt-1">{plan.description}</div>
                   </div>
                   <ul className="space-y-3 mb-8 flex-1">
@@ -237,7 +241,7 @@ export default function ShopsPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href={plan.name === "Standard" ? "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g" : plan.name === "Premium" ? "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i" : "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j"}>
+                  <Link href={plan.name === "Standard" ? "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g" : plan.name === "Professional" ? "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i" : "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j"}>
                     <Button className={`w-full rounded-full ${plan.highlighted ? "bg-gradient-to-r from-roadcall-orange to-roadcall-blue hover:from-roadcall-orange hover:to-roadcall-blue" : "bg-roadcall-panel/60 hover:bg-white/15"}`}>
                       {plan.cta}
                     </Button>

@@ -68,6 +68,7 @@ const plans = [
   {
     name: "Standard",
     price: 299,
+    setup: "$99 setup",
     description: "AI telephony essentials",
     href: "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g",
     features: [
@@ -80,8 +81,9 @@ const plans = [
     ],
   },
   {
-    name: "Premium",
+    name: "Professional",
     price: 499,
+    setup: "$199 setup",
     description: "Website and marketing suite",
     popular: true,
     href: "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i",
@@ -96,10 +98,11 @@ const plans = [
   {
     name: "Advanced",
     price: 999,
-    description: "Full GHL marketing engine",
+    setup: "$299 setup",
+    description: "Full marketing engine",
     href: "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j",
     features: [
-      "Everything in Premium",
+      "Everything in Professional",
       "Social Media Marketing",
       "Funnels",
       "Email Marketing",
@@ -302,6 +305,7 @@ export default function DemoPage() {
                     </span>
                     <span className="text-roadcall-muted">/month</span>
                   </div>
+                  <p className="text-sm font-medium text-roadcall-orange">{plan.setup}</p>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3 mb-6">

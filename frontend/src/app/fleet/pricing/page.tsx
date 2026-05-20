@@ -5,7 +5,7 @@ import { CheckCircle2, ArrowRight, HelpCircle, PauseCircle } from "lucide-react"
 
 const FLEET_FOCUS = [
   { label: "AI roadside support", desc: "Continue validating caller location, triage, outbound calls, and mechanic matching before selling fleet subscriptions." },
-  { label: "Mechanic shop growth", desc: "Prioritize GHL-backed mechanic shop plans and provider onboarding while the fleet package stays private." },
+  { label: "Mechanic shop growth", desc: "Prioritize mechanic shop plans and provider onboarding while the fleet package stays private." },
   { label: "Fleet product stays intact", desc: "Fleet demos, onboarding, dashboards, and backend workflows remain available for testing and future rollout." },
 ];
 

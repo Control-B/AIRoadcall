@@ -116,9 +116,9 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         ),
         "premium": PlanConfig(
             id=PlanTier.premium,
-            name="Premium",
+            name="Professional",
             price_monthly=499,
-            setup_fee=99,
+            setup_fee=199,
             features=GROWTH_FEATURES,
             snapshot_id=settings.GHL_PREMIUM_SNAPSHOT_ID or settings.GHL_PROFESSIONAL_SNAPSHOT_ID or "TODO_GHL_PREMIUM_SNAPSHOT_ID",
             allowed_modules=("ai_phone", "crm", "leads", "calendar", "forms", "sms", "website", "web_chat", "email", "surveys"),
@@ -131,7 +131,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
             id=PlanTier.advanced,
             name="Advanced",
             price_monthly=999,
-            setup_fee=99,
+            setup_fee=299,
             features=PRO_FEATURES,
             snapshot_id=settings.GHL_ADVANCED_SNAPSHOT_ID or settings.GHL_PREMIUM_SNAPSHOT_ID or "TODO_GHL_ADVANCED_SNAPSHOT_ID",
             allowed_modules=(

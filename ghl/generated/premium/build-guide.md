@@ -1,6 +1,6 @@
-# Roadcall Premium - Website and Marketing Snapshot
+# Roadcall Professional - Website and Marketing Snapshot
 
-Plan: Premium ($499/mo + $99 setup)
+Plan: Professional ($499/mo + $199 setup)
 
 Growing diesel shops, towing companies, and repair teams that need everything in Standard plus Website, Web Chat, Email Marketing, and Survey Builder.
 
@@ -36,8 +36,8 @@ Growing diesel shops, towing companies, and repair teams that need everything in
 ## Pipelines
 - Roadcall Revenue Pipeline - Standard: New Lead, Contacted, Demo Booked, Checkout Started, Customer Active, At Risk, Churned
 - Roadcall Recovery Pipeline - Standard: Missed Call, AI Follow-up Sent, Human Review Needed, Recovered, Lost
-- Roadcall Revenue Pipeline - Premium: New Lead, Contacted, Demo Booked, Demo Completed, Checkout Started, Customer Active, Onboarding, Activated, At Risk, Churned
-- Roadcall Onboarding Pipeline - Premium: Account Created, Billing Connected, Profile Completed, AI Receptionist Configured, Test Call Completed, Activated
+- Roadcall Revenue Pipeline - Professional: New Lead, Contacted, Demo Booked, Demo Completed, Checkout Started, Customer Active, Onboarding, Activated, At Risk, Churned
+- Roadcall Onboarding Pipeline - Professional: Account Created, Billing Connected, Profile Completed, AI Receptionist Configured, Test Call Completed, Activated
 
 ## Workflows
 - Roadcall Standard - New Lead Speed to Lead — workflow event: new_lead
@@ -52,18 +52,18 @@ Growing diesel shops, towing companies, and repair teams that need everything in
   - Send short recovery SMS with opt-out language.
   - Create urgent task due in 5 minutes.
   - Move to Recovered only after human or Roadcall confirmation.
-- Roadcall Premium - Demo Booked Confirmation — workflow event: demo_booked
+- Roadcall Professional - Demo Booked Confirmation — workflow event: demo_booked
   - Move opportunity to Demo Booked.
   - Send email and SMS confirmation.
   - Send 24-hour and 1-hour reminders.
   - Create follow-up task after demo if subscription_started is missing.
-- Roadcall Premium - Customer Onboarding — workflow event: checkout_completed or subscription_started
+- Roadcall Professional - Customer Onboarding — workflow event: checkout_completed or subscription_started
   - Move opportunity to Customer Active.
   - Create onboarding opportunity.
   - Send kickoff and setup checklist messages.
   - Create internal onboarding task.
   - Escalate incomplete setup after 3 days.
-- Roadcall Premium - Review Request — workflow event: completed_job or review_request
+- Roadcall Professional - Review Request — workflow event: completed_job or review_request
   - Wait 2 hours after completed job.
   - Send review SMS and email when consent exists.
   - Send one reminder after 2 days if no review is recorded.
@@ -71,12 +71,12 @@ Growing diesel shops, towing companies, and repair teams that need everything in
 ## Templates
 - Email: Roadcall Standard - Intro — Your Roadcall AI telephony setup
 - Email: Roadcall Standard - Missed Call Recovery — We saw a missed call
-- Email: Roadcall Premium - Onboarding Kickoff — Your Roadcall Premium onboarding
-- Email: Roadcall Premium - Review Request — How did Roadcall do?
+- Email: Roadcall Professional - Onboarding Kickoff — Your Roadcall Professional onboarding
+- Email: Roadcall Professional - Review Request — How did Roadcall do?
 - SMS: Roadcall Standard - New Lead SMS
 - SMS: Roadcall Standard - Missed Call SMS
-- SMS: Roadcall Premium - Demo Reminder
-- SMS: Roadcall Premium - Review SMS
+- SMS: Roadcall Professional - Demo Reminder
+- SMS: Roadcall Professional - Review SMS
 
 ## Snapshot Step
 Build or apply these assets to a clean source sub-account, verify the checklist, then save that source sub-account as an official GHL Snapshot from the agency UI.

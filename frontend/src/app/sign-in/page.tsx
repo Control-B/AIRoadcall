@@ -78,7 +78,7 @@ function ShopTrack() {
         </div>
         <h2 className="mt-3 text-2xl font-bold text-white">Subscribe, set up, go live.</h2>
         <p className="mt-3 text-roadcall-muted">
-          Stripe powers billing. Once paid, Roadcall seeds your shop profile,
+          Secure billing activates your account. Once paid, Roadcall seeds your shop profile,
           provisions your AI advisor, and emails you a private dashboard link.
         </p>
         <div className="mt-6 space-y-3">

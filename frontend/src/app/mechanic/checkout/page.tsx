@@ -9,23 +9,23 @@ const PLANS = {
   standard: {
     name: "Standard",
     price: "$299/mo",
-    setup: "AI telephony essentials",
+    setup: "$99 setup",
     checkoutUrl: "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g",
     features: ["AI Telephony", "Leads", "Calendar", "CRM", "Form Builder", "Missed Call Text Back"],
   },
   premium: {
-    name: "Premium",
+    name: "Professional",
     price: "$499/mo",
-    setup: "Growth stack for shops",
+    setup: "$199 setup",
     checkoutUrl: "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i",
     features: ["Everything in Standard", "Website", "Web Chat", "Email Marketing", "Survey Builder"],
   },
   advanced: {
     name: "Advanced",
     price: "$999/mo",
-    setup: "Full GHL marketing engine",
+    setup: "$299 setup",
     checkoutUrl: "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j",
-    features: ["Everything in Premium", "Social Media Marketing", "Funnels", "Email Marketing"],
+    features: ["Everything in Professional", "Social Media Marketing", "Funnels", "Email Marketing"],
   },
 } as const;
 
@@ -67,15 +67,15 @@ function MechanicCheckoutContent() {
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
           <Link href="/pricing" className="text-sm font-semibold text-blue-300 hover:text-blue-200">← Back to pricing</Link>
           <h1 className="mt-8 text-4xl font-black tracking-tight">Start your Roadcall AI advisor.</h1>
-          <p className="mt-4 text-slate-300">Subscribe, complete your shop profile, then Roadcall creates your AI telephony and GHL growth workspace.</p>
+          <p className="mt-4 text-slate-300">Subscribe, complete your shop profile, then Roadcall creates your AI telephony and growth workspace.</p>
           <div className="mt-8 space-y-3">
-            {["Stripe powers secure billing", "GoHighLevel powers CRM, calendar, forms, and marketing", "Roadcall powers AI telephony and lead workflows", "Your shop profile is completed after checkout"].map((item) => (
+            {["Secure billing activates your subscription", "CRM, calendar, forms, and marketing are included", "AI telephony and lead workflows are built for your shop", "Your shop profile is completed after checkout"].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
             ))}
           </div>
           <div className="mt-8 rounded-2xl border border-blue-400/20 bg-blue-400/10 p-5">
             <div className="flex items-center gap-2 text-sm font-semibold text-blue-100"><ShieldCheck className="h-4 w-4" /> Secure activation flow</div>
-            <p className="mt-2 text-sm text-slate-300">Activation starts after Stripe confirms the plan and your profile details are ready.</p>
+            <p className="mt-2 text-sm text-slate-300">Activation starts after checkout confirms the plan and your profile details are ready.</p>
           </div>
         </section>
 
@@ -108,7 +108,7 @@ function MechanicCheckoutContent() {
 
           <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-4 font-bold text-slate-950 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-70">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-            Continue to Stripe for {selectedPlan.name}
+            Continue to secure checkout for {selectedPlan.name}
           </button>
           <p className="mt-4 text-center text-xs text-slate-500">You’ll manage billing through a secure customer portal after checkout.</p>
         </form>

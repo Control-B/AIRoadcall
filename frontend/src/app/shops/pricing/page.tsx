@@ -42,7 +42,7 @@ const PLANS = [
   {
     name: "Standard",
     price: "$299",
-    setup: "AI telephony essentials",
+    setup: "$99 setup",
     target: "Independent repair shops, diesel shops, mobile mechanics, and roadside service providers that need every lead answered.",
     icon: Headphones,
     accent: "from-sky-400 to-blue-500",
@@ -58,14 +58,14 @@ const PLANS = [
     ],
   },
   {
-    name: "Premium",
+    name: "Professional",
     price: "$499",
-    setup: "Website and marketing suite",
-    target: "Shops that want their phones, website, chat, email, and follow-up campaigns connected in GHL.",
+    setup: "$199 setup",
+    target: "Shops that want their phones, website, chat, email, and follow-up campaigns connected.",
     icon: Globe2,
     accent: "from-roadcall-orange via-amber-400 to-blue-400",
     badge: "Most Popular",
-    cta: "Start Premium",
+    cta: "Start Professional",
     href: "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i",
     features: [
       "Everything in Standard",
@@ -78,14 +78,14 @@ const PLANS = [
   {
     name: "Advanced",
     price: "$999",
-    setup: "Full GHL marketing engine",
+    setup: "$299 setup",
     target: "Growth-focused shops that need funnels, social media marketing, and deeper campaign automation.",
     icon: Network,
     accent: "from-blue-400 to-cyan-300",
     cta: "Start Advanced",
     href: "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j",
     features: [
-      "Everything in Premium",
+      "Everything in Professional",
       "Social Media Marketing",
       "Funnels",
       "Email Marketing",
@@ -258,7 +258,7 @@ export default function ShopsPricingPage() {
         <motion.div {...fadeUp()} className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-roadcall-orange">Roadside AI Pricing</p>
           <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Simple pricing for mechanic shops.</h2>
-          <p className="mt-5 text-roadcall-muted">Mechanic shops get three GHL-powered growth plans while Roadcall focuses on AI roadside support performance and shop adoption.</p>
+          <p className="mt-5 text-roadcall-muted">Mechanic shops get three growth plans while Roadcall focuses on AI roadside support performance and shop adoption.</p>
         </motion.div>
 
         <div className="mx-auto mt-12 grid max-w-6xl gap-5 md:grid-cols-3">

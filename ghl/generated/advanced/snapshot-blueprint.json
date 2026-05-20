@@ -4,9 +4,9 @@
   "displayName": "Advanced",
   "pricing": {
     "monthly": 999,
-    "setup": 99
+    "setup": 299
   },
-  "target": "Growth-focused providers ready for everything in Premium plus Social Media Marketing, Funnels, and deeper Email Marketing automation.",
+  "target": "Growth-focused providers ready for everything in Professional plus Social Media Marketing, Funnels, and deeper Email Marketing automation.",
   "tags": [
     "roadcall",
     "roadcall:plan-standard",
@@ -169,7 +169,7 @@
       ]
     },
     {
-      "name": "Roadcall Revenue Pipeline - Premium",
+      "name": "Roadcall Revenue Pipeline - Professional",
       "stages": [
         "New Lead",
         "Contacted",
@@ -184,7 +184,7 @@
       ]
     },
     {
-      "name": "Roadcall Onboarding Pipeline - Premium",
+      "name": "Roadcall Onboarding Pipeline - Professional",
       "stages": [
         "Account Created",
         "Billing Connected",
@@ -231,7 +231,7 @@
       ]
     },
     {
-      "name": "Roadcall Premium - Demo Booked Confirmation",
+      "name": "Roadcall Professional - Demo Booked Confirmation",
       "trigger": "workflow event: demo_booked",
       "actions": [
         "Move opportunity to Demo Booked.",
@@ -241,7 +241,7 @@
       ]
     },
     {
-      "name": "Roadcall Premium - Customer Onboarding",
+      "name": "Roadcall Professional - Customer Onboarding",
       "trigger": "workflow event: checkout_completed or subscription_started",
       "actions": [
         "Move opportunity to Customer Active.",
@@ -252,7 +252,7 @@
       ]
     },
     {
-      "name": "Roadcall Premium - Review Request",
+      "name": "Roadcall Professional - Review Request",
       "trigger": "workflow event: completed_job or review_request",
       "actions": [
         "Wait 2 hours after completed job.",
@@ -301,12 +301,12 @@
       "body": "Hi {{contact.first_name}},\n\nRoadcall detected a missed call and queued a recovery follow-up. Summary:\n{{custom_values.roadcall_ai_call_summary}}\n\n- Roadcall"
     },
     {
-      "name": "Roadcall Premium - Onboarding Kickoff",
-      "subject": "Your Roadcall Premium onboarding",
-      "body": "Hi {{contact.first_name}},\n\nWelcome to Roadcall Premium. Next we will configure your Standard assets plus Website, Web Chat, Email Marketing, and Survey Builder.\n\n- Roadcall"
+      "name": "Roadcall Professional - Onboarding Kickoff",
+      "subject": "Your Roadcall Professional onboarding",
+      "body": "Hi {{contact.first_name}},\n\nWelcome to Roadcall Professional. Next we will configure your Standard assets plus Website, Web Chat, Email Marketing, and Survey Builder.\n\n- Roadcall"
     },
     {
-      "name": "Roadcall Premium - Review Request",
+      "name": "Roadcall Professional - Review Request",
       "subject": "How did Roadcall do?",
       "body": "Hi {{contact.first_name}},\n\nThanks for using Roadcall. If we helped, would you leave a quick review? {{custom_values.roadcall_review_link}}\n\n- Roadcall"
     },
@@ -326,11 +326,11 @@
       "body": "Roadcall saw a missed call. Want help recovering it? Reply YES or call back. Reply STOP to opt out."
     },
     {
-      "name": "Roadcall Premium - Demo Reminder",
+      "name": "Roadcall Professional - Demo Reminder",
       "body": "Roadcall demo reminder: {{appointment.start_time}}. Need to reschedule? {{appointment.reschedule_link}} Reply STOP to opt out."
     },
     {
-      "name": "Roadcall Premium - Review SMS",
+      "name": "Roadcall Professional - Review SMS",
       "body": "Thanks for using Roadcall. If we helped, please leave a quick review: {{custom_values.roadcall_review_link}} Reply STOP to opt out."
     },
     {
@@ -354,11 +354,11 @@
   "inherits": "premium",
   "calendars": [
     {
-      "name": "Roadcall Premium - Demo Calendar",
+      "name": "Roadcall Professional - Demo Calendar",
       "purpose": "Sales demos and implementation calls."
     },
     {
-      "name": "Roadcall Premium - Service Appointment Calendar",
+      "name": "Roadcall Professional - Service Appointment Calendar",
       "purpose": "Optional shop appointment scheduling handoff."
     }
   ]

@@ -82,9 +82,9 @@
     },
     {
       "id": "premium",
-      "snapshotName": "Roadcall Premium - Website and Marketing Snapshot",
-      "displayName": "Premium",
-      "pricing": {"monthly": 499, "setup": 99},
+      "snapshotName": "Roadcall Professional - Website and Marketing Snapshot",
+      "displayName": "Professional",
+      "pricing": {"monthly": 499, "setup": 199},
       "target": "Growing diesel shops, towing companies, and repair teams that need everything in Standard plus Website, Web Chat, Email Marketing, and Survey Builder.",
       "inherits": "standard",
       "tags": [
@@ -102,50 +102,50 @@
       ],
       "pipelines": [
         {
-          "name": "Roadcall Revenue Pipeline - Premium",
+          "name": "Roadcall Revenue Pipeline - Professional",
           "stages": ["New Lead", "Contacted", "Demo Booked", "Demo Completed", "Checkout Started", "Customer Active", "Onboarding", "Activated", "At Risk", "Churned"]
         },
         {
-          "name": "Roadcall Onboarding Pipeline - Premium",
+          "name": "Roadcall Onboarding Pipeline - Professional",
           "stages": ["Account Created", "Billing Connected", "Profile Completed", "AI Receptionist Configured", "Test Call Completed", "Activated"]
         }
       ],
       "calendars": [
-        {"name": "Roadcall Premium - Demo Calendar", "purpose": "Sales demos and implementation calls."},
-        {"name": "Roadcall Premium - Service Appointment Calendar", "purpose": "Optional shop appointment scheduling handoff."}
+        {"name": "Roadcall Professional - Demo Calendar", "purpose": "Sales demos and implementation calls."},
+        {"name": "Roadcall Professional - Service Appointment Calendar", "purpose": "Optional shop appointment scheduling handoff."}
       ],
       "workflows": [
         {
-          "name": "Roadcall Premium - Demo Booked Confirmation",
+          "name": "Roadcall Professional - Demo Booked Confirmation",
           "trigger": "workflow event: demo_booked",
           "actions": ["Move opportunity to Demo Booked.", "Send email and SMS confirmation.", "Send 24-hour and 1-hour reminders.", "Create follow-up task after demo if subscription_started is missing."]
         },
         {
-          "name": "Roadcall Premium - Customer Onboarding",
+          "name": "Roadcall Professional - Customer Onboarding",
           "trigger": "workflow event: checkout_completed or subscription_started",
           "actions": ["Move opportunity to Customer Active.", "Create onboarding opportunity.", "Send kickoff and setup checklist messages.", "Create internal onboarding task.", "Escalate incomplete setup after 3 days."]
         },
         {
-          "name": "Roadcall Premium - Review Request",
+          "name": "Roadcall Professional - Review Request",
           "trigger": "workflow event: completed_job or review_request",
           "actions": ["Wait 2 hours after completed job.", "Send review SMS and email when consent exists.", "Send one reminder after 2 days if no review is recorded."]
         }
       ],
       "emailTemplates": [
-        {"name": "Roadcall Premium - Onboarding Kickoff", "subject": "Your Roadcall Premium onboarding", "body": "Hi {{contact.first_name}},\n\nWelcome to Roadcall Premium. Next we will configure your Standard assets plus Website, Web Chat, Email Marketing, and Survey Builder.\n\n- Roadcall"},
-        {"name": "Roadcall Premium - Review Request", "subject": "How did Roadcall do?", "body": "Hi {{contact.first_name}},\n\nThanks for using Roadcall. If we helped, would you leave a quick review? {{custom_values.roadcall_review_link}}\n\n- Roadcall"}
+        {"name": "Roadcall Professional - Onboarding Kickoff", "subject": "Your Roadcall Professional onboarding", "body": "Hi {{contact.first_name}},\n\nWelcome to Roadcall Professional. Next we will configure your Standard assets plus Website, Web Chat, Email Marketing, and Survey Builder.\n\n- Roadcall"},
+        {"name": "Roadcall Professional - Review Request", "subject": "How did Roadcall do?", "body": "Hi {{contact.first_name}},\n\nThanks for using Roadcall. If we helped, would you leave a quick review? {{custom_values.roadcall_review_link}}\n\n- Roadcall"}
       ],
       "smsTemplates": [
-        {"name": "Roadcall Premium - Demo Reminder", "body": "Roadcall demo reminder: {{appointment.start_time}}. Need to reschedule? {{appointment.reschedule_link}} Reply STOP to opt out."},
-        {"name": "Roadcall Premium - Review SMS", "body": "Thanks for using Roadcall. If we helped, please leave a quick review: {{custom_values.roadcall_review_link}} Reply STOP to opt out."}
+        {"name": "Roadcall Professional - Demo Reminder", "body": "Roadcall demo reminder: {{appointment.start_time}}. Need to reschedule? {{appointment.reschedule_link}} Reply STOP to opt out."},
+        {"name": "Roadcall Professional - Review SMS", "body": "Thanks for using Roadcall. If we helped, please leave a quick review: {{custom_values.roadcall_review_link}} Reply STOP to opt out."}
       ]
     },
     {
       "id": "advanced",
       "snapshotName": "Roadcall Advanced - Funnels and Social Marketing Snapshot",
       "displayName": "Advanced",
-      "pricing": {"monthly": 999, "setup": 99},
-      "target": "Growth-focused providers ready for everything in Premium plus Social Media Marketing, Funnels, and deeper Email Marketing automation.",
+      "pricing": {"monthly": 999, "setup": 299},
+      "target": "Growth-focused providers ready for everything in Professional plus Social Media Marketing, Funnels, and deeper Email Marketing automation.",
       "inherits": "premium",
       "tags": [
         "roadcall:plan-advanced",

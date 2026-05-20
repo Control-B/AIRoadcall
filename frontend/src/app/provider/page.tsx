@@ -67,6 +67,7 @@ const tiers = [
     name: "Free Listing",
     price: "$0",
     period: "/mo",
+    setup: null,
     description: "Get found. Build your presence.",
     features: [
       "Directory listing in all 50 states",
@@ -83,6 +84,7 @@ const tiers = [
     name: "Verified Provider",
     price: "$97",
     period: "/mo",
+    setup: null,
     description: "Get dispatched. Build trust.",
     features: [
       "Everything in Free",
@@ -101,7 +103,8 @@ const tiers = [
     name: "Roadcall Standard",
     price: "$299",
     period: "/mo",
-    description: "AI telephony and GHL essentials.",
+    setup: "$99 setup",
+    description: "AI telephony and growth essentials.",
     features: [
       "Everything in Verified",
       "AI Telephony",
@@ -251,6 +254,7 @@ export default function ProviderPage() {
                       <span className="text-3xl font-black text-white">{tier.price}</span>
                       <span className="text-roadcall-muted text-sm mb-1">{tier.period}</span>
                     </div>
+                    {tier.setup && <p className="mb-1 text-xs font-semibold text-roadcall-orange">{tier.setup}</p>}
                     <p className="text-xs text-roadcall-muted">{tier.description}</p>
                   </div>
                   <ul className="space-y-2 mb-6 flex-1">

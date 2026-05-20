@@ -237,7 +237,7 @@ export default function NewShopPage() {
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               >
                 <option value="standard">Standard ($299/mo)</option>
-                <option value="premium">Premium ($499/mo)</option>
+                <option value="premium">Professional ($499/mo)</option>
                 <option value="advanced">Advanced ($999/mo)</option>
               </select>
             </div>
