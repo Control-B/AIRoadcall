@@ -1,40 +1,22 @@
 "use client";
 
-/**
- * roadcall.ai/go — website-first dispatch flow.
- *
- * Replaces SMS magic-link while carrier registration is pending.
- * Driver enters phone number or Roadcall word code, taps Submit, browser captures GPS,
- * backend reverse-geocodes via Mapbox and returns top 3 mechanics.
- */
-
-import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   Loader2,
   MapPin,
-  Phone,
   RefreshCcw,
   Wrench,
-  AlertTriangle,
 } from "lucide-react";
-import { getApiBase } from "@/lib/api-client";
+
 import { GoResultsMap } from "@/components/maps/go-results-map";
+import { getApiBase } from "@/lib/api-client";
 
 const API_URL = getApiBase();
 
-// ───────── helpers ─────────
-function formatPhonePretty(raw: string): string {
-  const d = raw.replace(/\D/g, "").slice(0, 10);
-  if (d.length <= 3) return d;
-  if (d.length <= 6) return `(${d.slice(0, 3)}) ${d.slice(3)}`;
-  return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
-}
-function digitsOnly(raw: string): string {
-  return raw.replace(/\D/g, "").slice(0, 10);
-}
 function normalizeCaseCode(raw: string): string {
   const value = raw.trim().toUpperCase();
   if (/[A-Z]/.test(value) && !value.startsWith("RC")) {
@@ -47,75 +29,9 @@ function normalizeCaseCode(raw: string): string {
 }
 
 function looksLikeCaseCode(raw: string): boolean {
-  const value = raw.trim().toUpperCase();
-  return /^RC[-\s]?[A-Z0-9]{4,12}$/.test(value) || /^[A-Z]{3,12}(\s+[A-Z]{3,12}){0,2}$/.test(value);
+  const normalized = normalizeCaseCode(raw);
+  return /^RC-[A-Z0-9]{4,12}$/.test(normalized) || /^[A-Z]{3,12}(\s+[A-Z0-9]{3,12}){0,2}$/.test(normalized);
 }
-function telHrefFor(raw?: string | null): string {
-  if (!raw) return "#";
-  const d = raw.replace(/[^\d+]/g, "");
-  if (d.startsWith("+")) return `tel:${d}`;
-  if (d.length === 10) return `tel:+1${d}`;
-  if (d.length === 11 && d.startsWith("1")) return `tel:+${d}`;
-  return `tel:${d}`;
-}
-
-const US_STATES = [
-  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA",
-  "KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ",
-  "NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT",
-  "VA","WA","WV","WI","WY",
-];
-
-// ───────── types ─────────
-type Mechanic = {
-  mechanicId: string;
-  businessName: string;
-  phone: string;
-  city?: string;
-  state?: string;
-  address?: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  distanceMiles?: number | null;
-  reason?: string;
-  mobileService?: boolean;
-  emergencyService?: boolean;
-};
-
-type MajorVendor = {
-  vendorId: string;
-  brandName: string;
-  locationName?: string;
-  phone?: string;
-  city?: string;
-  state?: string;
-  interstate?: string;
-  exitNumber?: string;
-  distanceMiles?: number | null;
-};
-
-type DispatchResponse = {
-  work_order_id: string;
-  status: string;
-  location: {
-    latitude?: number;
-    longitude?: number;
-    city?: string;
-    state?: string;
-    address?: string;
-    place_name?: string;
-    accuracy_m?: number;
-    source: string;
-  };
-  match: {
-    status: string;
-    matches: Mechanic[];
-    majorVendor?: MajorVendor | null;
-    message?: string;
-    needsMoreInfo?: boolean;
-    missingFields?: string[];
-  };
-};
 
 type DispatchSessionStatus = {
   dispatch_session_id: string;
@@ -142,56 +58,24 @@ type DispatchSessionStatus = {
   say: string;
 };
 
-type CallLocationResult = {
-  ok: boolean;
-  status: string;
-  provider_call_id: string;
-  latitude?: number | null;
-  longitude?: number | null;
-  address?: string | null;
-  city?: string | null;
-  state?: string | null;
-  accuracy?: number | null;
-  confidence?: number | null;
-};
-
 type Step = "intake" | "locating" | "matching" | "results" | "manual_fallback";
 
-// ───────── component ─────────
 export default function GoPage() {
   const [step, setStep] = useState<Step>("intake");
-  const [phone, setPhone] = useState("");
+  const [codeInput, setCodeInput] = useState("");
   const [problem, setProblem] = useState("");
   const [vehicleType, setVehicleType] = useState("");
   const [name, setName] = useState("");
-  const [manualCity, setManualCity] = useState("");
-  const [manualState, setManualState] = useState("");
-  const [manualLocationText, setManualLocationText] = useState("");
-  const [liveCallCode, setLiveCallCode] = useState("");
-  const [phoneLast4, setPhoneLast4] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<DispatchResponse | null>(null);
   const [sessionResult, setSessionResult] = useState<DispatchSessionStatus | null>(null);
-  const [callLocationResult, setCallLocationResult] = useState<CallLocationResult | null>(null);
   const [dispatchToken, setDispatchToken] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [progressMsg, setProgressMsg] = useState<string>("");
-  const pollRef = useRef<number | null>(null);
+  const [progressMsg, setProgressMsg] = useState("");
 
-  const phoneDigits = useMemo(() => digitsOnly(phone), [phone]);
-  const caseCode = useMemo(() => normalizeCaseCode(phone), [phone]);
-  const phoneValid = phoneDigits.length === 10;
-  const caseCodeValid = looksLikeCaseCode(phone);
+  const caseCode = useMemo(() => normalizeCaseCode(codeInput), [codeInput]);
+  const caseCodeValid = looksLikeCaseCode(codeInput);
   const tokenMode = Boolean(dispatchToken);
-  const caseCodeMode = !tokenMode && caseCodeValid;
-  const enteredLocationCode = useMemo(() => {
-    const normalized = phone.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
-    if (tokenMode || caseCodeValid || phoneValid) return "";
-    return /^[A-Z0-9]{4,8}$/.test(normalized) ? normalized : "";
-  }, [caseCodeValid, phone, phoneValid, tokenMode]);
-  const activeCallCode = liveCallCode || enteredLocationCode;
-  const liveCallMode = Boolean(activeCallCode);
-  const canSubmitIntake = tokenMode || liveCallMode || phoneValid || caseCodeValid;
+  const canSubmitIntake = tokenMode || caseCodeValid;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -199,84 +83,28 @@ export default function GoPage() {
     const code = params.get("code");
     if (token) {
       setDispatchToken(token);
-      setProgressMsg("This secure Roadcall link will attach your GPS to the live call.");
+      setProgressMsg("This secure Roadcall link will attach your GPS to the live dispatch session.");
     }
     if (code) {
-      const normalizedCode = code.trim().toUpperCase();
-      setPhone(normalizedCode);
-      if (looksLikeCaseCode(normalizedCode)) {
-        setProgressMsg("This Roadcall case code will attach your GPS to the live dispatch session.");
-      } else {
-        setLiveCallCode(normalizedCode);
-        setProgressMsg("This live call code will attach your GPS to the Roadcall AI call.");
-      }
+      setCodeInput(code.trim().toUpperCase());
+      setProgressMsg("This Roadcall code will attach your GPS to the live dispatch session.");
     }
   }, []);
 
-  const submitLiveCallLocation = useCallback(
-    async (opts: { latitude: number; longitude: number; accuracy_m?: number }) => {
-      const code = activeCallCode;
-      if (!code) return;
-      setSubmitting(true);
-      setError(null);
-      setStep("matching");
-      setProgressMsg("Sending your location to the Roadcall AI agent…");
-      try {
-        const res = await fetch(`${API_URL}/location/submit`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            location_code: code,
-            phone_last4: phoneLast4 || null,
-            latitude: opts.latitude,
-            longitude: opts.longitude,
-            accuracy: opts.accuracy_m ?? null,
-          }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body?.detail || `Location submit failed (${res.status})`);
-        setCallLocationResult(body as CallLocationResult);
-        setResult(null);
-        setSessionResult(null);
-        setStep("results");
-      } catch (err: any) {
-        const message = err?.message || "We could not send your location to the Roadcall AI agent.";
-        setError(message.toLowerCase().includes("location code not found")
-          ? "That looks like an older live-call code that Roadcall could not find. If Sandy gave you two words, enter them as the Roadcall word code instead."
-          : message);
-        setStep("manual_fallback");
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [activeCallCode, phoneLast4],
-  );
-
-  const submitLiveCallManualLocation = useCallback(async () => {
-    const code = activeCallCode;
-    if (!code || !manualLocationText.trim()) {
-      setError("Enter the code from the agent and your city, highway, exit, mile marker, or landmark.");
-      return;
+  const linkCaseCode = useCallback(async () => {
+    const res = await fetch(`${API_URL}/dispatch/link-case-code`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ public_code: caseCode }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(body?.detail || "We could not find that Roadcall code. Ask Sandy to repeat the two words.");
     }
-    setSubmitting(true);
-    setError(null);
-    setProgressMsg("Sending your manual location to Roadcall…");
-    try {
-      const res = await fetch(`${API_URL}/location/manual`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ location_code: code, location_text: manualLocationText.trim() }),
-      });
-      const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body?.detail || `Manual location failed (${res.status})`);
-      setCallLocationResult(body as CallLocationResult);
-      setStep("results");
-    } catch (err: any) {
-      setError(err?.message || "Roadcall could not resolve that location. Tell the AI agent your nearest city, highway, exit, or landmark.");
-    } finally {
-      setSubmitting(false);
-    }
-  }, [activeCallCode, manualLocationText]);
+    setDispatchToken(body.location_token);
+    setProgressMsg(`Case ${body.public_code} found. Share your GPS to attach it to the live call.`);
+    return body.location_token as string;
+  }, [caseCode]);
 
   const submitTokenLocation = useCallback(
     async (opts: { latitude: number; longitude: number; accuracy_m?: number }, tokenOverride?: string) => {
@@ -285,7 +113,7 @@ export default function GoPage() {
       setSubmitting(true);
       setError(null);
       setStep("matching");
-      setProgressMsg("Sending your exact GPS location to Roadcall…");
+      setProgressMsg("Sending your exact GPS location to Roadcall...");
       try {
         const res = await fetch(`${API_URL}/dispatch/update-location`, {
           method: "POST",
@@ -296,6 +124,7 @@ export default function GoPage() {
             longitude: opts.longitude,
             accuracy_m: opts.accuracy_m ?? null,
             source: "browser_gps",
+            caller_name: name || null,
             problem_description: problem || null,
             vehicle_type: vehicleType || null,
           }),
@@ -306,7 +135,6 @@ export default function GoPage() {
         }
         const data: { session: DispatchSessionStatus } = await res.json();
         setSessionResult(data.session);
-        setResult(null);
         setStep("results");
       } catch (err: any) {
         setError(err?.message || "We could not attach your GPS to this Roadcall session.");
@@ -315,293 +143,152 @@ export default function GoPage() {
         setSubmitting(false);
       }
     },
-    [dispatchToken, problem, vehicleType],
-  );
-
-  const linkCaseCode = useCallback(async () => {
-    const res = await fetch(`${API_URL}/dispatch/link-case-code`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ public_code: caseCode }),
-    });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(body?.detail || "We could not find that Roadcall case code.");
-    }
-    setDispatchToken(body.location_token);
-    setProgressMsg(`Case ${body.public_code} found. Share your GPS to attach it to the live call.`);
-    return body.location_token as string;
-  }, [caseCode]);
-
-  const submitDispatch = useCallback(
-    async (opts: {
-      latitude?: number;
-      longitude?: number;
-      accuracy_m?: number;
-      city?: string;
-      state?: string;
-    }) => {
-      setSubmitting(true);
-      setError(null);
-      setStep("matching");
-      setProgressMsg("Finding the closest mechanic to you…");
-      try {
-        const res = await fetch(`${API_URL}/go/dispatch`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            phone: phoneDigits,
-            latitude: opts.latitude ?? null,
-            longitude: opts.longitude ?? null,
-            accuracy_m: opts.accuracy_m ?? null,
-            city: opts.city ?? null,
-            state: opts.state ?? null,
-            problem: problem || null,
-            vehicle_type: vehicleType || null,
-            name: name || null,
-          }),
-        });
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          throw new Error(body?.detail || `Dispatch failed (${res.status})`);
-        }
-        const data: DispatchResponse = await res.json();
-        setResult(data);
-        if (data.match.needsMoreInfo) {
-          setStep("manual_fallback");
-        } else {
-          setStep("results");
-        }
-      } catch (err: any) {
-        setError(err?.message || "Something went wrong. Please try again.");
-        setStep("intake");
-      } finally {
-        setSubmitting(false);
-      }
-    },
-    [phoneDigits, problem, vehicleType, name],
+    [dispatchToken, name, problem, vehicleType],
   );
 
   const requestGpsThenDispatch = useCallback(async () => {
     if (!canSubmitIntake) {
-      setError("Enter the word code Sandy gave you, the live call code, or the phone number from your call.");
+      setError("Enter the Roadcall word code Sandy gave you, or use the secure link from the dispatcher.");
       return;
     }
+
     let linkedToken: string | undefined;
-    if (caseCodeMode) {
+    if (!tokenMode) {
       try {
         setSubmitting(true);
         linkedToken = await linkCaseCode();
       } catch (err: any) {
-        setError(err?.message || "We could not find that Roadcall case code.");
+        setError(err?.message || "We could not find that Roadcall code. Ask Sandy to repeat the two words.");
         setSubmitting(false);
         return;
       } finally {
         setSubmitting(false);
       }
     }
+
     if (!("geolocation" in navigator)) {
+      setError("This browser cannot share GPS. Stay on the line and tell Sandy your city, state, highway, exit, mile marker, or nearest landmark.");
       setStep("manual_fallback");
-      setError("Your browser can’t share GPS here. Enter your city and state and we’ll still find help.");
       return;
     }
+
     setError(null);
     setStep("locating");
-    setProgressMsg("Getting your location… please tap “Allow” if your phone asks.");
+    setProgressMsg("Getting your location... please tap Allow if your phone asks.");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        const coords = {
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          accuracy_m: pos.coords.accuracy,
-        };
-        if (tokenMode || linkedToken) {
-          submitTokenLocation(coords, linkedToken);
-        } else if (liveCallMode) {
-          submitLiveCallLocation(coords);
-        } else {
-          submitDispatch(coords);
-        }
+        submitTokenLocation(
+          {
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            accuracy_m: pos.coords.accuracy,
+          },
+          linkedToken,
+        );
       },
       (geoErr) => {
-        // Permission denied / timeout → fallback
-        let msg = "GPS didn’t come through. Enter your city and state and we’ll still find help.";
+        let msg = "GPS did not come through. Stay on the line and tell Sandy your city, state, highway, exit, mile marker, or nearest landmark.";
         if (geoErr.code === geoErr.PERMISSION_DENIED) {
-          msg = "Location permission was blocked. You can enter city/state below, or allow Location in your browser and tap Try GPS again.";
+          msg = "Location permission was blocked. Allow Location for roadcall.ai and tap Try GPS again, or tell Sandy your manual location.";
         } else if (geoErr.code === geoErr.TIMEOUT) {
-          msg = "GPS timed out. Enter city/state below, or tap Try GPS again if you’re outside or have better signal.";
+          msg = "GPS timed out. Tap Try GPS again, or tell Sandy your city, highway, exit, mile marker, or nearest landmark.";
         }
         setError(msg);
         setStep("manual_fallback");
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
-  }, [canSubmitIntake, caseCodeMode, linkCaseCode, liveCallMode, submitDispatch, submitLiveCallLocation, submitTokenLocation, tokenMode]);
+  }, [canSubmitIntake, linkCaseCode, submitTokenLocation, tokenMode]);
 
-  const handleSubmitForm = (e: FormEvent) => {
-    e.preventDefault();
+  const handleSubmitForm = (event: FormEvent) => {
+    event.preventDefault();
     requestGpsThenDispatch();
   };
 
-  const handleManualSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    if (tokenMode || caseCodeMode) {
-      setError("This secure call link needs GPS. If GPS will not work, tell the Roadcall dispatcher your city, state, highway, exit, or nearest landmark while staying on the call.");
-      return;
-    }
-    if (liveCallMode) {
-      submitLiveCallManualLocation();
-      return;
-    }
-    if (!manualCity.trim() || !manualState) {
-      setError("City and state are required.");
-      return;
-    }
-    submitDispatch({ city: manualCity.trim(), state: manualState });
-  };
-
-  // Light polling while results are visible — picks up dispatch state changes
-  useEffect(() => {
-    if (step !== "results" || !result?.work_order_id) return;
-    const id = window.setInterval(async () => {
-      try {
-        const res = await fetch(`${API_URL}/go/status/${result.work_order_id}`);
-        if (res.ok) {
-          const data: DispatchResponse = await res.json();
-          setResult(data);
-        }
-      } catch {
-        /* swallow polling errors */
-      }
-    }, 15000);
-    pollRef.current = id;
-    return () => {
-      window.clearInterval(id);
-      pollRef.current = null;
-    };
-  }, [step, result?.work_order_id]);
-
   const reset = () => {
     setStep("intake");
-    setResult(null);
     setSessionResult(null);
-    setCallLocationResult(null);
     setError(null);
     setProgressMsg("");
   };
 
-  // ───────── render ─────────
   return (
     <div className="min-h-screen bg-slate-950 text-slate-50">
       <header className="border-b border-slate-800/70 bg-slate-900/70 px-4 py-3">
         <div className="mx-auto flex max-w-md items-center justify-between">
           <Link href="/" className="text-sm font-semibold text-slate-200 hover:text-white">
-            ← Roadcall
+            Roadcall
           </Link>
-          <span className="text-xs uppercase tracking-widest text-emerald-400">
-            Live Dispatch
-          </span>
+          <span className="text-xs uppercase tracking-widest text-emerald-400">Live Dispatch</span>
         </div>
       </header>
 
       <main className="mx-auto max-w-lg px-4 pb-20 pt-6">
-        {/* Hero */}
         <div className="mb-6 text-center">
           <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-orange-500/20 ring-1 ring-orange-400/40">
             <MapPin className="h-7 w-7 text-orange-400" />
           </div>
-          <h1 className="text-3xl font-bold tracking-tight">I need help now</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Share your Roadcall location</h1>
           <p className="mt-2 text-sm leading-6 text-slate-300">
-            {liveCallMode
-              ? "Share your location so Roadcall can find the closest mechanic. Stay on the line with the AI agent."
-              : tokenMode
-              ? "Tap submit and share your GPS. This links your exact location to the live Roadcall dispatch session."
-              : "Enter your phone number and tap submit. We'll find the closest mechanic to your exact GPS location and call them for you."}
+            Stay on the line with Sandy. This page only attaches your GPS to the live Roadcall dispatch session.
           </p>
         </div>
 
-        {/* INTAKE */}
         {step === "intake" && (
-          <form
-            onSubmit={handleSubmitForm}
-            className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl"
-          >
-            {liveCallMode ? (
-              <div className="space-y-3">
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-center text-sm text-emerald-100">
-                  Live Roadcall code <span className="font-mono text-lg font-bold text-white">{activeCallCode}</span> detected.
-                </div>
-                <label htmlFor="phoneLast4" className="mb-1 block text-sm font-medium text-slate-200">
-                  Phone last 4 digits <span className="text-slate-500">optional</span>
-                </label>
-                <input
-                  id="phoneLast4"
-                  type="text"
-                  inputMode="numeric"
-                  value={phoneLast4}
-                  onChange={(e) => setPhoneLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                  placeholder="1234"
-                  className="h-12 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-center text-lg font-semibold tracking-widest text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
-                />
-              </div>
-            ) : tokenMode ? (
-              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
-                Secure Roadcall session link detected. You do not need to enter your phone number here.
+          <form onSubmit={handleSubmitForm} className="space-y-4 rounded-lg border border-slate-800 bg-slate-900/60 p-5 shadow-xl">
+            {tokenMode ? (
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-100">
+                Secure Roadcall session link detected. You do not need to enter contact details.
               </div>
             ) : (
-            <div>
-              <label htmlFor="phone" className="mb-1 block text-sm font-medium text-slate-200">
-                Roadcall word code or phone number <span className="text-orange-400">*</span>
-              </label>
-              <input
-                id="phone"
-                type="text"
-                inputMode="text"
-                autoComplete="one-time-code"
-                value={caseCodeValid || phone.toUpperCase().startsWith("RC") || enteredLocationCode ? phone.toUpperCase() : formatPhonePretty(phone)}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="BLUE ROAD or (555) 123-4567"
-                className="h-14 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 text-center text-xl font-semibold tracking-wider text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
-              />
-              <p className="mt-1 text-xs text-slate-400">
-                If Sandy gave you two words, type them here. Otherwise enter the phone number from your call.
-              </p>
-              {caseCodeValid && (
-                <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100">
-                  We&apos;ll attach your GPS to case <span className="font-mono font-semibold">{caseCode}</span>.
-                </div>
-              )}
-              {enteredLocationCode && (
-                <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100">
-                  We&apos;ll attach your GPS to live call code <span className="font-mono font-semibold">{enteredLocationCode}</span>.
-                </div>
-              )}
-            </div>
+              <div>
+                <label htmlFor="case-code" className="mb-1 block text-sm font-medium text-slate-200">
+                  Roadcall word code <span className="text-orange-400">*</span>
+                </label>
+                <input
+                  id="case-code"
+                  type="text"
+                  inputMode="text"
+                  autoComplete="one-time-code"
+                  value={codeInput.toUpperCase()}
+                  onChange={(event) => setCodeInput(event.target.value)}
+                  placeholder="BLUE ROAD"
+                  className="h-14 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 text-center text-xl font-semibold tracking-wider text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
+                />
+                <p className="mt-1 text-xs text-slate-400">
+                  Enter the two words Sandy gave you. No phone number is needed here.
+                </p>
+                {caseCodeValid && (
+                  <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100">
+                    We will attach your GPS to case <span className="font-mono font-semibold">{caseCode}</span>.
+                  </div>
+                )}
+              </div>
             )}
 
-            <details className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-sm">
-              <summary className="cursor-pointer text-slate-300">Optional — helps us match faster</summary>
+            <details className="rounded-lg border border-slate-800 bg-slate-950/50 p-3 text-sm">
+              <summary className="cursor-pointer text-slate-300">Optional details Sandy may already have</summary>
               <div className="mt-3 space-y-3">
                 <input
                   type="text"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(event) => setName(event.target.value)}
                   placeholder="Your name"
                   className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
                 />
                 <input
                   type="text"
                   value={problem}
-                  onChange={(e) => setProblem(e.target.value)}
-                  placeholder="What's wrong? (tire, battery, fuel, towing…)"
+                  onChange={(event) => setProblem(event.target.value)}
+                  placeholder="Problem, if Sandy has not captured it"
                   className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
                 />
                 <select
                   value={vehicleType}
-                  onChange={(e) => setVehicleType(e.target.value)}
+                  onChange={(event) => setVehicleType(event.target.value)}
                   className="h-11 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-orange-400 focus:outline-none"
                 >
-                  <option value="">Vehicle type…</option>
+                  <option value="">Vehicle type, if needed</option>
                   <option value="car">Car / SUV / pickup</option>
                   <option value="box truck">Box truck / straight truck</option>
                   <option value="semi">Semi / tractor</option>
@@ -621,136 +308,57 @@ export default function GoPage() {
             <button
               type="submit"
               disabled={!canSubmitIntake || submitting}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 text-lg font-bold text-slate-950 shadow-lg transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-lg bg-orange-500 text-lg font-bold text-slate-950 shadow-lg transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-400"
             >
-              {submitting ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                <>
-                  {liveCallMode ? "Share My Location" : "Submit & share my location"}
-                  <ArrowRight className="h-5 w-5" />
-                </>
-              )}
+              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <>Submit and share GPS <ArrowRight className="h-5 w-5" /></>}
             </button>
 
             <p className="text-center text-xs text-slate-500">
-              {liveCallMode ? "Your location is used for this live Roadcall call only." : "Tapping submit asks your browser for your GPS location."}
+              Tapping submit asks your browser for GPS and sends it to the live Roadcall case only.
             </p>
           </form>
         )}
 
-        {/* LOCATING / MATCHING */}
         {(step === "locating" || step === "matching") && (
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-8 text-center shadow-xl">
+          <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-8 text-center shadow-xl">
             <Loader2 className="mx-auto h-10 w-10 animate-spin text-orange-400" />
             <h2 className="mt-4 text-xl font-semibold">{progressMsg}</h2>
             <p className="mt-2 text-sm text-slate-400">
-              {step === "locating"
-                ? "Some phones take a few seconds to fix GPS — hang tight."
-                : "Searching 35,000+ mechanics across the US."}
+              {step === "locating" ? "Some phones take a few seconds to fix GPS." : "Attaching your location to the Roadcall dispatch session."}
             </p>
           </div>
         )}
 
-        {/* MANUAL FALLBACK */}
         {step === "manual_fallback" && (
-          <form
-            onSubmit={handleManualSubmit}
-            className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/60 p-5 shadow-xl"
-          >
+          <div className="space-y-4 rounded-lg border border-slate-800 bg-slate-900/60 p-5 shadow-xl">
             <div className="flex items-start gap-2 rounded-lg border border-yellow-500/40 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <span>{error || "GPS didn’t come through — enter city/state and we’ll still find help."}</span>
+              <span>{error || "GPS did not come through."}</span>
             </div>
-            <p className="text-xs leading-5 text-slate-400">
-              {liveCallMode
-                ? "If GPS will not work, enter your city, highway, exit number, mile marker, truck stop, or nearest landmark. Stay on the line while Roadcall resolves it."
-                : "This keeps your work order moving even if your browser blocks location. If you prefer GPS, allow Location for roadcall.ai and tap Try GPS again."}
-            </p>
-            {liveCallMode ? (
-              <textarea
-                value={manualLocationText}
-                onChange={(e) => setManualLocationText(e.target.value)}
-                placeholder="Example: I-75 northbound exit 341 near the Pilot, Ocala FL"
-                rows={4}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
-              />
-            ) : (
-              <>
-                <input
-                  type="text"
-                  value={manualCity}
-                  onChange={(e) => setManualCity(e.target.value)}
-                  placeholder="City"
-                  className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none"
-                />
-                <select
-                  value={manualState}
-                  onChange={(e) => setManualState(e.target.value)}
-                  className="h-12 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 text-slate-100 focus:border-orange-400 focus:outline-none"
-                >
-                  <option value="">State…</option>
-                  {US_STATES.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </>
-            )}
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-orange-500 text-base font-bold text-slate-950 hover:bg-orange-400 disabled:bg-slate-700 disabled:text-slate-400"
-            >
-              {submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : "Find mechanics"}
-            </button>
+            <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4 text-sm leading-6 text-slate-300">
+              Tell Sandy your city, state, highway, exit, mile marker, truck stop, or nearest landmark while you stay on the call.
+            </div>
             <button
               type="button"
               onClick={requestGpsThenDispatch}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-orange-400 hover:text-orange-300"
+              disabled={submitting}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-orange-400 hover:text-orange-300 disabled:opacity-60"
             >
               <RefreshCcw className="h-4 w-4" /> Try GPS again
             </button>
-          </form>
-        )}
-
-        {/* RESULTS */}
-        {step === "results" && callLocationResult && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-5 text-sm text-emerald-100">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald-400" />
-                <div>
-                  <div className="text-base font-semibold">Location received.</div>
-                  <div className="mt-1 text-emerald-200/90">
-                    {callLocationResult.address || [callLocationResult.city, callLocationResult.state].filter(Boolean).join(", ") || "Roadcall has your location."}
-                  </div>
-                  {typeof callLocationResult.accuracy === "number" && (
-                    <div className="mt-1 text-xs text-emerald-300/80">
-                      GPS accuracy about {Math.round(callLocationResult.accuracy)} meters.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <GoResultsMap
-              caller={{
-                latitude: callLocationResult.latitude,
-                longitude: callLocationResult.longitude,
-                label: callLocationResult.address || [callLocationResult.city, callLocationResult.state].filter(Boolean).join(", ") || "Roadcall GPS location",
-              }}
-            />
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-sm text-slate-300">
-              <Wrench className="mb-2 h-6 w-6 text-orange-400" />
-              Location received. Stay on the line while Roadcall finds help.
-            </div>
+            <button
+              type="button"
+              onClick={reset}
+              className="h-10 w-full rounded-lg text-sm text-slate-500 hover:text-slate-300"
+            >
+              Enter code again
+            </button>
           </div>
         )}
 
         {step === "results" && sessionResult && (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+            <div className="rounded-lg border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-100">
               <div className="flex items-start gap-2">
                 <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
                 <div>
@@ -774,7 +382,7 @@ export default function GoPage() {
             />
 
             {sessionResult.best_match ? (
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow">
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4 shadow">
                 <div className="text-xs uppercase tracking-wider text-orange-400">Best current match</div>
                 <div className="mt-1 text-base font-semibold text-white">
                   {sessionResult.best_match.company_name}
@@ -782,158 +390,23 @@ export default function GoPage() {
                 <div className="mt-0.5 text-xs text-slate-400">
                   {[sessionResult.best_match.city, sessionResult.best_match.state].filter(Boolean).join(", ")}
                   {typeof sessionResult.best_match.distance_miles === "number"
-                    ? ` · ${sessionResult.best_match.distance_miles.toFixed(1)} mi away`
+                    ? ` - ${sessionResult.best_match.distance_miles.toFixed(1)} mi away`
                     : ""}
                 </div>
                 <p className="mt-3 text-sm text-slate-300">{sessionResult.say}</p>
               </div>
             ) : (
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-sm text-slate-300">
+              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-5 text-sm text-slate-300">
                 <Wrench className="mb-2 h-6 w-6 text-slate-500" />
                 {sessionResult.say || "Roadcall has your location and is checking nearby providers."}
               </div>
             )}
 
             <p className="text-center text-xs text-slate-500">
-              Stay on the phone with Roadcall while dispatch confirms availability.
+              Stay on the phone with Sandy while dispatch confirms availability.
             </p>
           </div>
         )}
-
-        {step === "results" && result && !sessionResult && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-400" />
-                <div>
-                  <div className="font-semibold">Got your location.</div>
-                  <div className="text-emerald-200/90">
-                    {result.location.place_name ||
-                      [result.location.city, result.location.state].filter(Boolean).join(", ") ||
-                      "Location received"}
-                  </div>
-                  <div className="mt-1 text-xs text-emerald-300/80">
-                    Work order: <span className="font-mono">{result.work_order_id}</span>
-                    {result.location.accuracy_m
-                      ? ` · GPS ±${Math.round(result.location.accuracy_m)} m`
-                      : ""}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <GoResultsMap
-              caller={{
-                latitude: result.location.latitude,
-                longitude: result.location.longitude,
-                label:
-                  result.location.place_name ||
-                  [result.location.city, result.location.state].filter(Boolean).join(", ") ||
-                  "Your GPS location",
-              }}
-              mechanics={result.match.matches}
-            />
-
-            {result.match.matches.length > 0 ? (
-              <div className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-100">
-                  Closest mechanics
-                </h2>
-                {result.match.matches.map((m, i) => (
-                  <div
-                    key={m.mechanicId}
-                    className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 flex-1">
-                        <div className="text-xs uppercase tracking-wider text-orange-400">
-                            <p className="mt-1 text-xs text-slate-400">
-                              If Sandy gave you two words, type them here. Otherwise enter the phone number from your call.
-                            </p>
-                          {m.businessName}
-                        </div>
-                        <div className="mt-0.5 text-xs text-slate-400">
-                          {[m.city, m.state].filter(Boolean).join(", ")}
-                          {typeof m.distanceMiles === "number"
-                            ? ` · ${m.distanceMiles.toFixed(1)} mi away`
-                            : ""}
-                        </div>
-                        {m.reason && (
-                          <div className="mt-1 text-xs text-slate-500">{m.reason}</div>
-                        )}
-                      </div>
-                      <a
-                        href={telHrefFor(m.phone)}
-                        className="flex h-12 shrink-0 items-center gap-2 rounded-xl bg-emerald-500 px-4 text-sm font-bold text-slate-950 hover:bg-emerald-400"
-                      >
-                        <Phone className="h-4 w-4" /> Call
-                      </a>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 text-center text-sm text-slate-300">
-                <Wrench className="mx-auto mb-2 h-6 w-6 text-slate-500" />
-                No local mechanics matched in our directory yet — but we have a major-vendor option below.
-              </div>
-            )}
-
-            {result.match.majorVendor && (
-              <div className="rounded-2xl border border-blue-500/40 bg-blue-500/10 p-4">
-                <div className="text-xs uppercase tracking-wider text-blue-300">
-                  National vendor
-                </div>
-                <div className="mt-1 text-base font-semibold text-white">
-                  {result.match.majorVendor.brandName}
-                  {result.match.majorVendor.locationName ? ` · ${result.match.majorVendor.locationName}` : ""}
-                </div>
-                <div className="mt-0.5 text-xs text-blue-200/90">
-                  {[result.match.majorVendor.city, result.match.majorVendor.state]
-                    .filter(Boolean)
-                    .join(", ")}
-                  {result.match.majorVendor.interstate
-                    ? ` · ${result.match.majorVendor.interstate}${
-                        result.match.majorVendor.exitNumber
-                          ? ` exit ${result.match.majorVendor.exitNumber}`
-                          : ""
-                      }`
-                    : ""}
-                </div>
-                {result.match.majorVendor.phone && (
-                  <a
-                    href={telHrefFor(result.match.majorVendor.phone)}
-                    className="mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-500 text-sm font-bold text-slate-950 hover:bg-blue-400"
-                  >
-                    <Phone className="h-4 w-4" /> Call {result.match.majorVendor.brandName}
-                  </a>
-                )}
-              </div>
-            )}
-
-            <button
-              onClick={reset}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-700 text-sm text-slate-300 hover:border-orange-400 hover:text-orange-300"
-            >
-              <RefreshCcw className="h-4 w-4" /> Start over
-            </button>
-
-            <p className="text-center text-xs text-slate-500">
-              If no one answers, call our dispatcher: {" "}
-              <a href="tel:+18889999999" className="text-orange-400 hover:underline">
-                Roadcall AI dispatch
-              </a>
-            </p>
-          </div>
-        )}
-
-        {/* Existing case-code lookup link */}
-        <div className="mt-10 text-center text-xs text-slate-500">
-          Have a case code from the dispatcher?{" "}
-          <Link href="/go/lookup" className="text-orange-400 hover:underline">
-            Look it up
-          </Link>
-        </div>
       </main>
     </div>
   );
