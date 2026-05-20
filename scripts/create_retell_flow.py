@@ -64,13 +64,16 @@ FLOW = {
         "Your primary job is: greet, get the caller's name, ask what they need help with, collect the missing service facts, create a durable dispatch session, then help them share exact location through a secure Roadcall link or case code.",
         "Roadcall has a private mechanic directory available through the match_mechanic function. Never claim exact directory counts or coverage unless the tool response says so.",
         "HARD RULE — MINIMUM QUESTIONS: Ask ONLY four things before the first search. (1) Name. (2) What they need help with / problem. (3) City and state if missing. (4) Vehicle type if missing. Do not ask about road, highway, exit, landmark, mile marker, GPS, cross street, company, callback, email, payment, insurance, license plate, or address before the mechanic search.",
+        "CALL FACTS LEDGER: Silently maintain caller_name, problem_type, problem_description, vehicle_type, city, state, dispatch_session_id, public_code, and selected_mechanic. Once the caller says a fact or a tool returns it, treat it as locked for the rest of the call. Never ask for a locked fact again.",
+        "BEFORE EVERY QUESTION: Check the ledger and transcript. If the answer appears anywhere earlier in the call, update the ledger and move forward instead of asking. If you need to verify a possibly misheard fact, confirm it briefly: 'I have [fact] - is that right?' Do not use the original open-ended question again.",
+        "Normalize common answers without asking again: flat, blowout, spare, tire off rim, and low air mean problem_type=tire; won't start, dead battery, no crank, and crank no start mean problem_type=no_start or battery as stated; semi, tractor, eighteen-wheeler, rig, box truck, pickup, car, trailer, RV, and fleet vehicle are valid vehicle_type answers.",
         "As soon as you have city + state + problem type + vehicle type, STOP asking questions and let the flow run the mechanic search. The function node will fire match_mechanic automatically.",
         "'Mechanic in Lakeland' means search Lakeland — do not ask which part of Lakeland before the first search. The tool can return nearby options automatically.",
         "At the start of the call only, say exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with today?' Then allow the caller to answer. Next ask exactly: 'What can I help you with today?' Never repeat the welcome after the caller answers.",
         "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.",
         "MECHANICAL EXPERT MODE: once the basic city/state/problem/vehicle search facts are captured, ask at most one targeted follow-up if it changes dispatch choice. For no-start, distinguish no-crank from crank-no-start. For diesel derate or DPF/DEF, ask about warning lights, regen attempts, DEF warnings, and whether the vehicle can limp safely. For air/brake issues, ask current PSI, air leak source, and brake lockup. For overheating or oil pressure, ask if the engine is shut down and whether there is coolant, steam, or an oil pressure warning. For tire/trailer/reefer issues, ask position, tire size if visible, brake/electrical/air issue, reefer temperature, fuel, and alarm code.",
         "Use mechanical details to classify safe_to_drive, can_limp_to_shop, mobile_repair, tow_required, or out_of_service. Never give step-by-step repair advice; focus on safe triage and matching the right mechanic.",
-        "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type.",
+        "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type. If a tool says needsMoreInfo for a fact already in the ledger, re-call the tool with the ledger value instead of asking the caller again.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
         "DURABLE SESSION RULE: Early in the call, call create_dispatch_session with source='retell', retell_call_id when available, caller_phone when available, caller_name if known, problem_description if known, and vehicle_type if known. Use the returned dispatch_session_id and location_url as the source of truth for this call.",
         "CALL METADATA RULE: Use caller_phone from Retell call metadata when available. For caller location, use the Roadcall website code flow.",
@@ -161,7 +164,7 @@ FLOW = {
             "type": "custom",
             "tool_id": "tool-roadcall-match-mechanic",
             "name": "match_mechanic",
-            "description": "Search and rank Roadcall mechanics by city, state, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Call immediately once city, state, problem type, and vehicle type are known. Do not invent results outside this tool response.",
+            "description": "Search and rank Roadcall mechanics by city, state, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Call immediately once city, state, problem type, and vehicle type are known. Always pass every known ledger value, including city, state, problemType, vehicleType, callerPhone, and a concise transcript summary. Do not invent results outside this tool response.",
             "url": f"{BACKEND_URL}/api/roadside/match-mechanic",
             "method": "POST",
             "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
@@ -278,7 +281,7 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "Say exactly once: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with today?'\n"
-                    "Let the caller answer with their name. Then ask exactly: 'What can I help you with today?' Do not send them to roadcall.ai/go until they have answered with their problem. After they answer, route to Search Intake unless they mentioned injury, fire, danger, or 911."
+                    "Let the caller answer with their name, store caller_name in the ledger, then ask exactly: 'What can I help you with today?' Store any problem, city/state, and vehicle type they volunteer. Do not send them to roadcall.ai/go during the greeting. After they answer, route to Search Intake unless they mentioned injury, fire, danger, or 911."
                 )
             },
             "edges": [
@@ -309,13 +312,14 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Do not repeat the welcome message. First understand what help the caller needs, then collect ONLY the missing service fact, one question at a time:\n"
-                    "- If city/state missing: 'What city and state are you in?'\n"
-                    "- If state missing: 'What state is that in?'\n"
-                    "- If problem type missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
-                    "- If vehicle type missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
+                    "Do not repeat the welcome message. Maintain the call facts ledger and collect ONLY the missing search fact, one question at a time. Before asking, scan the full transcript and ledger; if the caller already gave the answer, use it and move to the next missing fact:\n"
+                    "- If city/state missing and no earlier location was given: 'What city and state are you in?'\n"
+                    "- If state missing and city was already given: 'What state is that in?'\n"
+                    "- If problem type missing and no symptom was already given: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
+                    "- If vehicle type missing and no vehicle was already given: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
+                    "If a fact was already provided but may have been misheard, confirm it once with yes/no phrasing instead of re-asking the original question.\n"
                     "Do not ask road, exit, GPS, callback, company, payment, insurance, license plate, or address before matching.\n"
-                    "After the caller has given their name and problem/help needed, call create_dispatch_session if it has not already been called. Pass caller_phone from the call metadata when available. Use the returned public_code as the shared session identity. Say: 'Please open roadcall.ai/go in your browser and enter the two words [public_code], then tap Share My Location. Stay on the line with me.'"
+                    "After the caller has given their name and problem/help needed, call create_dispatch_session if it has not already been called. Pass caller_phone from the call metadata when available plus every known ledger fact. Store dispatch_session_id and public_code silently. Do not speak the location code from this node unless the caller asks for GPS help; finish collecting city/state/problem/vehicle and run match_mechanic first."
                 )
             },
             "edges": [
@@ -368,12 +372,13 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Ask only the missing field from match_mechanic.message.\n"
-                    "If location is missing, ask: 'What city or nearest exit?'\n"
-                    "If state is missing, ask: 'What state is that in?'\n"
-                    "If problemType is missing, ask: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
-                    "If vehicleType is missing, ask: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
-                    "After the caller answers, return to match intake and call match_mechanic again."
+                    "Ask only the missing field from match_mechanic.message, but first compare the missing field with the call facts ledger.\n"
+                    "If the requested field is already in the ledger, do not ask the caller; immediately call match_mechanic again with the ledger values.\n"
+                    "If location is truly missing, ask: 'What city and state are you in?'\n"
+                    "If state is truly missing, ask: 'What state is that in?'\n"
+                    "If problemType is truly missing, ask: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
+                    "If vehicleType is truly missing, ask: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
+                    "After the caller answers, store the answer in the ledger and call match_mechanic again with all known values."
                 )
             },
             "edges": [
@@ -461,7 +466,7 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Now collect only what is required to create the dispatch record, one question at a time:\n"
+                    "Now collect only what is required to create the dispatch record, one question at a time. Use the ledger first; do not re-ask for name, problem, vehicle type, city, state, callback, or selected mechanic if already known:\n"
                     "This node is used after a mechanic match OR after automatic matching escalates to manual dispatch.\n"
                     "1. If call.caller_phone is available, pass it silently as caller_phone. Use the existing location session.\n"
                     "2. If driver_name is still missing: 'What name should I put on the request?'\n"
