@@ -69,7 +69,7 @@ FLOW = {
         "Normalize common answers without asking again: flat, blowout, spare, tire off rim, and low air mean problem_type=tire; won't start, dead battery, no crank, and crank no start mean problem_type=no_start or battery as stated; semi, tractor, eighteen-wheeler, rig, box truck, pickup, car, trailer, RV, and fleet vehicle are valid vehicle_type answers.",
         "As soon as you have city + state + problem type + vehicle type, STOP asking questions and let the flow run the mechanic search. The function node will fire match_mechanic automatically.",
         "'Mechanic in Lakeland' means search Lakeland — do not ask which part of Lakeland before the first search. The tool can return nearby options automatically.",
-        "At the start of the call only, say exactly: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with today?' Then allow the caller to answer. Next ask exactly: 'What can I help you with today?' Never repeat the welcome after the caller answers.",
+        "At the start of the call only, say exactly: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?' Then allow the caller to answer. Next ask exactly: 'What can I help you with today?' Never repeat the welcome after the caller answers.",
         "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.",
         "MECHANICAL EXPERT MODE: once the basic city/state/problem/vehicle search facts are captured, ask at most one targeted follow-up if it changes dispatch choice. For no-start, distinguish no-crank from crank-no-start. For diesel derate or DPF/DEF, ask about warning lights, regen attempts, DEF warnings, and whether the vehicle can limp safely. For air/brake issues, ask current PSI, air leak source, and brake lockup. For overheating or oil pressure, ask if the engine is shut down and whether there is coolant, steam, or an oil pressure warning. For tire/trailer/reefer issues, ask position, tire size if visible, brake/electrical/air issue, reefer temperature, fuel, and alarm code.",
         "Use mechanical details to classify safe_to_drive, can_limp_to_shop, mobile_repair, tow_required, or out_of_service. Never give step-by-step repair advice; focus on safe triage and matching the right mechanic.",
@@ -280,7 +280,7 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Say exactly once: 'Thank you for calling Roadcall AI. Who do I have the pleasure of speaking with today?'\n"
+                    "Say exactly once: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\n"
                     "Let the caller answer with their name, store caller_name in the ledger, then ask exactly: 'What can I help you with today?' Store any problem, city/state, and vehicle type they volunteer. Do not send them to roadcall.ai/go during the greeting. After they answer, route to Search Intake unless they mentioned injury, fire, danger, or 911."
                 )
             },
