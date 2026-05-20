@@ -50,7 +50,7 @@ const DEMO_DASHBOARD: Dashboard = {
   tenant_id: "demo-tenant",
   business_name: "Austin Diesel & Tire (Demo)",
   account_status: "payment_active",
-  subscription: { plan_id: "professional", status: "active", current_period_end: null, cancel_at_period_end: false },
+  subscription: { plan_id: "premium", status: "active", current_period_end: null, cancel_at_period_end: false },
   profile: {
     business_name: "Austin Diesel & Tire",
     phone: "+1 (512) 555-0143",
@@ -279,7 +279,7 @@ function MechanicDashboardContent() {
             <h1 className="mt-3 text-4xl font-black tracking-tight">{dashboard?.business_name}</h1>
           </div>
           {isDemo ? (
-            <Link href="/mechanic/checkout?plan=professional" className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-white/10">
+            <Link href="/mechanic/checkout?plan=premium" className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-white/10">
               Manage billing
             </Link>
           ) : (
@@ -294,7 +294,7 @@ function MechanicDashboardContent() {
               <span>You&apos;re in <strong>demo mode</strong>. Data is sample; changes won&apos;t persist.</span>
             </div>
             <a
-              href="/mechanic/checkout?plan=professional"
+              href="/mechanic/checkout?plan=premium"
               className="inline-flex items-center justify-center rounded-full bg-roadcall-orange px-5 py-2 text-sm font-bold text-slate-950 hover:brightness-110"
             >
               Subscribe to activate your real shop

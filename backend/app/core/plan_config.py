@@ -7,9 +7,9 @@ from app.core.config import get_settings
 
 
 class PlanTier(StrEnum):
-    starter = "starter"
-    growth = "growth"
-    pro = "pro"
+    standard = "standard"
+    premium = "premium"
+    advanced = "advanced"
 
 
 class PlanFeature(StrEnum):
@@ -20,6 +20,12 @@ class PlanFeature(StrEnum):
     sms_follow_up = "sms_follow_up"
     basic_ai_summaries = "basic_ai_summaries"
     website_widget = "website_widget"
+    web_chat = "web_chat"
+    form_builder = "form_builder"
+    email_marketing = "email_marketing"
+    survey_builder = "survey_builder"
+    social_media_marketing = "social_media_marketing"
+    funnels = "funnels"
     advanced_ai_workflows = "advanced_ai_workflows"
     appointment_scheduling = "appointment_scheduling"
     smart_routing = "smart_routing"
@@ -45,9 +51,10 @@ class PlanFeature(StrEnum):
 
 
 PLAN_ALIASES = {
-    "standard": PlanTier.starter,
-    "professional": PlanTier.growth,
-    "premium": PlanTier.pro,
+    "starter": PlanTier.standard,
+    "growth": PlanTier.premium,
+    "professional": PlanTier.premium,
+    "pro": PlanTier.advanced,
 }
 
 
@@ -71,37 +78,23 @@ STARTER_FEATURES = (
     PlanFeature.missed_call_text_back,
     PlanFeature.basic_crm_sync,
     PlanFeature.lead_capture,
-    PlanFeature.sms_follow_up,
-    PlanFeature.basic_ai_summaries,
-    PlanFeature.website_widget,
+    PlanFeature.appointment_scheduling,
+    PlanFeature.form_builder,
 )
 
 GROWTH_FEATURES = STARTER_FEATURES + (
-    PlanFeature.advanced_ai_workflows,
-    PlanFeature.appointment_scheduling,
-    PlanFeature.smart_routing,
-    PlanFeature.website_voice_assistant,
-    PlanFeature.advanced_qualification,
-    PlanFeature.advanced_analytics,
-    PlanFeature.team_notifications,
-    PlanFeature.custom_workflows,
-    PlanFeature.customer_follow_up,
-    PlanFeature.review_automation,
-    PlanFeature.multi_location_support,
+    PlanFeature.website_widget,
+    PlanFeature.web_chat,
+    PlanFeature.email_marketing,
+    PlanFeature.survey_builder,
 )
 
 PRO_FEATURES = GROWTH_FEATURES + (
-    PlanFeature.gps_capture,
-    PlanFeature.roadside_intake,
-    PlanFeature.dispatch_workflow,
-    PlanFeature.driver_intake,
-    PlanFeature.mechanic_assignment,
-    PlanFeature.fleet_notification,
-    PlanFeature.dispatch_dashboard,
-    PlanFeature.emergency_routing,
-    PlanFeature.real_time_roadside_status,
-    PlanFeature.external_dispatch_api,
-    PlanFeature.api_ready_infrastructure,
+    PlanFeature.social_media_marketing,
+    PlanFeature.funnels,
+    PlanFeature.custom_workflows,
+    PlanFeature.advanced_ai_workflows,
+    PlanFeature.customer_follow_up,
 )
 
 
@@ -109,73 +102,75 @@ def get_plan_configs() -> dict[str, PlanConfig]:
     settings = get_settings()
     return {
         "standard": PlanConfig(
-            id=PlanTier.starter,
+            id=PlanTier.standard,
             name="Standard",
-            price_monthly=197,
+            price_monthly=299,
             setup_fee=99,
             features=STARTER_FEATURES,
             snapshot_id=settings.GHL_STANDARD_SNAPSHOT_ID or "TODO_GHL_STANDARD_SNAPSHOT_ID",
-            allowed_modules=("ai_phone", "crm", "leads", "sms", "widget"),
+            allowed_modules=("ai_phone", "crm", "leads", "calendar", "forms", "sms"),
             webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "call.summary"),
-            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "widget.read"),
+            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "calendar.read", "forms.read"),
             dispatch_permissions=(),
-            ai_feature_permissions=("ai.answering", "ai.summary", "ai.widget"),
-        ),
-        "professional": PlanConfig(
-            id=PlanTier.growth,
-            name="Professional",
-            price_monthly=297,
-            setup_fee=99,
-            features=GROWTH_FEATURES,
-            snapshot_id=settings.GHL_PROFESSIONAL_SNAPSHOT_ID or "TODO_GHL_PROFESSIONAL_SNAPSHOT_ID",
-            allowed_modules=("ai_phone", "crm", "leads", "sms", "widget", "appointments", "analytics", "team"),
-            webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "ghl.appointment", "call.summary"),
-            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "appointments.read", "analytics.read", "team.read"),
-            dispatch_permissions=(),
-            ai_feature_permissions=("ai.answering", "ai.summary", "ai.qualification", "ai.routing", "ai.voice_assistant"),
+            ai_feature_permissions=("ai.telephony", "ai.answering", "ai.missed_call_text_back"),
         ),
         "premium": PlanConfig(
-            id=PlanTier.pro,
+            id=PlanTier.premium,
             name="Premium",
-            price_monthly=497,
+            price_monthly=499,
+            setup_fee=99,
+            features=GROWTH_FEATURES,
+            snapshot_id=settings.GHL_PREMIUM_SNAPSHOT_ID or settings.GHL_PROFESSIONAL_SNAPSHOT_ID or "TODO_GHL_PREMIUM_SNAPSHOT_ID",
+            allowed_modules=("ai_phone", "crm", "leads", "calendar", "forms", "sms", "website", "web_chat", "email", "surveys"),
+            webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "ghl.appointment", "call.summary"),
+            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "calendar.read", "website.read", "email.read", "surveys.read"),
+            dispatch_permissions=(),
+            ai_feature_permissions=("ai.telephony", "ai.answering", "ai.web_chat", "ai.email_follow_up"),
+        ),
+        "advanced": PlanConfig(
+            id=PlanTier.advanced,
+            name="Advanced",
+            price_monthly=999,
             setup_fee=99,
             features=PRO_FEATURES,
-            snapshot_id=settings.GHL_PREMIUM_SNAPSHOT_ID or "TODO_GHL_PREMIUM_SNAPSHOT_ID",
+            snapshot_id=settings.GHL_ADVANCED_SNAPSHOT_ID or settings.GHL_PREMIUM_SNAPSHOT_ID or "TODO_GHL_ADVANCED_SNAPSHOT_ID",
             allowed_modules=(
                 "ai_phone",
                 "crm",
                 "leads",
+                "calendar",
+                "forms",
                 "sms",
-                "widget",
-                "appointments",
-                "analytics",
-                "team",
-                "roadside",
-                "dispatch",
-                "fleet",
-                "external_api",
+                "website",
+                "web_chat",
+                "email",
+                "surveys",
+                "social_media",
+                "funnels",
+                "automation",
             ),
             webhook_permissions=(
                 "subscription",
                 "ghl.contact",
                 "ghl.opportunity",
                 "ghl.appointment",
-                "roadside.location",
-                "roadside.dispatch",
+                "ghl.social",
+                "ghl.funnel",
                 "ai.voice",
             ),
             dashboard_permissions=(
                 "dashboard.read",
                 "leads.read",
                 "crm.read",
-                "appointments.read",
-                "analytics.read",
-                "team.read",
-                "dispatch.read",
-                "fleet.read",
+                "calendar.read",
+                "website.read",
+                "email.read",
+                "surveys.read",
+                "social.read",
+                "funnels.read",
             ),
-            dispatch_permissions=("gps_capture", "roadside_intake", "mechanic_assignment", "fleet_notification", "external_dispatch_api"),
-            ai_feature_permissions=("ai.answering", "ai.summary", "ai.qualification", "ai.routing", "ai.dispatch", "ai.emergency"),
+            dispatch_permissions=(),
+            ai_feature_permissions=("ai.telephony", "ai.answering", "ai.web_chat", "ai.email_follow_up", "ai.marketing_automation"),
         ),
     }
 
@@ -187,9 +182,9 @@ def get_plan_config(plan_id: str | PlanTier) -> PlanConfig:
     except ValueError as exc:
         raise KeyError(f"Unknown Roadcall plan: {plan_id}") from exc
     plan_config_key = {
-        PlanTier.starter: "standard",
-        PlanTier.growth: "professional",
-        PlanTier.pro: "premium",
+        PlanTier.standard: "standard",
+        PlanTier.premium: "premium",
+        PlanTier.advanced: "advanced",
     }[tier]
     return get_plan_configs()[plan_config_key]
 
@@ -201,9 +196,9 @@ def canonical_plan_id(plan_id: str | PlanTier) -> str:
 def included_leads_for(plan_id: str | PlanTier) -> int:
     tier = get_plan_config(plan_id).id
     return {
-        PlanTier.starter: 10,
-        PlanTier.growth: 35,
-        PlanTier.pro: 100,
+        PlanTier.standard: 10,
+        PlanTier.premium: 35,
+        PlanTier.advanced: 100,
     }[tier]
 
 

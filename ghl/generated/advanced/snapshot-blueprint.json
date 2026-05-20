@@ -1,12 +1,12 @@
 {
-  "id": "professional",
-  "snapshotName": "Roadcall Professional - AI Telephony Snapshot",
-  "displayName": "Professional",
+  "id": "advanced",
+  "snapshotName": "Roadcall Advanced - Funnels and Social Marketing Snapshot",
+  "displayName": "Advanced",
   "pricing": {
-    "monthly": 297,
+    "monthly": 999,
     "setup": 99
   },
-  "target": "Growing diesel shops, towing companies, and repair teams that need scheduling, routing, advanced analytics, review automation, and multi-location support.",
+  "target": "Growth-focused providers ready for everything in Premium plus Social Media Marketing, Funnels, and deeper Email Marketing automation.",
   "tags": [
     "roadcall",
     "roadcall:plan-standard",
@@ -16,11 +16,17 @@
     "roadcall:missed-call",
     "roadcall:ai-receptionist",
     "roadcall:website-widget",
-    "roadcall:plan-professional",
+    "roadcall:plan-premium",
     "roadcall:appointment-scheduling",
     "roadcall:review-request",
     "roadcall:multi-location",
-    "roadcall:priority-onboarding"
+    "roadcall:priority-onboarding",
+    "roadcall:plan-advanced",
+    "roadcall:social-media-marketing",
+    "roadcall:funnel",
+    "roadcall:advanced-email-marketing",
+    "roadcall:campaign-automation",
+    "roadcall:priority-growth"
   ],
   "customFields": [
     {
@@ -29,8 +35,8 @@
       "type": "single_select",
       "options": [
         "standard",
-        "professional",
-        "premium"
+        "premium",
+        "advanced"
       ]
     },
     {
@@ -110,6 +116,33 @@
       "name": "Roadcall Review Link",
       "key": "roadcall_review_link",
       "type": "text"
+    },
+    {
+      "name": "Roadcall Campaign Stage",
+      "key": "roadcall_campaign_stage",
+      "type": "single_select",
+      "options": [
+        "not_started",
+        "planning",
+        "active",
+        "paused",
+        "completed"
+      ]
+    },
+    {
+      "name": "Roadcall Funnel URL",
+      "key": "roadcall_funnel_url",
+      "type": "text"
+    },
+    {
+      "name": "Roadcall Social Channel",
+      "key": "roadcall_social_channel",
+      "type": "text"
+    },
+    {
+      "name": "Roadcall Campaign Goal",
+      "key": "roadcall_campaign_goal",
+      "type": "text"
     }
   ],
   "pipelines": [
@@ -136,7 +169,7 @@
       ]
     },
     {
-      "name": "Roadcall Revenue Pipeline - Professional",
+      "name": "Roadcall Revenue Pipeline - Premium",
       "stages": [
         "New Lead",
         "Contacted",
@@ -151,7 +184,7 @@
       ]
     },
     {
-      "name": "Roadcall Onboarding Pipeline - Professional",
+      "name": "Roadcall Onboarding Pipeline - Premium",
       "stages": [
         "Account Created",
         "Billing Connected",
@@ -159,6 +192,18 @@
         "AI Receptionist Configured",
         "Test Call Completed",
         "Activated"
+      ]
+    },
+    {
+      "name": "Roadcall Marketing Pipeline - Advanced",
+      "stages": [
+        "Campaign Intake",
+        "Assets Needed",
+        "Funnel Build",
+        "Campaign Active",
+        "Optimization",
+        "Reporting",
+        "Completed"
       ]
     }
   ],
@@ -186,7 +231,7 @@
       ]
     },
     {
-      "name": "Roadcall Professional - Demo Booked Confirmation",
+      "name": "Roadcall Premium - Demo Booked Confirmation",
       "trigger": "workflow event: demo_booked",
       "actions": [
         "Move opportunity to Demo Booked.",
@@ -196,7 +241,7 @@
       ]
     },
     {
-      "name": "Roadcall Professional - Customer Onboarding",
+      "name": "Roadcall Premium - Customer Onboarding",
       "trigger": "workflow event: checkout_completed or subscription_started",
       "actions": [
         "Move opportunity to Customer Active.",
@@ -207,20 +252,48 @@
       ]
     },
     {
-      "name": "Roadcall Professional - Review Request",
+      "name": "Roadcall Premium - Review Request",
       "trigger": "workflow event: completed_job or review_request",
       "actions": [
         "Wait 2 hours after completed job.",
         "Send review SMS and email when consent exists.",
         "Send one reminder after 2 days if no review is recorded."
       ]
+    },
+    {
+      "name": "Roadcall Advanced - Funnel Lead Nurture",
+      "trigger": "workflow event: new_lead",
+      "actions": [
+        "Create or update contact with advanced plan tags.",
+        "Create an opportunity in Roadcall Marketing Pipeline - Advanced.",
+        "Send funnel-specific email and SMS follow-up when consent exists.",
+        "Create a campaign review task for the growth owner."
+      ]
+    },
+    {
+      "name": "Roadcall Advanced - Campaign Review",
+      "trigger": "workflow event: campaign_review",
+      "actions": [
+        "Move marketing opportunity to Optimization.",
+        "Create review task for social, funnel, and email performance.",
+        "Send owner summary email with next-step CTA."
+      ]
+    },
+    {
+      "name": "Roadcall Advanced - Social Campaign Task",
+      "trigger": "workflow event: social_campaign_requested",
+      "actions": [
+        "Add social media marketing tag.",
+        "Create asset collection task.",
+        "Send checklist email for offers, service photos, and target area details."
+      ]
     }
   ],
   "emailTemplates": [
     {
       "name": "Roadcall Standard - Intro",
-      "subject": "Your Roadcall AI answering setup",
-      "body": "Hi {{contact.first_name}},\n\nThanks for checking out Roadcall Standard. This plan gives your shop 24/7 AI answering, missed-call text back, call summaries, multilingual support, and basic CRM follow-up.\n\nBook your setup call here: {{calendar.link}}\n\n- Roadcall"
+      "subject": "Your Roadcall AI telephony setup",
+      "body": "Hi {{contact.first_name}},\n\nThanks for checking out Roadcall Standard. This plan gives your shop AI Telephony, Leads, Calendar, CRM, Form Builder, and Missed Call Text Back.\n\nBook your setup call here: {{calendar.link}}\n\n- Roadcall"
     },
     {
       "name": "Roadcall Standard - Missed Call Recovery",
@@ -228,32 +301,45 @@
       "body": "Hi {{contact.first_name}},\n\nRoadcall detected a missed call and queued a recovery follow-up. Summary:\n{{custom_values.roadcall_ai_call_summary}}\n\n- Roadcall"
     },
     {
-      "name": "Roadcall Professional - Onboarding Kickoff",
-      "subject": "Your Roadcall Professional onboarding",
-      "body": "Hi {{contact.first_name}},\n\nWelcome to Roadcall Professional. Next we will configure your AI voice workflow, scheduling, routing rules, review automation, and team notifications.\n\n- Roadcall"
+      "name": "Roadcall Premium - Onboarding Kickoff",
+      "subject": "Your Roadcall Premium onboarding",
+      "body": "Hi {{contact.first_name}},\n\nWelcome to Roadcall Premium. Next we will configure your Standard assets plus Website, Web Chat, Email Marketing, and Survey Builder.\n\n- Roadcall"
     },
     {
-      "name": "Roadcall Professional - Review Request",
+      "name": "Roadcall Premium - Review Request",
       "subject": "How did Roadcall do?",
       "body": "Hi {{contact.first_name}},\n\nThanks for using Roadcall. If we helped, would you leave a quick review? {{custom_values.roadcall_review_link}}\n\n- Roadcall"
+    },
+    {
+      "name": "Roadcall Advanced - Campaign Milestone",
+      "subject": "Your Roadcall Advanced campaign update",
+      "body": "Roadcall recorded a marketing or automation milestone.\n\nPlan: {{custom_values.roadcall_plan}}\nLifecycle event: {{custom_values.roadcall_lifecycle_event}}\n\nRoadcall remains the source of truth for billing and activation."
     }
   ],
   "smsTemplates": [
     {
       "name": "Roadcall Standard - New Lead SMS",
-      "body": "Thanks for checking out Roadcall Standard. Want 24/7 AI answering + missed-call text back? Book here: {{calendar.link}} Reply STOP to opt out."
+      "body": "Thanks for checking out Roadcall Standard. Want AI Telephony, CRM, forms, calendar, and missed-call text back? Book here: {{calendar.link}} Reply STOP to opt out."
     },
     {
       "name": "Roadcall Standard - Missed Call SMS",
       "body": "Roadcall saw a missed call. Want help recovering it? Reply YES or call back. Reply STOP to opt out."
     },
     {
-      "name": "Roadcall Professional - Demo Reminder",
+      "name": "Roadcall Premium - Demo Reminder",
       "body": "Roadcall demo reminder: {{appointment.start_time}}. Need to reschedule? {{appointment.reschedule_link}} Reply STOP to opt out."
     },
     {
-      "name": "Roadcall Professional - Review SMS",
+      "name": "Roadcall Premium - Review SMS",
       "body": "Thanks for using Roadcall. If we helped, please leave a quick review: {{custom_values.roadcall_review_link}} Reply STOP to opt out."
+    },
+    {
+      "name": "Roadcall Advanced - Funnel Follow-up",
+      "body": "Roadcall Advanced follow-up: your funnel or campaign step is ready for review. Reply STOP to opt out."
+    },
+    {
+      "name": "Roadcall Advanced - Campaign Reminder",
+      "body": "Roadcall Advanced reminder: review your latest campaign task in GHL. Reply STOP to opt out."
     }
   ],
   "aiReceptionist": {
@@ -265,14 +351,14 @@
       "Do not collect full card details."
     ]
   },
-  "inherits": "standard",
+  "inherits": "premium",
   "calendars": [
     {
-      "name": "Roadcall Professional - Demo Calendar",
+      "name": "Roadcall Premium - Demo Calendar",
       "purpose": "Sales demos and implementation calls."
     },
     {
-      "name": "Roadcall Professional - Service Appointment Calendar",
+      "name": "Roadcall Premium - Service Appointment Calendar",
       "purpose": "Optional shop appointment scheduling handoff."
     }
   ]

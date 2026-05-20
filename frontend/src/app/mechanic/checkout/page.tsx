@@ -4,10 +4,29 @@ import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
-import { getApiBase } from "@/lib/api-client";
 
 const PLANS = {
-  professional: { name: "Mechanic Shop AI", price: "$299/mo", leads: "All shop AI features", setup: "MVP shop plan" },
+  standard: {
+    name: "Standard",
+    price: "$299/mo",
+    setup: "AI telephony essentials",
+    checkoutUrl: "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g",
+    features: ["AI Telephony", "Leads", "Calendar", "CRM", "Form Builder", "Missed Call Text Back"],
+  },
+  premium: {
+    name: "Premium",
+    price: "$499/mo",
+    setup: "Growth stack for shops",
+    checkoutUrl: "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i",
+    features: ["Everything in Standard", "Website", "Web Chat", "Email Marketing", "Survey Builder"],
+  },
+  advanced: {
+    name: "Advanced",
+    price: "$999/mo",
+    setup: "Full GHL marketing engine",
+    checkoutUrl: "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j",
+    features: ["Everything in Premium", "Social Media Marketing", "Funnels", "Email Marketing"],
+  },
 } as const;
 
 type PlanId = keyof typeof PLANS;
@@ -15,8 +34,8 @@ type PlanId = keyof typeof PLANS;
 function MechanicCheckoutContent() {
   const params = useSearchParams();
   const rawPlan = params.get("plan") || "standard";
-  const initialPlan = ({ starter: "professional", standard: "professional", growth: "professional", premium: "professional", pro: "professional" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
-  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "professional");
+  const initialPlan = ({ starter: "standard", growth: "premium", professional: "premium", pro: "advanced" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
+  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "standard");
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
@@ -32,14 +51,10 @@ function MechanicCheckoutContent() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${getApiBase()}/billing/checkout`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan_id: planId, business_name: businessName, owner_name: ownerName, email, phone, website }),
-      });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.detail || "Checkout failed");
-      window.location.href = body.checkout_url;
+      const checkoutUrl = new URL(selectedPlan.checkoutUrl);
+      checkoutUrl.searchParams.set("prefilled_email", email);
+      checkoutUrl.searchParams.set("client_reference_id", `${planId}:${businessName}`.slice(0, 200));
+      window.location.href = checkoutUrl.toString();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
       setLoading(false);
@@ -52,15 +67,15 @@ function MechanicCheckoutContent() {
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
           <Link href="/pricing" className="text-sm font-semibold text-blue-300 hover:text-blue-200">← Back to pricing</Link>
           <h1 className="mt-8 text-4xl font-black tracking-tight">Start your Roadcall AI advisor.</h1>
-          <p className="mt-4 text-slate-300">Subscribe, complete your shop profile, then Roadcall creates your AI phone advisor.</p>
+          <p className="mt-4 text-slate-300">Subscribe, complete your shop profile, then Roadcall creates your AI telephony and GHL growth workspace.</p>
           <div className="mt-8 space-y-3">
-            {["Secure billing is the subscription source of truth", "Roadcall powers your AI phone workflow", "Roadcall controls profiles, quotas, leads, and dispatch", "Calendar booking can be added during profile setup"].map((item) => (
+            {["Stripe powers secure billing", "GoHighLevel powers CRM, calendar, forms, and marketing", "Roadcall powers AI telephony and lead workflows", "Your shop profile is completed after checkout"].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
             ))}
           </div>
           <div className="mt-8 rounded-2xl border border-blue-400/20 bg-blue-400/10 p-5">
             <div className="flex items-center gap-2 text-sm font-semibold text-blue-100"><ShieldCheck className="h-4 w-4" /> Secure activation flow</div>
-            <p className="mt-2 text-sm text-slate-300">AI telephony stays disabled until billing confirms an active subscription and your profile is complete.</p>
+            <p className="mt-2 text-sm text-slate-300">Activation starts after Stripe confirms the plan and your profile details are ready.</p>
           </div>
         </section>
 
@@ -75,7 +90,8 @@ function MechanicCheckoutContent() {
               >
                 <p className="font-bold">{PLANS[id].name}</p>
                 <p className="mt-1 text-2xl font-black">{PLANS[id].price}</p>
-                <p className="mt-1 text-xs text-slate-400">{PLANS[id].setup} · {PLANS[id].leads}</p>
+                <p className="mt-1 text-xs text-slate-400">{PLANS[id].setup}</p>
+                <p className="mt-2 text-xs leading-5 text-slate-300">{PLANS[id].features.join(" · ")}</p>
               </button>
             ))}
           </div>
@@ -92,7 +108,7 @@ function MechanicCheckoutContent() {
 
           <button disabled={loading} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-4 font-bold text-slate-950 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-70">
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-            Start {selectedPlan.name}
+            Continue to Stripe for {selectedPlan.name}
           </button>
           <p className="mt-4 text-center text-xs text-slate-500">You’ll manage billing through a secure customer portal after checkout.</p>
         </form>

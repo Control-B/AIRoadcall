@@ -66,34 +66,34 @@ def _fake_tenant(plan_id: str):
 def test_plan_configs_cover_required_tiers_and_permissions():
     configs = get_plan_configs()
 
-    assert set(configs) == {"standard", "professional", "premium"}
-    assert PlanFeature.website_widget in configs["standard"].features
-    assert PlanFeature.appointment_scheduling in configs["professional"].features
-    assert PlanFeature.gps_capture in configs["premium"].features
-    assert PlanFeature.gps_capture not in configs["professional"].features
-    assert "external_dispatch_api" in configs["premium"].dispatch_permissions
+    assert set(configs) == {"standard", "premium", "advanced"}
+    assert PlanFeature.form_builder in configs["standard"].features
+    assert PlanFeature.website_widget in configs["premium"].features
+    assert PlanFeature.funnels in configs["advanced"].features
+    assert PlanFeature.funnels not in configs["premium"].features
+    assert "funnels" in configs["advanced"].allowed_modules
 
 
 def test_locked_features_show_upgrade_behavior():
     standard = get_plan_config("standard")
     locked = locked_features_for("standard", [feature.value for feature in standard.features])
 
-    assert "gps_capture" in locked
-    assert "appointment_scheduling" in locked
+    assert "website_widget" in locked
+    assert "funnels" in locked
     assert "ai_answering" not in locked
 
 
 @pytest.mark.asyncio
 async def test_plan_gating_allows_enabled_feature(monkeypatch):
-    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="premium")
+    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="advanced")
 
     async def fake_has_feature(_db, tenant_id, feature):
         assert tenant_id == tenant.id
-        assert feature == "gps_capture"
+        assert feature == "funnels"
         return True, tenant
 
     monkeypatch.setattr("app.api.plan_deps.service.tenant_has_feature", fake_has_feature)
-    dependency = require_tenant_feature(PlanFeature.gps_capture)
+    dependency = require_tenant_feature(PlanFeature.funnels)
 
     assert await dependency(x_roadcall_tenant_id=str(tenant.id), db=None) is tenant
 
@@ -103,11 +103,11 @@ async def test_plan_gating_blocks_locked_feature(monkeypatch):
     tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="standard")
 
     async def fake_has_feature(_db, _tenant_id, feature):
-        assert feature == "gps_capture"
+        assert feature == "funnels"
         return False, tenant
 
     monkeypatch.setattr("app.api.plan_deps.service.tenant_has_feature", fake_has_feature)
-    dependency = require_tenant_feature(PlanFeature.gps_capture)
+    dependency = require_tenant_feature(PlanFeature.funnels)
 
     with pytest.raises(HTTPException) as exc:
         await dependency(x_roadcall_tenant_id=str(tenant.id), db=None)
@@ -141,7 +141,7 @@ async def test_provisioning_endpoint_accepts_all_three_plans(monkeypatch):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        for plan_id in ("standard", "professional", "premium"):
+        for plan_id in ("standard", "premium", "advanced"):
             resp = await ac.post(
                 "/api/provisioning/tenants",
                 headers={"x-admin-key": "test-admin-key"},

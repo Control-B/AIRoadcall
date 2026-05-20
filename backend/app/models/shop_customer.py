@@ -90,8 +90,8 @@ class ShopCustomer(Base):
     # ── Subscription & Status ──────────────────────────────
     active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     plan: Mapped[str] = mapped_column(
-        String(50), default="starter", nullable=False
-    )  # starter, pro, enterprise
+        String(50), default="standard", nullable=False
+    )  # standard, premium, advanced
     stripe_customer_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
 

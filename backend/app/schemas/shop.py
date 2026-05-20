@@ -50,7 +50,7 @@ class ShopCustomerCreate(BaseModel):
     after_hours_enabled: bool = True
     emergency_dispatch_enabled: bool = False
 
-    plan: str = "starter"
+    plan: str = "standard"
 
 
 class ShopCustomerUpdate(BaseModel):

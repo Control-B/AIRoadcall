@@ -1,12 +1,12 @@
 {
   "id": "standard",
-  "snapshotName": "Roadcall Standard - AI Answering Snapshot",
+  "snapshotName": "Roadcall Standard - AI Telephony Snapshot",
   "displayName": "Standard",
   "pricing": {
-    "monthly": 197,
+    "monthly": 299,
     "setup": 99
   },
-  "target": "Small mechanics and mobile roadside businesses that need 24/7 AI answering, missed-call recovery, basic CRM, and SMS follow-up.",
+  "target": "Small mechanics and mobile roadside businesses that need AI telephony, leads, calendar, CRM, form builder, and missed-call text back.",
   "tags": [
     "roadcall",
     "roadcall:plan-standard",
@@ -24,8 +24,8 @@
       "type": "single_select",
       "options": [
         "standard",
-        "professional",
-        "premium"
+        "premium",
+        "advanced"
       ]
     },
     {
@@ -129,8 +129,8 @@
   "emailTemplates": [
     {
       "name": "Roadcall Standard - Intro",
-      "subject": "Your Roadcall AI answering setup",
-      "body": "Hi {{contact.first_name}},\n\nThanks for checking out Roadcall Standard. This plan gives your shop 24/7 AI answering, missed-call text back, call summaries, multilingual support, and basic CRM follow-up.\n\nBook your setup call here: {{calendar.link}}\n\n- Roadcall"
+      "subject": "Your Roadcall AI telephony setup",
+      "body": "Hi {{contact.first_name}},\n\nThanks for checking out Roadcall Standard. This plan gives your shop AI Telephony, Leads, Calendar, CRM, Form Builder, and Missed Call Text Back.\n\nBook your setup call here: {{calendar.link}}\n\n- Roadcall"
     },
     {
       "name": "Roadcall Standard - Missed Call Recovery",
@@ -141,7 +141,7 @@
   "smsTemplates": [
     {
       "name": "Roadcall Standard - New Lead SMS",
-      "body": "Thanks for checking out Roadcall Standard. Want 24/7 AI answering + missed-call text back? Book here: {{calendar.link}} Reply STOP to opt out."
+      "body": "Thanks for checking out Roadcall Standard. Want AI Telephony, CRM, forms, calendar, and missed-call text back? Book here: {{calendar.link}} Reply STOP to opt out."
     },
     {
       "name": "Roadcall Standard - Missed Call SMS",

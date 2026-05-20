@@ -21,7 +21,7 @@ class PlanConfigView(BaseModel):
 
 
 class ProvisionTenantIn(BaseModel):
-    plan_id: str = Field(pattern="^(starter|growth|pro|standard|professional|premium)$")
+    plan_id: str = Field(pattern="^(starter|growth|pro|standard|professional|premium|advanced)$")
     organization_id: str | None = None
     organization_name: str
     organization_slug: str | None = None
@@ -130,7 +130,7 @@ class TenantListResponse(BaseModel):
 
 
 class TenantPlanUpdateIn(BaseModel):
-    plan_id: str = Field(pattern="^(starter|growth|pro|standard|professional|premium)$")
+    plan_id: str = Field(pattern="^(starter|growth|pro|standard|professional|premium|advanced)$")
     subscription_status: str | None = None
     setup_fee_status: str | None = None
     onboarding_status: str | None = None
@@ -155,7 +155,7 @@ class TenantRetellProvisionIn(BaseModel):
 
 class ShopSnapshotProvisionIn(BaseModel):
     snapshot_key: str = Field(default="shop_ai_intake_v1", max_length=80)
-    plan_id: str = Field(default="growth", pattern="^(starter|growth|pro|standard|professional|premium)$")
+    plan_id: str = Field(default="premium", pattern="^(starter|growth|pro|standard|professional|premium|advanced)$")
     business_name: str = Field(min_length=2, max_length=255)
     organization_slug: str | None = Field(default=None, max_length=120)
     owner_name: str | None = Field(default=None, max_length=255)

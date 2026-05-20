@@ -82,7 +82,7 @@ function ShopTrack() {
           provisions your AI advisor, and emails you a private dashboard link.
         </p>
         <div className="mt-6 space-y-3">
-          <Link href="/mechanic/checkout?plan=starter" className="block">
+          <Link href="/mechanic/checkout?plan=standard" className="block">
             <Button className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold rounded-xl py-6">
               <ArrowRight className="h-4 w-4 mr-2" /> Subscribe &amp; activate AI
             </Button>

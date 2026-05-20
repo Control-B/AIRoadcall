@@ -17,7 +17,7 @@ class BillingPlanView(BaseModel):
 
 
 class CheckoutSessionCreateIn(BaseModel):
-    plan_id: str = Field(pattern="^(starter|growth|pro|standard|professional|premium)$")
+    plan_id: str = Field(pattern="^(starter|growth|pro|standard|professional|premium|advanced)$")
     business_name: str = Field(min_length=2, max_length=255)
     owner_name: str | None = Field(default=None, max_length=255)
     email: EmailStr

@@ -34,13 +34,32 @@ const TRACKS: { id: Track; label: string; icon: typeof Wrench; tagline: string }
 
 const SHOP_PLANS = [
   {
-    id: "professional",
-    name: "Mechanic Shop AI",
+    id: "standard",
+    name: "Standard",
     price: "$299/mo",
-    setup: "One MVP shop plan",
-    bullets: ["24/7 AI phone answering", "Missed-call text-back", "AI call summaries", "Appointment scheduling", "Voice clone option", "Cal.com scheduling support"],
-    cta: "Start Shop Plan",
+    setup: "AI telephony essentials",
+    bullets: ["AI Telephony", "Leads", "Calendar", "CRM", "Form Builder", "Missed Call Text Back"],
+    cta: "Start Standard",
+    href: "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g",
+  },
+  {
+    id: "premium",
+    name: "Premium",
+    price: "$499/mo",
+    setup: "Website and marketing suite",
+    bullets: ["Everything in Standard", "Website", "Web Chat", "Email Marketing", "Survey Builder"],
+    cta: "Start Premium",
+    href: "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i",
     accent: true,
+  },
+  {
+    id: "advanced",
+    name: "Advanced",
+    price: "$999/mo",
+    setup: "Full GHL marketing engine",
+    bullets: ["Everything in Premium", "Social Media Marketing", "Funnels", "Email Marketing"],
+    cta: "Start Advanced",
+    href: "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j",
   },
 ];
 
@@ -140,7 +159,7 @@ function ShopSubscribe() {
                 </li>
               ))}
             </ul>
-            <Link href={`/mechanic/checkout?plan=${plan.id}`} className="mt-6 block">
+            <Link href={plan.href} className="mt-6 block">
               <Button
                 className={`w-full font-bold rounded-xl py-5 ${
                   plan.accent

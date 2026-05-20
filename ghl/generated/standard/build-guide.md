@@ -1,8 +1,8 @@
-# Roadcall Standard - AI Answering Snapshot
+# Roadcall Standard - AI Telephony Snapshot
 
-Plan: Standard ($197/mo + $99 setup)
+Plan: Standard ($299/mo + $99 setup)
 
-Small mechanics and mobile roadside businesses that need 24/7 AI answering, missed-call recovery, basic CRM, and SMS follow-up.
+Small mechanics and mobile roadside businesses that need AI telephony, leads, calendar, CRM, form builder, and missed-call text back.
 
 ## Tags
 - `roadcall`
@@ -43,7 +43,7 @@ Small mechanics and mobile roadside businesses that need 24/7 AI answering, miss
   - Move to Recovered only after human or Roadcall confirmation.
 
 ## Templates
-- Email: Roadcall Standard - Intro — Your Roadcall AI answering setup
+- Email: Roadcall Standard - Intro — Your Roadcall AI telephony setup
 - Email: Roadcall Standard - Missed Call Recovery — We saw a missed call
 - SMS: Roadcall Standard - New Lead SMS
 - SMS: Roadcall Standard - Missed Call SMS

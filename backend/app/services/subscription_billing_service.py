@@ -491,7 +491,7 @@ class SubscriptionBillingService:
         dashboard token required)."""
         tenant_id = tenant.id
         profile = (await db.execute(select(ShopProfile).where(ShopProfile.tenant_id == tenant_id))).scalar_one_or_none()
-        if tenant.current_plan in {"starter", "growth", "pro"} and settings.GHL_API_KEY:
+        if tenant.current_plan in {"standard", "premium", "advanced", "starter", "growth", "pro", "professional"} and settings.GHL_API_KEY:
             config = get_plan_config(tenant.current_plan)
             connection = (await db.execute(select(GHLConnection).where(GHLConnection.tenant_id == tenant_id))).scalar_one_or_none()
             if connection is None:
@@ -603,7 +603,7 @@ class SubscriptionBillingService:
         if not tenant_id_value:
             return
         tenant_id = uuid.UUID(str(tenant_id_value))
-        plan_id = canonical_plan_id(metadata.get("plan_id") or "starter")
+        plan_id = canonical_plan_id(metadata.get("plan_id") or "standard")
         customer_id = str(subscription.get("customer") or "")
         stripe_subscription_id = str(subscription.get("id") or "")
         items = subscription.get("items", {}).get("data", []) if isinstance(subscription.get("items"), dict) else []
@@ -783,13 +783,13 @@ class SubscriptionBillingService:
 
     async def enforce_lead_quota(self, db, tenant_id: uuid.UUID) -> tuple[bool, PlanUsage]:
         tenant = await db.get(Tenant, tenant_id)
-        plan_id = tenant.current_plan if tenant else "starter"
+        plan_id = tenant.current_plan if tenant else "standard"
         usage = await self._ensure_usage_row(db, tenant_id, plan_id)
         return usage.leads_allocated < usage.included_leads, usage
 
     def billing_plan_views(self) -> list[dict[str, Any]]:
         views = []
-        for config in (get_plan_config("starter"), get_plan_config("growth"), get_plan_config("pro")):
+        for config in (get_plan_config("standard"), get_plan_config("premium"), get_plan_config("advanced")):
             payload = plan_payload(config)
             views.append(
                 {

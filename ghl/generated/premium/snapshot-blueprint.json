@@ -1,12 +1,12 @@
 {
   "id": "premium",
-  "snapshotName": "Roadcall Premium - AI Dispatch Snapshot",
+  "snapshotName": "Roadcall Premium - Website and Marketing Snapshot",
   "displayName": "Premium",
   "pricing": {
-    "monthly": 497,
+    "monthly": 499,
     "setup": 99
   },
-  "target": "Roadside providers ready to operationalize AI roadside intake, SMS GPS capture, dispatch workflows, fleet notifications, and emergency call routing.",
+  "target": "Growing diesel shops, towing companies, and repair teams that need everything in Standard plus Website, Web Chat, Email Marketing, and Survey Builder.",
   "tags": [
     "roadcall",
     "roadcall:plan-standard",
@@ -16,17 +16,11 @@
     "roadcall:missed-call",
     "roadcall:ai-receptionist",
     "roadcall:website-widget",
-    "roadcall:plan-professional",
+    "roadcall:plan-premium",
     "roadcall:appointment-scheduling",
     "roadcall:review-request",
     "roadcall:multi-location",
-    "roadcall:priority-onboarding",
-    "roadcall:plan-premium",
-    "roadcall:dispatch-event",
-    "roadcall:roadside-intake",
-    "roadcall:gps-capture",
-    "roadcall:fleet-notification",
-    "roadcall:emergency-routing"
+    "roadcall:priority-onboarding"
   ],
   "customFields": [
     {
@@ -35,8 +29,8 @@
       "type": "single_select",
       "options": [
         "standard",
-        "professional",
-        "premium"
+        "premium",
+        "advanced"
       ]
     },
     {
@@ -116,36 +110,6 @@
       "name": "Roadcall Review Link",
       "key": "roadcall_review_link",
       "type": "text"
-    },
-    {
-      "name": "Roadcall Last Service Request ID",
-      "key": "roadcall_last_service_request_id",
-      "type": "text"
-    },
-    {
-      "name": "Roadcall Last Service Status",
-      "key": "roadcall_last_service_status",
-      "type": "text"
-    },
-    {
-      "name": "Roadcall Driver Location",
-      "key": "roadcall_driver_location",
-      "type": "text"
-    },
-    {
-      "name": "Roadcall Vehicle Type",
-      "key": "roadcall_vehicle_type",
-      "type": "text"
-    },
-    {
-      "name": "Roadcall Problem Type",
-      "key": "roadcall_problem_type",
-      "type": "text"
-    },
-    {
-      "name": "Roadcall Fleet Contact",
-      "key": "roadcall_fleet_contact",
-      "type": "text"
     }
   ],
   "pipelines": [
@@ -172,7 +136,7 @@
       ]
     },
     {
-      "name": "Roadcall Revenue Pipeline - Professional",
+      "name": "Roadcall Revenue Pipeline - Premium",
       "stages": [
         "New Lead",
         "Contacted",
@@ -187,7 +151,7 @@
       ]
     },
     {
-      "name": "Roadcall Onboarding Pipeline - Professional",
+      "name": "Roadcall Onboarding Pipeline - Premium",
       "stages": [
         "Account Created",
         "Billing Connected",
@@ -195,20 +159,6 @@
         "AI Receptionist Configured",
         "Test Call Completed",
         "Activated"
-      ]
-    },
-    {
-      "name": "Roadcall Dispatch Pipeline - Premium",
-      "stages": [
-        "New Roadside Request",
-        "Location Requested",
-        "Qualified Request",
-        "Provider Matched",
-        "Transfer In Progress",
-        "Successful Transfer",
-        "Completed",
-        "Needs Follow-up",
-        "Cancelled"
       ]
     }
   ],
@@ -236,7 +186,7 @@
       ]
     },
     {
-      "name": "Roadcall Professional - Demo Booked Confirmation",
+      "name": "Roadcall Premium - Demo Booked Confirmation",
       "trigger": "workflow event: demo_booked",
       "actions": [
         "Move opportunity to Demo Booked.",
@@ -246,7 +196,7 @@
       ]
     },
     {
-      "name": "Roadcall Professional - Customer Onboarding",
+      "name": "Roadcall Premium - Customer Onboarding",
       "trigger": "workflow event: checkout_completed or subscription_started",
       "actions": [
         "Move opportunity to Customer Active.",
@@ -257,50 +207,20 @@
       ]
     },
     {
-      "name": "Roadcall Professional - Review Request",
+      "name": "Roadcall Premium - Review Request",
       "trigger": "workflow event: completed_job or review_request",
       "actions": [
         "Wait 2 hours after completed job.",
         "Send review SMS and email when consent exists.",
         "Send one reminder after 2 days if no review is recorded."
       ]
-    },
-    {
-      "name": "Roadcall Premium - Roadside Intake Notify",
-      "trigger": "workflow event: qualified_roadside_request",
-      "actions": [
-        "Append CRM note with driver city/state, problem type, and vehicle type.",
-        "Add roadcall:dispatch-event tag.",
-        "Notify internal ops owner.",
-        "Do not select providers, quote prices, promise ETA, or change Roadcall service status."
-      ]
-    },
-    {
-      "name": "Roadcall Premium - Successful Transfer Notify",
-      "trigger": "workflow event: successful_transfer",
-      "actions": [
-        "Add success note to contact timeline.",
-        "Move dispatch opportunity to Successful Transfer.",
-        "Notify fleet contact if configured.",
-        "Do not handle billing or provider matching in GHL."
-      ]
-    },
-    {
-      "name": "Roadcall Premium - Emergency Escalation",
-      "trigger": "workflow event: missed_call or qualified_roadside_request",
-      "actions": [
-        "If urgent roadside keywords are present, create immediate human task.",
-        "Notify ops owner.",
-        "Send short acknowledgement SMS when consent exists.",
-        "Route caller to Roadcall roadside intake or human dispatcher."
-      ]
     }
   ],
   "emailTemplates": [
     {
       "name": "Roadcall Standard - Intro",
-      "subject": "Your Roadcall AI answering setup",
-      "body": "Hi {{contact.first_name}},\n\nThanks for checking out Roadcall Standard. This plan gives your shop 24/7 AI answering, missed-call text back, call summaries, multilingual support, and basic CRM follow-up.\n\nBook your setup call here: {{calendar.link}}\n\n- Roadcall"
+      "subject": "Your Roadcall AI telephony setup",
+      "body": "Hi {{contact.first_name}},\n\nThanks for checking out Roadcall Standard. This plan gives your shop AI Telephony, Leads, Calendar, CRM, Form Builder, and Missed Call Text Back.\n\nBook your setup call here: {{calendar.link}}\n\n- Roadcall"
     },
     {
       "name": "Roadcall Standard - Missed Call Recovery",
@@ -308,45 +228,32 @@
       "body": "Hi {{contact.first_name}},\n\nRoadcall detected a missed call and queued a recovery follow-up. Summary:\n{{custom_values.roadcall_ai_call_summary}}\n\n- Roadcall"
     },
     {
-      "name": "Roadcall Professional - Onboarding Kickoff",
-      "subject": "Your Roadcall Professional onboarding",
-      "body": "Hi {{contact.first_name}},\n\nWelcome to Roadcall Professional. Next we will configure your AI voice workflow, scheduling, routing rules, review automation, and team notifications.\n\n- Roadcall"
+      "name": "Roadcall Premium - Onboarding Kickoff",
+      "subject": "Your Roadcall Premium onboarding",
+      "body": "Hi {{contact.first_name}},\n\nWelcome to Roadcall Premium. Next we will configure your Standard assets plus Website, Web Chat, Email Marketing, and Survey Builder.\n\n- Roadcall"
     },
     {
-      "name": "Roadcall Professional - Review Request",
+      "name": "Roadcall Premium - Review Request",
       "subject": "How did Roadcall do?",
       "body": "Hi {{contact.first_name}},\n\nThanks for using Roadcall. If we helped, would you leave a quick review? {{custom_values.roadcall_review_link}}\n\n- Roadcall"
-    },
-    {
-      "name": "Roadcall Premium - Dispatch Milestone",
-      "subject": "Roadcall dispatch update",
-      "body": "Roadcall recorded a dispatch milestone.\n\nRequest: {{custom_values.roadcall_last_service_request_id}}\nStatus: {{custom_values.roadcall_last_service_status}}\nProblem: {{custom_values.roadcall_problem_type}}\nLocation: {{custom_values.roadcall_driver_location}}\n\nRoadcall remains the operational source of truth."
     }
   ],
   "smsTemplates": [
     {
       "name": "Roadcall Standard - New Lead SMS",
-      "body": "Thanks for checking out Roadcall Standard. Want 24/7 AI answering + missed-call text back? Book here: {{calendar.link}} Reply STOP to opt out."
+      "body": "Thanks for checking out Roadcall Standard. Want AI Telephony, CRM, forms, calendar, and missed-call text back? Book here: {{calendar.link}} Reply STOP to opt out."
     },
     {
       "name": "Roadcall Standard - Missed Call SMS",
       "body": "Roadcall saw a missed call. Want help recovering it? Reply YES or call back. Reply STOP to opt out."
     },
     {
-      "name": "Roadcall Professional - Demo Reminder",
+      "name": "Roadcall Premium - Demo Reminder",
       "body": "Roadcall demo reminder: {{appointment.start_time}}. Need to reschedule? {{appointment.reschedule_link}} Reply STOP to opt out."
     },
     {
-      "name": "Roadcall Professional - Review SMS",
+      "name": "Roadcall Premium - Review SMS",
       "body": "Thanks for using Roadcall. If we helped, please leave a quick review: {{custom_values.roadcall_review_link}} Reply STOP to opt out."
-    },
-    {
-      "name": "Roadcall Premium - Location Link",
-      "body": "Roadcall needs your GPS location to route roadside help. Open this secure link: {{custom_values.location_link}} Reply STOP to opt out."
-    },
-    {
-      "name": "Roadcall Premium - Fleet Notify",
-      "body": "Roadcall update: {{custom_values.roadcall_last_service_status}} for {{custom_values.roadcall_vehicle_type}} near {{custom_values.roadcall_driver_location}}. Reply STOP to opt out."
     }
   ],
   "aiReceptionist": {
@@ -358,14 +265,14 @@
       "Do not collect full card details."
     ]
   },
-  "inherits": "professional",
+  "inherits": "standard",
   "calendars": [
     {
-      "name": "Roadcall Professional - Demo Calendar",
+      "name": "Roadcall Premium - Demo Calendar",
       "purpose": "Sales demos and implementation calls."
     },
     {
-      "name": "Roadcall Professional - Service Appointment Calendar",
+      "name": "Roadcall Premium - Service Appointment Calendar",
       "purpose": "Optional shop appointment scheduling handoff."
     }
   ]

@@ -42,25 +42,55 @@ const TRUST = [
 
 const PLANS = [
   {
-    name: "Mechanic Shop AI",
+    name: "Standard",
     price: "$299",
-    setup: "One shop plan for MVP",
-    target: "Independent repair shops, diesel shops, mobile mechanics, and roadside service providers",
+    setup: "AI telephony essentials",
+    target: "Independent repair shops, diesel shops, mobile mechanics, and roadside service providers that need every lead answered.",
     icon: Headphones,
     accent: "from-sky-400 to-blue-500",
-    cta: "Start Shop Plan",
-    href: "/mechanic/checkout?plan=professional",
+    cta: "Start Standard",
+    href: "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g",
     features: [
-      "24/7 AI phone answering",
-      "Missed-call text back",
-      "AI call summaries",
-      "Roadside and shop intake",
-      "Appointment scheduling",
-      "Smart call routing",
-      "Voice clone option",
-      "Customer follow-up",
-      "Owner dashboard",
-      "Cal.com scheduling support",
+      "AI Telephony",
+      "Leads",
+      "Calendar",
+      "CRM",
+      "Form Builder",
+      "Missed Call Text Back",
+    ],
+  },
+  {
+    name: "Premium",
+    price: "$499",
+    setup: "Website and marketing suite",
+    target: "Shops that want their phones, website, chat, email, and follow-up campaigns connected in GHL.",
+    icon: Globe2,
+    accent: "from-roadcall-orange via-amber-400 to-blue-400",
+    badge: "Most Popular",
+    cta: "Start Premium",
+    href: "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i",
+    features: [
+      "Everything in Standard",
+      "Website",
+      "Web Chat",
+      "Email Marketing",
+      "Survey Builder",
+    ],
+  },
+  {
+    name: "Advanced",
+    price: "$999",
+    setup: "Full GHL marketing engine",
+    target: "Growth-focused shops that need funnels, social media marketing, and deeper campaign automation.",
+    icon: Network,
+    accent: "from-blue-400 to-cyan-300",
+    cta: "Start Advanced",
+    href: "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j",
+    features: [
+      "Everything in Premium",
+      "Social Media Marketing",
+      "Funnels",
+      "Email Marketing",
     ],
   },
   {
@@ -310,11 +340,11 @@ export default function ShopsPricingPage() {
       <section id="pricing" className="relative z-10 px-4 py-16 sm:px-6 lg:py-24">
         <motion.div {...fadeUp()} className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-roadcall-orange">Roadside AI Pricing</p>
-          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Simple MVP pricing for shops and fleets.</h2>
-          <p className="mt-5 text-roadcall-muted">One plan for mechanic shops. Fleet plans scale by vehicle count, with pay-per-use pricing for enterprise fleets above 2,000 vehicles.</p>
+          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Simple pricing for shops and fleets.</h2>
+          <p className="mt-5 text-roadcall-muted">Mechanic shops get three GHL-powered growth plans. Fleet plans scale by vehicle count, with pay-per-use pricing for enterprise fleets above 2,000 vehicles.</p>
         </motion.div>
 
-        <div className="mx-auto mt-12 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-5">
+        <div className="mx-auto mt-12 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-4">
           {PLANS.map((plan, index) => {
             const Icon = plan.icon;
             return (

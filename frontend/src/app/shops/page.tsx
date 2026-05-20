@@ -74,30 +74,30 @@ const howItWorks = [
 
 const plans = [
   {
-    name: "Starter",
-    price: "$297",
+    name: "Standard",
+    price: "$299",
     period: "/mo",
-    description: "For solo mechanics and small shops",
-    features: ["AI phone answering (500 min/mo)", "Missed-call text-back", "CRM contacts & pipeline", "Appointment booking", "Email support"],
-    cta: "Start Free Trial",
+    description: "AI telephony essentials for solo mechanics and small shops",
+    features: ["AI Telephony", "Leads", "Calendar", "CRM", "Form Builder", "Missed Call Text Back"],
+    cta: "Start Standard",
     highlighted: false,
   },
   {
-    name: "Pro",
-    price: "$597",
+    name: "Premium",
+    price: "$499",
     period: "/mo",
-    description: "For shops with high call volume",
-    features: ["AI phone answering (unlimited)", "Missed-call text-back", "Full CRM + pipeline automation", "Appointment booking", "Review request automation", "Call analytics dashboard", "Priority support"],
-    cta: "Start Free Trial",
+    description: "For shops ready to connect phones, website, chat, email, and surveys",
+    features: ["Everything in Standard", "Website", "Web Chat", "Email Marketing", "Survey Builder"],
+    cta: "Start Premium",
     highlighted: true,
   },
   {
-    name: "Agency",
-    price: "Custom",
-    period: "",
-    description: "For multi-location or white-label",
-    features: ["Everything in Pro", "Multiple locations", "White-label dashboard", "Custom AI agent voice & script", "Dedicated onboarding", "SLA support"],
-    cta: "Contact Sales",
+    name: "Advanced",
+    price: "$999",
+    period: "/mo",
+    description: "For shops that want funnels, social marketing, and deeper email automation",
+    features: ["Everything in Premium", "Social Media Marketing", "Funnels", "Email Marketing"],
+    cta: "Start Advanced",
     highlighted: false,
   },
 ];
@@ -237,7 +237,7 @@ export default function ShopsPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href={plan.cta === "Contact Sales" ? "/company#contact" : "/shops/onboarding"}>
+                  <Link href={plan.name === "Standard" ? "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g" : plan.name === "Premium" ? "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i" : "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j"}>
                     <Button className={`w-full rounded-full ${plan.highlighted ? "bg-gradient-to-r from-roadcall-orange to-roadcall-blue hover:from-roadcall-orange hover:to-roadcall-blue" : "bg-roadcall-panel/60 hover:bg-white/15"}`}>
                       {plan.cta}
                     </Button>

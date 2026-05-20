@@ -31,7 +31,7 @@ export default function NewShopPage() {
     offers_roadside: false,
     fallback_phone: "",
     agent_greeting: "Thank you for calling. How can I help you today?",
-    plan: "starter",
+    plan: "standard",
   });
 
   function updateField(field: string, value: string | boolean) {
@@ -236,9 +236,9 @@ export default function NewShopPage() {
                 onChange={(e) => updateField("plan", e.target.value)}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               >
-                <option value="starter">Starter ($99/mo)</option>
-                <option value="professional">Professional ($199/mo)</option>
-                <option value="enterprise">Enterprise ($399/mo)</option>
+                <option value="standard">Standard ($299/mo)</option>
+                <option value="premium">Premium ($499/mo)</option>
+                <option value="advanced">Advanced ($999/mo)</option>
               </select>
             </div>
           </CardContent>

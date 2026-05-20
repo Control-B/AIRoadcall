@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     STRIPE_STARTER_PRICE_ID: str = ""
     STRIPE_GROWTH_PRICE_ID: str = ""
     STRIPE_PRO_PRICE_ID: str = ""
+    STRIPE_STANDARD_PRICE_ID: str = ""
+    STRIPE_PREMIUM_PRICE_ID: str = ""
+    STRIPE_ADVANCED_PRICE_ID: str = ""
 
     # Twilio
     TWILIO_ACCOUNT_SID: str = ""
@@ -45,6 +48,7 @@ class Settings(BaseSettings):
     GHL_STANDARD_SNAPSHOT_ID: str = ""
     GHL_PROFESSIONAL_SNAPSHOT_ID: str = ""
     GHL_PREMIUM_SNAPSHOT_ID: str = ""
+    GHL_ADVANCED_SNAPSHOT_ID: str = ""
     GHL_PROVISIONING_WEBHOOK_URL: str = ""
 
     # DigitalOcean AI Gradient (text chat)
@@ -107,6 +111,9 @@ class Settings(BaseSettings):
 
     def stripe_price_id_for_plan(self, plan_id: str) -> str:
         return {
+            "standard": self.STRIPE_STANDARD_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
+            "premium": self.STRIPE_PREMIUM_PRICE_ID or self.STRIPE_GROWTH_PRICE_ID,
+            "advanced": self.STRIPE_ADVANCED_PRICE_ID or self.STRIPE_PRO_PRICE_ID,
             "starter": self.STRIPE_STARTER_PRICE_ID,
             "growth": self.STRIPE_GROWTH_PRICE_ID,
             "pro": self.STRIPE_PRO_PRICE_ID,

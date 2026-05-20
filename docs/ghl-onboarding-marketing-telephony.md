@@ -297,9 +297,9 @@ Roadcall endpoints already exist for:
 
 The three current Roadcall shop plans are:
 
-- Standard — AI answering, missed-call text back, AI call summaries, multilingual support, basic CRM, SMS follow-up, and website AI widget.
-- Professional — everything in Standard plus advanced voice workflows, scheduling, routing, analytics, review automation, multi-location support, and priority onboarding.
-- Premium — everything in Professional plus roadside intake, SMS GPS capture, dispatch workflows, driver intake automation, fleet notifications, emergency routing, and dispatch dashboard handoff.
+- Standard — $299/mo: AI Telephony, Leads, Calendar, CRM, Form Builder, and Missed Call Text Back.
+- Premium — $499/mo: everything in Standard plus Website, Web Chat, Email Marketing, and Survey Builder.
+- Advanced — $999/mo: everything in Premium plus Social Media Marketing, Funnels, and deeper Email Marketing automation.
 
 Use the snapshot builder to generate source-location build guides:
 
@@ -310,13 +310,13 @@ python backend/scripts/build_ghl_plan_snapshots.py
 Artifacts are written to:
 
 - `ghl/generated/standard/`
-- `ghl/generated/professional/`
 - `ghl/generated/premium/`
+- `ghl/generated/advanced/`
 
 If you want the script to push the safe subset of assets to a clean GHL source location, set `GHL_API_KEY` and `GHL_LOCATION_ID`, then run:
 
 ```bash
-python backend/scripts/build_ghl_plan_snapshots.py --plan premium --apply
+python backend/scripts/build_ghl_plan_snapshots.py --plan advanced --apply
 ```
 
 The script does not print secrets. It applies only conservative, location-level assets currently represented as tags and custom fields. After that, use the generated guide to create/verify pipelines, workflows, templates, calendars, and AI prompts, then save the configured source location as the official GHL agency Snapshot.
