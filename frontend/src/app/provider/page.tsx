@@ -21,7 +21,7 @@ import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 
-const GHL_PROVIDER_SIGNUP = process.env.NEXT_PUBLIC_GHL_PROVIDER_SIGNUP || "/provider/register";
+const PROVIDER_SIGNUP = "/provider/register";
 
 const benefits = [
   {
@@ -77,7 +77,7 @@ const tiers = [
       "Claim & verify your profile",
     ],
     cta: "Claim Free Listing",
-    href: GHL_PROVIDER_SIGNUP,
+    href: PROVIDER_SIGNUP,
     highlighted: false,
   },
   {
@@ -96,7 +96,7 @@ const tiers = [
       "SMS dispatch notifications",
     ],
     cta: "Start Verified Trial",
-    href: GHL_PROVIDER_SIGNUP,
+    href: PROVIDER_SIGNUP,
     highlighted: true,
   },
   {
@@ -154,7 +154,7 @@ export default function ProviderPage() {
           </FadeIn>
           <FadeIn delay={0.3}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <a href={GHL_PROVIDER_SIGNUP}>
+              <a href={PROVIDER_SIGNUP}>
                 <button className="inline-flex items-center justify-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold text-lg px-10 py-5 rounded-2xl shadow-2xl shadow-blue-900/30 transition-all">
                   <Wrench className="h-5 w-5" /> List My Shop — Free
                 </button>
@@ -287,7 +287,7 @@ export default function ProviderPage() {
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900/30 via-roadcall-panel/60 to-blue-900/25 border border-emerald-500/20 p-10">
             <h2 className="text-3xl font-black text-white mb-4">Ready to grow your shop?</h2>
             <p className="text-roadcall-muted mb-8">List free today. Get your first dispatched lead this week.</p>
-            <a href={GHL_PROVIDER_SIGNUP}>
+            <a href={PROVIDER_SIGNUP}>
               <button className="inline-flex items-center gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold px-10 py-4 rounded-2xl text-lg transition-all shadow-xl shadow-blue-900/20">
                 <Wrench className="h-5 w-5" /> List My Shop Free
               </button>
