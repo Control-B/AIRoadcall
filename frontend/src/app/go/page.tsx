@@ -202,9 +202,14 @@ export default function GoPage() {
       setProgressMsg("This secure Roadcall link will attach your GPS to the live call.");
     }
     if (code) {
-      setLiveCallCode(code.trim().toUpperCase());
-      setPhone(code.trim().toUpperCase());
-      setProgressMsg("This code will attach your GPS to the live Roadcall AI call.");
+      const normalizedCode = code.trim().toUpperCase();
+      setPhone(normalizedCode);
+      if (looksLikeCaseCode(normalizedCode)) {
+        setProgressMsg("This Roadcall case code will attach your GPS to the live dispatch session.");
+      } else {
+        setLiveCallCode(normalizedCode);
+        setProgressMsg("This live call code will attach your GPS to the Roadcall AI call.");
+      }
     }
   }, []);
 
@@ -235,7 +240,10 @@ export default function GoPage() {
         setSessionResult(null);
         setStep("results");
       } catch (err: any) {
-        setError(err?.message || "We could not send your location to the Roadcall AI agent.");
+        const message = err?.message || "We could not send your location to the Roadcall AI agent.";
+        setError(message.toLowerCase().includes("location code not found")
+          ? "That looks like an older live-call code that Roadcall could not find. If Sandy gave you two words, enter them as the Roadcall word code instead."
+          : message);
         setStep("manual_fallback");
       } finally {
         setSubmitting(false);
