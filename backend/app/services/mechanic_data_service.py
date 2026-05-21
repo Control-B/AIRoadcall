@@ -322,6 +322,174 @@ class MechanicDataService:
         )
 
     @staticmethod
+    async def public_directory_search(
+        db: AsyncSession,
+        *,
+        q: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        service_type: str | None = None,
+        is_24_7: bool | None = None,
+        mobile_only: bool | None = None,
+        min_lat: float | None = None,
+        max_lat: float | None = None,
+        min_lng: float | None = None,
+        max_lng: float | None = None,
+        page: int = 1,
+        page_size: int = 24,
+    ) -> dict:
+        """Public AI-ready provider search with dispatch-intelligence ranking.
+
+        Keeps the existing /mechanics/search response shape but ranks candidates
+        by inferred service intent, roadside readiness, trust, response signals,
+        availability, and proximity when map bounds are present.
+        """
+        from app.services.provider_intelligence_service import ProviderIntelligenceService
+
+        normalized_city = normalize_city(city)
+        normalized_state = normalize_state(state)
+        intent = ProviderIntelligenceService.infer_search_intent(q, service_type)
+        has_bounds = all(value is not None for value in (min_lat, max_lat, min_lng, max_lng))
+
+        filters = [Mechanic.active == True]  # noqa: E712
+        if normalized_state:
+            filters.append(Mechanic.state == normalized_state)
+        if normalized_city and not has_bounds:
+            city_terms = MechanicDataService._city_search_terms(normalized_city)
+            if city_terms:
+                filters.append(or_(*(Mechanic.city.ilike(f"%{term}%") for term in city_terms)))
+        if service_type:
+            filters.append(MechanicDataService._service_filter_condition(service_type))
+        if mobile_only:
+            filters.append(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
+        if is_24_7:
+            filters.append(Mechanic.emergency_service == True)  # noqa: E712
+        if min_lat is not None:
+            filters.append(Mechanic.base_lat >= min_lat)
+        if max_lat is not None:
+            filters.append(Mechanic.base_lat <= max_lat)
+        if min_lng is not None:
+            filters.append(Mechanic.base_lng >= min_lng)
+        if max_lng is not None:
+            filters.append(Mechanic.base_lng <= max_lng)
+
+        base_query = select(Mechanic).where(*filters)
+        candidate_query = base_query.order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc()).limit(1500)
+        result = await db.execute(candidate_query)
+        mechanics = list(result.scalars().all())
+
+        if q and intent.location_terms:
+            text_matches = [mechanic for mechanic in mechanics if MechanicDataService._public_search_text_score(mechanic, intent.location_terms) > 0]
+            if text_matches:
+                mechanics = text_matches
+
+        center_lat = center_lng = None
+        if has_bounds:
+            center_lat = (min_lat + max_lat) / 2  # type: ignore[operator]
+            center_lng = (min_lng + max_lng) / 2  # type: ignore[operator]
+        elif normalized_city:
+            located = [m for m in mechanics if m.base_lat is not None and m.base_lng is not None and city_matches(m.city, normalized_city)]
+            if located:
+                center_lat = sum(float(m.base_lat) for m in located) / len(located)
+                center_lng = sum(float(m.base_lng) for m in located) / len(located)
+
+        scored = []
+        for mechanic in mechanics:
+            distance_miles = None
+            if center_lat is not None and center_lng is not None and mechanic.base_lat is not None and mechanic.base_lng is not None:
+                distance_miles = round(haversine_distance_km(center_lat, center_lng, mechanic.base_lat, mechanic.base_lng) * 0.621371, 1)
+                if mechanic.service_radius_miles and distance_miles > float(mechanic.service_radius_miles):
+                    continue
+
+            intelligence = ProviderIntelligenceService.score_provider(
+                mechanic,
+                issue_type=intent.issue_type,
+                vehicle_type=intent.vehicle_type,
+                distance_miles=distance_miles,
+                require_mobile_roadside=bool(mobile_only),
+            )
+            query_bonus = MechanicDataService._public_search_text_score(mechanic, intent.location_terms + intent.capability_terms) * 0.015
+            recency_bonus = 0.035 if mechanic.last_enriched_at else 0.0
+            verified_bonus = 0.045 if getattr(mechanic, "verified_listing", False) else 0.0
+            claimed_bonus = 0.025 if getattr(mechanic, "claimed", False) else 0.0
+            score = round(intelligence.score + query_bonus + recency_bonus + verified_bonus + claimed_bonus, 4)
+            scored.append((mechanic, intelligence, distance_miles, score))
+
+        scored.sort(key=lambda item: (item[3], item[1].dispatch_fit_score, item[1].trust_score), reverse=True)
+        total = len(scored)
+        start = (page - 1) * page_size
+        page_items = scored[start:start + page_size]
+
+        safe_mechanics = []
+        for mechanic, intelligence, distance_miles, score in page_items:
+            safe_mechanics.append({
+                "id": str(mechanic.id),
+                "company_name": mechanic.company_name,
+                "city": mechanic.city,
+                "state": mechanic.state,
+                "lat": mechanic.base_lat if mechanic.base_lat not in (None, 0) else None,
+                "lng": mechanic.base_lng if mechanic.base_lng not in (None, 0) else None,
+                "rating": float(mechanic.rating) if mechanic.rating is not None else None,
+                "review_count": mechanic.review_count,
+                "accepts_mobile_roadside": mechanic.accepts_mobile_roadside,
+                "emergency_service": mechanic.emergency_service,
+                "is_emergency_24_7": getattr(mechanic, "is_emergency_24_7", False),
+                "service_types": mechanic.service_types or [],
+                "priority_score": mechanic.priority_score,
+                "distance_miles": distance_miles,
+                "marketplace_score": score,
+                "dispatch_fit_score": intelligence.dispatch_fit_score,
+                "trust_level": intelligence.trust_level,
+                "availability_status": intelligence.availability_status,
+                "estimated_response_minutes": intelligence.estimated_response_minutes,
+                "badges": intelligence.badges,
+                "reasons": intelligence.reasons,
+            })
+
+        return {
+            "mechanics": safe_mechanics,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "search_intelligence": {
+                "issue_type": intent.issue_type or None,
+                "vehicle_type": intent.vehicle_type,
+                "capability_terms": intent.capability_terms,
+                "location_terms": intent.location_terms,
+                "highway_terms": intent.highway_terms,
+                "ranking": "dispatch_intelligence_v1",
+            },
+        }
+
+    @staticmethod
+    def _public_search_text_score(mechanic: Mechanic, terms: list[str]) -> float:
+        if not terms:
+            return 0.0
+        haystack = " ".join(
+            str(value).lower()
+            for value in [
+                mechanic.company_name,
+                mechanic.address,
+                mechanic.city,
+                mechanic.state,
+                mechanic.zip_code,
+                mechanic.website,
+                " ".join(str(item) for item in (mechanic.service_types or [])),
+                " ".join(str(item) for item in (mechanic.vehicle_types_supported or [])),
+            ]
+            if value
+        )
+        score = 0.0
+        for term in terms:
+            if not term:
+                continue
+            if term in (mechanic.company_name or "").lower():
+                score += 3.0
+            elif term in haystack:
+                score += 1.0
+        return score
+
+    @staticmethod
     def _classify_email_quality(email: str | None, website: str | None) -> str | None:
         if not email:
             return None

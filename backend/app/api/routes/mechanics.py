@@ -146,47 +146,21 @@ async def public_search_mechanics(
     if has_bounds and (min_lat > max_lat or min_lng > max_lng):
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid map bounds")
     await ensure_mechanic_admin_columns(db)
-    result = await MechanicDataService.list_admin_mechanics(
+    return await MechanicDataService.public_directory_search(
         db,
         q=q,
         city=None if has_bounds else city,
         state=state,
         service_type=service_type,
-        has_email=None,
-        has_website=None,
-        roadside_only=mobile_only or False,
-        emergency_only=is_24_7 or False,
+        mobile_only=mobile_only or False,
+        is_24_7=is_24_7 or False,
         min_lat=min_lat,
         max_lat=max_lat,
         min_lng=min_lng,
         max_lng=max_lng,
-        limit=page_size,
-        offset=(page - 1) * page_size,
+        page=page,
+        page_size=page_size,
     )
-    # Strip sensitive fields — only return public-safe data
-    safe_mechanics = []
-    for m in result.items:
-        safe_mechanics.append({
-            "id": m.id,
-            "company_name": m.company_name,
-            "city": m.city,
-            "state": m.state,
-            "lat": m.base_lat if m.base_lat not in (None, 0) else None,
-            "lng": m.base_lng if m.base_lng not in (None, 0) else None,
-            "rating": m.rating,
-            "review_count": m.review_count,
-            "accepts_mobile_roadside": m.accepts_mobile_roadside,
-            "emergency_service": m.emergency_service,
-            "is_emergency_24_7": getattr(m, "is_emergency_24_7", False),
-            "service_types": m.service_types,
-            "priority_score": m.priority_score,
-        })
-    return {
-        "mechanics": safe_mechanics,
-        "total": result.total,
-        "page": page,
-        "page_size": page_size,
-    }
 
 
 @router.get(

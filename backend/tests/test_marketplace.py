@@ -35,6 +35,7 @@ from app.api.deps import get_session  # noqa: E402
 from app.models.mechanic import Mechanic  # noqa: E402
 from app.models.organization import Organization  # noqa: E402
 from app.models import mechanic_marketplace  # noqa: E402,F401
+from app.services.mechanic_data_service import MechanicDataService  # noqa: E402
 
 
 @pytest_asyncio.fixture
@@ -74,12 +75,15 @@ async def _make_mechanic(db, **overrides) -> Mechanic:
         city="Orlando",
         state="FL",
         base_lat=28.5, base_lng=-81.4,
-        service_types=["tow_needed"],
-        vehicle_types_supported=["car", "truck"],
-        accepts_mobile_roadside=True,
-        emergency_service=True,
-        service_radius_miles=50,
-        priority_score=50,
+        service_types=overrides.get("service_types", ["tow_needed"]),
+        vehicle_types_supported=overrides.get("vehicle_types_supported", ["car", "truck"]),
+        accepts_mobile_roadside=overrides.get("accepts_mobile_roadside", True),
+        emergency_service=overrides.get("emergency_service", True),
+        service_radius_miles=overrides.get("service_radius_miles", 50),
+        priority_score=overrides.get("priority_score", 50),
+        rating=overrides.get("rating"),
+        review_count=overrides.get("review_count"),
+        source_confidence=overrides.get("source_confidence"),
         active=True,
     )
     db.add(m)
@@ -219,3 +223,44 @@ async def test_claim_rejects_invalid_product(db, client):
         "subscription_product": "pizza_delivery",  # not in allowed set
     })
     assert res.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_public_directory_search_ranks_by_inferred_roadside_intent(db):
+    strong = await _make_mechanic(
+        db,
+        company_name="Orlando Mobile Semi Tire Repair",
+        phone="4075558888",
+        service_types=["flat_tire", "mobile_repair"],
+        vehicle_types_supported=["heavy_duty", "truck", "semi"],
+        accepts_mobile_roadside=True,
+        emergency_service=True,
+        rating=4.9,
+        review_count=80,
+        source_confidence=0.95,
+    )
+    await _make_mechanic(
+        db,
+        company_name="Orlando Light Duty Tow",
+        phone="4075559998",
+        service_types=["tow_needed"],
+        vehicle_types_supported=["car"],
+        accepts_mobile_roadside=False,
+        emergency_service=False,
+        rating=3.2,
+        review_count=3,
+        source_confidence=0.4,
+    )
+
+    result = await MechanicDataService.public_directory_search(
+        db,
+        q="mobile tire repair for semi truck",
+        city="Orlando",
+        state="FL",
+        page_size=5,
+    )
+
+    assert result["search_intelligence"]["issue_type"] == "flat_tire"
+    assert result["search_intelligence"]["vehicle_type"] == "heavy_duty"
+    assert result["mechanics"][0]["id"] == str(strong.id)
+    assert result["mechanics"][0]["dispatch_fit_score"] > 0.5

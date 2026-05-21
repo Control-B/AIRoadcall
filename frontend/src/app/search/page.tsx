@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, Suspense, useMemo, useRef, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -72,6 +72,14 @@ type Mechanic = {
   is_emergency_24_7: boolean;
   service_types: string[];
   priority_score: number;
+  distance_miles?: number | null;
+  marketplace_score?: number | null;
+  dispatch_fit_score?: number | null;
+  trust_level?: string | null;
+  availability_status?: string | null;
+  estimated_response_minutes?: number | null;
+  badges?: string[];
+  reasons?: string[];
 };
 
 type MapBounds = {
@@ -87,7 +95,7 @@ function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: numbe
   return typeof mechanic.lat === "number" && Number.isFinite(mechanic.lat) && typeof mechanic.lng === "number" && Number.isFinite(mechanic.lng);
 }
 
-function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
@@ -112,7 +120,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         zoom: points.length === 1 ? 10 : 4,
       });
       mapRef.current = map;
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-left");
       map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
       const updateVisibleBounds = () => {
@@ -186,7 +194,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30 ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
-      <div className="absolute left-4 top-4 flex flex-wrap gap-2">
+      <div className="absolute left-4 top-4 z-10 flex flex-wrap gap-2">
         <button
           type="button"
           disabled={!visibleBounds || searchingArea}
@@ -196,6 +204,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           {searchingArea ? "Searching map area..." : "Search this map area"}
         </button>
       </div>
+      {workspaceControls ? <div className="absolute right-4 top-4 z-10 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
     </div>
   );
 }
@@ -219,6 +228,9 @@ function StarRating({ rating, count }: { rating: number | null; count: number | 
 }
 
 function MechanicCard({ m }: { m: Mechanic }) {
+  const topReason = m.reasons?.[0];
+  const trustLabel = m.trust_level ? m.trust_level.replace(/_/g, " ") : null;
+
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 backdrop-blur-sm hover:border-roadcall-cyan/30 hover:bg-roadcall-panel/60 transition-all duration-200 p-5">
       <div className="absolute inset-0 bg-gradient-to-br from-roadcall-cyan/[0.04] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -236,6 +248,26 @@ function MechanicCard({ m }: { m: Mechanic }) {
           </div>
           <StarRating rating={m.rating} count={m.review_count} />
         </div>
+
+        {(m.distance_miles != null || m.estimated_response_minutes != null || trustLabel) && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {m.distance_miles != null && (
+              <span className="rounded-full border border-roadcall-cyan/15 bg-roadcall-cyan/10 px-2 py-0.5 text-[10px] font-semibold text-roadcall-cyan">
+                {m.distance_miles.toFixed(1)} mi
+              </span>
+            )}
+            {m.estimated_response_minutes != null && (
+              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300">
+                ~{m.estimated_response_minutes} min
+              </span>
+            )}
+            {trustLabel && (
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[10px] font-semibold capitalize text-roadcall-silver">
+                {trustLabel}
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Badges */}
         <div className="flex flex-wrap gap-1.5 mb-4">
@@ -259,7 +291,18 @@ function MechanicCard({ m }: { m: Mechanic }) {
               {s.replace(/_/g, " ")}
             </span>
           ))}
+          {m.badges?.slice(0, 2).map((badge) => (
+            <span key={badge} className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-roadcall-silver text-[10px] font-medium">
+              {badge}
+            </span>
+          ))}
         </div>
+
+        {topReason && (
+          <p className="mb-4 rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/40 px-3 py-2 text-xs font-medium leading-relaxed text-roadcall-muted">
+            {topReason}
+          </p>
+        )}
 
         <div className="rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/50 px-3 py-2.5 text-center text-xs text-roadcall-muted">
           Contact details are protected. Use Roadcall dispatch to connect.
@@ -438,7 +481,7 @@ function SearchPageInner() {
   const cityGroups = useMemo(() => groupMechanicsByCity(results?.mechanics || []), [results]);
   const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide" && mapWorkspaceMode !== "minimized";
   const mapShellClass = mapWorkspaceMode === "fullscreen"
-    ? "fixed inset-3 z-50 overflow-hidden rounded-3xl border border-roadcall-cyan/25 bg-[#02050c]/95 p-4 shadow-2xl shadow-black/70 backdrop-blur-xl sm:inset-6"
+    ? "fixed inset-x-3 bottom-3 top-24 z-40 overflow-hidden rounded-3xl border border-roadcall-cyan/25 bg-[#02050c]/95 p-4 shadow-2xl shadow-black/70 backdrop-blur-xl sm:inset-x-6 sm:bottom-6 sm:top-24"
     : "";
   const mapGridClass = mapWorkspaceMode === "minimized"
     ? "grid gap-4"
@@ -446,7 +489,7 @@ function SearchPageInner() {
       ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
       : "grid gap-4";
   const mapHeightClass = mapWorkspaceMode === "fullscreen"
-    ? "h-[calc(100vh-9.5rem)] min-h-[420px]"
+    ? "h-[calc(100vh-13rem)] min-h-[420px]"
     : mapWorkspaceMode === "wide"
       ? "h-[680px] min-h-[520px]"
       : "h-[520px] min-h-[420px]";
@@ -635,22 +678,13 @@ function SearchPageInner() {
           </div>
         ) : results && results.mechanics.length > 0 && view === "map" ? (
           <div className={mapShellClass}>
-            <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-cyan">Map workspace</p>
                 <p className="mt-1 text-sm text-roadcall-muted">
                   {mapWorkspaceMode === "minimized" ? "Map is minimized. Provider panels stay available." : mapWorkspaceMode === "fullscreen" ? "Expanded map workspace with optional provider panels." : "Use the controls to focus, expand, minimize, or hide panels."}
                 </p>
               </div>
-              <MapWorkspaceControls
-                mode={mapWorkspaceMode}
-                sidePanelOpen={mapSidePanelOpen}
-                onToggleSidePanel={() => setMapSidePanelOpen((open) => !open)}
-                onModeChange={(mode) => {
-                  setMapWorkspaceMode(mode);
-                  if (mode === "fullscreen") setMapSidePanelOpen(true);
-                }}
-              />
             </div>
             <div className={mapGridClass}>
               {mapWorkspaceMode !== "minimized" ? (
@@ -660,6 +694,17 @@ function SearchPageInner() {
                   searchingArea={searchingArea}
                   className={mapHeightClass}
                   layoutKey={`${mapWorkspaceMode}-${mapSidePanelOpen}`}
+                  workspaceControls={(
+                    <MapWorkspaceControls
+                      mode={mapWorkspaceMode}
+                      sidePanelOpen={mapSidePanelOpen}
+                      onToggleSidePanel={() => setMapSidePanelOpen((open) => !open)}
+                      onModeChange={(mode) => {
+                        setMapWorkspaceMode(mode);
+                        if (mode === "fullscreen") setMapSidePanelOpen(true);
+                      }}
+                    />
+                  )}
                 />
               ) : (
                 <button

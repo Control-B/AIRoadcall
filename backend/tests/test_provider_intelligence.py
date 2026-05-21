@@ -100,3 +100,20 @@ def test_mobile_required_penalizes_non_mobile_provider():
 
     assert mobile.roadside_relevance_score > shop_only.roadside_relevance_score
     assert mobile.dispatch_fit_score > shop_only.dispatch_fit_score
+
+
+def test_search_intent_infers_trailer_welding_and_vehicle_fit():
+    intent = ProviderIntelligenceService.infer_search_intent("mobile welding for trailer near I-4")
+
+    assert intent.issue_type == "trailer_repair"
+    assert intent.vehicle_type == "trailer"
+    assert "welding" in intent.capability_terms
+    assert intent.highway_terms == ["i-4"]
+
+
+def test_search_intent_infers_freightliner_heavy_duty_repair():
+    intent = ProviderIntelligenceService.infer_search_intent("Freightliner roadside repair near me")
+
+    assert intent.issue_type == "engine_trouble"
+    assert intent.vehicle_type == "heavy_duty"
+    assert "freightliner" in intent.capability_terms

@@ -7,6 +7,7 @@ No LLM is required for basic provider selection.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import Any
 
 from app.models.mechanic import Mechanic
@@ -53,8 +54,92 @@ class ProviderScore:
     breakdown: dict[str, float]
 
 
+@dataclass(frozen=True)
+class ProviderSearchIntent:
+    query: str
+    issue_type: str
+    vehicle_type: str | None
+    service_terms: list[str]
+    location_terms: list[str]
+    capability_terms: list[str]
+    highway_terms: list[str]
+
+
 class ProviderIntelligenceService:
     """Weighted deterministic scoring used by marketplace + dispatch UX."""
+
+    _QUERY_STOP_WORDS = {
+        "a", "an", "and", "around", "at", "best", "by", "closest", "find", "for",
+        "in", "me", "near", "nearby", "need", "of", "on", "open", "please", "service",
+        "services", "shop", "shops", "the", "to", "with",
+    }
+
+    _SERVICE_ALIASES: dict[str, tuple[str, ...]] = {
+        "flat_tire": ("flat", "tire", "tyre", "wheel", "rim", "puncture"),
+        "dead_battery": ("battery", "jump", "jumpstart", "electrical", "alternator"),
+        "fuel_delivery": ("fuel", "diesel", "def", "gas"),
+        "tow_needed": ("tow", "towing", "wrecker", "recovery", "winch", "haul"),
+        "engine_trouble": ("engine", "diesel", "diagnostic", "diagnostics", "mechanic", "repair", "freightliner", "cummins", "paccar", "detroit"),
+        "trailer_repair": ("trailer", "reefer", "brake", "brakes", "welding", "weld", "air", "mudflap", "landing", "door"),
+        "lockout": ("lock", "lockout", "keys"),
+        "heavy_duty": ("semi", "heavy", "heavy-duty", "truck", "fleet", "tractor", "class8", "class", "freightliner", "kenworth", "peterbilt"),
+    }
+
+    _VEHICLE_ALIASES: dict[str, tuple[str, ...]] = {
+        "heavy_duty": ("semi", "heavy", "heavy-duty", "tractor", "class8", "freightliner", "kenworth", "peterbilt"),
+        "truck": ("truck", "diesel"),
+        "trailer": ("trailer", "reefer"),
+        "fleet": ("fleet", "fleets"),
+    }
+
+    @staticmethod
+    def infer_search_intent(query: str | None = None, explicit_service_type: str | None = None) -> ProviderSearchIntent:
+        """Infer dispatch/search intent from a public natural-language query.
+
+        This is deterministic and embeddings-ready: it exposes normalized issue,
+        vehicle, capability, and highway tokens that can later seed semantic
+        search without changing the API contract.
+        """
+        raw_query = (query or "").strip()
+        normalized_service = (explicit_service_type or "").strip().lower().replace(" ", "_").replace("-", "_")
+        words = re.findall(r"[a-z0-9]+(?:'[a-z0-9]+)?", raw_query.lower().replace("24/7", "24_7"))
+        highway_terms = re.findall(r"\b(?:i|ih|interstate|us|hwy|highway)[-\s]?\d{1,3}\b", raw_query.lower())
+        searchable_words = [word for word in words if word not in ProviderIntelligenceService._QUERY_STOP_WORDS]
+
+        issue_type = normalized_service
+        service_terms: list[str] = []
+        if not issue_type:
+            for service, aliases in ProviderIntelligenceService._SERVICE_ALIASES.items():
+                matches = [word for word in searchable_words if word in aliases]
+                if matches:
+                    issue_type = service
+                    service_terms.extend(matches)
+                    break
+        else:
+            service_terms.append(issue_type)
+
+        vehicle_type = None
+        for vehicle, aliases in ProviderIntelligenceService._VEHICLE_ALIASES.items():
+            if any(word in aliases for word in searchable_words):
+                vehicle_type = vehicle
+                break
+
+        capability_terms = sorted({
+            word for word in searchable_words
+            if any(word in aliases for aliases in ProviderIntelligenceService._SERVICE_ALIASES.values())
+            or any(word in aliases for aliases in ProviderIntelligenceService._VEHICLE_ALIASES.values())
+        })
+        location_terms = [word for word in searchable_words if word not in capability_terms and not word.isdigit()]
+
+        return ProviderSearchIntent(
+            query=raw_query,
+            issue_type=issue_type,
+            vehicle_type=vehicle_type,
+            service_terms=service_terms,
+            location_terms=location_terms,
+            capability_terms=capability_terms,
+            highway_terms=highway_terms,
+        )
 
     @staticmethod
     def score_provider(
