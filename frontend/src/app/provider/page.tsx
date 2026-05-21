@@ -101,7 +101,7 @@ const tiers = [
   },
   {
     name: "Roadcall Standard",
-    price: "$299",
+    price: "$197",
     period: "/mo",
     setup: "$99 setup",
     description: "AI telephony and growth essentials.",
@@ -115,7 +115,7 @@ const tiers = [
       "Missed Call Text Back",
     ],
     cta: "Start Free Trial",
-    href: "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g",
+    href: "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k",
     highlighted: false,
   },
 ];

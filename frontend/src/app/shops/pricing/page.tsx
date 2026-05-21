@@ -41,13 +41,13 @@ const TRUST = [
 const PLANS = [
   {
     name: "Standard",
-    price: "$299",
+    price: "$197",
     setup: "$99 setup",
     target: "Independent repair shops, diesel shops, mobile mechanics, and roadside service providers that need every lead answered.",
     icon: Headphones,
     accent: "from-sky-400 to-blue-500",
     cta: "Start Standard",
-    href: "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g",
+    href: "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k",
     features: [
       "AI Telephony",
       "Leads",
@@ -59,14 +59,14 @@ const PLANS = [
   },
   {
     name: "Professional",
-    price: "$499",
+    price: "$297",
     setup: "$199 setup",
     target: "Shops that want their phones, website, chat, email, and follow-up campaigns connected.",
     icon: Globe2,
     accent: "from-roadcall-orange via-amber-400 to-blue-400",
     badge: "Most Popular",
     cta: "Start Professional",
-    href: "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i",
+    href: "https://buy.stripe.com/fZu28t94c8Fw0IG6Ee1sQ0l",
     features: [
       "Everything in Standard",
       "Website",
@@ -77,13 +77,13 @@ const PLANS = [
   },
   {
     name: "Advanced",
-    price: "$999",
+    price: "$997",
     setup: "$299 setup",
     target: "Growth-focused shops that need funnels, social media marketing, and deeper campaign automation.",
     icon: Network,
     accent: "from-blue-400 to-cyan-300",
     cta: "Start Advanced",
-    href: "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j",
+    href: "https://buy.stripe.com/3cI9AVgwE0909fcd2C1sQ0m",
     features: [
       "Everything in Professional",
       "Social Media Marketing",

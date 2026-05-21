@@ -104,7 +104,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "standard": PlanConfig(
             id=PlanTier.standard,
             name="Standard",
-            price_monthly=299,
+            price_monthly=197,
             setup_fee=99,
             features=STARTER_FEATURES,
             snapshot_id=settings.GHL_STANDARD_SNAPSHOT_ID or "TODO_GHL_STANDARD_SNAPSHOT_ID",
@@ -117,7 +117,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "premium": PlanConfig(
             id=PlanTier.premium,
             name="Professional",
-            price_monthly=499,
+            price_monthly=297,
             setup_fee=199,
             features=GROWTH_FEATURES,
             snapshot_id=settings.GHL_PREMIUM_SNAPSHOT_ID or settings.GHL_PROFESSIONAL_SNAPSHOT_ID or "TODO_GHL_PREMIUM_SNAPSHOT_ID",
@@ -130,7 +130,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "advanced": PlanConfig(
             id=PlanTier.advanced,
             name="Advanced",
-            price_monthly=999,
+            price_monthly=997,
             setup_fee=299,
             features=PRO_FEATURES,
             snapshot_id=settings.GHL_ADVANCED_SNAPSHOT_ID or settings.GHL_PREMIUM_SNAPSHOT_ID or "TODO_GHL_ADVANCED_SNAPSHOT_ID",

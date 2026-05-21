@@ -1,6 +1,6 @@
 # Roadcall Standard - AI Telephony Snapshot
 
-Plan: Standard ($299/mo + $99 setup)
+Plan: Standard ($197/mo + $99 setup)
 
 Small mechanics and mobile roadside businesses that need AI telephony, leads, calendar, CRM, form builder, and missed-call text back.
 

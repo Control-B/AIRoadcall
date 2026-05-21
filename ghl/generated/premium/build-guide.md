@@ -1,6 +1,6 @@
 # Roadcall Professional - Website and Marketing Snapshot
 
-Plan: Professional ($499/mo + $199 setup)
+Plan: Professional ($297/mo + $199 setup)
 
 Growing diesel shops, towing companies, and repair teams that need everything in Standard plus Website, Web Chat, Email Marketing, and Survey Builder.
 

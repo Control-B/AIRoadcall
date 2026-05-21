@@ -8,23 +8,23 @@ import { ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 const PLANS = {
   standard: {
     name: "Standard",
-    price: "$299/mo",
+    price: "$197/mo",
     setup: "$99 setup",
-    checkoutUrl: "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g",
+    checkoutUrl: "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k",
     features: ["AI Telephony", "Leads", "Calendar", "CRM", "Form Builder", "Missed Call Text Back"],
   },
   premium: {
     name: "Professional",
-    price: "$499/mo",
+    price: "$297/mo",
     setup: "$199 setup",
-    checkoutUrl: "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i",
+    checkoutUrl: "https://buy.stripe.com/fZu28t94c8Fw0IG6Ee1sQ0l",
     features: ["Everything in Standard", "Website", "Web Chat", "Email Marketing", "Survey Builder"],
   },
   advanced: {
     name: "Advanced",
-    price: "$999/mo",
+    price: "$997/mo",
     setup: "$299 setup",
-    checkoutUrl: "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j",
+    checkoutUrl: "https://buy.stripe.com/3cI9AVgwE0909fcd2C1sQ0m",
     features: ["Everything in Professional", "Social Media Marketing", "Funnels", "Email Marketing"],
   },
 } as const;

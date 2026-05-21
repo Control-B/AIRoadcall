@@ -1,6 +1,6 @@
 # Roadcall Advanced - Funnels and Social Marketing Snapshot
 
-Plan: Advanced ($999/mo + $299 setup)
+Plan: Advanced ($997/mo + $299 setup)
 
 Growth-focused providers ready for everything in Professional plus Social Media Marketing, Funnels, and deeper Email Marketing automation.
 

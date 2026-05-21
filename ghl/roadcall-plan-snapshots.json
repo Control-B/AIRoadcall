@@ -11,7 +11,7 @@
       "id": "standard",
       "snapshotName": "Roadcall Standard - AI Telephony Snapshot",
       "displayName": "Standard",
-      "pricing": {"monthly": 299, "setup": 99},
+      "pricing": {"monthly": 197, "setup": 99},
       "target": "Small mechanics and mobile roadside businesses that need AI telephony, leads, calendar, CRM, form builder, and missed-call text back.",
       "tags": [
         "roadcall",
@@ -84,7 +84,7 @@
       "id": "premium",
       "snapshotName": "Roadcall Professional - Website and Marketing Snapshot",
       "displayName": "Professional",
-      "pricing": {"monthly": 499, "setup": 199},
+      "pricing": {"monthly": 297, "setup": 199},
       "target": "Growing diesel shops, towing companies, and repair teams that need everything in Standard plus Website, Web Chat, Email Marketing, and Survey Builder.",
       "inherits": "standard",
       "tags": [
@@ -144,7 +144,7 @@
       "id": "advanced",
       "snapshotName": "Roadcall Advanced - Funnels and Social Marketing Snapshot",
       "displayName": "Advanced",
-      "pricing": {"monthly": 999, "setup": 299},
+      "pricing": {"monthly": 997, "setup": 299},
       "target": "Growth-focused providers ready for everything in Professional plus Social Media Marketing, Funnels, and deeper Email Marketing automation.",
       "inherits": "premium",
       "tags": [

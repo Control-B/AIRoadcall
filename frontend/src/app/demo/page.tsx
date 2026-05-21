@@ -67,10 +67,10 @@ const features = [
 const plans = [
   {
     name: "Standard",
-    price: 299,
+    price: 197,
     setup: "$99 setup",
     description: "AI telephony essentials",
-    href: "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g",
+    href: "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k",
     features: [
       "AI Telephony",
       "Leads",
@@ -82,11 +82,11 @@ const plans = [
   },
   {
     name: "Professional",
-    price: 499,
+    price: 297,
     setup: "$199 setup",
     description: "Website and marketing suite",
     popular: true,
-    href: "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i",
+    href: "https://buy.stripe.com/fZu28t94c8Fw0IG6Ee1sQ0l",
     features: [
       "Everything in Standard",
       "Website",
@@ -97,10 +97,10 @@ const plans = [
   },
   {
     name: "Advanced",
-    price: 999,
+    price: 997,
     setup: "$299 setup",
     description: "Full marketing engine",
-    href: "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j",
+    href: "https://buy.stripe.com/3cI9AVgwE0909fcd2C1sQ0m",
     features: [
       "Everything in Professional",
       "Social Media Marketing",

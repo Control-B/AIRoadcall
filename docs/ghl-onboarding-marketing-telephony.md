@@ -297,9 +297,9 @@ Roadcall endpoints already exist for:
 
 The three current Roadcall shop plans are:
 
-- Standard — $299/mo + $99 setup: AI Telephony, Leads, Calendar, CRM, Form Builder, and Missed Call Text Back.
-- Professional — $499/mo + $199 setup: everything in Standard plus Website, Web Chat, Email Marketing, and Survey Builder.
-- Advanced — $999/mo + $299 setup: everything in Professional plus Social Media Marketing, Funnels, and deeper Email Marketing automation.
+- Standard — $197/mo + $99 setup: AI Telephony, Leads, Calendar, CRM, Form Builder, and Missed Call Text Back.
+- Professional — $297/mo + $199 setup: everything in Standard plus Website, Web Chat, Email Marketing, and Survey Builder.
+- Advanced — $997/mo + $299 setup: everything in Professional plus Social Media Marketing, Funnels, and deeper Email Marketing automation.
 
 Use the snapshot builder to generate source-location build guides:
 

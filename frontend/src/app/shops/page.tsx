@@ -75,7 +75,7 @@ const howItWorks = [
 const plans = [
   {
     name: "Standard",
-    price: "$299",
+    price: "$197",
     period: "/mo",
     setup: "$99 setup",
     description: "AI telephony essentials for solo mechanics and small shops",
@@ -85,7 +85,7 @@ const plans = [
   },
   {
     name: "Professional",
-    price: "$499",
+    price: "$297",
     period: "/mo",
     setup: "$199 setup",
     description: "For shops ready to connect phones, website, chat, email, and surveys",
@@ -95,7 +95,7 @@ const plans = [
   },
   {
     name: "Advanced",
-    price: "$999",
+    price: "$997",
     period: "/mo",
     setup: "$299 setup",
     description: "For shops that want funnels, social marketing, and deeper email automation",
@@ -241,7 +241,7 @@ export default function ShopsPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href={plan.name === "Standard" ? "https://buy.stripe.com/4gMbJ3gwE4pg0IG5Aa1sQ0g" : plan.name === "Professional" ? "https://buy.stripe.com/00weVf3JScVMajge6G1sQ0i" : "https://buy.stripe.com/6oUdRbcgobRI0IG3s21sQ0j"}>
+                  <Link href={plan.name === "Standard" ? "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k" : plan.name === "Professional" ? "https://buy.stripe.com/fZu28t94c8Fw0IG6Ee1sQ0l" : "https://buy.stripe.com/3cI9AVgwE0909fcd2C1sQ0m"}>
                     <Button className={`w-full rounded-full ${plan.highlighted ? "bg-gradient-to-r from-roadcall-orange to-roadcall-blue hover:from-roadcall-orange hover:to-roadcall-blue" : "bg-roadcall-panel/60 hover:bg-white/15"}`}>
                       {plan.cta}
                     </Button>

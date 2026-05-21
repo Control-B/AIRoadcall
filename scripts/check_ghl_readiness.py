@@ -83,9 +83,9 @@ def main() -> int:
     stripe_checks = [
         Check("STRIPE_SECRET_KEY", _has(env.get("STRIPE_SECRET_KEY")), True, _len_hint(env.get("STRIPE_SECRET_KEY"))),
         Check("STRIPE_WEBHOOK_SECRET", _has(env.get("STRIPE_WEBHOOK_SECRET")), True, "required for /webhooks/stripe signature verification"),
-        Check("STRIPE_STANDARD_PRICE_ID", _has(env.get("STRIPE_STANDARD_PRICE_ID")) or _has(env.get("STRIPE_STARTER_PRICE_ID")), False, "maps to Standard ($299) plan; STRIPE_STARTER_PRICE_ID remains a fallback"),
-        Check("STRIPE_PREMIUM_PRICE_ID", _has(env.get("STRIPE_PREMIUM_PRICE_ID")) or _has(env.get("STRIPE_GROWTH_PRICE_ID")), False, "maps to Professional ($499) plan; STRIPE_GROWTH_PRICE_ID remains a fallback"),
-        Check("STRIPE_ADVANCED_PRICE_ID", _has(env.get("STRIPE_ADVANCED_PRICE_ID")) or _has(env.get("STRIPE_PRO_PRICE_ID")), False, "maps to Advanced ($999) plan; STRIPE_PRO_PRICE_ID remains a fallback"),
+        Check("STRIPE_STANDARD_PRICE_ID", _has(env.get("STRIPE_STANDARD_PRICE_ID")) or _has(env.get("STRIPE_STARTER_PRICE_ID")), False, "maps to Standard ($197) plan; STRIPE_STARTER_PRICE_ID remains a fallback"),
+        Check("STRIPE_PREMIUM_PRICE_ID", _has(env.get("STRIPE_PREMIUM_PRICE_ID")) or _has(env.get("STRIPE_GROWTH_PRICE_ID")), False, "maps to Professional ($297) plan; STRIPE_GROWTH_PRICE_ID remains a fallback"),
+        Check("STRIPE_ADVANCED_PRICE_ID", _has(env.get("STRIPE_ADVANCED_PRICE_ID")) or _has(env.get("STRIPE_PRO_PRICE_ID")), False, "maps to Advanced ($997) plan; STRIPE_PRO_PRICE_ID remains a fallback"),
     ]
 
     retell_checks = [
@@ -137,9 +137,9 @@ def main() -> int:
 
     print(f"\n{CYAN}Summary:{RESET} {GREEN}{totals[0]} pass{RESET}, {YELLOW}{totals[1]} warn{RESET}, {RED}{totals[2]} fail{RESET}")
     print("\nGHL plan alignment expected by Roadcall backend:")
-    print("  Standard  $299/mo + $99 setup  (canonical id: standard)")
-    print("  Professional  $499/mo + $199 setup  (canonical id: premium)")
-    print("  Advanced      $999/mo + $299 setup  (canonical id: advanced)")
+    print("  Standard  $197/mo + $99 setup  (canonical id: standard)")
+    print("  Professional  $297/mo + $199 setup  (canonical id: premium)")
+    print("  Advanced      $997/mo + $299 setup  (canonical id: advanced)")
 
     return 1 if totals[2] > 0 else 0
 
