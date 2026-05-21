@@ -286,13 +286,12 @@ FLOW = {
             "id": "start-node",
             "type": "conversation",
             "name": "One-Time Greeting",
-            "start_speaker": "agent",
             "display_position": {"x": 100, "y": 300},
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Say only this sentence, then stop and let the caller answer: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\n"
-                    "Do not ask what they need yet in this node. Do not mention roadcall.ai/go yet. After the caller gives their name, route to Search Intake unless they mentioned injury, fire, danger, or 911."
+                    "Speak exactly once: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\n"
+                    "Then stay silent and wait for real caller speech. Do not answer false noise, silence, or background audio. Do not repeat the greeting. Do not ask what they need yet in this node. Do not mention roadcall.ai/go yet. After the caller gives their name, route to Search Intake unless they mentioned injury, fire, danger, or 911."
                 )
             },
             "edges": [
@@ -824,10 +823,12 @@ agent_body = {
     "language": "en-US",
     # Pacing: lower interruption sensitivity = more patient, won't cut driver off mid-sentence.
     # voice_speed < 1.0 slows delivery; responsiveness < 1.0 lets her wait a beat before replying.
-    "interruption_sensitivity": 0.55,
-    "responsiveness": 0.75,
+    "interruption_sensitivity": 0.2,
+    "responsiveness": 0.55,
     "voice_speed": 0.93,
     "voice_temperature": 0.75,
+    "begin_message_delay_ms": 600,
+    "denoising_mode": "noise-and-background-speech-cancellation",
     "enable_backchannel": True,
     "backchannel_frequency": 0.5,
     "backchannel_words": ["okay", "got it", "uh huh", "right"],

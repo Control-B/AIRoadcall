@@ -376,14 +376,13 @@
       "id": "start-node",
       "type": "conversation",
       "name": "One-Time Greeting",
-      "start_speaker": "agent",
       "display_position": {
         "x": 100,
         "y": 300
       },
       "instruction": {
         "type": "prompt",
-        "text": "Say only this sentence, then stop and let the caller answer: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\nDo not ask what they need yet in this node. Do not mention roadcall.ai/go yet. After the caller gives their name, route to Search Intake unless they mentioned injury, fire, danger, or 911."
+        "text": "Speak exactly once: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\nThen stay silent and wait for real caller speech. Do not answer false noise, silence, or background audio. Do not repeat the greeting. Do not ask what they need yet in this node. Do not mention roadcall.ai/go yet. After the caller gives their name, route to Search Intake unless they mentioned injury, fire, danger, or 911."
       },
       "edges": [
         {
