@@ -30,18 +30,12 @@ from app.schemas.dispatch_session import (
 from app.schemas.roadside_match import RoadsideMatchRequest, RoadsideMatchResponse
 from app.services.geocoding_service import GeocodingService
 from app.services.roadside_matching_service import RoadsideMatchingService
+from app.services.session_cache_service import SessionCacheService
 from app.utils.us_geo import infer_state_from_coordinates
 
 _PHONE_DIGITS = re.compile(r"\D")
 
-_CODE_ADJECTIVES = [
-    "BLUE", "GREEN", "GOLD", "SILVER", "BRIGHT", "CLEAR", "SAFE", "QUICK", "STEADY", "SOLID",
-    "CALM", "READY", "FRESH", "TRUE", "LUCKY", "NORTH", "SOUTH", "EAST", "WEST", "OPEN",
-]
-_CODE_NOUNS = [
-    "ROAD", "TRUCK", "TIRE", "WHEEL", "ENGINE", "DIESEL", "RIVER", "BRIDGE", "PILOT", "MILE",
-    "EXIT", "LANE", "SHOP", "WRENCH", "BEACON", "ROUTE", "TRAIL", "FLEET", "CAB", "SIGN",
-]
+_CODE_PREFIXES = ("RC", "RD", "RA", "RS")
 
 
 def normalize_phone_us(value: str | None) -> str | None:
@@ -59,13 +53,21 @@ def phone_hash(value: str | None) -> str | None:
 
 
 def normalize_public_code(value: str | None) -> str:
-    return re.sub(r"\s+", " ", (value or "").strip().upper().replace("-", " "))
+    raw = (value or "").strip().upper()
+    compact = re.sub(r"[^A-Z0-9]", "", raw)
+    prefixed = re.fullmatch(r"([A-Z]{2})(\d{4})", compact)
+    if prefixed:
+        return f"{prefixed.group(1)}-{prefixed.group(2)}"
+    digits = re.fullmatch(r"\d{4}", compact)
+    if digits:
+        return f"RC-{compact}"
+    return re.sub(r"\s+", " ", raw.replace("-", " "))
 
 
 def _public_code() -> str:
-    adjective = secrets.choice(_CODE_ADJECTIVES)
-    noun = secrets.choice(_CODE_NOUNS)
-    return f"{adjective} {noun}"
+    prefix = secrets.choice(_CODE_PREFIXES)
+    number = 1000 + secrets.randbelow(9000)
+    return f"{prefix}-{number}"
 
 
 def _public_url(token: str) -> str:
@@ -93,6 +95,7 @@ class DispatchSessionService:
             "has_twilio_call_sid": bool(session.twilio_call_sid),
         })
         await DispatchSessionService.record_event(db, session.id, "location.requested", "system", {"location_token_id": str(token_row.id)})
+        await SessionCacheService.mirror_session(session, ttl_seconds=payload.expires_minutes * 60)
         return DispatchCreateSessionResponse(
             dispatch_session_id=session.id,
             public_code=session.public_code,
@@ -169,6 +172,7 @@ class DispatchSessionService:
         elif not match_response:
             session.status = DispatchSessionStatus.intake.value
 
+        await SessionCacheService.mirror_session(session)
         return DispatchUpdateLocationResponse(ok=True, session=await DispatchSessionService.status_response(db, session))
 
     @staticmethod
@@ -317,11 +321,17 @@ class DispatchSessionService:
         session = result.scalar_one_or_none()
         if not session:
             raise ValueError("Dispatch session not found")
+        created_at = session.created_at
+        if created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+        if created_at + timedelta(minutes=expires_minutes) < datetime.now(timezone.utc):
+            raise ValueError("Roadcall session code has expired")
         if session.caller_phone_last4 and caller_phone_last4 and session.caller_phone_last4 != caller_phone_last4:
             raise ValueError("Case code does not match caller verification")
         token_row, signed_token = await DispatchSessionService._issue_location_token(db, session, expires_minutes)
         session.active_location_token_id = token_row.id
         await DispatchSessionService.record_event(db, session.id, "location.case_code_linked", "caller", {"location_token_id": str(token_row.id)})
+        await SessionCacheService.mirror_session(session, ttl_seconds=expires_minutes * 60)
         return DispatchLinkCaseCodeResponse(
             dispatch_session_id=session.id,
             public_code=session.public_code,
@@ -491,4 +501,4 @@ class DispatchSessionService:
             return f"I found {best_match['company_name']} near {location or 'your area'}. I’m confirming availability now."
         if session.location_captured_at:
             return "I have your location and I’m checking the best nearby provider now."
-        return f"I created your Roadcall case {session.public_code}. Please open the secure GPS link so I can find nearby help."
+        return f"I created your Roadcall session code {session.public_code}. Please go to roadcall.ai slash go and enter that code so I can find nearby help."

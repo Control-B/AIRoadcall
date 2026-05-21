@@ -17,6 +17,7 @@ from app.api.routes import (
     payments,
     dispatch,
     dispatch_sessions,
+    session_codes,
     tracking,
     mechanics,
     webhooks_stripe,
@@ -137,6 +138,7 @@ app.include_router(jobs.router, prefix="/api")
 app.include_router(payments.router, prefix="/api")
 app.include_router(dispatch.router, prefix="/api")
 app.include_router(dispatch_sessions.router, prefix="/api")
+app.include_router(session_codes.router, prefix="/api")
 app.include_router(tracking.router, prefix="/api")
 app.include_router(mechanics.router, prefix="/api")
 app.include_router(rag.router, prefix="/api")

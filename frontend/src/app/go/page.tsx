@@ -19,18 +19,16 @@ const API_URL = getApiBase();
 
 function normalizeCaseCode(raw: string): string {
   const value = raw.trim().toUpperCase();
-  if (/[A-Z]/.test(value) && !value.startsWith("RC")) {
-    return value.replace(/[^A-Z0-9]+/g, " ").replace(/\s+/g, " ").trim();
-  }
   const cleaned = value.replace(/[^A-Z0-9]/g, "");
   if (!cleaned) return "";
-  const withoutPrefix = cleaned.startsWith("RC") ? cleaned.slice(2) : cleaned;
-  return withoutPrefix ? `RC-${withoutPrefix}` : "RC-";
+  const prefixed = cleaned.match(/^([A-Z]{2})(\d{0,4})/);
+  if (prefixed) return prefixed[2] ? `${prefixed[1]}-${prefixed[2]}` : `${prefixed[1]}-`;
+  return cleaned.length <= 4 ? `RC-${cleaned}` : cleaned;
 }
 
 function looksLikeCaseCode(raw: string): boolean {
   const normalized = normalizeCaseCode(raw);
-  return /^RC-[A-Z0-9]{4,12}$/.test(normalized) || /^[A-Z]{3,12}(\s+[A-Z0-9]{3,12}){0,2}$/.test(normalized);
+  return /^[A-Z]{2}-\d{4}$/.test(normalized);
 }
 
 type DispatchSessionStatus = {
@@ -87,23 +85,22 @@ export default function GoPage() {
     }
     if (code) {
       setCodeInput(code.trim().toUpperCase());
-      setProgressMsg("This Roadcall code will attach your GPS to the live dispatch session.");
+      setProgressMsg("This Roadcall short code will attach your GPS to the live dispatch session.");
     }
   }, []);
 
-  const linkCaseCode = useCallback(async () => {
-    const res = await fetch(`${API_URL}/dispatch/link-case-code`, {
+  const validateSessionCode = useCallback(async () => {
+    const res = await fetch(`${API_URL}/session/validate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ public_code: caseCode }),
+      body: JSON.stringify({ sessionCode: caseCode }),
     });
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      throw new Error(body?.detail || "We could not find that Roadcall code. Ask Sandy to repeat the two words.");
+    if (!res.ok || !body?.sessionExists) {
+      throw new Error(body?.detail || "We could not find that Roadcall code. Ask Sandy to repeat the short code.");
     }
-    setDispatchToken(body.location_token);
-    setProgressMsg(`Case ${body.public_code} found. Share your GPS to attach it to the live call.`);
-    return body.location_token as string;
+    setProgressMsg(`Session ${body.sessionCode || caseCode} found. Share your GPS to attach it to the live call.`);
+    return body.sessionCode || caseCode;
   }, [caseCode]);
 
   const submitTokenLocation = useCallback(
@@ -146,19 +143,56 @@ export default function GoPage() {
     [dispatchToken, name, problem, vehicleType],
   );
 
+  const submitCodeLocation = useCallback(
+    async (opts: { latitude: number; longitude: number; accuracy_m?: number }, codeOverride?: string) => {
+      const sessionCode = codeOverride || caseCode;
+      setSubmitting(true);
+      setError(null);
+      setStep("matching");
+      setProgressMsg("Sending your exact GPS location to Roadcall...");
+      try {
+        const res = await fetch(`${API_URL}/location/update`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionCode,
+            latitude: opts.latitude,
+            longitude: opts.longitude,
+            accuracy: opts.accuracy_m ?? null,
+            problemDescription: problem || null,
+            vehicleType: vehicleType || null,
+          }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body?.detail || `Location update failed (${res.status})`);
+        }
+        const data = await res.json();
+        setSessionResult(data.session);
+        setStep("results");
+      } catch (err: any) {
+        setError(err?.message || "We could not attach your GPS to this Roadcall session.");
+        setStep("manual_fallback");
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [caseCode, problem, vehicleType],
+  );
+
   const requestGpsThenDispatch = useCallback(async () => {
     if (!canSubmitIntake) {
-      setError("Enter the Roadcall word code Sandy gave you, or use the secure link from the dispatcher.");
+      setError("Enter the Roadcall short code Sandy gave you, or use the secure link from the dispatcher.");
       return;
     }
 
-    let linkedToken: string | undefined;
+    let linkedCode: string | undefined;
     if (!tokenMode) {
       try {
         setSubmitting(true);
-        linkedToken = await linkCaseCode();
+        linkedCode = await validateSessionCode();
       } catch (err: any) {
-        setError(err?.message || "We could not find that Roadcall code. Ask Sandy to repeat the two words.");
+        setError(err?.message || "We could not find that Roadcall code. Ask Sandy to repeat the short code.");
         setSubmitting(false);
         return;
       } finally {
@@ -177,14 +211,16 @@ export default function GoPage() {
     setProgressMsg("Getting your location... please tap Allow if your phone asks.");
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        submitTokenLocation(
-          {
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            accuracy_m: pos.coords.accuracy,
-          },
-          linkedToken,
-        );
+        const coords = {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy_m: pos.coords.accuracy,
+        };
+        if (tokenMode) {
+          submitTokenLocation(coords);
+        } else {
+          submitCodeLocation(coords, linkedCode);
+        }
       },
       (geoErr) => {
         let msg = "GPS did not come through. Stay on the line and tell Sandy your city, state, highway, exit, mile marker, or nearest landmark.";
@@ -198,7 +234,7 @@ export default function GoPage() {
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 },
     );
-  }, [canSubmitIntake, linkCaseCode, submitTokenLocation, tokenMode]);
+  }, [canSubmitIntake, submitCodeLocation, submitTokenLocation, tokenMode, validateSessionCode]);
 
   const handleSubmitForm = (event: FormEvent) => {
     event.preventDefault();
@@ -243,7 +279,7 @@ export default function GoPage() {
             ) : (
               <div>
                 <label htmlFor="case-code" className="mb-1 block text-sm font-medium text-slate-200">
-                  Roadcall word code <span className="text-orange-400">*</span>
+                  Roadcall short code <span className="text-orange-400">*</span>
                 </label>
                 <input
                   id="case-code"
@@ -252,15 +288,15 @@ export default function GoPage() {
                   autoComplete="one-time-code"
                   value={codeInput.toUpperCase()}
                   onChange={(event) => setCodeInput(event.target.value)}
-                  placeholder="BLUE ROAD"
+                  placeholder="RC-4821"
                   className="h-14 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 text-center text-xl font-semibold tracking-wider text-white placeholder:text-slate-600 focus:border-orange-400 focus:outline-none"
                 />
                 <p className="mt-1 text-xs text-slate-400">
-                  Enter the two words Sandy gave you. No phone number is needed here.
+                  Enter the short code Sandy gave you. No phone number is needed here.
                 </p>
                 {caseCodeValid && (
                   <div className="mt-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-center text-xs text-emerald-100">
-                    We will attach your GPS to case <span className="font-mono font-semibold">{caseCode}</span>.
+                    We will attach your GPS to session <span className="font-mono font-semibold">{caseCode}</span>.
                   </div>
                 )}
               </div>

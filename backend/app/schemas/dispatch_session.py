@@ -21,7 +21,7 @@ class DispatchCreateSessionRequest(BaseModel):
     state: str | None = None
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
-    expires_minutes: int = Field(default=30, ge=5, le=240)
+    expires_minutes: int = Field(default=15, ge=5, le=240)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -78,7 +78,7 @@ class DispatchUpdateLocationResponse(BaseModel):
 class DispatchLinkCaseCodeRequest(BaseModel):
     public_code: str
     caller_phone_last4: str | None = Field(default=None, min_length=4, max_length=4)
-    expires_minutes: int = Field(default=30, ge=5, le=240)
+    expires_minutes: int = Field(default=15, ge=5, le=240)
 
 
 class DispatchLinkCaseCodeResponse(BaseModel):

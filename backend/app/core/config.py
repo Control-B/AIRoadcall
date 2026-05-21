@@ -5,6 +5,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "postgresql+asyncpg://user:password@localhost:5432/airoadcall"
+    REDIS_URL: str = ""
 
     # Stripe
     STRIPE_SECRET_KEY: str = ""
@@ -84,6 +85,7 @@ class Settings(BaseSettings):
     APP_BASE_URL: str = "http://localhost:3000"
     MAGIC_LINK_SECRET: str = "change-this-to-a-secure-random-string"
     MAGIC_LINK_EXPIRY_HOURS: int = 24
+    ROADCALL_SESSION_CODE_TTL_MINUTES: int = 15
     MECHANIC_ARRIVAL_THRESHOLD_METERS: float = 200.0
     DEMO_AUTO_ASSIGN_NEAREST_MECHANIC: bool = False
     DEMO_SKIP_PAYMENT_AUTHORIZATION: bool = False
