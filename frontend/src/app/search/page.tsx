@@ -984,10 +984,25 @@ function MapWorkspaceControls({
   onModeChange: (mode: MapWorkspaceMode) => void;
   onToggleSidePanel: () => void;
 }) {
+  if (mode === "fullscreen") {
+    return (
+      <div className="inline-flex items-center rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/80 p-1 shadow-2xl shadow-black/30 backdrop-blur-md">
+        <button
+          type="button"
+          onClick={() => onModeChange("split")}
+          title="Exit full page map"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-roadcall-cyan text-slate-950 transition hover:brightness-110"
+        >
+          <Maximize2 className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
   const controls = [
     { id: "split" as const, label: "Split map and list", icon: Rows3 },
     { id: "wide" as const, label: "Focus map", icon: RectangleHorizontal },
-    { id: "fullscreen" as const, label: mode === "fullscreen" ? "Exit full page map" : "Expand map to full page", icon: Maximize2 },
+    { id: "fullscreen" as const, label: "Expand map to full page", icon: Maximize2 },
   ];
   return (
     <div className="inline-flex items-center rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/80 p-1 shadow-2xl shadow-black/30 backdrop-blur-md">
@@ -1007,7 +1022,7 @@ function MapWorkspaceControls({
           <button
             key={control.id}
             type="button"
-            onClick={() => onModeChange(control.id === "fullscreen" && mode === "fullscreen" ? "split" : control.id)}
+            onClick={() => onModeChange(control.id)}
             title={control.label}
             className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
           >
@@ -1156,19 +1171,27 @@ function SearchPageInner() {
     setMapSidePanelOpen(true);
     if (mechanic.city || mechanic.state) setMapAreaSummary(`Showing map near ${[mechanic.city, mechanic.state].filter(Boolean).join(", ")}`);
   }, []);
-  const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide";
+  const isFullscreenMap = mapWorkspaceMode === "fullscreen";
+  useEffect(() => {
+    if (!isFullscreenMap) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isFullscreenMap]);
+
+  const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide" && !isFullscreenMap;
   const mapShellClass = mapWorkspaceMode === "fullscreen"
-    ? "fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#02050c] p-3 shadow-2xl shadow-black/80 sm:p-5"
+    ? "fixed inset-0 z-[100] flex flex-col overflow-hidden bg-[#02050c] shadow-2xl shadow-black/80"
     : "";
   const mapGridClass = mapWorkspaceMode === "fullscreen"
-    ? showMapSidePanel
-      ? "grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
-      : "grid min-h-0 flex-1 gap-4"
+    ? "grid h-screen min-h-0"
     : showMapSidePanel
       ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
       : "grid gap-4";
   const mapHeightClass = mapWorkspaceMode === "fullscreen"
-    ? "h-full min-h-0"
+    ? "h-screen min-h-0 rounded-none border-0"
     : mapWorkspaceMode === "wide"
       ? "h-[680px] min-h-[520px]"
       : "h-[520px] min-h-[420px]";
@@ -1423,11 +1446,11 @@ function SearchPageInner() {
           </div>
         ) : results && results.mechanics.length > 0 && view === "map" ? (
           <div className={mapShellClass}>
-            <div className="mb-3">
+            {!isFullscreenMap ? <div className="mb-3">
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-cyan">{premiumModeLabel} map workspace</p>
                 <p className="mt-1 text-sm text-roadcall-muted">
-                  {hasPremiumMapAccess ? "Premium overlays are active for this session." : "Advanced map modes are locked behind Driver Pro and Fleet Operations memberships."} {mapWorkspaceMode === "fullscreen" ? "Expanded full-page map workspace with optional provider panels." : "Use the controls to focus, expand, or hide panels."}
+                  {hasPremiumMapAccess ? "Premium overlays are active for this session." : "Advanced map modes are locked behind Driver Pro and Fleet Operations memberships."} Use the controls to focus, expand, or hide panels.
                 </p>
               </div>
               <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
@@ -1440,7 +1463,7 @@ function SearchPageInner() {
                   <Zap className="mr-2 h-4 w-4" /> Emergency Breakdown
                 </button>
               </div>
-            </div>
+            </div> : null}
             <div className={mapGridClass}>
               <SearchResultsMap
                 mechanics={results.mechanics}
@@ -1457,13 +1480,13 @@ function SearchPageInner() {
                     onToggleSidePanel={() => setMapSidePanelOpen((open) => !open)}
                     onModeChange={(mode) => {
                       setMapWorkspaceMode(mode);
-                      if (mode === "fullscreen") setMapSidePanelOpen(true);
+                      if (mode === "fullscreen") setMapSidePanelOpen(false);
                     }}
                   />
                 )}
               />
               {showMapSidePanel ? (
-                <div className={`${mapWorkspaceMode === "fullscreen" ? "min-h-0 overflow-y-auto" : "max-h-[520px] overflow-y-auto"} space-y-4 pr-1`}>
+                <div className="max-h-[520px] space-y-4 overflow-y-auto pr-1">
                   <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 p-4">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-muted">Visible cities</p>
                     <div className="mt-3 flex flex-wrap gap-2">
