@@ -57,6 +57,8 @@ class Mechanic(Base):
     zip_code: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
     website: Mapped[str | None] = mapped_column(Text, nullable=True)
     email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    google_maps_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    verification_status: Mapped[str] = mapped_column(String(32), nullable=False, default="unverified", index=True)
     availability_status: Mapped[str | None] = mapped_column(String(50), nullable=True, default="unknown", index=True)
     response_score: Mapped[float | None] = mapped_column(Float, nullable=True)
 

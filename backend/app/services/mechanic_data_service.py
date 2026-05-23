@@ -425,10 +425,22 @@ class MechanicDataService:
             safe_mechanics.append({
                 "id": str(mechanic.id),
                 "company_name": mechanic.company_name,
+                "business_category": MechanicDataService._business_category(mechanic),
+                "address": mechanic.address,
                 "city": mechanic.city,
                 "state": mechanic.state,
+                "zip_code": mechanic.zip_code,
                 "lat": mechanic.base_lat if mechanic.base_lat not in (None, 0) else None,
                 "lng": mechanic.base_lng if mechanic.base_lng not in (None, 0) else None,
+                "phone": mechanic.phone if MechanicDataService._public_contact_allowed(mechanic) else None,
+                "website": mechanic.website,
+                "source_url": mechanic.source_url if MechanicDataService._public_contact_allowed(mechanic) else None,
+                "google_maps_url": getattr(mechanic, "google_maps_url", None),
+                "last_verified_at": (mechanic.last_enriched_at.isoformat() if mechanic.last_enriched_at else None),
+                "verification_status": MechanicDataService._verification_status(mechanic),
+                "claim_status": "claimed" if getattr(mechanic, "claimed", False) else "unclaimed",
+                "contact_protected": not MechanicDataService._public_contact_allowed(mechanic),
+                "export_status": "ready" if mechanic.phone or mechanic.website else "needs_enrichment",
                 "rating": float(mechanic.rating) if mechanic.rating is not None else None,
                 "review_count": mechanic.review_count,
                 "accepts_mobile_roadside": mechanic.accepts_mobile_roadside,
@@ -488,6 +500,45 @@ class MechanicDataService:
             elif term in haystack:
                 score += 1.0
         return score
+
+    @staticmethod
+    def _public_contact_allowed(mechanic: Mechanic) -> bool:
+        verification_status = getattr(mechanic, "verification_status", None)
+        return bool(getattr(mechanic, "claimed", False) or getattr(mechanic, "verified_listing", False) or verification_status == "verified")
+
+    @staticmethod
+    def _verification_status(mechanic: Mechanic) -> str:
+        explicit_status = getattr(mechanic, "verification_status", None)
+        if explicit_status and explicit_status != "unverified":
+            return explicit_status
+        if getattr(mechanic, "verified_listing", False):
+            return "verified"
+        if getattr(mechanic, "claimed", False):
+            return "claimed"
+        if getattr(mechanic, "requires_admin_review", False):
+            return "needs_review"
+        return "unverified"
+
+    @staticmethod
+    def _business_category(mechanic: Mechanic) -> str:
+        text = " ".join(
+            [
+                mechanic.company_name or "",
+                " ".join(str(item) for item in (mechanic.service_types or [])),
+                " ".join(str(item) for item in (mechanic.vehicle_types_supported or [])),
+            ]
+        ).lower()
+        if "tow" in text or "wrecker" in text or "recovery" in text:
+            return "Towing"
+        if "tire" in text or "tyre" in text:
+            return "Tire Service"
+        if "freight" in text or "trucking" in text or "logistics" in text or "carrier" in text:
+            return "Freight / Trucking Company"
+        if "roadside" in text or mechanic.accepts_mobile_roadside:
+            return "Mobile Mechanic"
+        if "diesel" in text or "repair" in text or "mechanic" in text:
+            return "Truck Repair"
+        return "Roadside Provider"
 
     @staticmethod
     def _classify_email_quality(email: str | None, website: str | None) -> str | None:

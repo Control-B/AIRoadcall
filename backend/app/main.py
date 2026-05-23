@@ -219,6 +219,8 @@ async def ensure_database_schema() -> None:
                 "ADD COLUMN IF NOT EXISTS availability_status VARCHAR(50) DEFAULT 'unknown'"
             )
         )
+        await conn.execute(text("ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS google_maps_url TEXT"))
+        await conn.execute(text("ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS verification_status VARCHAR(32) NOT NULL DEFAULT 'unverified'"))
         await conn.execute(
             text(
                 "ALTER TABLE mechanics "
@@ -226,6 +228,7 @@ async def ensure_database_schema() -> None:
             )
         )
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_mechanics_base_lat_lng ON mechanics (base_lat, base_lng)"))
+        await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_mechanics_verification_status ON mechanics (verification_status)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_mechanics_zip_code ON mechanics (zip_code)"))
         await conn.execute(text("CREATE INDEX IF NOT EXISTS ix_mechanics_availability_status ON mechanics (availability_status)"))
         await conn.execute(text("ALTER TABLE shop_customers ADD COLUMN IF NOT EXISTS phone_onboarding_mode VARCHAR(50) NOT NULL DEFAULT 'existing_number'"))

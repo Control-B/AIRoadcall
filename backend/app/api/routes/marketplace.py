@@ -15,17 +15,26 @@ import re
 import secrets
 import uuid
 from datetime import datetime, timezone
+from difflib import SequenceMatcher
+from urllib.parse import urlparse
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session
+from app.api.routes.admin_auth import verify_admin
 from app.core.logging import get_logger
 from app.models.mechanic import Mechanic
 from app.models.mechanic_marketplace import (
-    ClaimMethod, ClaimStatus, MechanicClaim, MechanicReview,
+    ClaimMethod,
+    ClaimStatus,
+    MechanicClaim,
+    MechanicReview,
+    ProviderChangeLog,
+    ProviderUpdateRequest,
+    ProviderUpdateStatus,
 )
 from app.models.organization import Organization
 
@@ -52,6 +61,48 @@ def _mechanic_uuid(mechanic_id: str) -> uuid.UUID:
         return uuid.UUID(str(mechanic_id))
     except ValueError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found") from exc
+
+
+def _normalize_domain(value: str | None) -> str | None:
+    if not value:
+        return None
+    parsed = urlparse(value if "://" in value else f"https://{value}")
+    host = (parsed.netloc or parsed.path).split("/")[0].split(":")[0].lower().strip()
+    if host.startswith("www."):
+        host = host[4:]
+    return host or None
+
+
+def _safe_url(value: str | None) -> str | None:
+    if not value:
+        return None
+    candidate = value.strip()
+    if not candidate:
+        return None
+    parsed = urlparse(candidate if "://" in candidate else f"https://{candidate}")
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    return parsed.geturl()
+
+
+def _name_match_score(left: str | None, right: str | None) -> float:
+    def clean(value: str | None) -> str:
+        return re.sub(r"[^a-z0-9]+", " ", (value or "").lower()).strip()
+    a = clean(left)
+    b = clean(right)
+    if not a or not b:
+        return 0.0
+    return round(SequenceMatcher(None, a, b).ratio(), 4)
+
+
+def _email_domain_matches_website(email: str | None, website: str | None) -> bool | None:
+    if not email or "@" not in email:
+        return None
+    website_domain = _normalize_domain(website)
+    if not website_domain:
+        return None
+    email_domain = email.rsplit("@", 1)[-1].lower().strip()
+    return email_domain == website_domain or email_domain.endswith(f".{website_domain}")
 
 
 async def _is_subscriber_phone(db: AsyncSession, phone: str) -> Organization | None:
@@ -183,7 +234,109 @@ class EditListingRequest(BaseModel):
     service_radius_miles: int | None = Field(default=None, ge=1, le=500)
 
 
+class ProviderUpdateRequestIn(BaseModel):
+    role: str = Field(..., min_length=2, max_length=40)
+    full_name: str = Field(..., min_length=2, max_length=255)
+    work_email: str = Field(..., min_length=5, max_length=255)
+    phone_number: str = Field(..., min_length=7, max_length=30)
+    company_name: str = Field(..., min_length=2, max_length=255)
+    company_address: str | None = Field(default=None, max_length=1000)
+    website: str | None = Field(default=None, max_length=500)
+    proof_message: str | None = Field(default=None, max_length=4000)
+    requested_changes: dict = Field(default_factory=dict)
+
+
+class ProviderUpdateRequestOut(BaseModel):
+    id: str
+    mechanic_id: str
+    status: str
+    match_score: float | None
+    email_domain_matches_website: bool | None
+    message: str
+
+
+class AdminReviewQueues(BaseModel):
+    pending_claims: list[dict]
+    pending_updates: list[dict]
+    data_quality: dict
+
+
+class AdminDecisionRequest(BaseModel):
+    status: str = Field(..., description="approved | rejected | more_info_requested")
+    review_notes: str | None = None
+
+
+class VerifyProviderRequest(BaseModel):
+    verification_status: str = Field(default="verified")
+
+
 # ── routes ───────────────────────────────────────────────────────────
+@router.get("/admin/review-queues", response_model=AdminReviewQueues, dependencies=[Depends(verify_admin)])
+async def admin_review_queues(db: AsyncSession = Depends(get_session)):
+    claim_rows = (await db.execute(
+        select(MechanicClaim, Mechanic)
+        .join(Mechanic, Mechanic.id == MechanicClaim.mechanic_id)
+        .where(MechanicClaim.status == ClaimStatus.pending)
+        .order_by(MechanicClaim.created_at.desc())
+        .limit(100)
+    )).all()
+    update_rows = (await db.execute(
+        select(ProviderUpdateRequest, Mechanic)
+        .join(Mechanic, Mechanic.id == ProviderUpdateRequest.mechanic_id)
+        .where(ProviderUpdateRequest.status == ProviderUpdateStatus.pending_review)
+        .order_by(ProviderUpdateRequest.created_at.desc())
+        .limit(100)
+    )).all()
+
+    missing_websites = await db.scalar(select(func.count(Mechanic.id)).where(or_(Mechanic.website.is_(None), Mechanic.website == ""))) or 0
+    missing_phones = await db.scalar(select(func.count(Mechanic.id)).where(or_(Mechanic.phone.is_(None), Mechanic.phone == ""))) or 0
+    needs_review = await db.scalar(select(func.count(Mechanic.id)).where(Mechanic.requires_admin_review == True)) or 0  # noqa: E712
+    low_confidence_addresses = await db.scalar(
+        select(func.count(Mechanic.id)).where(
+            or_(Mechanic.address.is_(None), Mechanic.address == "", Mechanic.base_lat.is_(None), Mechanic.base_lng.is_(None))
+        )
+    ) or 0
+
+    return AdminReviewQueues(
+        pending_claims=[
+            {
+                "id": str(claim.id),
+                "listing_id": str(mechanic.id),
+                "company_name": mechanic.company_name,
+                "claimant_name": claim.claimant_name,
+                "claimant_email": claim.claimant_email,
+                "claimant_phone": claim.claimant_phone,
+                "method": str(claim.method.value if hasattr(claim.method, "value") else claim.method),
+                "notes": claim.notes,
+                "created_at": claim.created_at.isoformat(),
+            }
+            for claim, mechanic in claim_rows
+        ],
+        pending_updates=[
+            {
+                "id": str(update.id),
+                "listing_id": str(mechanic.id),
+                "company_name": mechanic.company_name,
+                "requester_name": update.requester_name,
+                "requester_email": update.requester_email,
+                "requester_role": update.requester_role,
+                "match_score": update.match_score,
+                "email_domain_matches_website": update.email_domain_matches_website,
+                "requested_changes": update.requested_changes,
+                "proof_message": update.proof_message,
+                "created_at": update.created_at.isoformat(),
+            }
+            for update, mechanic in update_rows
+        ],
+        data_quality={
+            "missing_websites": int(missing_websites),
+            "missing_phone_numbers": int(missing_phones),
+            "pending_public_submissions": int(needs_review),
+            "low_confidence_addresses": int(low_confidence_addresses),
+        },
+    )
+
+
 @router.get("/{mechanic_id}", response_model=ProviderDetailResponse)
 async def get_provider_detail(mechanic_id: str, db: AsyncSession = Depends(get_session)):
     mechanic = await db.get(Mechanic, _mechanic_uuid(mechanic_id))
@@ -435,6 +588,183 @@ async def claim_listing(
         message=msg,
         can_edit_now=auto_approved,
     )
+
+
+@router.post("/{mechanic_id}/update-request", response_model=ProviderUpdateRequestOut, status_code=status.HTTP_201_CREATED)
+async def suggest_provider_update(
+    mechanic_id: str,
+    payload: ProviderUpdateRequestIn,
+    x_roadcall_user_id: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_session),
+):
+    mechanic = await db.get(Mechanic, _mechanic_uuid(mechanic_id))
+    if not mechanic:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found")
+
+    allowed_roles = {"owner", "manager", "dispatcher", "authorized_company_rep"}
+    role = payload.role.strip().lower().replace(" ", "_")
+    if role not in allowed_roles:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid representative role")
+
+    match_score = _name_match_score(payload.company_name, mechanic.company_name)
+    website = _safe_url(payload.website)
+    domain_match = _email_domain_matches_website(payload.work_email, website or mechanic.website)
+    if match_score < 0.62:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Submitted company name does not closely match this listing")
+
+    changes = dict(payload.requested_changes or {})
+    if payload.company_address:
+        changes.setdefault("address", payload.company_address.strip())
+    if website:
+        changes.setdefault("website", website)
+
+    request_row = ProviderUpdateRequest(
+        mechanic_id=mechanic.id,
+        user_id=x_roadcall_user_id,
+        requester_role=role,
+        requester_name=payload.full_name.strip(),
+        requester_email=payload.work_email.strip().lower(),
+        requester_phone=payload.phone_number.strip(),
+        proof_message=payload.proof_message,
+        submitted_company_name=payload.company_name.strip(),
+        submitted_company_address=payload.company_address,
+        submitted_website=website,
+        requested_changes=changes,
+        match_score=match_score,
+        email_domain_matches_website=domain_match,
+        status=ProviderUpdateStatus.pending_review,
+    )
+    db.add(request_row)
+    await db.commit()
+    await db.refresh(request_row)
+    return ProviderUpdateRequestOut(
+        id=str(request_row.id),
+        mechanic_id=str(mechanic.id),
+        status="pending_review",
+        match_score=match_score,
+        email_domain_matches_website=domain_match,
+        message="Update request submitted for Roadcall admin review.",
+    )
+
+
+@router.patch("/admin/claims/{claim_id}", dependencies=[Depends(verify_admin)])
+async def review_claim(
+    claim_id: str,
+    payload: AdminDecisionRequest,
+    admin_user: str = Depends(verify_admin),
+    db: AsyncSession = Depends(get_session),
+):
+    claim = await db.get(MechanicClaim, _mechanic_uuid(claim_id))
+    if not claim:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Claim not found")
+    mechanic = await db.get(Mechanic, claim.mechanic_id)
+    if not mechanic:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found")
+
+    decision = payload.status.strip().lower()
+    if decision == "approved":
+        claim.status = ClaimStatus.approved
+        claim.method = ClaimMethod.manual_admin
+        claim.approved_at = datetime.now(timezone.utc)
+        mechanic.claimed = True
+        mechanic.claimed_at = datetime.now(timezone.utc)
+        mechanic.claimed_by_phone = claim.claimant_phone
+        mechanic.verified_listing = True
+        mechanic.verification_status = "claimed"
+    elif decision == "rejected":
+        claim.status = ClaimStatus.rejected
+        claim.rejected_reason = payload.review_notes
+    else:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Claim decisions support approved or rejected")
+    await db.commit()
+    return {"id": str(claim.id), "status": str(claim.status.value if hasattr(claim.status, "value") else claim.status), "reviewed_by": admin_user}
+
+
+@router.patch("/admin/update-requests/{request_id}", dependencies=[Depends(verify_admin)])
+async def review_update_request(
+    request_id: str,
+    payload: AdminDecisionRequest,
+    admin_user: str = Depends(verify_admin),
+    db: AsyncSession = Depends(get_session),
+):
+    update = await db.get(ProviderUpdateRequest, _mechanic_uuid(request_id))
+    if not update:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Update request not found")
+    mechanic = await db.get(Mechanic, update.mechanic_id)
+    if not mechanic:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found")
+
+    decision = payload.status.strip().lower()
+    now = datetime.now(timezone.utc)
+    if decision == "approved":
+        allowed_fields = {"company_name", "contact_name", "phone", "email", "website", "address", "city", "state", "zip_code", "google_maps_url", "service_types", "vehicle_types_supported", "accepts_mobile_roadside", "emergency_service", "service_radius_miles"}
+        for field, new_value in (update.requested_changes or {}).items():
+            if field not in allowed_fields:
+                continue
+            old_value = getattr(mechanic, field, None)
+            if field == "website":
+                new_value = _safe_url(str(new_value))
+            if field == "state" and isinstance(new_value, str):
+                new_value = new_value.upper()[:2]
+            setattr(mechanic, field, new_value)
+            db.add(ProviderChangeLog(
+                mechanic_id=mechanic.id,
+                user_id=update.user_id,
+                field_name=field,
+                old_value=str(old_value) if old_value is not None else None,
+                new_value=str(new_value) if new_value is not None else None,
+                source_request_id=update.id,
+                status="approved",
+                submitted_at=update.created_at,
+                reviewed_at=now,
+                reviewed_by=admin_user,
+            ))
+        update.status = ProviderUpdateStatus.approved
+        mechanic.requires_admin_review = False
+        if mechanic.verification_status == "unverified":
+            mechanic.verification_status = "claimed"
+    elif decision == "rejected":
+        update.status = ProviderUpdateStatus.rejected
+    elif decision == "more_info_requested":
+        update.status = ProviderUpdateStatus.more_info_requested
+    else:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid review status")
+    update.reviewed_at = now
+    update.reviewed_by = admin_user
+    update.review_notes = payload.review_notes
+    await db.commit()
+    return {"id": str(update.id), "status": str(update.status.value if hasattr(update.status, "value") else update.status), "reviewed_by": admin_user}
+
+
+@router.post("/admin/{mechanic_id}/verify", dependencies=[Depends(verify_admin)])
+async def verify_provider(
+    mechanic_id: str,
+    payload: VerifyProviderRequest,
+    admin_user: str = Depends(verify_admin),
+    db: AsyncSession = Depends(get_session),
+):
+    mechanic = await db.get(Mechanic, _mechanic_uuid(mechanic_id))
+    if not mechanic:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Provider not found")
+    status_value = payload.verification_status.strip().lower()
+    if status_value not in {"unverified", "claimed", "verified", "needs_review"}:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid verification status")
+    old_status = getattr(mechanic, "verification_status", "unverified")
+    mechanic.verification_status = status_value
+    mechanic.verified_listing = status_value == "verified"
+    mechanic.requires_admin_review = status_value == "needs_review"
+    db.add(ProviderChangeLog(
+        mechanic_id=mechanic.id,
+        user_id=admin_user,
+        field_name="verification_status",
+        old_value=old_status,
+        new_value=status_value,
+        status="approved",
+        reviewed_at=datetime.now(timezone.utc),
+        reviewed_by=admin_user,
+    ))
+    await db.commit()
+    return {"id": str(mechanic.id), "verification_status": status_value}
 
 
 @router.patch("/{mechanic_id}", response_model=MarketplaceProvider)

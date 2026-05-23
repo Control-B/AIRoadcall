@@ -14,7 +14,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
-    Boolean, DateTime, Enum as SAEnum, Float, ForeignKey, Integer, String, Text,
+    Boolean, DateTime, Enum as SAEnum, Float, ForeignKey, Integer, JSON, String, Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -33,6 +33,19 @@ class ClaimMethod(str, enum.Enum):
     subscriber_match = "subscriber_match"  # phone matches an active Organization
     manual_admin = "manual_admin"         # admin override
     pending_review = "pending_review"      # awaiting admin review
+
+
+class ProviderUpdateStatus(str, enum.Enum):
+    pending_review = "pending_review"
+    approved = "approved"
+    rejected = "rejected"
+    more_info_requested = "more_info_requested"
+
+
+class EnrichmentSuggestionStatus(str, enum.Enum):
+    suggested = "suggested"
+    approved = "approved"
+    rejected = "rejected"
 
 
 class MechanicReview(Base):
@@ -90,3 +103,84 @@ class MechanicClaim(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
+
+
+class ProviderUpdateRequest(Base):
+    __tablename__ = "provider_update_requests"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    mechanic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("mechanics.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    requester_role: Mapped[str] = mapped_column(String(40), nullable=False)
+    requester_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    requester_email: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    requester_phone: Mapped[str] = mapped_column(String(30), nullable=False)
+    proof_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    submitted_company_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    submitted_company_address: Mapped[str | None] = mapped_column(Text, nullable=True)
+    submitted_website: Mapped[str | None] = mapped_column(Text, nullable=True)
+    requested_changes: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    match_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    email_domain_matches_website: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    status: Mapped[str] = mapped_column(
+        SAEnum(ProviderUpdateStatus, name="provider_update_status"),
+        nullable=False,
+        default=ProviderUpdateStatus.pending_review,
+        index=True,
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewed_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    review_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+
+class ProviderEnrichmentSuggestion(Base):
+    __tablename__ = "provider_enrichment_suggestions"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    mechanic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("mechanics.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    source: Mapped[str] = mapped_column(String(80), nullable=False)
+    suggested_values: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    confidence_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    status: Mapped[str] = mapped_column(
+        SAEnum(EnrichmentSuggestionStatus, name="provider_enrichment_suggestion_status"),
+        nullable=False,
+        default=EnrichmentSuggestionStatus.suggested,
+        index=True,
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewed_by: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+    )
+
+
+class ProviderChangeLog(Base):
+    __tablename__ = "provider_change_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    mechanic_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("mechanics.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    user_id: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    field_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    old_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    new_value: Mapped[str | None] = mapped_column(Text, nullable=True)
+    source_request_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(40), nullable=False, default="approved", index=True)
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    reviewed_by: Mapped[str | None] = mapped_column(String(120), nullable=True)

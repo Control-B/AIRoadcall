@@ -28,6 +28,8 @@ async def ensure_mechanic_admin_columns(db: AsyncSession) -> None:
     statements = [
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS email VARCHAR(255)",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS website TEXT",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS google_maps_url TEXT",
+        "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS verification_status VARCHAR(32) NOT NULL DEFAULT 'unverified'",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS address TEXT",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS city VARCHAR(120)",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS state VARCHAR(10)",
@@ -53,6 +55,7 @@ async def ensure_mechanic_admin_columns(db: AsyncSession) -> None:
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS submitted_by_public BOOLEAN NOT NULL DEFAULT false",
         "ALTER TABLE mechanics ADD COLUMN IF NOT EXISTS requires_admin_review BOOLEAN NOT NULL DEFAULT false",
         "CREATE INDEX IF NOT EXISTS ix_mechanics_claimed ON mechanics(claimed)",
+        "CREATE INDEX IF NOT EXISTS ix_mechanics_verification_status ON mechanics(verification_status)",
         "CREATE INDEX IF NOT EXISTS ix_mechanics_requires_admin_review ON mechanics(requires_admin_review)",
         "CREATE INDEX IF NOT EXISTS ix_mechanics_zip_code ON mechanics(zip_code)",
         "CREATE INDEX IF NOT EXISTS ix_mechanics_availability_status ON mechanics(availability_status)",

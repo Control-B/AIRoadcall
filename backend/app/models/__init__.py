@@ -19,6 +19,11 @@ from app.models.mechanic_marketplace import (
     MechanicClaim,
     ClaimMethod,
     ClaimStatus,
+    ProviderUpdateRequest,
+    ProviderUpdateStatus,
+    ProviderEnrichmentSuggestion,
+    EnrichmentSuggestionStatus,
+    ProviderChangeLog,
 )
 from app.models.roadside_incident import RoadsideIncident, IncidentStatus
 from app.models.location_capture_session import LocationCaptureSession, LocationSessionStatus
