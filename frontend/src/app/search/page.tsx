@@ -224,7 +224,6 @@ function IntakeModal({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
-const [intakeOpen, setIntakeOpen] = useState(false);
 
 const API_URL = getApiBase();
 
@@ -899,6 +898,7 @@ function SearchPageInner() {
   const [searchingArea, setSearchingArea] = useState(false);
   const [claimTarget, setClaimTarget] = useState<Mechanic | null>(null);
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
+  const [intakeOpen, setIntakeOpen] = useState(false);
 
   useEffect(() => {
     const storedView = window.localStorage.getItem(VIEW_STORAGE_KEY) as ProviderViewMode | null;
