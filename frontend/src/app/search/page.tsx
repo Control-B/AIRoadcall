@@ -31,8 +31,6 @@ import {
   Rows3,
   Loader2,
   Lock,
-  CloudRain,
-  Route,
   Activity,
   RadioTower,
   Layers3,
@@ -300,7 +298,7 @@ type MapBounds = {
 
 type MapWorkspaceMode = "split" | "wide" | "fullscreen";
 type ProviderViewMode = "map" | "cards" | "list";
-type PremiumMapMode = "basic" | "operations" | "satellite" | "traffic" | "weather" | "density" | "hotspots" | "route";
+type PremiumMapMode = "basic" | "operations" | "satellite" | "density" | "hotspots";
 
 const VIEW_STORAGE_KEY = "roadcall-provider-view";
 
@@ -324,13 +322,10 @@ const QUICK_FILTERS: QuickFilter[] = [
 
 const PREMIUM_MAP_MODES: { id: PremiumMapMode; label: string; description: string; icon: typeof Activity; fleetOnly?: boolean }[] = [
   { id: "basic", label: "City", description: "Standard city map, provider pins, and simple search.", icon: MapIcon },
-  { id: "operations", label: "Operations", description: "Active events, AI dispatch zones, provider activity, and roadside intelligence.", icon: RadioTower },
+  { id: "operations", label: "Operations", description: "Provider readiness, mobile service, emergency support, and dispatch-fit signals from Roadcall data.", icon: RadioTower },
   { id: "satellite", label: "Satellite", description: "Premium imagery for industrial zones, truck stops, rural access, and service roads.", icon: Satellite },
-  { id: "traffic", label: "Traffic", description: "Congestion, delay risk, traffic-adjusted ETA, and responder routing.", icon: Activity },
-  { id: "weather", label: "Weather", description: "Storm, rain, wind, flood, and severe-weather roadside risk overlays.", icon: CloudRain },
-  { id: "density", label: "Density", description: "Coverage heatmaps for mobile repair, towing, tires, and after-hours support.", icon: Layers3, fleetOnly: true },
-  { id: "hotspots", label: "Hotspots", description: "Historical breakdown corridors, service gaps, bottlenecks, and delay regions.", icon: Zap, fleetOnly: true },
-  { id: "route", label: "Route AI", description: "Providers ahead on route, corridor risk, and predictive roadside recommendations.", icon: Route },
+  { id: "density", label: "Density", description: "Coverage heatmaps for mobile repair, towing, tires, and after-hours support from provider data.", icon: Layers3, fleetOnly: true },
+  { id: "hotspots", label: "Hotspots", description: "Coverage gaps and high-priority service clusters from Roadcall provider signals.", icon: Zap, fleetOnly: true },
 ];
 
 function safeExternalUrl(value?: string | null) {
@@ -480,7 +475,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             "circle-stroke-width": 2,
           },
         });
-        if (premiumModeEnabled && ["operations", "density", "hotspots", "traffic", "weather", "route"].includes(premiumMode)) {
+        if (premiumModeEnabled && ["operations", "density", "hotspots"].includes(premiumMode)) {
           map.addLayer({
             id: "roadside-intelligence-heat",
             type: "heatmap",
@@ -885,7 +880,7 @@ function PremiumMapModeControls({ mode, hasPremiumAccess, onModeChange }: { mode
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-roadcall-cyan">Premium map modes</p>
-          <p className="mt-1 text-xs text-roadcall-muted">7-day trial unlocks operational intelligence.</p>
+          <p className="mt-1 text-xs text-roadcall-muted">Mapbox views plus Roadcall provider intelligence.</p>
         </div>
         {!hasPremiumAccess ? <Lock className="h-4 w-4 text-roadcall-orange" /> : <Activity className="h-4 w-4 text-emerald-300" />}
       </div>
@@ -952,7 +947,7 @@ function LockedPremiumMapOverlay({ mode }: { mode: PremiumMapMode }) {
           </div>
           <div>
             <p className="text-sm font-black text-white">Unlock {selected?.label || "premium"} intelligence</p>
-            <p className="mt-1 text-xs leading-5 text-roadcall-muted">Advanced overlays require Driver Pro or Fleet Operations. Start a 7-day trial to unlock ETA intelligence, operational layers, and dispatch-aware ranking.</p>
+            <p className="mt-1 text-xs leading-5 text-roadcall-muted">Advanced overlays require Driver Pro or Fleet Operations. Start a 7-day trial to unlock provider coverage, readiness signals, and service-density views.</p>
           </div>
         </div>
         <Link href="/fleet/pricing" className="inline-flex shrink-0 items-center justify-center rounded-xl bg-roadcall-cyan px-4 py-2 text-xs font-black text-slate-950 hover:brightness-110">
@@ -969,17 +964,13 @@ function PremiumOperationsOverlay({ mechanics, mode }: { mechanics: (Mechanic & 
   const avgEta = Math.round(
     mechanics.reduce((sum, mechanic) => sum + (mechanic.estimated_response_minutes || 38), 0) / Math.max(1, mechanics.length),
   );
-  const message = mode === "route"
-    ? `${Math.min(3, mobileActive)} verified mobile providers ahead within 40 miles.`
-    : mode === "weather"
-      ? "Storm conditions may affect response times in this corridor."
-      : mode === "traffic"
-        ? "Traffic-adjusted ETA favors the fastest responder, not nearest distance."
-        : mode === "density"
-          ? "Coverage density identifies low-service gaps and after-hours risk."
-          : mode === "hotspots"
-            ? "High roadside activity detected across recurring breakdown corridors."
-            : "AI dispatch zones and live provider readiness are active.";
+  const message = mode === "density"
+    ? "Provider coverage density highlights service availability by geography."
+    : mode === "hotspots"
+      ? "Roadcall provider signals highlight service gaps and high-priority clusters."
+      : mode === "satellite"
+        ? "Mapbox satellite imagery is active for rural access, yards, and service roads."
+        : "Roadcall provider readiness and dispatch-fit signals are active.";
   return (
     <div className="pointer-events-none absolute left-4 top-20 z-10 w-[min(360px,calc(100%-2rem))] space-y-3">
       <div className="rounded-2xl border border-roadcall-cyan/20 bg-[#02050c]/80 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl">
@@ -1234,7 +1225,7 @@ function SearchPageInner() {
               <span className="text-xs font-medium text-roadcall-silver/85 tracking-wide">35,000+ Verified Providers · All 50 States</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">AI Roadside Operations Center</h1>
-            <p className="text-roadcall-muted text-sm">Free users get basic search and pins. Paid members unlock dispatch intelligence, operational overlays, and route-aware roadside decisions.</p>
+            <p className="text-roadcall-muted text-sm">Free users get basic search and pins. Paid members unlock Mapbox satellite views, provider coverage, and Roadcall operational signals.</p>
           </div>
 
           {/* Main search bar + intake button */}
