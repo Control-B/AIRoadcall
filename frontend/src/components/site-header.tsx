@@ -24,10 +24,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-    {
-      label: "Template",
-      href: "https://preview-1779364005181565636.vibepreview.com",
-    },
   {
     label: "AI Services",
     href: "/solutions",
@@ -150,6 +146,10 @@ const navItems: NavItem[] = [
         href: "/shops",
       },
     ],
+  },
+  {
+    label: "Template",
+    href: "/template",
   },
 ];
 
