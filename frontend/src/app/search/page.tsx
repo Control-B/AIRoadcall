@@ -328,6 +328,10 @@ const PREMIUM_MAP_MODES: { id: PremiumMapMode; label: string; description: strin
   { id: "hotspots", label: "Hotspots", description: "Coverage gaps and high-priority service clusters from Roadcall provider signals.", icon: Zap, fleetOnly: true },
 ];
 
+function modeIsAvailable(mode: PremiumMapMode, hasPremiumAccess: boolean) {
+  return mode === "basic" || mode === "satellite" || hasPremiumAccess;
+}
+
 function safeExternalUrl(value?: string | null) {
   if (!value) return null;
   try {
@@ -375,7 +379,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<Mechanic | null>(null);
   const premiumModeEnabled = hasPremiumAccess && premiumMode !== "basic";
-  const mapStyle = premiumMode === "satellite" && hasPremiumAccess
+  const mapStyle = premiumMode === "satellite"
     ? "mapbox://styles/mapbox/satellite-streets-v12"
     : premiumModeEnabled
       ? "mapbox://styles/mapbox/dark-v11"
@@ -887,14 +891,15 @@ function PremiumMapModeControls({ mode, hasPremiumAccess, onModeChange }: { mode
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {PREMIUM_MAP_MODES.map((item) => {
           const Icon = item.icon;
-          const locked = item.id !== "basic" && !hasPremiumAccess;
+          const locked = !modeIsAvailable(item.id, hasPremiumAccess);
           const active = mode === item.id;
           return (
             <button
               key={item.id}
               type="button"
+              disabled={locked}
               onClick={() => onModeChange(item.id)}
-              className={`rounded-xl border p-3 text-left transition ${active ? "border-roadcall-cyan bg-roadcall-cyan/15" : "border-white/10 bg-white/[0.035] hover:border-roadcall-cyan/30"}`}
+              className={`rounded-xl border p-3 text-left transition ${active ? "border-roadcall-cyan bg-roadcall-cyan/15" : "border-white/10 bg-white/[0.035] hover:border-roadcall-cyan/30"} ${locked ? "cursor-not-allowed opacity-70" : ""}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <Icon className={active ? "h-4 w-4 text-roadcall-cyan" : "h-4 w-4 text-roadcall-silver"} />
@@ -917,14 +922,15 @@ function FullscreenMapModeControls({ mode, hasPremiumAccess, onModeChange }: { m
       {PREMIUM_MAP_MODES.map((item) => {
         const Icon = item.icon;
         const active = mode === item.id;
-        const locked = item.id !== "basic" && !hasPremiumAccess;
+        const locked = !modeIsAvailable(item.id, hasPremiumAccess);
         return (
           <button
             key={item.id}
             type="button"
+            disabled={locked}
             onClick={() => onModeChange(item.id)}
             title={locked ? `${item.label} requires Driver Pro or Fleet Operations` : item.description}
-            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-black transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
+            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-black transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"} ${locked ? "cursor-not-allowed opacity-70" : ""}`}
           >
             <Icon className="h-3.5 w-3.5" />
             <span>{item.label}</span>
@@ -1191,15 +1197,23 @@ function SearchPageInner() {
   useEffect(() => {
     if (!isFullscreenMap) return;
     const previousOverflow = document.body.style.overflow;
+    const footers = Array.from(document.querySelectorAll<HTMLElement>("footer"));
+    const previousFooterDisplays = footers.map((footer) => footer.style.display);
     document.body.style.overflow = "hidden";
+    footers.forEach((footer) => {
+      footer.style.display = "none";
+    });
     return () => {
       document.body.style.overflow = previousOverflow;
+      footers.forEach((footer, index) => {
+        footer.style.display = previousFooterDisplays[index] || "";
+      });
     };
   }, [isFullscreenMap]);
 
   const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide" && !isFullscreenMap;
   const mapShellClass = mapWorkspaceMode === "fullscreen"
-    ? "fixed inset-x-0 bottom-0 top-20 z-40 flex flex-col overflow-hidden bg-[#02050c] shadow-2xl shadow-black/80"
+    ? "fixed inset-x-0 bottom-0 top-20 z-[60] flex flex-col overflow-hidden bg-[#02050c] shadow-2xl shadow-black/80"
     : "";
   const mapGridClass = mapWorkspaceMode === "fullscreen"
     ? "grid h-full min-h-0"
