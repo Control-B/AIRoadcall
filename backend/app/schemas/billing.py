@@ -6,18 +6,26 @@ from typing import Any
 from pydantic import BaseModel, EmailStr, Field
 
 
+PLAN_ID_PATTERN = "^(ai_chat|widget_voice|driver_pro|professional|premium|enterprise|starter|growth|pro|standard|advanced)$"
+
+
 class BillingPlanView(BaseModel):
     id: str
     name: str
-    price_monthly: int
+    price_monthly: float
     setup_fee: int
+    ecosystem: str | None = None
+    billing_system: str | None = None
+    onboarding_mode: str | None = None
+    uses_saas_mode: bool = False
+    automatic_subaccount_provisioning: bool = False
     included_leads: int | None = None
     stripe_price_id_configured: bool
     features: list[str]
 
 
 class CheckoutSessionCreateIn(BaseModel):
-    plan_id: str = Field(pattern="^(starter|growth|pro|standard|professional|premium|advanced)$")
+    plan_id: str = Field(pattern=PLAN_ID_PATTERN)
     business_name: str = Field(min_length=2, max_length=255)
     owner_name: str | None = Field(default=None, max_length=255)
     email: EmailStr

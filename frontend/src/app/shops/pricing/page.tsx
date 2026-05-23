@@ -40,55 +40,112 @@ const TRUST = [
 
 const PLANS = [
   {
-    name: "Standard",
-    price: "$197",
-    setup: "$99 setup",
-    target: "Independent repair shops, diesel shops, mobile mechanics, and roadside service providers that need every lead answered.",
-    icon: Headphones,
+    name: "AI Chat",
+    price: "$49",
+    setup: "No setup fee",
+    target: "Website AI chat, FAQ answers, appointment capture, and lightweight lead intake without a GHL SaaS sub-account.",
+    icon: MessageSquare,
     accent: "from-sky-400 to-blue-500",
-    cta: "Start Standard",
-    href: "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k",
+    cta: "Start AI Chat",
+    href: "/mechanic/checkout?plan=ai_chat",
+    category: "Lightweight AI Service",
     features: [
-      "AI Telephony",
-      "Leads",
-      "Calendar",
-      "CRM",
-      "Form Builder",
-      "Missed Call Text Back",
+      "AI website widget",
+      "FAQ assistant",
+      "Appointment capture",
+      "Lead capture",
+      "No SaaS Mode provisioning",
+    ],
+  },
+  {
+    name: "Widget + Voice",
+    price: "$149",
+    setup: "No setup fee",
+    target: "AI web chat plus AI answering, missed-call text-back, call summaries, and lightweight CRM handoff.",
+    icon: Headphones,
+    accent: "from-roadcall-orange via-amber-400 to-blue-400",
+    badge: "Most Popular",
+    cta: "Start Widget + Voice",
+    href: "/mechanic/checkout?plan=widget_voice",
+    category: "Lightweight AI Service",
+    features: [
+      "Everything in AI Chat",
+      "AI phone answering",
+      "AI intake and qualification",
+      "Missed-call text-back",
+      "No SaaS Mode provisioning",
+    ],
+  },
+  {
+    name: "Driver Pro",
+    price: "$9.99",
+    setup: "No setup fee",
+    target: "A driver roadside profile for faster AI intake, saved truck details, preferred providers, and dispatch status.",
+    icon: Truck,
+    accent: "from-emerald-300 to-cyan-300",
+    cta: "Start Driver Pro",
+    href: "/mechanic/checkout?plan=driver_pro",
+    category: "Lightweight AI Service",
+    features: [
+      "Saved truck profile",
+      "Roadside intake",
+      "Preferred providers",
+      "Dispatch tracking",
+      "No SaaS Mode provisioning",
     ],
   },
   {
     name: "Professional",
     price: "$297",
     setup: "$199 setup",
-    target: "Shops that want their phones, website, chat, email, and follow-up campaigns connected.",
+    target: "A full Roadcall business OS workspace for shops that need phones, website, CRM, workflows, and reputation tools.",
     icon: Globe2,
-    accent: "from-roadcall-orange via-amber-400 to-blue-400",
-    badge: "Most Popular",
+    accent: "from-blue-400 to-cyan-300",
     cta: "Start Professional",
-    href: "https://buy.stripe.com/fZu28t94c8Fw0IG6Ee1sQ0l",
+    href: "/mechanic/checkout?plan=professional",
+    category: "Full Business OS",
     features: [
-      "Everything in Standard",
-      "Website",
-      "Web Chat",
-      "Email Marketing",
-      "Survey Builder",
+      "AI website and widget",
+      "CRM, pipelines, workflows",
+      "Calendars and reputation",
+      "GHL SaaS Mode snapshot",
+      "Automatic sub-account provisioning",
     ],
   },
   {
-    name: "Advanced",
-    price: "$997",
+    name: "Premium",
+    price: "$497",
     setup: "$299 setup",
-    target: "Growth-focused shops that need funnels, social media marketing, and deeper campaign automation.",
-    icon: Network,
-    accent: "from-blue-400 to-cyan-300",
-    cta: "Start Advanced",
-    href: "https://buy.stripe.com/3cI9AVgwE0909fcd2C1sQ0m",
+    target: "For operators that need the business OS plus mobile app, customer portal, fleet dashboard, and reporting.",
+    icon: BarChart3,
+    accent: "from-roadcall-orange via-amber-400 to-blue-400",
+    cta: "Start Premium",
+    href: "/mechanic/checkout?plan=premium",
+    category: "Full Business OS",
     features: [
       "Everything in Professional",
+      "Mobile app",
+      "Customer portal",
+      "Fleet dashboard",
+      "Advanced reporting",
+    ],
+  },
+  {
+    name: "Enterprise",
+    price: "$997",
+    setup: "$499 setup",
+    target: "Multi-location and growth teams that need marketing automation, campaigns, funnels, and custom AI workflows.",
+    icon: Network,
+    accent: "from-blue-300 to-orange-300",
+    cta: "Start Enterprise",
+    href: "/mechanic/checkout?plan=enterprise",
+    category: "Full Business OS",
+    features: [
+      "Everything in Premium",
       "Social Media Marketing",
-      "Funnels",
-      "Email Marketing",
+      "Content automation",
+      "Funnels and campaigns",
+      "Priority support",
     ],
   },
 ];
@@ -257,8 +314,8 @@ export default function ShopsPricingPage() {
       <section id="pricing" className="relative z-10 px-4 py-16 sm:px-6 lg:py-24">
         <motion.div {...fadeUp()} className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-bold uppercase tracking-[0.3em] text-roadcall-orange">Roadside AI Pricing</p>
-          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Simple pricing for mechanic shops.</h2>
-          <p className="mt-5 text-roadcall-muted">Mechanic shops get three growth plans while Roadcall focuses on AI roadside support performance and shop adoption.</p>
+          <h2 className="mt-4 text-4xl font-black tracking-[-0.04em] sm:text-5xl">Two ecosystems. One Roadcall AI operating system.</h2>
+          <p className="mt-5 text-roadcall-muted">Start with lightweight AI services, or deploy the full business OS with GHL SaaS Mode, snapshots, and automatic sub-account provisioning.</p>
         </motion.div>
 
         <div className="mx-auto mt-12 grid max-w-6xl gap-5 md:grid-cols-3">
@@ -290,15 +347,17 @@ export default function ShopsPricingPage() {
                     <span className="ml-2 text-roadcall-muted">/month</span>
                     <p className="mt-3 text-sm font-medium text-roadcall-orange">{plan.setup}</p>
                   </div>
-                  <a
+                  <Link
                     href={plan.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     className={`mt-7 inline-flex w-full items-center justify-center gap-2 rounded-full px-5 py-3.5 text-sm font-bold transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-blue-300 ${plan.badge ? "bg-white text-slate-950 hover:bg-roadcall-panel/40" : "border border-white/15 bg-roadcall-panel/45 text-white hover:border-blue-300/50 hover:bg-blue-400/10"}`}
                   >
                     {plan.cta} <ChevronRight className="h-4 w-4" />
-                  </a>
+                  </Link>
                   <ul className="mt-7 space-y-3">
+                    <li className="flex gap-3 text-sm leading-6 text-roadcall-orange">
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                      {plan.category}
+                    </li>
                     {plan.features.map((feature) => (
                       <li key={feature} className="flex gap-3 text-sm leading-6 text-roadcall-silver/85">
                         <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-blue-300" />

@@ -75,17 +75,20 @@ def main() -> int:
     ]
 
     snapshot_checks = [
-        Check("GHL_STANDARD_SNAPSHOT_ID", _has(env.get("GHL_STANDARD_SNAPSHOT_ID")), False, "set after the Standard snapshot is saved in the GHL agency UI"),
-        Check("GHL_PREMIUM_SNAPSHOT_ID", _has(env.get("GHL_PREMIUM_SNAPSHOT_ID")), False, "set after the Professional snapshot is saved in the GHL agency UI"),
-        Check("GHL_ADVANCED_SNAPSHOT_ID", _has(env.get("GHL_ADVANCED_SNAPSHOT_ID")), False, "set after the Advanced snapshot is saved in the GHL agency UI"),
+        Check("GHL_PROFESSIONAL_SNAPSHOT_ID", _has(env.get("GHL_PROFESSIONAL_SNAPSHOT_ID")) or _has(env.get("GHL_PREMIUM_SNAPSHOT_ID")), False, "required only for Professional full Business OS SaaS Mode provisioning"),
+        Check("GHL_PREMIUM_SNAPSHOT_ID", _has(env.get("GHL_PREMIUM_SNAPSHOT_ID")), False, "required only for Premium full Business OS SaaS Mode provisioning"),
+        Check("GHL_ADVANCED_SNAPSHOT_ID", _has(env.get("GHL_ADVANCED_SNAPSHOT_ID")), False, "required only for Enterprise full Business OS SaaS Mode provisioning"),
     ]
 
     stripe_checks = [
         Check("STRIPE_SECRET_KEY", _has(env.get("STRIPE_SECRET_KEY")), True, _len_hint(env.get("STRIPE_SECRET_KEY"))),
         Check("STRIPE_WEBHOOK_SECRET", _has(env.get("STRIPE_WEBHOOK_SECRET")), True, "required for /webhooks/stripe signature verification"),
-        Check("STRIPE_STANDARD_PRICE_ID", _has(env.get("STRIPE_STANDARD_PRICE_ID")) or _has(env.get("STRIPE_STARTER_PRICE_ID")), False, "maps to Standard ($197) plan; STRIPE_STARTER_PRICE_ID remains a fallback"),
-        Check("STRIPE_PREMIUM_PRICE_ID", _has(env.get("STRIPE_PREMIUM_PRICE_ID")) or _has(env.get("STRIPE_GROWTH_PRICE_ID")), False, "maps to Professional ($297) plan; STRIPE_GROWTH_PRICE_ID remains a fallback"),
-        Check("STRIPE_ADVANCED_PRICE_ID", _has(env.get("STRIPE_ADVANCED_PRICE_ID")) or _has(env.get("STRIPE_PRO_PRICE_ID")), False, "maps to Advanced ($997) plan; STRIPE_PRO_PRICE_ID remains a fallback"),
+        Check("STRIPE_AI_CHAT_PRICE_ID", _has(env.get("STRIPE_AI_CHAT_PRICE_ID")) or _has(env.get("STRIPE_STARTER_PRICE_ID")), False, "maps to AI Chat ($49) lightweight plan"),
+        Check("STRIPE_WIDGET_VOICE_PRICE_ID", _has(env.get("STRIPE_WIDGET_VOICE_PRICE_ID")) or _has(env.get("STRIPE_STANDARD_PRICE_ID")), False, "maps to Widget + Voice ($149) lightweight plan"),
+        Check("STRIPE_DRIVER_PRO_PRICE_ID", _has(env.get("STRIPE_DRIVER_PRO_PRICE_ID")), False, "maps to Driver Pro ($9.99) lightweight plan"),
+        Check("STRIPE_PROFESSIONAL_PRICE_ID", _has(env.get("STRIPE_PROFESSIONAL_PRICE_ID")) or _has(env.get("STRIPE_GROWTH_PRICE_ID")), False, "maps to Professional ($297) full Business OS plan"),
+        Check("STRIPE_PREMIUM_PRICE_ID", _has(env.get("STRIPE_PREMIUM_PRICE_ID")) or _has(env.get("STRIPE_PRO_PRICE_ID")), False, "maps to Premium ($497) full Business OS plan"),
+        Check("STRIPE_ENTERPRISE_PRICE_ID", _has(env.get("STRIPE_ENTERPRISE_PRICE_ID")) or _has(env.get("STRIPE_ADVANCED_PRICE_ID")), False, "maps to Enterprise ($997) full Business OS plan"),
     ]
 
     retell_checks = [
@@ -122,9 +125,9 @@ def main() -> int:
 
     totals = [0, 0, 0]
     for title, checks in [
-        ("GHL SaaS connection (shop AI telephony)", ghl_checks),
-        ("GHL snapshot IDs (set after official snapshots are saved)", snapshot_checks),
-        ("Stripe (billing for GHL-aligned plans)", stripe_checks),
+        ("GHL SaaS connection (full Business OS plans only)", ghl_checks),
+        ("GHL snapshot IDs (Professional/Premium/Enterprise SaaS Mode only)", snapshot_checks),
+        ("Stripe (billing for lightweight AI + full Business OS plans)", stripe_checks),
         ("Retell (Sandy roadside + Fleet roadside + Shop receptionist)", retell_checks),
         ("App / admin secrets", app_checks),
         ("Frontend public env (Next.js build)", frontend_public_checks),
@@ -136,10 +139,10 @@ def main() -> int:
         totals[2] += f
 
     print(f"\n{CYAN}Summary:{RESET} {GREEN}{totals[0]} pass{RESET}, {YELLOW}{totals[1]} warn{RESET}, {RED}{totals[2]} fail{RESET}")
-    print("\nGHL plan alignment expected by Roadcall backend:")
-    print("  Standard  $197/mo + $99 setup  (canonical id: standard)")
-    print("  Professional  $297/mo + $199 setup  (canonical id: premium)")
-    print("  Advanced      $997/mo + $299 setup  (canonical id: advanced)")
+    print("\nRoadcall plan alignment expected by backend:")
+    print("  Lightweight AI services: AI Chat $49 (ai_chat), Widget + Voice $149 (widget_voice), Driver Pro $9.99 (driver_pro)")
+    print("  Full Business OS with GHL SaaS Mode: Professional $297 (professional), Premium $497 (premium), Enterprise $997 (enterprise)")
+    print("  Automatic GHL sub-account provisioning is expected only for Professional, Premium, and Enterprise.")
 
     return 1 if totals[2] > 0 else 0
 

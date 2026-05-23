@@ -4,28 +4,44 @@ import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import { getApiBase } from "@/lib/api-client";
 
 const PLANS = {
-  standard: {
-    name: "Standard",
-    price: "$197/mo",
-    setup: "$99 setup",
-    checkoutUrl: "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k",
-    features: ["AI Telephony", "Leads", "Calendar", "CRM", "Form Builder", "Missed Call Text Back"],
+  ai_chat: {
+    name: "AI Chat",
+    price: "$49/mo",
+    setup: "No setup fee",
+    features: ["AI website widget", "FAQ assistant", "Appointment capture", "Lead capture", "No SaaS Mode provisioning"],
   },
-  premium: {
+  widget_voice: {
+    name: "Widget + Voice",
+    price: "$149/mo",
+    setup: "No setup fee",
+    features: ["Everything in AI Chat", "AI phone answering", "AI intake", "Missed-call text-back", "No SaaS Mode provisioning"],
+  },
+  driver_pro: {
+    name: "Driver Pro",
+    price: "$9.99/mo",
+    setup: "No setup fee",
+    features: ["Saved truck profile", "Roadside intake", "Preferred providers", "Dispatch tracking", "No SaaS Mode provisioning"],
+  },
+  professional: {
     name: "Professional",
     price: "$297/mo",
     setup: "$199 setup",
-    checkoutUrl: "https://buy.stripe.com/fZu28t94c8Fw0IG6Ee1sQ0l",
-    features: ["Everything in Standard", "Website", "Web Chat", "Email Marketing", "Survey Builder"],
+    features: ["AI website", "CRM and pipelines", "Workflows", "Calendars", "GHL SaaS Mode snapshot"],
   },
-  advanced: {
-    name: "Advanced",
-    price: "$997/mo",
+  premium: {
+    name: "Premium",
+    price: "$497/mo",
     setup: "$299 setup",
-    checkoutUrl: "https://buy.stripe.com/3cI9AVgwE0909fcd2C1sQ0m",
-    features: ["Everything in Professional", "Social Media Marketing", "Funnels", "Email Marketing"],
+    features: ["Everything in Professional", "Mobile app", "Customer portal", "Fleet dashboard", "Advanced reporting"],
+  },
+  enterprise: {
+    name: "Enterprise",
+    price: "$997/mo",
+    setup: "$499 setup",
+    features: ["Everything in Premium", "Social media marketing", "Funnels and campaigns", "Content automation", "Priority support"],
   },
 } as const;
 
@@ -33,9 +49,9 @@ type PlanId = keyof typeof PLANS;
 
 function MechanicCheckoutContent() {
   const params = useSearchParams();
-  const rawPlan = params.get("plan") || "standard";
-  const initialPlan = ({ starter: "standard", growth: "premium", professional: "premium", pro: "advanced" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
-  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "standard");
+  const rawPlan = params.get("plan") || "widget_voice";
+  const initialPlan = ({ starter: "ai_chat", standard: "widget_voice", growth: "professional", pro: "premium", advanced: "enterprise" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
+  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "widget_voice");
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
@@ -51,10 +67,23 @@ function MechanicCheckoutContent() {
     setLoading(true);
     setError(null);
     try {
-      const checkoutUrl = new URL(selectedPlan.checkoutUrl);
-      checkoutUrl.searchParams.set("prefilled_email", email);
-      checkoutUrl.searchParams.set("client_reference_id", `${planId}:${businessName}`.slice(0, 200));
-      window.location.href = checkoutUrl.toString();
+      const response = await fetch(`${getApiBase()}/billing/checkout`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan_id: planId,
+          business_name: businessName,
+          owner_name: ownerName || undefined,
+          email,
+          phone: phone || undefined,
+          website: website || undefined,
+        }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        throw new Error(body.detail || body.message || "Checkout failed");
+      }
+      window.location.href = body.checkout_url;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
       setLoading(false);
@@ -67,9 +96,9 @@ function MechanicCheckoutContent() {
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
           <Link href="/pricing" className="text-sm font-semibold text-blue-300 hover:text-blue-200">← Back to pricing</Link>
           <h1 className="mt-8 text-4xl font-black tracking-tight">Start your Roadcall AI advisor.</h1>
-          <p className="mt-4 text-slate-300">Subscribe, complete your shop profile, then Roadcall creates your AI telephony and growth workspace.</p>
+          <p className="mt-4 text-slate-300">Subscribe, complete your profile, then Roadcall activates the right AI service or full business OS workspace for your plan.</p>
           <div className="mt-8 space-y-3">
-            {["Secure billing activates your subscription", "CRM, calendar, forms, and marketing are included", "AI telephony and lead workflows are built for your shop", "Your shop profile is completed after checkout"].map((item) => (
+            {["Secure billing activates your subscription", "Lightweight plans skip GHL SaaS Mode provisioning", "Full OS plans create the Roadcall/GHL workspace", "Your profile is completed after checkout"].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
             ))}
           </div>

@@ -11,7 +11,27 @@ Use this boundary:
 - Roadcall emits lifecycle events.
 - GHL reacts with workflows, tasks, tags, opportunities, emails, SMS, and AI call summaries.
 - Stripe owns billing truth.
+- Roadcall owns plan entitlement truth and decides whether a plan uses GHL SaaS Mode.
 - GHL should never dispatch mechanics, choose providers, authorize charges, or decide service status.
+
+## Hybrid SaaS Architecture
+
+This is not a traditional GHL agency setup. Roadcall.ai is the AI operating system for mechanics, fleets, and roadside operations; GHL is one subsystem inside that OS.
+
+Roadcall now has two product ecosystems:
+
+| Ecosystem | Plans | Billing | Onboarding | GHL SaaS Mode |
+| --- | --- | --- | --- | --- |
+| Lightweight AI Services | AI Chat ($49), Widget + Voice ($149), Driver Pro ($9.99) | Stripe | Roadcall lightweight profile/widget/voice setup | No |
+| Full Business OS | Professional ($297), Premium ($497), Enterprise ($997) | Stripe | Roadcall tenant plus GHL SaaS snapshot | Yes |
+
+Rules:
+
+- AI Chat, Widget + Voice, and Driver Pro must not create GHL SaaS sub-accounts automatically.
+- Professional, Premium, and Enterprise are the only plans that should trigger GHL SaaS Mode snapshot provisioning.
+- Stripe remains billing truth for all plans.
+- Roadcall remains operational truth for tenants, profiles, AI widgets, AI telephony, driver profiles, fleet dashboards, dispatch state, and entitlements.
+- GHL remains CRM, workflows, pipelines, calendars, forms, email/SMS marketing, reputation, funnels, and onboarding automation for full Business OS accounts.
 
 ## 1. Create Custom Fields
 
@@ -295,11 +315,17 @@ Roadcall endpoints already exist for:
 
 ## 7.1 Build Plan-Specific Snapshot Blueprints
 
-The three current Roadcall shop plans are:
+Only the full Business OS plans require GHL snapshots:
 
-- Standard — $197/mo + $99 setup: AI Telephony, Leads, Calendar, CRM, Form Builder, and Missed Call Text Back.
-- Professional — $297/mo + $199 setup: everything in Standard plus Website, Web Chat, Email Marketing, and Survey Builder.
-- Advanced — $997/mo + $299 setup: everything in Professional plus Social Media Marketing, Funnels, and deeper Email Marketing automation.
+- Professional — $297/mo + $199 setup: AI website, widget, AI phone, CRM, pipelines, workflows, calendars, and reputation management.
+- Premium — $497/mo + $299 setup: everything in Professional plus mobile app, customer portal, multi-user access, fleet dashboard, and advanced reporting.
+- Enterprise — $997/mo + $499 setup: everything in Premium plus social media marketing, content automation, funnels, CRM campaigns, multi-location support, and custom workflows.
+
+The lightweight plans are Roadcall-owned services and should not be built as GHL SaaS snapshots:
+
+- AI Chat — $49/mo: website AI widget, FAQ assistant, lead capture, and booking assistant.
+- Widget + Voice — $149/mo: AI widget plus AI phone answering, intake, lead qualification, missed-call text-back, and call summaries.
+- Driver Pro — $9.99/mo: saved truck profile, roadside intake, preferred providers, and dispatch tracking.
 
 Use the snapshot builder to generate source-location build guides:
 
@@ -309,14 +335,14 @@ python backend/scripts/build_ghl_plan_snapshots.py
 
 Artifacts are written to:
 
-- `ghl/generated/standard/`
+- `ghl/generated/professional/`
 - `ghl/generated/premium/`
-- `ghl/generated/advanced/`
+- `ghl/generated/enterprise/`
 
 If you want the script to push the safe subset of assets to a clean GHL source location, set `GHL_API_KEY` and `GHL_LOCATION_ID`, then run:
 
 ```bash
-python backend/scripts/build_ghl_plan_snapshots.py --plan advanced --apply
+python backend/scripts/build_ghl_plan_snapshots.py --plan enterprise --apply
 ```
 
 The script does not print secrets. It applies only conservative, location-level assets currently represented as tags and custom fields. After that, use the generated guide to create/verify pipelines, workflows, templates, calendars, and AI prompts, then save the configured source location as the official GHL agency Snapshot.

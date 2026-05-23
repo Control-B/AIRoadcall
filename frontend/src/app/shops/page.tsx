@@ -74,33 +74,69 @@ const howItWorks = [
 
 const plans = [
   {
-    name: "Standard",
-    price: "$197",
+    id: "ai_chat",
+    name: "AI Chat",
+    price: "$49",
     period: "/mo",
-    setup: "$99 setup",
-    description: "AI telephony essentials for solo mechanics and small shops",
-    features: ["AI Telephony", "Leads", "Calendar", "CRM", "Form Builder", "Missed Call Text Back"],
-    cta: "Start Standard",
+    setup: "No setup fee",
+    description: "Lightweight AI widget for website chat, FAQs, booking capture, and lead intake",
+    features: ["AI website widget", "FAQ assistant", "Appointment capture", "Lead capture", "No SaaS Mode"],
+    cta: "Start AI Chat",
     highlighted: false,
   },
   {
+    id: "widget_voice",
+    name: "Widget + Voice",
+    price: "$149",
+    period: "/mo",
+    setup: "No setup fee",
+    description: "AI chat plus AI answering, intake, qualification, missed-call text-back, and summaries",
+    features: ["Everything in AI Chat", "AI phone answering", "AI intake", "Missed-call text-back", "No SaaS Mode"],
+    cta: "Start Widget + Voice",
+    highlighted: true,
+  },
+  {
+    id: "driver_pro",
+    name: "Driver Pro",
+    price: "$9.99",
+    period: "/mo",
+    setup: "No setup fee",
+    description: "Driver roadside profile for faster intake, preferred providers, and dispatch status",
+    features: ["Saved truck profile", "Roadside intake", "Preferred providers", "Dispatch tracking"],
+    cta: "Start Driver Pro",
+    highlighted: false,
+  },
+  {
+    id: "professional",
     name: "Professional",
     price: "$297",
     period: "/mo",
     setup: "$199 setup",
-    description: "For shops ready to connect phones, website, chat, email, and surveys",
-    features: ["Everything in Standard", "Website", "Web Chat", "Email Marketing", "Survey Builder"],
+    description: "Full business OS with AI website, CRM, pipelines, workflows, calendars, and reputation",
+    features: ["AI website", "CRM and pipelines", "Workflows", "Calendars", "GHL SaaS Mode"],
     cta: "Start Professional",
-    highlighted: true,
+    highlighted: false,
   },
   {
-    name: "Advanced",
-    price: "$997",
+    id: "premium",
+    name: "Premium",
+    price: "$497",
     period: "/mo",
     setup: "$299 setup",
-    description: "For shops that want funnels, social marketing, and deeper email automation",
-    features: ["Everything in Professional", "Social Media Marketing", "Funnels", "Email Marketing"],
-    cta: "Start Advanced",
+    description: "Business OS plus mobile app, customer portal, fleet dashboard, and reporting",
+    features: ["Everything in Professional", "Mobile app", "Customer portal", "Fleet dashboard", "Advanced reporting"],
+    cta: "Start Premium",
+    highlighted: false,
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    price: "$997",
+    period: "/mo",
+    setup: "$499 setup",
+    description: "Multi-location business OS with campaigns, funnels, content automation, and custom workflows",
+    features: ["Everything in Premium", "Social media marketing", "Funnels and campaigns", "Content automation", "Priority support"],
+    cta: "Start Enterprise",
     highlighted: false,
   },
 ];
@@ -217,8 +253,8 @@ export default function ShopsPage() {
       {/* Pricing */}
       <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <SectionHeading eyebrow="Simple Pricing" title="One price. Everything included." />
-          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+          <SectionHeading eyebrow="Hybrid Pricing" title="Lightweight AI services or the full business OS." />
+          <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {plans.map((plan) => (
               <FadeIn key={plan.name}>
                 <div className={`rounded-3xl border p-8 flex flex-col h-full ${plan.highlighted ? "border-roadcall-orange/40 bg-gradient-to-br from-roadcall-orange/10 to-roadcall-blue/5" : "border-roadcall-cyan/10 bg-roadcall-panel/30"}`}>
@@ -241,7 +277,7 @@ export default function ShopsPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href={plan.name === "Standard" ? "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k" : plan.name === "Professional" ? "https://buy.stripe.com/fZu28t94c8Fw0IG6Ee1sQ0l" : "https://buy.stripe.com/3cI9AVgwE0909fcd2C1sQ0m"}>
+                  <Link href={`/mechanic/checkout?plan=${plan.id}`}>
                     <Button className={`w-full rounded-full ${plan.highlighted ? "bg-gradient-to-r from-roadcall-orange to-roadcall-blue hover:from-roadcall-orange hover:to-roadcall-blue" : "bg-roadcall-panel/60 hover:bg-white/15"}`}>
                       {plan.cta}
                     </Button>

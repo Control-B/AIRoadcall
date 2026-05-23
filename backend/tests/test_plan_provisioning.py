@@ -66,48 +66,50 @@ def _fake_tenant(plan_id: str):
 def test_plan_configs_cover_required_tiers_and_permissions():
     configs = get_plan_configs()
 
-    assert set(configs) == {"standard", "premium", "advanced"}
-    assert PlanFeature.form_builder in configs["standard"].features
-    assert PlanFeature.website_widget in configs["premium"].features
-    assert PlanFeature.funnels in configs["advanced"].features
-    assert PlanFeature.funnels not in configs["premium"].features
-    assert "funnels" in configs["advanced"].allowed_modules
+    assert set(configs) == {"ai_chat", "widget_voice", "driver_pro", "professional", "premium", "enterprise"}
+    assert PlanFeature.ai_widget in configs["ai_chat"].features
+    assert PlanFeature.ai_answering in configs["widget_voice"].features
+    assert PlanFeature.ghl_saas_mode in configs["professional"].features
+    assert PlanFeature.fleet_dashboard in configs["premium"].features
+    assert PlanFeature.marketing_funnels in configs["enterprise"].features
+    assert configs["ai_chat"].uses_saas_mode is False
+    assert configs["professional"].automatic_subaccount_provisioning is True
 
 
 def test_locked_features_show_upgrade_behavior():
-    standard = get_plan_config("standard")
-    locked = locked_features_for("standard", [feature.value for feature in standard.features])
+    ai_chat = get_plan_config("ai_chat")
+    locked = locked_features_for("ai_chat", [feature.value for feature in ai_chat.features])
 
-    assert "website_widget" in locked
-    assert "funnels" in locked
-    assert "ai_answering" not in locked
+    assert "ai_answering" in locked
+    assert "marketing_funnels" in locked
+    assert "ai_widget" not in locked
 
 
 @pytest.mark.asyncio
 async def test_plan_gating_allows_enabled_feature(monkeypatch):
-    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="advanced")
+    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="enterprise")
 
     async def fake_has_feature(_db, tenant_id, feature):
         assert tenant_id == tenant.id
-        assert feature == "funnels"
+        assert feature == "marketing_funnels"
         return True, tenant
 
     monkeypatch.setattr("app.api.plan_deps.service.tenant_has_feature", fake_has_feature)
-    dependency = require_tenant_feature(PlanFeature.funnels)
+    dependency = require_tenant_feature(PlanFeature.marketing_funnels)
 
     assert await dependency(x_roadcall_tenant_id=str(tenant.id), db=None) is tenant
 
 
 @pytest.mark.asyncio
 async def test_plan_gating_blocks_locked_feature(monkeypatch):
-    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="standard")
+    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="ai_chat")
 
     async def fake_has_feature(_db, _tenant_id, feature):
-        assert feature == "funnels"
+        assert feature == "marketing_funnels"
         return False, tenant
 
     monkeypatch.setattr("app.api.plan_deps.service.tenant_has_feature", fake_has_feature)
-    dependency = require_tenant_feature(PlanFeature.funnels)
+    dependency = require_tenant_feature(PlanFeature.marketing_funnels)
 
     with pytest.raises(HTTPException) as exc:
         await dependency(x_roadcall_tenant_id=str(tenant.id), db=None)
@@ -116,7 +118,7 @@ async def test_plan_gating_blocks_locked_feature(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_provisioning_endpoint_accepts_all_three_plans(monkeypatch):
+async def test_provisioning_endpoint_accepts_all_plans(monkeypatch):
     app.dependency_overrides[provisioning.get_db] = _override_db
     app.dependency_overrides[provisioning.require_admin_api_key] = lambda: None
 
@@ -128,6 +130,11 @@ async def test_provisioning_endpoint_accepts_all_three_plans(monkeypatch):
             "name": payload.plan_id.title(),
             "price_monthly": get_plan_config(payload.plan_id).price_monthly,
             "setup_fee": get_plan_config(payload.plan_id).setup_fee,
+            "ecosystem": get_plan_config(payload.plan_id).ecosystem,
+            "billing_system": get_plan_config(payload.plan_id).billing_system,
+            "onboarding_mode": get_plan_config(payload.plan_id).onboarding_mode,
+            "uses_saas_mode": get_plan_config(payload.plan_id).uses_saas_mode,
+            "automatic_subaccount_provisioning": get_plan_config(payload.plan_id).automatic_subaccount_provisioning,
             "enabled_features": tenant.enabled_features,
             "ghl_snapshot_id": "snap_test",
             "allowed_modules": [],
@@ -141,7 +148,7 @@ async def test_provisioning_endpoint_accepts_all_three_plans(monkeypatch):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        for plan_id in ("standard", "premium", "advanced"):
+        for plan_id in ("ai_chat", "widget_voice", "driver_pro", "professional", "premium", "enterprise"):
             resp = await ac.post(
                 "/api/provisioning/tenants",
                 headers={"x-admin-key": "test-admin-key"},

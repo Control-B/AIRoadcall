@@ -13,7 +13,7 @@ import stripe
 from sqlalchemy import func, select
 
 from app.core.config import get_settings
-from app.core.plan_config import canonical_plan_id, get_plan_config, included_leads_for, plan_payload
+from app.core.plan_config import canonical_plan_id, get_plan_config, get_plan_configs, included_leads_for, plan_payload
 from app.models.mechanic_subscription import AIAgent, MechanicAccount, PlanUsage, ServiceRequest, ShopCall, ShopCallSummary, ShopProfile, StripeSubscription
 from app.models.organization import Organization, VerticalType
 from app.models.tenant_provisioning import GHLConnection, Tenant
@@ -163,6 +163,7 @@ class SubscriptionBillingService:
 
     async def create_checkout_session(self, db, payload: CheckoutSessionCreateIn) -> dict[str, str]:
         plan_id = canonical_plan_id(payload.plan_id)
+        plan_config = get_plan_config(plan_id)
         price_id = settings.stripe_price_id_for_plan(plan_id)
         if not price_id:
             raise ValueError(f"Stripe price ID is not configured for {plan_id}")
@@ -170,21 +171,22 @@ class SubscriptionBillingService:
         org, tenant = await self._get_or_create_tenant(db, payload, plan_id)
         account = await self._get_or_create_account(db, tenant, org, payload)
         await self._get_or_create_profile(db, tenant, org, payload)
-        await self.shop_snapshots.provision_shop_snapshot(
-            db,
-            ShopSnapshotProvisionIn(
-                plan_id=plan_id,
-                business_name=payload.business_name,
-                owner_name=payload.owner_name,
-                owner_email=payload.email,
-                owner_phone=payload.phone,
-                shop_phone=payload.phone,
-                website=payload.website,
-                subscription_status=tenant.subscription_status,
-                setup_fee_status=tenant.setup_fee_status,
-                metadata={"source": "stripe_checkout_created"},
-            ),
-        )
+        if plan_config.uses_saas_mode:
+            await self.shop_snapshots.provision_shop_snapshot(
+                db,
+                ShopSnapshotProvisionIn(
+                    plan_id=plan_id,
+                    business_name=payload.business_name,
+                    owner_name=payload.owner_name,
+                    owner_email=payload.email,
+                    owner_phone=payload.phone,
+                    shop_phone=payload.phone,
+                    website=payload.website,
+                    subscription_status=tenant.subscription_status,
+                    setup_fee_status=tenant.setup_fee_status,
+                    metadata={"source": "stripe_checkout_created", "onboarding_mode": plan_config.onboarding_mode},
+                ),
+            )
         await db.flush()
 
         checkout_payload = {
@@ -202,6 +204,9 @@ class SubscriptionBillingService:
                 "organization_id": str(org.id),
                 "mechanic_account_id": str(account.id),
                 "plan_id": plan_id,
+                "ecosystem": plan_config.ecosystem,
+                "onboarding_mode": plan_config.onboarding_mode,
+                "uses_saas_mode": str(plan_config.uses_saas_mode).lower(),
             },
             "subscription_data": {
                 "metadata": {
@@ -209,6 +214,9 @@ class SubscriptionBillingService:
                     "organization_id": str(org.id),
                     "mechanic_account_id": str(account.id),
                     "plan_id": plan_id,
+                    "ecosystem": plan_config.ecosystem,
+                    "onboarding_mode": plan_config.onboarding_mode,
+                    "uses_saas_mode": str(plan_config.uses_saas_mode).lower(),
                 }
             },
         }
@@ -603,7 +611,7 @@ class SubscriptionBillingService:
         if not tenant_id_value:
             return
         tenant_id = uuid.UUID(str(tenant_id_value))
-        plan_id = canonical_plan_id(metadata.get("plan_id") or "standard")
+        plan_id = canonical_plan_id(metadata.get("plan_id") or "widget_voice")
         customer_id = str(subscription.get("customer") or "")
         stripe_subscription_id = str(subscription.get("id") or "")
         items = subscription.get("items", {}).get("data", []) if isinstance(subscription.get("items"), dict) else []
@@ -789,7 +797,7 @@ class SubscriptionBillingService:
 
     def billing_plan_views(self) -> list[dict[str, Any]]:
         views = []
-        for config in (get_plan_config("standard"), get_plan_config("premium"), get_plan_config("advanced")):
+        for config in get_plan_configs().values():
             payload = plan_payload(config)
             views.append(
                 {
@@ -797,6 +805,11 @@ class SubscriptionBillingService:
                     "name": payload["name"],
                     "price_monthly": payload["price_monthly"],
                     "setup_fee": payload["setup_fee"],
+                    "ecosystem": payload["ecosystem"],
+                    "billing_system": payload["billing_system"],
+                    "onboarding_mode": payload["onboarding_mode"],
+                    "uses_saas_mode": payload["uses_saas_mode"],
+                    "automatic_subaccount_provisioning": payload["automatic_subaccount_provisioning"],
                     "included_leads": included_leads_for(config.id),
                     "stripe_price_id_configured": bool(settings.stripe_price_id_for_plan(config.id.value)),
                     "features": payload["enabled_features"],
