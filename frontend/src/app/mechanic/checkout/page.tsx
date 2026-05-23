@@ -27,25 +27,25 @@ const PLANS = {
   },
   driver_pro: {
     name: "Driver Pro",
-    price: "$19.99/mo",
+    price: "$9.99/mo",
     setup: "No setup fee",
     features: ["AI dispatch priority", "Saved truck profile", "Emergency mode", "Live dispatch tracking", "Route-aware intelligence"],
   },
   fleet_starter: {
     name: "Fleet Starter",
-    price: "$99/mo",
+    price: "$99.99/mo",
     setup: "No setup fee",
     features: ["Fleet dashboard", "Multi-driver management", "Roadside activity feed", "Provider preferences", "Centralized dispatch visibility"],
   },
   fleet_professional: {
     name: "Fleet Professional",
-    price: "$299/mo",
+    price: "$299.99/mo",
     setup: "No setup fee",
     features: ["Advanced AI dispatch", "Downtime analytics", "SLA tracking", "Roadside heatmaps", "Operational dashboards"],
   },
   fleet_enterprise: {
     name: "Fleet Enterprise",
-    price: "$999+/mo",
+    price: "$599.99/mo",
     setup: "No setup fee",
     features: ["Command center", "Multi-location operations", "API integrations", "Custom workflows", "AI fleet intelligence"],
   },
@@ -63,10 +63,12 @@ function MechanicCheckoutContent() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
+  const [fleetVehicleCount, setFleetVehicleCount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedPlan = useMemo(() => PLANS[planId], [planId]);
+  const isFleetPlan = planId.startsWith("fleet_");
 
   async function startCheckout(event: React.FormEvent) {
     event.preventDefault();
@@ -83,6 +85,7 @@ function MechanicCheckoutContent() {
           email,
           phone: phone || undefined,
           website: website || undefined,
+          fleet_vehicle_count: isFleetPlan ? Number(fleetVehicleCount) : undefined,
         }),
       });
       const body = await response.json();
@@ -137,6 +140,7 @@ function MechanicCheckoutContent() {
             <label className="space-y-2 text-sm text-slate-300">Email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
             <label className="space-y-2 text-sm text-slate-300">Phone<input value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
             <label className="space-y-2 text-sm text-slate-300 sm:col-span-2">Website<input value={website} onChange={(event) => setWebsite(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
+            {isFleetPlan ? <label className="space-y-2 text-sm text-slate-300 sm:col-span-2">Number of vehicles in fleet<input required min={1} type="number" value={fleetVehicleCount} onChange={(event) => setFleetVehicleCount(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label> : null}
           </div>
 
           {error && <div className="mt-5 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</div>}

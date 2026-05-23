@@ -222,6 +222,7 @@ class SubscriptionBillingService:
                 "ecosystem": plan_config.ecosystem,
                 "onboarding_mode": plan_config.onboarding_mode,
                 "uses_saas_mode": str(plan_config.uses_saas_mode).lower(),
+                "fleet_vehicle_count": str(payload.fleet_vehicle_count or ""),
             },
             "subscription_data": {
                 "trial_period_days": plan_config.trial_days,
@@ -233,6 +234,7 @@ class SubscriptionBillingService:
                     "ecosystem": plan_config.ecosystem,
                     "onboarding_mode": plan_config.onboarding_mode,
                     "uses_saas_mode": str(plan_config.uses_saas_mode).lower(),
+                    "fleet_vehicle_count": str(payload.fleet_vehicle_count or ""),
                 }
             },
         }

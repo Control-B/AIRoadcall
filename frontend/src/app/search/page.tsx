@@ -25,7 +25,6 @@ import {
   Map as MapIcon,
   LayoutGrid,
   Maximize2,
-  Minimize2,
   PanelRightClose,
   PanelRightOpen,
   RectangleHorizontal,
@@ -299,7 +298,7 @@ type MapBounds = {
   max_lng: number;
 };
 
-type MapWorkspaceMode = "split" | "wide" | "fullscreen" | "minimized";
+type MapWorkspaceMode = "split" | "wide" | "fullscreen";
 type ProviderViewMode = "map" | "cards" | "list";
 type PremiumMapMode = "basic" | "operations" | "satellite" | "traffic" | "weather" | "density" | "hotspots" | "route";
 
@@ -988,8 +987,7 @@ function MapWorkspaceControls({
   const controls = [
     { id: "split" as const, label: "Split map and list", icon: Rows3 },
     { id: "wide" as const, label: "Focus map", icon: RectangleHorizontal },
-    { id: "fullscreen" as const, label: "Expand map workspace", icon: Maximize2 },
-    { id: "minimized" as const, label: "Minimize map", icon: Minimize2 },
+    { id: "fullscreen" as const, label: mode === "fullscreen" ? "Exit full page map" : "Expand map to full page", icon: Maximize2 },
   ];
   return (
     <div className="inline-flex items-center rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/80 p-1 shadow-2xl shadow-black/30 backdrop-blur-md">
@@ -1009,7 +1007,7 @@ function MapWorkspaceControls({
           <button
             key={control.id}
             type="button"
-            onClick={() => onModeChange(control.id)}
+            onClick={() => onModeChange(control.id === "fullscreen" && mode === "fullscreen" ? "split" : control.id)}
             title={control.label}
             className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
           >
@@ -1158,17 +1156,19 @@ function SearchPageInner() {
     setMapSidePanelOpen(true);
     if (mechanic.city || mechanic.state) setMapAreaSummary(`Showing map near ${[mechanic.city, mechanic.state].filter(Boolean).join(", ")}`);
   }, []);
-  const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide" && mapWorkspaceMode !== "minimized";
+  const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide";
   const mapShellClass = mapWorkspaceMode === "fullscreen"
-    ? "fixed inset-x-3 bottom-3 top-24 z-40 overflow-hidden rounded-3xl border border-roadcall-cyan/25 bg-[#02050c]/95 p-4 shadow-2xl shadow-black/70 backdrop-blur-xl sm:inset-x-6 sm:bottom-6 sm:top-24"
+    ? "fixed inset-0 z-50 flex flex-col overflow-hidden bg-[#02050c] p-3 shadow-2xl shadow-black/80 sm:p-5"
     : "";
-  const mapGridClass = mapWorkspaceMode === "minimized"
-    ? "grid gap-4"
+  const mapGridClass = mapWorkspaceMode === "fullscreen"
+    ? showMapSidePanel
+      ? "grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
+      : "grid min-h-0 flex-1 gap-4"
     : showMapSidePanel
       ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
       : "grid gap-4";
   const mapHeightClass = mapWorkspaceMode === "fullscreen"
-    ? "h-[calc(100vh-13rem)] min-h-[420px]"
+    ? "h-full min-h-0"
     : mapWorkspaceMode === "wide"
       ? "h-[680px] min-h-[520px]"
       : "h-[520px] min-h-[420px]";
@@ -1427,7 +1427,7 @@ function SearchPageInner() {
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-cyan">{premiumModeLabel} map workspace</p>
                 <p className="mt-1 text-sm text-roadcall-muted">
-                  {hasPremiumMapAccess ? "Premium overlays are active for this session." : "Advanced map modes are locked behind Driver Pro and Fleet Operations memberships."} {mapWorkspaceMode === "minimized" ? "Map is minimized. Provider panels stay available." : mapWorkspaceMode === "fullscreen" ? "Expanded map workspace with optional provider panels." : "Use the controls to focus, expand, minimize, or hide panels."}
+                  {hasPremiumMapAccess ? "Premium overlays are active for this session." : "Advanced map modes are locked behind Driver Pro and Fleet Operations memberships."} {mapWorkspaceMode === "fullscreen" ? "Expanded full-page map workspace with optional provider panels." : "Use the controls to focus, expand, or hide panels."}
                 </p>
               </div>
               <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
@@ -1442,42 +1442,28 @@ function SearchPageInner() {
               </div>
             </div>
             <div className={mapGridClass}>
-              {mapWorkspaceMode !== "minimized" ? (
-                <SearchResultsMap
-                  mechanics={results.mechanics}
-                  onSearchArea={searchMapArea}
-                  searchingArea={searchingArea}
-                  className={mapHeightClass}
-                  layoutKey={`${mapWorkspaceMode}-${mapSidePanelOpen}`}
-                  premiumMode={premiumMapMode}
-                  hasPremiumAccess={hasPremiumMapAccess}
-                  workspaceControls={(
-                    <MapWorkspaceControls
-                      mode={mapWorkspaceMode}
-                      sidePanelOpen={mapSidePanelOpen}
-                      onToggleSidePanel={() => setMapSidePanelOpen((open) => !open)}
-                      onModeChange={(mode) => {
-                        setMapWorkspaceMode(mode);
-                        if (mode === "fullscreen") setMapSidePanelOpen(true);
-                      }}
-                    />
-                  )}
-                />
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => setMapWorkspaceMode("split")}
-                  className="flex min-h-24 items-center justify-between gap-4 rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/50 px-5 py-4 text-left transition hover:border-roadcall-cyan/35 hover:bg-roadcall-panel/70"
-                >
-                  <span>
-                    <span className="block text-sm font-black text-white">Map minimized</span>
-                    <span className="mt-1 block text-xs text-roadcall-muted">Restore the map when you need the geographic view again.</span>
-                  </span>
-                  <Maximize2 className="h-5 w-5 shrink-0 text-roadcall-cyan" />
-                </button>
-              )}
-              {showMapSidePanel || mapWorkspaceMode === "minimized" ? (
-                <div className={`${mapWorkspaceMode === "fullscreen" ? "max-h-[calc(100vh-9.5rem)]" : "max-h-[520px]"} space-y-4 overflow-y-auto pr-1`}>
+              <SearchResultsMap
+                mechanics={results.mechanics}
+                onSearchArea={searchMapArea}
+                searchingArea={searchingArea}
+                className={mapHeightClass}
+                layoutKey={`${mapWorkspaceMode}-${mapSidePanelOpen}`}
+                premiumMode={premiumMapMode}
+                hasPremiumAccess={hasPremiumMapAccess}
+                workspaceControls={(
+                  <MapWorkspaceControls
+                    mode={mapWorkspaceMode}
+                    sidePanelOpen={mapSidePanelOpen}
+                    onToggleSidePanel={() => setMapSidePanelOpen((open) => !open)}
+                    onModeChange={(mode) => {
+                      setMapWorkspaceMode(mode);
+                      if (mode === "fullscreen") setMapSidePanelOpen(true);
+                    }}
+                  />
+                )}
+              />
+              {showMapSidePanel ? (
+                <div className={`${mapWorkspaceMode === "fullscreen" ? "min-h-0 overflow-y-auto" : "max-h-[520px] overflow-y-auto"} space-y-4 pr-1`}>
                   <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 p-4">
                     <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-muted">Visible cities</p>
                     <div className="mt-3 flex flex-wrap gap-2">
@@ -1488,7 +1474,7 @@ function SearchPageInner() {
                       ))}
                     </div>
                   </div>
-                  <div className={mapWorkspaceMode === "minimized" ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-4"}>
+                  <div className="space-y-4">
                     {cityGroups.map((group) => <CityMechanicGroup key={group.label} label={group.label} providers={group.providers} onClaim={setClaimTarget} onViewMap={handleViewMap} />)}
                   </div>
                 </div>

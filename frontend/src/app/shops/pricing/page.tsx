@@ -35,7 +35,7 @@ const plans = [
   },
   {
     name: "Driver Pro",
-    price: "$19.99",
+    price: "$9.99",
     setup: "No setup fee",
     target: "For owner operators and independent drivers that need AI roadside intelligence.",
     href: "/mechanic/checkout?plan=driver_pro",

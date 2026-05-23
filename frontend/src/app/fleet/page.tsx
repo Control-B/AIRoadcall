@@ -104,7 +104,7 @@ export default function FleetPage() {
                 </Button>
               </a>
             </div>
-            <p className="text-sm text-roadcall-muted">Driver Pro from $19.99 · Fleet plans from $99 · 7-day free trial</p>
+            <p className="text-sm text-roadcall-muted">Driver Pro from $9.99 · Fleet plans from $99.99 · 7-day free trial</p>
           </FadeIn>
         </div>
       </section>

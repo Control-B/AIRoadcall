@@ -348,7 +348,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "driver_pro": _plan(
             id=PlanTier.driver_pro,
             name="Driver Pro",
-            price_monthly=19.99,
+            price_monthly=9.99,
             setup_fee=0,
             ecosystem="roadside_intelligence_membership",
             billing_system="stripe",
@@ -364,7 +364,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "fleet_starter": _plan(
             id=PlanTier.fleet_starter,
             name="Fleet Starter",
-            price_monthly=99,
+            price_monthly=99.99,
             setup_fee=0,
             ecosystem="fleet_operations_platform",
             billing_system="stripe",
@@ -380,7 +380,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "fleet_professional": _plan(
             id=PlanTier.fleet_professional,
             name="Fleet Professional",
-            price_monthly=299,
+            price_monthly=299.99,
             setup_fee=0,
             ecosystem="fleet_operations_platform",
             billing_system="stripe",
@@ -396,7 +396,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "fleet_enterprise": _plan(
             id=PlanTier.fleet_enterprise,
             name="Fleet Enterprise",
-            price_monthly=999,
+            price_monthly=599.99,
             setup_fee=0,
             ecosystem="fleet_operations_platform",
             billing_system="stripe",

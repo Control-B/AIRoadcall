@@ -32,6 +32,7 @@ class CheckoutSessionCreateIn(BaseModel):
     email: EmailStr
     phone: str | None = Field(default=None, max_length=30)
     website: str | None = Field(default=None, max_length=500)
+    fleet_vehicle_count: int | None = Field(default=None, ge=1, le=100000)
 
 
 class CheckoutSessionCreateOut(BaseModel):
