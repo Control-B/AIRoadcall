@@ -1213,15 +1213,15 @@ function SearchPageInner() {
 
   const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide" && !isFullscreenMap;
   const mapShellClass = mapWorkspaceMode === "fullscreen"
-    ? "fixed inset-x-0 bottom-0 top-20 z-[60] h-[calc(100dvh-5rem)] overflow-hidden bg-[#02050c] shadow-2xl shadow-black/80"
+    ? "fixed inset-x-0 bottom-0 top-20 z-[60] overflow-hidden bg-[#02050c] shadow-2xl shadow-black/80"
     : "";
   const mapGridClass = mapWorkspaceMode === "fullscreen"
-    ? "relative h-[calc(100dvh-5rem)] min-h-0"
+    ? "absolute inset-0 h-full min-h-0"
     : showMapSidePanel
       ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
       : "grid gap-4";
   const mapHeightClass = mapWorkspaceMode === "fullscreen"
-    ? "absolute inset-0 h-auto min-h-0 rounded-none border-0"
+    ? "h-full min-h-0 rounded-none border-0"
     : mapWorkspaceMode === "wide"
       ? "h-[680px] min-h-[520px]"
       : "h-[520px] min-h-[420px]";
