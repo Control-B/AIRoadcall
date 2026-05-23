@@ -10,7 +10,10 @@ class PlanTier(StrEnum):
     widget_only = "widget_only"
     ai_telephony = "ai_telephony"
     widget_voice = "widget_voice"
-    enterprise = "enterprise"
+    driver_pro = "driver_pro"
+    fleet_starter = "fleet_starter"
+    fleet_professional = "fleet_professional"
+    fleet_enterprise = "fleet_enterprise"
     standard = "standard"
     professional = "professional"
     advanced = "advanced"
@@ -84,6 +87,28 @@ class PlanFeature(StrEnum):
     real_time_roadside_status = "real_time_roadside_status"
     external_dispatch_api = "external_dispatch_api"
     api_ready_infrastructure = "api_ready_infrastructure"
+    ai_dispatch_priority = "ai_dispatch_priority"
+    emergency_mode = "emergency_mode"
+    route_intelligence = "route_intelligence"
+    ai_issue_triage = "ai_issue_triage"
+    dispatch_eta_visibility = "dispatch_eta_visibility"
+    roadside_event_timeline = "roadside_event_timeline"
+    smart_provider_recommendations = "smart_provider_recommendations"
+    fleet_incident_management = "fleet_incident_management"
+    fleet_activity_feed = "fleet_activity_feed"
+    centralized_dispatch_visibility = "centralized_dispatch_visibility"
+    provider_preference_management = "provider_preference_management"
+    downtime_analytics = "downtime_analytics"
+    recurring_issue_detection = "recurring_issue_detection"
+    roadside_sla_tracking = "roadside_sla_tracking"
+    provider_performance_analytics = "provider_performance_analytics"
+    roadside_heatmaps = "roadside_heatmaps"
+    maintenance_trend_tracking = "maintenance_trend_tracking"
+    operational_intelligence_dashboards = "operational_intelligence_dashboards"
+    enterprise_command_center = "enterprise_command_center"
+    custom_ai_routing = "custom_ai_routing"
+    white_label_options = "white_label_options"
+    dedicated_support = "dedicated_support"
 
 
 PLAN_ALIASES = {
@@ -98,10 +123,16 @@ PLAN_ALIASES = {
     "ai-telephony": PlanTier.ai_telephony,
     "widget+voice": PlanTier.widget_voice,
     "widget-ai-telephony": PlanTier.widget_voice,
-    "driver": PlanTier.enterprise,
-    "driver_pro": PlanTier.enterprise,
-    "driver-pro": PlanTier.enterprise,
-    "trucking": PlanTier.enterprise,
+    "driver": PlanTier.driver_pro,
+    "driver_pro": PlanTier.driver_pro,
+    "driver-pro": PlanTier.driver_pro,
+    "trucking": PlanTier.driver_pro,
+    "enterprise": PlanTier.fleet_enterprise,
+    "fleet": PlanTier.fleet_starter,
+    "fleet-starter": PlanTier.fleet_starter,
+    "fleet-professional": PlanTier.fleet_professional,
+    "fleet-pro": PlanTier.fleet_professional,
+    "fleet-enterprise": PlanTier.fleet_enterprise,
     "growth": PlanTier.standard,
     "premium": PlanTier.professional,
     "pro": PlanTier.professional,
@@ -146,13 +177,57 @@ AI_TELEPHONY_FEATURES = (
 
 WIDGET_VOICE_FEATURES = WIDGET_ONLY_FEATURES + AI_TELEPHONY_FEATURES
 
-ENTERPRISE_TRUCKING_FEATURES = (
+DRIVER_PRO_FEATURES = (
+    PlanFeature.ai_dispatch_priority,
+    PlanFeature.saved_truck_profile,
+    PlanFeature.emergency_mode,
+    PlanFeature.roadside_intake,
+    PlanFeature.ai_issue_triage,
     PlanFeature.map_view,
     PlanFeature.provider_directory,
-    PlanFeature.trucking_company_profile,
-    PlanFeature.roadside_intake,
-    PlanFeature.dispatch_tracking,
     PlanFeature.preferred_providers,
+    PlanFeature.dispatch_tracking,
+    PlanFeature.dispatch_eta_visibility,
+    PlanFeature.route_intelligence,
+    PlanFeature.roadside_event_timeline,
+    PlanFeature.smart_provider_recommendations,
+)
+
+FLEET_STARTER_FEATURES = DRIVER_PRO_FEATURES + (
+    PlanFeature.fleet_dashboard,
+    PlanFeature.multi_user_access,
+    PlanFeature.trucking_company_profile,
+    PlanFeature.fleet_notification,
+    PlanFeature.dispatch_dashboard,
+    PlanFeature.fleet_incident_management,
+    PlanFeature.fleet_activity_feed,
+    PlanFeature.centralized_dispatch_visibility,
+    PlanFeature.provider_preference_management,
+)
+
+FLEET_PROFESSIONAL_FEATURES = FLEET_STARTER_FEATURES + (
+    PlanFeature.advanced_reporting,
+    PlanFeature.advanced_analytics,
+    PlanFeature.downtime_analytics,
+    PlanFeature.recurring_issue_detection,
+    PlanFeature.roadside_sla_tracking,
+    PlanFeature.provider_performance_analytics,
+    PlanFeature.roadside_heatmaps,
+    PlanFeature.maintenance_trend_tracking,
+    PlanFeature.operational_intelligence_dashboards,
+    PlanFeature.emergency_routing,
+)
+
+FLEET_ENTERPRISE_FEATURES = FLEET_PROFESSIONAL_FEATURES + (
+    PlanFeature.enterprise_command_center,
+    PlanFeature.multi_location_support,
+    PlanFeature.external_dispatch_api,
+    PlanFeature.api_ready_infrastructure,
+    PlanFeature.custom_workflows,
+    PlanFeature.custom_ai_routing,
+    PlanFeature.priority_support,
+    PlanFeature.dedicated_support,
+    PlanFeature.white_label_options,
 )
 
 STANDARD_FEATURES = WIDGET_VOICE_FEATURES + (
@@ -267,21 +342,69 @@ def get_plan_configs() -> dict[str, PlanConfig]:
             dashboard_permissions=("dashboard.read", "widget.read", "calls.read", "leads.read"),
             ai_feature_permissions=("ai.widget", "ai.telephony", "ai.intake", "ai.missed_call_text_back"),
         ),
-        "enterprise": _plan(
-            id=PlanTier.enterprise,
-            name="Enterprise",
-            price_monthly=19.99,
+        "driver_pro": _plan(
+            id=PlanTier.driver_pro,
+            name="Driver Pro",
+            price_monthly=9.99,
             setup_fee=0,
-            ecosystem="simple_trucking_services",
+            ecosystem="roadside_intelligence_membership",
             billing_system="stripe",
-            onboarding_mode="trucking_self_service",
+            onboarding_mode="driver_self_service",
             uses_saas_mode=False,
-            features=ENTERPRISE_TRUCKING_FEATURES,
-            allowed_modules=("map_view", "provider_directory", "trucking_profile", "dispatch_tracking"),
+            features=DRIVER_PRO_FEATURES,
+            allowed_modules=("ai_dispatch", "driver_profile", "emergency_mode", "map_view", "provider_directory", "dispatch_tracking"),
             webhook_permissions=("subscription", "roadside.request", "dispatch.status"),
-            dashboard_permissions=("map.read", "providers.read", "dispatch.read"),
-            dispatch_permissions=("roadside.request", "dispatch.status.read"),
-            ai_feature_permissions=("ai.roadside", "ai.driver_intake"),
+            dashboard_permissions=("map.read", "providers.read", "dispatch.read", "driver_profile.read", "breakdown_history.read"),
+            dispatch_permissions=("roadside.request", "dispatch.status.read", "dispatch.priority"),
+            ai_feature_permissions=("ai.roadside", "ai.driver_intake", "ai.issue_triage", "ai.provider_recommendations"),
+        ),
+        "fleet_starter": _plan(
+            id=PlanTier.fleet_starter,
+            name="Fleet Starter",
+            price_monthly=49,
+            setup_fee=0,
+            ecosystem="fleet_operations_platform",
+            billing_system="stripe",
+            onboarding_mode="fleet_self_service",
+            uses_saas_mode=False,
+            features=FLEET_STARTER_FEATURES,
+            allowed_modules=("fleet_dashboard", "driver_management", "incident_feed", "dispatch_tracking", "provider_preferences"),
+            webhook_permissions=("subscription", "fleet.incident", "fleet.dispatch", "dispatch.status"),
+            dashboard_permissions=("fleet.dashboard.read", "drivers.read", "incidents.read", "providers.read", "dispatch.read"),
+            dispatch_permissions=("roadside.request", "fleet.dispatch.read", "fleet.dispatch.update"),
+            ai_feature_permissions=("ai.roadside", "ai.dispatch", "ai.driver_intake", "ai.provider_recommendations"),
+        ),
+        "fleet_professional": _plan(
+            id=PlanTier.fleet_professional,
+            name="Fleet Professional",
+            price_monthly=199,
+            setup_fee=0,
+            ecosystem="fleet_operations_platform",
+            billing_system="stripe",
+            onboarding_mode="fleet_operations_onboarding",
+            uses_saas_mode=False,
+            features=FLEET_PROFESSIONAL_FEATURES,
+            allowed_modules=("fleet_dashboard", "advanced_dispatch", "analytics", "heatmaps", "route_intelligence", "provider_performance"),
+            webhook_permissions=("subscription", "fleet.incident", "fleet.dispatch", "fleet.analytics", "dispatch.status"),
+            dashboard_permissions=("fleet.dashboard.read", "analytics.read", "heatmaps.read", "providers.read", "reports.read"),
+            dispatch_permissions=("roadside.request", "fleet.dispatch.read", "fleet.dispatch.update", "fleet.dispatch.escalate"),
+            ai_feature_permissions=("ai.roadside", "ai.dispatch", "ai.route_intelligence", "ai.issue_detection", "ai.provider_recommendations"),
+        ),
+        "fleet_enterprise": _plan(
+            id=PlanTier.fleet_enterprise,
+            name="Fleet Enterprise",
+            price_monthly=299,
+            setup_fee=0,
+            ecosystem="fleet_operations_platform",
+            billing_system="stripe",
+            onboarding_mode="enterprise_fleet_onboarding",
+            uses_saas_mode=False,
+            features=FLEET_ENTERPRISE_FEATURES,
+            allowed_modules=("command_center", "multi_location_ops", "api_integrations", "custom_workflows", "enterprise_analytics", "white_label"),
+            webhook_permissions=("subscription", "fleet.incident", "fleet.dispatch", "fleet.analytics", "enterprise.api", "dispatch.status"),
+            dashboard_permissions=("fleet.command.read", "analytics.read", "locations.read", "integrations.read", "reports.read"),
+            dispatch_permissions=("roadside.request", "fleet.dispatch.read", "fleet.dispatch.update", "fleet.dispatch.escalate", "fleet.api.dispatch"),
+            ai_feature_permissions=("ai.roadside", "ai.dispatch", "ai.route_intelligence", "ai.custom_routing", "ai.fleet_intelligence"),
         ),
         "standard": _plan(
             id=PlanTier.standard,
@@ -353,7 +476,10 @@ def included_leads_for(plan_id: str | PlanTier) -> int:
         PlanTier.widget_only: 25,
         PlanTier.ai_telephony: 50,
         PlanTier.widget_voice: 75,
-        PlanTier.enterprise: 0,
+        PlanTier.driver_pro: 0,
+        PlanTier.fleet_starter: 0,
+        PlanTier.fleet_professional: 0,
+        PlanTier.fleet_enterprise: 0,
         PlanTier.standard: 250,
         PlanTier.professional: 750,
         PlanTier.advanced: 2500,

@@ -530,7 +530,7 @@ async def check_feature_access(tenant_id: str, feature: str, db: AsyncSession = 
     allowed, tenant = await service.tenant_has_feature(db, uuid.UUID(tenant_id), feature)
     upgrade_required = None
     if not allowed:
-        for plan_id in ("widget_only", "ai_telephony", "widget_voice", "enterprise", "standard", "professional", "advanced"):
+        for plan_id in ("widget_only", "ai_telephony", "widget_voice", "driver_pro", "fleet_starter", "fleet_professional", "fleet_enterprise", "standard", "professional", "advanced"):
             config = get_plan_config(plan_id)
             if feature in [item.value for item in config.features]:
                 upgrade_required = plan_id

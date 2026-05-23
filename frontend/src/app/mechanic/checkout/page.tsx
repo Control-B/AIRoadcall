@@ -25,11 +25,29 @@ const PLANS = {
     setup: "$97.99 setup",
     features: ["AI widget", "AI phone answering", "Lead capture", "Call summaries", "No SaaS Mode provisioning"],
   },
-  enterprise: {
-    name: "Enterprise",
-    price: "$19.99/mo",
+  driver_pro: {
+    name: "Driver Pro",
+    price: "$9.99/mo",
     setup: "No setup fee",
-    features: ["Map view access", "Additional provider information", "Trucking company profile", "Dispatch status visibility"],
+    features: ["AI dispatch priority", "Saved truck profile", "Emergency mode", "Live dispatch tracking", "Route-aware intelligence"],
+  },
+  fleet_starter: {
+    name: "Fleet Starter",
+    price: "$49/mo",
+    setup: "No setup fee",
+    features: ["Fleet dashboard", "Multi-driver management", "Roadside activity feed", "Provider preferences", "Centralized dispatch visibility"],
+  },
+  fleet_professional: {
+    name: "Fleet Professional",
+    price: "$199/mo",
+    setup: "No setup fee",
+    features: ["Advanced AI dispatch", "Downtime analytics", "SLA tracking", "Roadside heatmaps", "Operational dashboards"],
+  },
+  fleet_enterprise: {
+    name: "Fleet Enterprise",
+    price: "$299+/mo",
+    setup: "No setup fee",
+    features: ["Command center", "Multi-location operations", "API integrations", "Custom workflows", "AI fleet intelligence"],
   },
 } as const;
 
@@ -38,7 +56,7 @@ type PlanId = keyof typeof PLANS;
 function MechanicCheckoutContent() {
   const params = useSearchParams();
   const rawPlan = params.get("plan") || "widget_voice";
-  const initialPlan = ({ starter: "widget_only", ai_chat: "widget_only", voice: "ai_telephony", driver_pro: "enterprise" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
+  const initialPlan = ({ starter: "widget_only", ai_chat: "widget_only", voice: "ai_telephony", enterprise: "fleet_enterprise" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
   const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "widget_voice");
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -83,10 +101,10 @@ function MechanicCheckoutContent() {
       <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[0.9fr_1.1fr]">
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
           <Link href="/pricing" className="text-sm font-semibold text-blue-300 hover:text-blue-200">← Back to pricing</Link>
-          <h1 className="mt-8 text-4xl font-black tracking-tight">Start your Roadcall AI advisor.</h1>
-          <p className="mt-4 text-slate-300">Subscribe, complete your profile, then Roadcall activates the right simple AI or trucking access plan.</p>
+          <h1 className="mt-8 text-4xl font-black tracking-tight">Start your Roadcall AI operating system.</h1>
+          <p className="mt-4 text-slate-300">Subscribe, complete your profile, then Roadcall activates the right AI service, Driver Pro, or Fleet Operations membership.</p>
           <div className="mt-8 space-y-3">
-            {["Secure billing activates your subscription", "Simple plans skip GHL SaaS Mode provisioning", "GHL Standard, Professional, and Advanced are started in GHL", "Your profile is completed after checkout"].map((item) => (
+            {["Secure billing activates your subscription", "Driver and fleet plans require authenticated premium access", "GHL Standard, Professional, and Advanced are started in GHL", "Your profile is completed after checkout"].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
             ))}
           </div>
@@ -114,8 +132,8 @@ function MechanicCheckoutContent() {
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <label className="space-y-2 text-sm text-slate-300">Shop name<input required value={businessName} onChange={(event) => setBusinessName(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
-            <label className="space-y-2 text-sm text-slate-300">Owner name<input value={ownerName} onChange={(event) => setOwnerName(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
+            <label className="space-y-2 text-sm text-slate-300">Account or company name<input required value={businessName} onChange={(event) => setBusinessName(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
+            <label className="space-y-2 text-sm text-slate-300">Owner or dispatcher name<input value={ownerName} onChange={(event) => setOwnerName(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
             <label className="space-y-2 text-sm text-slate-300">Email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
             <label className="space-y-2 text-sm text-slate-300">Phone<input value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
             <label className="space-y-2 text-sm text-slate-300 sm:col-span-2">Website<input value={website} onChange={(event) => setWebsite(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>

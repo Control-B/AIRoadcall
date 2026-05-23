@@ -66,11 +66,14 @@ def _fake_tenant(plan_id: str):
 def test_plan_configs_cover_required_tiers_and_permissions():
     configs = get_plan_configs()
 
-    assert set(configs) == {"widget_only", "ai_telephony", "widget_voice", "enterprise", "standard", "professional", "advanced"}
+    assert set(configs) == {"widget_only", "ai_telephony", "widget_voice", "driver_pro", "fleet_starter", "fleet_professional", "fleet_enterprise", "standard", "professional", "advanced"}
     assert PlanFeature.ai_widget in configs["widget_only"].features
     assert PlanFeature.ai_answering in configs["ai_telephony"].features
     assert PlanFeature.ai_answering in configs["widget_voice"].features
-    assert PlanFeature.map_view in configs["enterprise"].features
+    assert PlanFeature.ai_dispatch_priority in configs["driver_pro"].features
+    assert PlanFeature.fleet_dashboard in configs["fleet_starter"].features
+    assert PlanFeature.roadside_heatmaps in configs["fleet_professional"].features
+    assert PlanFeature.enterprise_command_center in configs["fleet_enterprise"].features
     assert PlanFeature.ghl_saas_mode in configs["standard"].features
     assert PlanFeature.mobile_app in configs["professional"].features
     assert PlanFeature.social_media_marketing in configs["advanced"].features
@@ -150,7 +153,7 @@ async def test_provisioning_endpoint_accepts_all_plans(monkeypatch):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        for plan_id in ("widget_only", "ai_telephony", "widget_voice", "enterprise", "standard", "professional", "advanced"):
+        for plan_id in ("widget_only", "ai_telephony", "widget_voice", "driver_pro", "fleet_starter", "fleet_professional", "fleet_enterprise", "standard", "professional", "advanced"):
             resp = await ac.post(
                 "/api/provisioning/tenants",
                 headers={"x-admin-key": "test-admin-key"},

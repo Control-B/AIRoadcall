@@ -22,12 +22,12 @@ Roadcall now has two product ecosystems:
 
 | Ecosystem | Plans | Billing | Onboarding | GHL SaaS Mode |
 | --- | --- | --- | --- | --- |
-| Simple Roadcall Services | Widget Only ($99.99), AI Telephony Only ($99.99), Widget + AI Telephony ($149.99), Enterprise trucking map access ($19.99) | Stripe | Roadcall lightweight profile/widget/voice/map setup | No |
+| Simple Roadcall Services | Widget Only ($99.99), AI Telephony Only ($99.99), Widget + AI Telephony ($149.99), Driver Pro ($9.99), Fleet Starter ($49), Fleet Professional ($199), Fleet Enterprise ($299+) | Stripe | Roadcall lightweight profile/widget/voice/driver/fleet setup | No |
 | GHL Business OS | Standard ($297 + $149 setup), Professional ($497 + $199 setup), Advanced ($997 + $299 setup) | GHL | Roadcall tenant plus GHL SaaS snapshot | Yes |
 
 Rules:
 
-- Widget Only, AI Telephony Only, Widget + AI Telephony, and Enterprise trucking map access must not create GHL SaaS sub-accounts automatically.
+- Widget Only, AI Telephony Only, Widget + AI Telephony, Driver Pro, and Fleet Operations memberships must not create GHL SaaS sub-accounts automatically.
 - Standard, Professional, and Advanced are the only plans that should trigger GHL SaaS Mode snapshot provisioning.
 - Stripe remains billing truth for simple Roadcall services. GHL owns checkout/billing for Standard, Professional, and Advanced.
 - Roadcall remains operational truth for tenants, profiles, AI widgets, AI telephony, driver profiles, fleet dashboards, dispatch state, and entitlements.
@@ -326,7 +326,10 @@ The lightweight plans are Roadcall-owned services and should not be built as GHL
 - Widget Only — $99.99/mo + $49.99 setup: AI widget for mechanics that do not want a new website.
 - AI Telephony Only — $99.99/mo + $49.99 setup: AI phone answering, intake, missed-call text-back, and call summaries.
 - Widget + AI Telephony — $149.99/mo + $97.99 setup: combined widget and AI phone package.
-- Enterprise — $19.99/mo: trucking company access to map view and additional provider information.
+- Driver Pro — $9.99/mo: AI roadside intelligence membership for owner operators and independent drivers.
+- Fleet Starter — $49/mo: fleet roadside coordination for small fleets under 50 trucks.
+- Fleet Professional — $199/mo: AI fleet roadside operations for fleets with 60 to 200 trucks.
+- Fleet Enterprise — $299+/mo: enterprise roadside operations infrastructure for larger fleets over 250 trucks.
 
 Use the snapshot builder to generate source-location build guides:
 

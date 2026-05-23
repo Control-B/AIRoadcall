@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     STRIPE_AI_CHAT_PRICE_ID: str = ""
     STRIPE_WIDGET_VOICE_PRICE_ID: str = ""
     STRIPE_DRIVER_PRO_PRICE_ID: str = ""
+    STRIPE_FLEET_STARTER_PRICE_ID: str = ""
+    STRIPE_FLEET_PROFESSIONAL_PRICE_ID: str = ""
+    STRIPE_FLEET_ENTERPRISE_PRICE_ID: str = ""
     STRIPE_PROFESSIONAL_PRICE_ID: str = ""
     STRIPE_ENTERPRISE_PRICE_ID: str = ""
 
@@ -124,9 +127,12 @@ class Settings(BaseSettings):
             "widget_only": self.STRIPE_WIDGET_ONLY_PRICE_ID or self.STRIPE_AI_CHAT_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
             "ai_telephony": self.STRIPE_AI_TELEPHONY_PRICE_ID,
             "widget_voice": self.STRIPE_WIDGET_VOICE_PRICE_ID or self.STRIPE_STANDARD_PRICE_ID,
-            "enterprise": self.STRIPE_ENTERPRISE_PRICE_ID or self.STRIPE_DRIVER_PRO_PRICE_ID,
+            "driver_pro": self.STRIPE_DRIVER_PRO_PRICE_ID or self.STRIPE_ENTERPRISE_PRICE_ID,
+            "fleet_starter": self.STRIPE_FLEET_STARTER_PRICE_ID,
+            "fleet_professional": self.STRIPE_FLEET_PROFESSIONAL_PRICE_ID or self.STRIPE_PROFESSIONAL_PRICE_ID,
+            "fleet_enterprise": self.STRIPE_FLEET_ENTERPRISE_PRICE_ID,
             "ai_chat": self.STRIPE_WIDGET_ONLY_PRICE_ID or self.STRIPE_AI_CHAT_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
-            "driver_pro": self.STRIPE_ENTERPRISE_PRICE_ID or self.STRIPE_DRIVER_PRO_PRICE_ID,
+            "enterprise": self.STRIPE_FLEET_ENTERPRISE_PRICE_ID or self.STRIPE_ENTERPRISE_PRICE_ID,
             "starter": self.STRIPE_WIDGET_ONLY_PRICE_ID or self.STRIPE_AI_CHAT_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
         }.get(plan_id, "")
 

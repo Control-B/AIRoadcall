@@ -88,14 +88,14 @@ export default function FleetPage() {
           </FadeIn>
           <FadeIn delay={0.2}>
             <p className="text-lg md:text-xl text-roadcall-silver/85 max-w-2xl mx-auto mb-12 leading-relaxed">
-              Every driver breakdown automated — from AI intake to mechanic dispatch. Without forcing your fleet&apos;s sensitive data into an outside CRM.
+              A roadside operational intelligence network for drivers, dispatchers, and fleets that need faster intake, smarter provider matching, live ETAs, and fewer hours lost on the shoulder.
             </p>
           </FadeIn>
           <FadeIn delay={0.3}>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-              <Link href="/fleet/onboarding">
+              <Link href="/fleet/pricing">
                 <Button size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-8 shadow-xl shadow-blue-600/20">
-                  Book Fleet Demo <ArrowRight className="h-5 w-5 ml-2" />
+                  View Memberships <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </Link>
               <a href={telHref(HELP_PHONE)}>
@@ -104,7 +104,7 @@ export default function FleetPage() {
                 </Button>
               </a>
             </div>
-            <p className="text-sm text-roadcall-muted">No commitment · Enterprise pricing available · White-glove onboarding</p>
+            <p className="text-sm text-roadcall-muted">Driver Pro from $9.99 · Fleet plans from $49 · Stripe-backed premium access</p>
           </FadeIn>
         </div>
       </section>
@@ -112,7 +112,7 @@ export default function FleetPage() {
       {/* Social proof strip */}
       <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/20 py-5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-3 text-sm text-roadcall-muted">
-          {["Your data stays controlled", "Private tenant isolation", "35,000+ mechanics nationwide", "Fleet system integrations"].map((t) => (
+          {["AI dispatch priority", "Private tenant isolation", "35,000+ mechanics nationwide", "Fleet operations intelligence"].map((t) => (
             <div key={t} className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-blue-400" /><span>{t}</span>
             </div>
@@ -222,12 +222,12 @@ export default function FleetPage() {
       <section className="py-24 border-t border-roadcall-cyan/10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <FadeIn>
-            <h2 className="text-4xl font-bold mb-4">Ready to automate your roadside support?</h2>
-            <p className="text-roadcall-muted text-lg mb-8">Let&apos;s walk through a live demo built around your fleet.</p>
+            <h2 className="text-4xl font-bold mb-4">Never operate roadside without intelligence.</h2>
+            <p className="text-roadcall-muted text-lg mb-8">Start Driver Pro or Fleet Operations and turn breakdowns into tracked, AI-assisted dispatch workflows.</p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/fleet/onboarding">
+              <Link href="/fleet/pricing">
                 <Button size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 rounded-full px-8">
-                  Book Fleet Demo <ArrowRight className="h-5 w-5 ml-2" />
+                  Compare Memberships <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </Link>
               <Link href="/fleet/features">

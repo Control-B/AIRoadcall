@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
+import { FLEET_MEMBERSHIP_PLANS } from "@/lib/fleet-memberships";
 import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
 import AgentsLink from "./AgentsLink";
 
@@ -193,27 +194,49 @@ function ShopSubscribe() {
 
 function FleetSubscribe() {
   return (
-    <div className="grid gap-6 md:grid-cols-2">
-      <div className="rounded-[1.75rem] border border-roadcall-orange/40 bg-gradient-to-b from-roadcall-orange/10 to-transparent p-7">
-        <div className="flex items-center gap-2 text-roadcall-orange">
+    <div>
+      <div className="mb-6 rounded-[1.75rem] border border-blue-400/20 bg-blue-400/10 p-6">
+        <div className="flex items-center gap-2 text-blue-200">
           <Truck className="h-5 w-5" />
-          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Fleet subscriptions paused</span>
+          <span className="text-sm font-semibold uppercase tracking-[0.2em]">Driver Pro + Fleet Operations</span>
         </div>
-        <h2 className="mt-3 text-2xl font-bold text-white">Fleet plans are on hold for now.</h2>
-        <p className="mt-3 text-roadcall-muted">
-          Roadcall is focusing on AI roadside support and mechanic shop growth before opening fleet subscriptions more broadly.
+        <h2 className="mt-3 text-2xl font-bold text-white">AI roadside intelligence memberships are live.</h2>
+        <p className="mt-3 max-w-3xl text-roadcall-muted">
+          Roadcall is the premium roadside operations layer for drivers and fleets: AI intake, emergency workflows, live dispatch tracking, route intelligence, and fleet visibility behind authenticated paid access.
         </p>
-        <div className="mt-5 rounded-xl border border-white/10 bg-black/25 p-4 text-sm leading-6 text-slate-300">
-          Existing fleet product pages, demos, and internal workflows remain available for validation, but public fleet pricing is not being offered yet.
-        </div>
-        <Link href="/fleet/onboarding" className="mt-6 block">
-          <Button variant="outline" className="w-full border-roadcall-orange/40 text-orange-100 hover:bg-roadcall-orange/10 font-bold rounded-xl py-5">
-            <ArrowRight className="h-4 w-4 mr-2" /> Request fleet waitlist review
-          </Button>
-        </Link>
+      </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {FLEET_MEMBERSHIP_PLANS.map((plan) => (
+          <div
+            key={plan.id}
+            className={`flex flex-col rounded-[1.75rem] border p-6 ${
+              plan.highlighted
+                ? "border-roadcall-cyan/60 bg-roadcall-cyan/10 shadow-2xl shadow-blue-500/10"
+                : "border-white/10 bg-white/[0.03]"
+            }`}
+          >
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-200">{plan.positioning}</p>
+            <h3 className="mt-3 text-xl font-black text-white">{plan.name}</h3>
+            <p className="mt-2 text-sm text-roadcall-muted">{plan.range}</p>
+            <p className="mt-5 text-3xl font-black text-white">{plan.price}<span className="text-sm font-semibold text-roadcall-muted">{plan.period}</span></p>
+            <ul className="mt-5 flex-1 space-y-2 text-sm text-slate-300">
+              {plan.features.slice(0, 6).map((feature) => (
+                <li key={feature} className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" />
+                  <span>{feature}</span>
+                </li>
+              ))}
+            </ul>
+            <Link href={plan.href} className="mt-6 block">
+              <Button className={`w-full rounded-xl bg-gradient-to-r ${plan.accent} py-5 font-bold text-slate-950 hover:brightness-110`}>
+                <ArrowRight className="h-4 w-4 mr-2" /> {plan.cta}
+              </Button>
+            </Link>
+          </div>
+        ))}
       </div>
 
-      <div className="rounded-[1.75rem] border border-white/10 bg-black/30 p-7">
+      <div className="mt-6 rounded-[1.75rem] border border-white/10 bg-black/30 p-7">
         <div className="flex items-center gap-2 text-roadcall-cyan">
           <Bot className="h-5 w-5" />
           <span className="text-sm font-semibold uppercase tracking-[0.2em]">Fleet AI Demo</span>

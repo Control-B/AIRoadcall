@@ -363,6 +363,8 @@ class ProvisioningService:
         tenant = await db.get(Tenant, tenant_id)
         if not tenant or not tenant.is_active:
             return False, tenant
+        if tenant.subscription_status != "active":
+            return False, tenant
         result = await db.execute(select(FeatureFlag).where(FeatureFlag.tenant_id == tenant_id, FeatureFlag.feature == feature))
         flag = result.scalar_one_or_none()
         if flag is not None:

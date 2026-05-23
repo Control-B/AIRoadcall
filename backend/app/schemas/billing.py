@@ -6,7 +6,7 @@ from typing import Any
 from pydantic import BaseModel, EmailStr, Field
 
 
-PLAN_ID_PATTERN = "^(widget_only|ai_telephony|widget_voice|enterprise|standard|professional|advanced|ai_chat|driver_pro|starter|growth|premium|pro)$"
+PLAN_ID_PATTERN = "^(widget_only|ai_telephony|widget_voice|driver_pro|fleet_starter|fleet_professional|fleet_enterprise|enterprise|standard|professional|advanced|ai_chat|starter|growth|premium|pro)$"
 
 
 class BillingPlanView(BaseModel):

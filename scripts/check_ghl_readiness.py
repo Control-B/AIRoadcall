@@ -86,7 +86,10 @@ def main() -> int:
         Check("STRIPE_WIDGET_ONLY_PRICE_ID", _has(env.get("STRIPE_WIDGET_ONLY_PRICE_ID")) or _has(env.get("STRIPE_AI_CHAT_PRICE_ID")), False, "maps to Widget Only ($99.99) simple plan"),
         Check("STRIPE_AI_TELEPHONY_PRICE_ID", _has(env.get("STRIPE_AI_TELEPHONY_PRICE_ID")), False, "maps to AI Telephony Only ($99.99) simple plan"),
         Check("STRIPE_WIDGET_VOICE_PRICE_ID", _has(env.get("STRIPE_WIDGET_VOICE_PRICE_ID")), False, "maps to Widget + AI Telephony ($149.99) simple plan"),
-        Check("STRIPE_ENTERPRISE_PRICE_ID", _has(env.get("STRIPE_ENTERPRISE_PRICE_ID")) or _has(env.get("STRIPE_DRIVER_PRO_PRICE_ID")), False, "maps to Enterprise trucking map access ($19.99) simple plan"),
+        Check("STRIPE_DRIVER_PRO_PRICE_ID", _has(env.get("STRIPE_DRIVER_PRO_PRICE_ID")) or _has(env.get("STRIPE_ENTERPRISE_PRICE_ID")), False, "maps to Driver Pro ($9.99) membership"),
+        Check("STRIPE_FLEET_STARTER_PRICE_ID", _has(env.get("STRIPE_FLEET_STARTER_PRICE_ID")), False, "maps to Fleet Starter ($49) membership"),
+        Check("STRIPE_FLEET_PROFESSIONAL_PRICE_ID", _has(env.get("STRIPE_FLEET_PROFESSIONAL_PRICE_ID")), False, "maps to Fleet Professional ($199) membership"),
+        Check("STRIPE_FLEET_ENTERPRISE_PRICE_ID", _has(env.get("STRIPE_FLEET_ENTERPRISE_PRICE_ID")), False, "maps to Fleet Enterprise ($299+) membership"),
     ]
 
     retell_checks = [
@@ -138,7 +141,7 @@ def main() -> int:
 
     print(f"\n{CYAN}Summary:{RESET} {GREEN}{totals[0]} pass{RESET}, {YELLOW}{totals[1]} warn{RESET}, {RED}{totals[2]} fail{RESET}")
     print("\nRoadcall plan alignment expected by backend:")
-    print("  Simple Stripe plans: Widget Only $99.99 (widget_only), AI Telephony Only $99.99 (ai_telephony), Widget + AI Telephony $149.99 (widget_voice), Enterprise trucking map access $19.99 (enterprise)")
+    print("  Stripe Roadcall memberships: Widget Only $99.99 (widget_only), AI Telephony Only $99.99 (ai_telephony), Widget + AI Telephony $149.99 (widget_voice), Driver Pro $9.99 (driver_pro), Fleet Starter $49 (fleet_starter), Fleet Professional $199 (fleet_professional), Fleet Enterprise $299+ (fleet_enterprise)")
     print("  GHL SaaS plans: Standard $297 + $149 setup (standard), Professional $497 + $199 setup (professional), Advanced $997 + $299 setup (advanced)")
     print("  Automatic GHL sub-account provisioning is expected only for Standard, Professional, and Advanced.")
 
