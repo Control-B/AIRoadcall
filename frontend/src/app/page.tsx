@@ -4,6 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useRef, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import roadcallImage1 from "@/assets/images/RoadcallImage1.png";
+import roadcallImage2 from "@/assets/images/RoadcallImage2.png";
+import roadcallImage6 from "@/assets/images/RoadcallImage6.png";
+import roadcallImage7 from "@/assets/images/RoadcallImage7.png";
 import {
   Phone,
   Wrench,
@@ -56,8 +60,8 @@ const productLanes = [
     label: "Lane 1",
     title: "AI Roadside Support",
     description: "Driver calls from the side of the road. The agent captures location, issue type, vehicle details, and routes help.",
-    image: "https://upload.wikimedia.org/wikipedia/commons/a/af/Freightliner_Cascadia_-_Love%E2%80%99s_Travel_Centers.jpg",
-    imageAlt: "Freightliner Cascadia semi truck at a truck stop",
+    image: roadcallImage1,
+    imageAlt: "Roadside mechanic repairing a semi truck at sunset",
     bullets: ["GPS location capture", "Issue and vehicle intake", "Help routed fast"],
     href: "/driver",
     cta: "See driver support",
@@ -67,8 +71,8 @@ const productLanes = [
     label: "Lane 2",
     title: "AI Telephony for Mechanics",
     description: "Mechanics attach a phone number, configure their AI service advisor, book jobs, and escalate urgent calls.",
-    image: "https://upload.wikimedia.org/wikipedia/commons/a/ac/US_Navy_030618-N-9433H-002_Construction_Mechanic_2nd_Class_Craig_Nelson_assigned_to_Naval_Mobile_Construction_Battalion_Two_Six_%28NMCB-26%29%2C_is_working_on_a_semi-tractor_used_to_haul_heavy_equipment.jpg",
-    imageAlt: "Mechanic working on a semi-tractor used to haul heavy equipment",
+    image: roadcallImage2,
+    imageAlt: "Diesel mechanic using diagnostics on a semi truck in a service bay",
     bullets: ["24/7 AI answering", "Job booking and notes", "Urgent call escalation"],
     href: "/ai-telephony",
     cta: "Explore AI phone",
@@ -78,8 +82,8 @@ const productLanes = [
     label: "Lane 3",
     title: "AI Fleet Roadside",
     description: "Trucking companies connect truck, trailer, driver, and vendor data so AI can handle roadside calls like a dispatch department.",
-    image: "https://upload.wikimedia.org/wikipedia/commons/8/8f/Trucks_parked_in_USA.jpg",
-    imageAlt: "American semi trucks parked in a fleet lot",
+    image: roadcallImage6,
+    imageAlt: "Fleet maintenance shop with semi trucks and service dashboards",
     bullets: ["Driver and asset context", "Vendor routing logic", "Dispatch visibility"],
     href: "/fleet",
     cta: "Explore fleet AI",
@@ -89,8 +93,8 @@ const productLanes = [
     label: "Lane 4",
     title: "General Search Directory",
     description: "Search Truck Service public directory for truck repair, towing, and national vendors.",
-    image: "https://upload.wikimedia.org/wikipedia/commons/0/06/2019_International_LT_625_trailer_truck%2C_front_left.jpg",
-    imageAlt: "International LT semi truck and trailer",
+    image: roadcallImage7,
+    imageAlt: "Semi truck driving on an open road at sunset",
     bullets: ["35,000+ providers", "Truck repair and towing", "National vendor lookup"],
     href: "/search",
     cta: "Search providers",
@@ -570,7 +574,7 @@ export default function HomePage() {
       {/* ── Final CTA — Roadcall. We Keep You Moving. ───────────────── */}
       <section className="relative py-32 md:py-40 border-t border-roadcall-cyan/10 overflow-hidden">
         <Image
-          src="https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=1920&q=80"
+          src={roadcallImage7}
           alt="Truck on highway at sunset"
           fill
           className="object-cover object-center opacity-20"
