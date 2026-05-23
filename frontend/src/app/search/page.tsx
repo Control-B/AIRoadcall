@@ -2,7 +2,39 @@ export const dynamic = "force-dynamic";
 "use client";
 
 import { useEffect, useState, useCallback, Suspense, useMemo, useRef, type FormEvent, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import {
+  Search,
+  MapPin,
+  Filter,
+  Phone,
+  Star,
+  CheckCircle2,
+  Clock,
+  Zap,
+  Truck,
+  Wrench,
+  ChevronDown,
+  X,
+  ArrowRight,
+  AlertCircle,
+  Shield,
+  Map as MapIcon,
+  LayoutGrid,
+  Maximize2,
+  Minimize2,
+  PanelRightClose,
+  PanelRightOpen,
+  RectangleHorizontal,
+  Rows3,
+} from "lucide-react";
+import { PageLayout } from "@/components/page-layout";
+import { HELP_PHONE, telHref } from "@/lib/phone";
+import { NoCopySurface } from "@/components/privacy/no-copy-surface";
+import { getApiBase } from "@/lib/api-client";
+import { useMapboxToken } from "@/lib/mapbox-token";
+// ...existing code...
 // Intake modal and form
 function IntakeModal({ onClose }: { onClose: () => void }) {
   const [step, setStep] = useState(0);
@@ -189,39 +221,7 @@ function IntakeModal({ onClose }: { onClose: () => void }) {
     </div>
   );
 }
-  const [intakeOpen, setIntakeOpen] = useState(false);
-import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import {
-  Search,
-  MapPin,
-  Filter,
-  Phone,
-  Star,
-  CheckCircle2,
-  Clock,
-  Zap,
-  Truck,
-  Wrench,
-  ChevronDown,
-  X,
-  ArrowRight,
-  AlertCircle,
-  Shield,
-  Map as MapIcon,
-  LayoutGrid,
-  Maximize2,
-  Minimize2,
-  PanelRightClose,
-  PanelRightOpen,
-  RectangleHorizontal,
-  Rows3,
-} from "lucide-react";
-import { PageLayout } from "@/components/page-layout";
-import { HELP_PHONE, telHref } from "@/lib/phone";
-import { NoCopySurface } from "@/components/privacy/no-copy-surface";
-import { getApiBase } from "@/lib/api-client";
-import { useMapboxToken } from "@/lib/mapbox-token";
+const [intakeOpen, setIntakeOpen] = useState(false);
 
 const API_URL = getApiBase();
 
