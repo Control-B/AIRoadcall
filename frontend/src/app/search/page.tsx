@@ -1,6 +1,194 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense, useMemo, useRef, type ReactNode } from "react";
+import { useEffect, useState, useCallback, Suspense, useMemo, useRef, type FormEvent, type ReactNode } from "react";
+import { Loader2 } from "lucide-react";
+// Intake modal and form
+function IntakeModal({ onClose }: { onClose: () => void }) {
+  const [step, setStep] = useState(0);
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    company: "",
+    city: "",
+    state: "",
+    vehicle: "",
+    problem: "",
+    urgency: "normal",
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [ok, setOk] = useState("");
+  const [triage, setTriage] = useState<{ questions: string[]; answers: string[]; label?: string } | null>(null);
+  const [triageBusy, setTriageBusy] = useState(false);
+
+  function update<K extends keyof typeof form>(k: K, v: (typeof form)[K]) { setForm((f) => ({ ...f, [k]: v })); }
+
+  // Step 2 -> Step 3: Fetch triage questions
+  async function handleStep2Next() {
+    setTriageBusy(true); setError("");
+    try {
+      // TODO: Replace with real tenant_id if available
+      const tenant_id = "public-demo-tenant";
+      const res = await fetch("/api/shop-ai/intake-guide", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer demo-public-token` },
+        body: JSON.stringify({
+          tenant_id,
+          complaint: form.problem,
+          vehicle_type: form.vehicle,
+          caller_type: "shop",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Could not get triage questions");
+      setTriage({ questions: data.questions, answers: Array(data.questions.length).fill(""), label: data.label });
+      setStep(3);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error");
+    } finally {
+      setTriageBusy(false);
+    }
+  }
+
+  // Final submit: intake + triage
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    setBusy(true); setError(""); setOk("");
+    try {
+      // TODO: Replace with real tenant_id if available
+      const tenant_id = "public-demo-tenant";
+      const triageAnswers = triage?.questions?.map((q, i) => ({ question: q, answer: triage.answers[i] })) || [];
+      const res = await fetch("/api/shop-ai/save-lead", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer demo-public-token` },
+        body: JSON.stringify({
+          tenant_id,
+          caller_name: form.name,
+          caller_phone: form.phone,
+          service_type: form.problem,
+          vehicle: form.vehicle,
+          intent: "new_lead",
+          urgency: form.urgency,
+          notes: form.problem,
+          triage: {
+            symptom_category: triage?.label || "",
+            answers: triageAnswers,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Could not submit");
+      setOk("Thank you! Our team will review your request and connect you with the best provider.");
+      setStep(99);
+    } catch (e) { setError(e instanceof Error ? e.message : "Error"); }
+    finally { setBusy(false); }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+      <div className="w-full max-w-lg rounded-3xl border border-roadcall-cyan/10 bg-roadcall-ink p-6 shadow-2xl relative">
+        <button onClick={onClose} className="absolute right-4 top-4 rounded-full p-1 text-roadcall-muted hover:bg-roadcall-panel/60 hover:text-white"><X className="h-5 w-5" /></button>
+        <h2 className="text-xl font-black mb-2 text-white">Request Truck Service</h2>
+        <p className="text-sm text-roadcall-muted mb-4">Fill out this form and Roadcall will match you with the best provider for your needs.</p>
+        {step === 0 && (
+          <form onSubmit={e => { e.preventDefault(); setStep(1); }}>
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-roadcall-silver">Your Name*
+                <input required value={form.name} onChange={e => update("name", e.target.value)} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1" />
+              </label>
+              <label className="block text-sm font-semibold text-roadcall-silver">Phone*
+                <input required value={form.phone} onChange={e => update("phone", e.target.value)} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1" />
+              </label>
+              <label className="block text-sm font-semibold text-roadcall-silver">Email
+                <input value={form.email} onChange={e => update("email", e.target.value)} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1" />
+              </label>
+            </div>
+            <button type="button" onClick={() => setStep(1)} className="mt-6 w-full rounded-xl bg-roadcall-cyan px-4 py-3 font-bold text-slate-950">Next</button>
+          </form>
+        )}
+        {step === 1 && (
+          <form onSubmit={e => { e.preventDefault(); setStep(2); }}>
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-roadcall-silver">Company (optional)
+                <input value={form.company} onChange={e => update("company", e.target.value)} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1" />
+              </label>
+              <div className="grid gap-3 grid-cols-2">
+                <label className="block text-sm font-semibold text-roadcall-silver">City
+                  <input value={form.city} onChange={e => update("city", e.target.value)} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1" />
+                </label>
+                <label className="block text-sm font-semibold text-roadcall-silver">State
+                  <input value={form.state} maxLength={2} onChange={e => update("state", e.target.value.toUpperCase())} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1" />
+                </label>
+              </div>
+              <label className="block text-sm font-semibold text-roadcall-silver">Vehicle (year/make/model)
+                <input value={form.vehicle} onChange={e => update("vehicle", e.target.value)} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1" />
+              </label>
+            </div>
+            <div className="mt-6 flex gap-2">
+              <button type="button" onClick={() => setStep(0)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-bold text-roadcall-silver hover:text-white">Back</button>
+              <button type="button" onClick={() => setStep(2)} className="flex-1 rounded-xl bg-roadcall-cyan px-4 py-3 font-bold text-slate-950">Next</button>
+            </div>
+          </form>
+        )}
+        {step === 2 && (
+          <form onSubmit={e => { e.preventDefault(); handleStep2Next(); }}>
+            <div className="space-y-3">
+              <label className="block text-sm font-semibold text-roadcall-silver">Describe the Problem*
+                <textarea required value={form.problem} onChange={e => update("problem", e.target.value)} rows={3} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1" />
+              </label>
+              <label className="block text-sm font-semibold text-roadcall-silver">Urgency
+                <select value={form.urgency} onChange={e => update("urgency", e.target.value)} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1">
+                  <option value="normal">Normal</option>
+                  <option value="high">High</option>
+                  <option value="emergency">Emergency</option>
+                </select>
+              </label>
+            </div>
+            <div className="mt-6 flex gap-2">
+              <button type="button" onClick={() => setStep(1)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-bold text-roadcall-silver hover:text-white">Back</button>
+              <button type="submit" disabled={triageBusy} className="flex-1 rounded-xl bg-roadcall-cyan px-4 py-3 font-bold text-slate-950 disabled:opacity-60">{triageBusy ? <Loader2 className="h-4 w-4 animate-spin inline" /> : "Next: AI Triage"}</button>
+            </div>
+            {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+            {ok && <p className="mt-3 text-sm text-emerald-300">{ok}</p>}
+          </form>
+        )}
+        {step === 3 && triage && (
+          <form onSubmit={submit}>
+            <div className="space-y-3">
+              <h3 className="font-bold text-lg mb-2 text-white">AI Triage Questions</h3>
+              {triage.questions.map((q, i) => (
+                <label key={i} className="block text-sm font-semibold text-roadcall-silver">
+                  {q}
+                  <input
+                    required
+                    value={triage.answers[i]}
+                    onChange={e => setTriage(t => t && { ...t, answers: t.answers.map((a, j) => j === i ? e.target.value : a) })}
+                    className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white mt-1"
+                  />
+                </label>
+              ))}
+            </div>
+            <div className="mt-6 flex gap-2">
+              <button type="button" onClick={() => setStep(2)} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-bold text-roadcall-silver hover:text-white">Back</button>
+              <button type="submit" disabled={busy} className="flex-1 rounded-xl bg-roadcall-cyan px-4 py-3 font-bold text-slate-950 disabled:opacity-60">{busy ? <Loader2 className="h-4 w-4 animate-spin inline" /> : "Submit Request"}</button>
+            </div>
+            {error && <p className="mt-3 text-sm text-red-300">{error}</p>}
+            {ok && <p className="mt-3 text-sm text-emerald-300">{ok}</p>}
+          </form>
+        )}
+        {step === 99 && (
+          <div className="py-10 text-center">
+            <h3 className="text-xl font-bold text-emerald-300 mb-3">Request submitted!</h3>
+            <p className="text-roadcall-silver mb-6">Our team will review your request and connect you with the best provider. For urgent help, call our AI dispatcher.</p>
+            <button onClick={onClose} className="rounded-xl bg-roadcall-cyan px-6 py-3 font-bold text-slate-950">Close</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+  const [intakeOpen, setIntakeOpen] = useState(false);
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -61,10 +249,22 @@ const SERVICE_TYPES = [
 type Mechanic = {
   id: string;
   company_name: string;
+  business_category?: string | null;
+  address?: string | null;
   city: string | null;
   state: string | null;
+  zip_code?: string | null;
   lat?: number | null;
   lng?: number | null;
+  phone?: string | null;
+  website?: string | null;
+  source_url?: string | null;
+  google_maps_url?: string | null;
+  last_verified_at?: string | null;
+  verification_status?: "unverified" | "claimed" | "verified" | "needs_review" | null;
+  claim_status?: string | null;
+  contact_protected?: boolean;
+  export_status?: string | null;
   rating: number | null;
   review_count: number | null;
   accepts_mobile_roadside: boolean;
@@ -90,6 +290,62 @@ type MapBounds = {
 };
 
 type MapWorkspaceMode = "split" | "wide" | "fullscreen" | "minimized";
+type ProviderViewMode = "map" | "cards" | "list";
+
+const VIEW_STORAGE_KEY = "roadcall-provider-view";
+
+type QuickFilter = {
+  label: string;
+  kind?: "mobile" | "emergency" | "verified";
+  service?: string;
+  query?: string;
+};
+
+const QUICK_FILTERS: QuickFilter[] = [
+  { label: "Mobile", kind: "mobile" },
+  { label: "24/7", kind: "emergency" },
+  { label: "Tire repair", service: "tire_repair" },
+  { label: "Trailer repair", service: "trailer_repair" },
+  { label: "Engine trouble", service: "engine_diesel" },
+  { label: "Towing", service: "towing" },
+  { label: "Trucking company", query: "trucking company" },
+  { label: "Verified provider", kind: "verified" },
+];
+
+function safeExternalUrl(value?: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value.includes("://") ? value : `https://${value}`);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+function formatServiceLabel(value: string) {
+  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function providerTypeColor(mechanic: Mechanic) {
+  const category = (mechanic.business_category || "").toLowerCase();
+  const services = (mechanic.service_types || []).join(" ").toLowerCase();
+  if (category.includes("towing") || services.includes("tow")) return "#ef4444";
+  if (category.includes("tire") || services.includes("tire")) return "#f59e0b";
+  if (category.includes("freight") || category.includes("trucking")) return "#64748b";
+  if (category.includes("truck repair") || services.includes("engine")) return "#22c55e";
+  if (mechanic.accepts_mobile_roadside) return "#0ea5e9";
+  return "#06b6d4";
+}
+
+function verificationLabel(status?: Mechanic["verification_status"]) {
+  switch (status) {
+    case "verified": return "Verified provider";
+    case "claimed": return "Claimed listing";
+    case "needs_review": return "Needs review";
+    default: return "Unverified";
+  }
+}
 
 function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: number; lng: number } {
   return typeof mechanic.lat === "number" && Number.isFinite(mechanic.lat) && typeof mechanic.lng === "number" && Number.isFinite(mechanic.lng);
@@ -101,6 +357,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
   const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
   const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
+  const [selectedProvider, setSelectedProvider] = useState<Mechanic | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || !configured || points.length === 0) return;
@@ -135,36 +392,99 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       map.on("moveend", updateVisibleBounds);
       map.once("idle", updateVisibleBounds);
 
-      const bounds = new mapboxgl.LngLatBounds();
-      points.forEach((mechanic, index) => {
-        bounds.extend([mechanic.lng, mechanic.lat]);
-        const popupNode = document.createElement("div");
-        popupNode.style.color = "#0f172a";
-        popupNode.style.fontSize = "14px";
-        popupNode.style.lineHeight = "1.35";
-        popupNode.style.maxWidth = "260px";
-        const title = document.createElement("strong");
-        title.textContent = mechanic.company_name;
-        title.style.display = "block";
-        title.style.color = "#0f172a";
-        title.style.fontSize = "15px";
-        title.style.fontWeight = "800";
-        const location = document.createElement("div");
-        location.textContent = [mechanic.city, mechanic.state].filter(Boolean).join(", ") || "Provider location";
-        location.style.marginTop = "4px";
-        location.style.color = "#334155";
-        location.style.fontWeight = "600";
-        popupNode.append(title, location);
-        const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 18, maxWidth: "280px" }).setDOMContent(popupNode);
-        const marker = new mapboxgl.Marker({ color: index === 0 ? "#f97316" : "#2563eb" })
-          .setLngLat([mechanic.lng, mechanic.lat])
-          .addTo(map);
-        marker.getElement().addEventListener("mouseenter", () => popup.setLngLat([mechanic.lng, mechanic.lat]).addTo(map));
-        marker.getElement().addEventListener("mouseleave", () => popup.remove());
+      map.on("load", () => {
+        const bounds = new mapboxgl.LngLatBounds();
+        const geojson = {
+          type: "FeatureCollection",
+          features: points.map((mechanic) => {
+            bounds.extend([mechanic.lng, mechanic.lat]);
+            return {
+              type: "Feature",
+              properties: {
+                mechanic_id: mechanic.id,
+                company_name: mechanic.company_name,
+                category: mechanic.business_category || "Roadside Provider",
+                color: providerTypeColor(mechanic),
+              },
+              geometry: { type: "Point", coordinates: [mechanic.lng, mechanic.lat] },
+            };
+          }),
+        };
+
+        map.addSource("providers", {
+          type: "geojson",
+          data: geojson,
+          cluster: true,
+          clusterMaxZoom: 11,
+          clusterRadius: 44,
+        });
+        map.addLayer({
+          id: "provider-clusters",
+          type: "circle",
+          source: "providers",
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": ["step", ["get", "point_count"], "#0891b2", 20, "#f97316", 75, "#ef4444"],
+            "circle-radius": ["step", ["get", "point_count"], 18, 20, 24, 75, 32],
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 2,
+          },
+        });
+        map.addLayer({
+          id: "provider-cluster-count",
+          type: "symbol",
+          source: "providers",
+          filter: ["has", "point_count"],
+          layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 12 },
+          paint: { "text-color": "#ffffff" },
+        });
+        map.addLayer({
+          id: "provider-pins",
+          type: "circle",
+          source: "providers",
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": ["get", "color"],
+            "circle-radius": 8,
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 2,
+          },
+        });
+        map.addLayer({
+          id: "provider-pin-labels",
+          type: "symbol",
+          source: "providers",
+          filter: ["!", ["has", "point_count"]],
+          layout: {
+            "text-field": ["get", "company_name"],
+            "text-size": 11,
+            "text-offset": [0, 1.35],
+            "text-anchor": "top",
+          },
+          paint: { "text-color": "#0f172a", "text-halo-color": "#ffffff", "text-halo-width": 1.2 },
+        });
+        map.on("click", "provider-clusters", (event: any) => {
+          const features = map.queryRenderedFeatures(event.point, { layers: ["provider-clusters"] });
+          const clusterId = features[0]?.properties?.cluster_id;
+          const source = map.getSource("providers");
+          source.getClusterExpansionZoom(clusterId, (err: Error | null, zoom: number) => {
+            if (err) return;
+            map.easeTo({ center: (features[0].geometry as any).coordinates, zoom });
+          });
+        });
+        map.on("click", "provider-pins", (event: any) => {
+          const mechanicId = event.features?.[0]?.properties?.mechanic_id;
+          const provider = points.find((mechanic) => mechanic.id === mechanicId);
+          if (provider) setSelectedProvider(provider);
+        });
+        map.on("mouseenter", "provider-clusters", () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", "provider-clusters", () => { map.getCanvas().style.cursor = ""; });
+        map.on("mouseenter", "provider-pins", () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", "provider-pins", () => { map.getCanvas().style.cursor = ""; });
+        if (points.length > 1) {
+          map.fitBounds(bounds, { padding: 64, maxZoom: 10, duration: 0 });
+        }
       });
-      if (points.length > 1) {
-        map.fitBounds(bounds, { padding: 64, maxZoom: 10, duration: 0 });
-      }
     });
 
     return () => {
@@ -205,6 +525,22 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         </button>
       </div>
       {workspaceControls ? <div className="absolute right-4 top-4 z-10 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
+      {selectedProvider ? (
+        <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
+          <button type="button" onClick={() => setSelectedProvider(null)} className="absolute right-3 top-3 rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"><X className="h-4 w-4" /></button>
+          <p className="pr-8 text-base font-black leading-tight">{selectedProvider.company_name}</p>
+          <p className="mt-1 text-xs font-bold text-cyan-700">{selectedProvider.business_category || "Roadside Provider"}</p>
+          <p className="mt-3 text-sm text-slate-700">{selectedProvider.address || [selectedProvider.city, selectedProvider.state].filter(Boolean).join(", ") || "Address unavailable"}</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {(selectedProvider.service_types || []).slice(0, 4).map((tag) => <span key={tag} className="rounded-full bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700">{formatServiceLabel(tag)}</span>)}
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {selectedProvider.phone ? <a href={telHref(selectedProvider.phone)} className="rounded-xl bg-slate-950 px-3 py-2 text-center text-xs font-black text-white">Call Provider</a> : <span className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-bold text-slate-500">Phone protected</span>}
+            {safeExternalUrl(selectedProvider.website) ? <a href={safeExternalUrl(selectedProvider.website)!} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-black text-slate-900">Visit Website</a> : <span className="rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-bold text-slate-500">Website unavailable</span>}
+          </div>
+          {selectedProvider.contact_protected ? <p className="mt-3 rounded-xl bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800">Contact details are protected. Use Roadcall dispatch to connect.</p> : null}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -227,12 +563,14 @@ function StarRating({ rating, count }: { rating: number | null; count: number | 
   );
 }
 
-function MechanicCard({ m }: { m: Mechanic }) {
+function MechanicCard({ m, onClaim, onViewMap }: { m: Mechanic; onClaim: (mechanic: Mechanic) => void; onViewMap: (mechanic: Mechanic) => void }) {
   const topReason = m.reasons?.[0];
   const trustLabel = m.trust_level ? m.trust_level.replace(/_/g, " ") : null;
+  const websiteUrl = safeExternalUrl(m.website);
+  const status = m.verification_status || "unverified";
 
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 backdrop-blur-sm hover:border-roadcall-cyan/30 hover:bg-roadcall-panel/60 transition-all duration-200 p-5">
+    <div className="group relative overflow-hidden rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 backdrop-blur-sm transition-all duration-200 p-5 hover:-translate-y-1 hover:border-roadcall-cyan/35 hover:bg-roadcall-panel/60 hover:shadow-2xl hover:shadow-roadcall-cyan/10">
       <div className="absolute inset-0 bg-gradient-to-br from-roadcall-cyan/[0.04] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       <div className="relative z-10">
         {/* Header */}
@@ -245,8 +583,17 @@ function MechanicCard({ m }: { m: Mechanic }) {
                 {[m.city, m.state].filter(Boolean).join(", ")}
               </p>
             )}
+            <p className="mt-2 inline-flex rounded-full border border-roadcall-cyan/15 bg-roadcall-cyan/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-roadcall-cyan">
+              {m.business_category || "Roadside Provider"}
+            </p>
           </div>
           <StarRating rating={m.rating} count={m.review_count} />
+        </div>
+
+        <div className="mb-3 space-y-1.5 text-xs text-roadcall-muted">
+          <p className="line-clamp-2">{m.address || "Full address unavailable"}</p>
+          <p>{m.phone ? m.phone : "Phone protected or unavailable"}</p>
+          <p>{websiteUrl ? <a href={websiteUrl} target="_blank" rel="noreferrer" className="text-roadcall-cyan hover:text-white">{websiteUrl.replace(/^https?:\/\//, "")}</a> : "Website unavailable"}</p>
         </div>
 
         {(m.distance_miles != null || m.estimated_response_minutes != null || trustLabel) && (
@@ -296,6 +643,12 @@ function MechanicCard({ m }: { m: Mechanic }) {
               {badge}
             </span>
           ))}
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-full border text-[10px] font-semibold ${status === "verified" ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-300" : status === "claimed" ? "border-cyan-400/25 bg-cyan-400/10 text-cyan-300" : status === "needs_review" ? "border-amber-400/25 bg-amber-400/10 text-amber-300" : "border-white/10 bg-white/[0.04] text-roadcall-silver"}`}>
+            {verificationLabel(status)}
+          </span>
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-roadcall-silver text-[10px] font-medium">
+            Export {m.export_status === "ready" ? "ready" : "needs enrichment"}
+          </span>
         </div>
 
         {topReason && (
@@ -304,9 +657,14 @@ function MechanicCard({ m }: { m: Mechanic }) {
           </p>
         )}
 
-        <div className="rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/50 px-3 py-2.5 text-center text-xs text-roadcall-muted">
-          Contact details are protected. Use Roadcall dispatch to connect.
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" onClick={() => onViewMap(m)} className="rounded-xl border border-roadcall-cyan/20 bg-roadcall-cyan/10 px-3 py-2 text-xs font-black text-roadcall-cyan transition group-hover:border-roadcall-cyan/40 group-hover:bg-roadcall-cyan/15">View on Map</button>
+          {websiteUrl ? <a href={websiteUrl} target="_blank" rel="noreferrer" className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-center text-xs font-black text-roadcall-silver transition hover:text-white">Visit Website</a> : <span className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-center text-xs font-bold text-roadcall-muted">Website unavailable</span>}
+          {m.phone ? <a href={telHref(m.phone)} className="rounded-xl border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-center text-xs font-black text-emerald-300 transition hover:bg-emerald-400/15">Call Provider</a> : <a href={telHref(HELP_PHONE)} className="rounded-xl border border-roadcall-orange/25 bg-roadcall-orange/10 px-3 py-2 text-center text-xs font-black text-roadcall-orange transition hover:bg-roadcall-orange/15">Roadcall Dispatch</a>}
+          <button type="button" onClick={() => onClaim(m)} className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-black text-roadcall-silver transition hover:border-white/20 hover:text-white">Claim / Update Listing</button>
         </div>
+        {m.contact_protected ? <p className="mt-3 rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/50 px-3 py-2.5 text-center text-xs text-roadcall-muted">Contact details are protected. Use Roadcall dispatch to connect.</p> : null}
+        {m.claim_status !== "claimed" ? <p className="mt-3 text-[11px] font-semibold text-roadcall-muted">Own or represent this company? Claim this listing to update details.</p> : null}
       </div>
     </div>
   );
@@ -324,7 +682,7 @@ function groupMechanicsByCity(mechanics: Mechanic[]) {
   return Array.from(groups.values()).sort((a, b) => b.providers.length - a.providers.length || a.label.localeCompare(b.label));
 }
 
-function CityMechanicGroup({ label, providers }: { label: string; providers: Mechanic[] }) {
+function CityMechanicGroup({ label, providers, onClaim, onViewMap }: { label: string; providers: Mechanic[]; onClaim: (mechanic: Mechanic) => void; onViewMap: (mechanic: Mechanic) => void }) {
   return (
     <section className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 p-3">
       <div className="mb-3 flex items-center justify-between gap-3 px-1">
@@ -334,9 +692,134 @@ function CityMechanicGroup({ label, providers }: { label: string; providers: Mec
         </span>
       </div>
       <div className="space-y-3">
-        {providers.map((mechanic) => <MechanicCard key={mechanic.id} m={mechanic} />)}
+        {providers.map((mechanic) => <MechanicCard key={mechanic.id} m={mechanic} onClaim={onClaim} onViewMap={onViewMap} />)}
       </div>
     </section>
+  );
+}
+
+function MechanicListView({ mechanics, onClaim, onViewMap }: { mechanics: Mechanic[]; onClaim: (mechanic: Mechanic) => void; onViewMap: (mechanic: Mechanic) => void }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/35">
+      <div className="overflow-x-auto">
+        <table className="min-w-full text-left text-sm">
+          <thead className="border-b border-roadcall-cyan/10 bg-roadcall-panel/60 text-xs uppercase tracking-wide text-roadcall-muted">
+            <tr>
+              <th className="px-4 py-3">Company</th>
+              <th className="px-4 py-3">City/state</th>
+              <th className="px-4 py-3">Category</th>
+              <th className="px-4 py-3">Phone</th>
+              <th className="px-4 py-3">Website</th>
+              <th className="px-4 py-3">Rating</th>
+              <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-roadcall-cyan/10">
+            {mechanics.map((mechanic) => {
+              const websiteUrl = safeExternalUrl(mechanic.website);
+              return (
+                <tr key={mechanic.id} className="text-roadcall-silver hover:bg-roadcall-cyan/[0.04]">
+                  <td className="px-4 py-3">
+                    <div className="font-bold text-white">{mechanic.company_name}</div>
+                    <div className="mt-1 max-w-xs truncate text-xs text-roadcall-muted">{mechanic.address || "Address unavailable"}</div>
+                  </td>
+                  <td className="px-4 py-3">{[mechanic.city, mechanic.state].filter(Boolean).join(", ") || "-"}</td>
+                  <td className="px-4 py-3">{mechanic.business_category || "Roadside Provider"}</td>
+                  <td className="px-4 py-3">{mechanic.phone || "Protected"}</td>
+                  <td className="px-4 py-3">{websiteUrl ? <a href={websiteUrl} target="_blank" rel="noreferrer" className="text-roadcall-cyan hover:text-white">Open</a> : "Unavailable"}</td>
+                  <td className="px-4 py-3">{mechanic.rating ? `${mechanic.rating.toFixed(1)} (${mechanic.review_count || 0})` : "-"}</td>
+                  <td className="px-4 py-3">{verificationLabel(mechanic.verification_status)}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => onViewMap(mechanic)} className="rounded-full border border-roadcall-cyan/20 px-3 py-1 text-xs font-bold text-roadcall-cyan hover:bg-roadcall-cyan/10">View on Map</button>
+                      {websiteUrl ? <a href={websiteUrl} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold text-roadcall-silver hover:text-white">Visit Website</a> : null}
+                      <button type="button" onClick={() => onClaim(mechanic)} className="rounded-full border border-white/10 px-3 py-1 text-xs font-bold text-roadcall-silver hover:text-white">Claim listing</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function ClaimUpdateModal({ mechanic, onClose, onSubmitted }: { mechanic: Mechanic; onClose: () => void; onSubmitted: (message: string) => void }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const form = new FormData(event.currentTarget);
+    const requestedChanges: Record<string, string> = {};
+    ["company_name", "address", "phone", "website", "city", "state", "google_maps_url"].forEach((field) => {
+      const value = String(form.get(field) || "").trim();
+      if (value) requestedChanges[field] = value;
+    });
+    setSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch(`${API_URL}/marketplace/${mechanic.id}/update-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role: form.get("role"),
+          full_name: form.get("full_name"),
+          work_email: form.get("work_email"),
+          phone_number: form.get("phone_number"),
+          company_name: form.get("submitted_company_name") || mechanic.company_name,
+          company_address: form.get("submitted_company_address"),
+          website: form.get("submitted_website"),
+          proof_message: form.get("proof_message"),
+          requested_changes: requestedChanges,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || "Could not submit update request");
+      onSubmitted(data.message || "Update request submitted for Roadcall admin review.");
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not submit update request");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4 backdrop-blur-sm">
+      <form onSubmit={submit} className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl border border-roadcall-cyan/15 bg-[#06101f] p-6 shadow-2xl shadow-black/60">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.2em] text-roadcall-cyan">Claim / Update Listing</p>
+            <h2 className="mt-2 text-2xl font-black text-white">{mechanic.company_name}</h2>
+            <p className="mt-2 text-sm text-roadcall-muted">Requests are ownership-checked and reviewed by Roadcall before public data changes.</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full border border-white/10 p-2 text-roadcall-muted hover:text-white"><X className="h-4 w-4" /></button>
+        </div>
+        {error ? <div className="mt-4 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm font-semibold text-red-200">{error}</div> : null}
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Role<select name="role" required className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white"><option value="owner">Owner</option><option value="manager">Manager</option><option value="dispatcher">Dispatcher</option><option value="authorized_company_rep">Authorized company rep</option></select></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Full name<input name="full_name" required className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Work email<input name="work_email" type="email" required className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Phone number<input name="phone_number" required className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Company name<input name="submitted_company_name" defaultValue={mechanic.company_name} required className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Company address<input name="submitted_company_address" defaultValue={mechanic.address || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Website<input name="submitted_website" defaultValue={mechanic.website || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Google Maps URL<input name="google_maps_url" defaultValue={mechanic.google_maps_url || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Public phone update<input name="phone" defaultValue={mechanic.phone || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">City<input name="city" defaultValue={mechanic.city || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">State<input name="state" defaultValue={mechanic.state || ""} maxLength={2} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver md:col-span-2">Proof message<textarea name="proof_message" rows={4} placeholder="Tell us how you are connected to this company." className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+        </div>
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onClose} className="rounded-xl border border-white/10 px-5 py-3 text-sm font-bold text-roadcall-silver hover:text-white">Cancel</button>
+          <button disabled={submitting} className="rounded-xl bg-roadcall-cyan px-5 py-3 text-sm font-black text-slate-950 disabled:opacity-60">{submitting ? "Submitting..." : "Suggest an Update"}</button>
+        </div>
+      </form>
+    </div>
   );
 }
 
@@ -397,17 +880,30 @@ function SearchPageInner() {
   const [serviceType, setServiceType] = useState(searchParams.get("service") || "");
   const [only24_7, setOnly24_7] = useState(searchParams.get("emergency") === "1");
   const [onlyMobile, setOnlyMobile] = useState(searchParams.get("mobile") === "1");
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
+  const [radiusMiles, setRadiusMiles] = useState(75);
   const [page, setPage] = useState(1);
 
   const [results, setResults] = useState<SearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [view, setView] = useState<"cards" | "map">("cards");
+  const [view, setView] = useState<ProviderViewMode>("map");
   const [mapWorkspaceMode, setMapWorkspaceMode] = useState<MapWorkspaceMode>("split");
   const [mapSidePanelOpen, setMapSidePanelOpen] = useState(true);
   const [mapAreaSummary, setMapAreaSummary] = useState<string | null>(null);
   const [searchingArea, setSearchingArea] = useState(false);
+  const [claimTarget, setClaimTarget] = useState<Mechanic | null>(null);
+  const [claimStatus, setClaimStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const storedView = window.localStorage.getItem(VIEW_STORAGE_KEY) as ProviderViewMode | null;
+    if (storedView === "map" || storedView === "cards" || storedView === "list") setView(storedView);
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(VIEW_STORAGE_KEY, view);
+  }, [view]);
 
   const buildSearchParams = useCallback((options?: { bounds?: MapBounds; pageOverride?: number; pageSize?: number }) => {
     const params = new URLSearchParams();
@@ -417,6 +913,7 @@ function SearchPageInner() {
     if (serviceType) params.set("service_type", serviceType);
     if (only24_7) params.set("is_24_7", "true");
     if (onlyMobile) params.set("mobile_only", "true");
+    if (verifiedOnly) params.set("verified_only", "true");
     if (options?.bounds) {
       params.set("min_lat", String(options.bounds.min_lat));
       params.set("max_lat", String(options.bounds.max_lat));
@@ -426,7 +923,7 @@ function SearchPageInner() {
     params.set("page", String(options?.pageOverride ?? page));
     params.set("page_size", String(options?.pageSize ?? 24));
     return params;
-  }, [city, only24_7, onlyMobile, page, query, serviceType, state]);
+  }, [city, only24_7, onlyMobile, page, query, serviceType, state, verifiedOnly]);
 
   const doSearch = useCallback(async (resetPage = false, pageOverride?: number) => {
     const currentPage = resetPage ? 1 : pageOverride ?? page;
@@ -440,7 +937,7 @@ function SearchPageInner() {
       const res = await fetch(`${API_URL}/mechanics/search?${params}`);
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
-      setResults(data);
+      setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
     } catch {
       // Fall back to a public-friendly empty state
       setResults({ mechanics: [], total: 0, page: 1, page_size: 24 });
@@ -448,7 +945,7 @@ function SearchPageInner() {
     } finally {
       setLoading(false);
     }
-  }, [buildSearchParams, page]);
+  }, [buildSearchParams, page, verifiedOnly]);
 
   const searchMapArea = useCallback(async (bounds: MapBounds) => {
     setSearchingArea(true);
@@ -461,7 +958,7 @@ function SearchPageInner() {
       const res = await fetch(`${API_URL}/mechanics/search?${params}`);
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
-      setResults(data);
+      setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
       setMapAreaSummary(`Showing ${data.mechanics.length.toLocaleString()} mapped providers in the visible map area`);
       setView("map");
     } catch {
@@ -470,15 +967,43 @@ function SearchPageInner() {
       setLoading(false);
       setSearchingArea(false);
     }
-  }, [buildSearchParams]);
+  }, [buildSearchParams, verifiedOnly]);
+
+  const searchNearMe = useCallback(() => {
+    if (!navigator.geolocation) {
+      setError("Near me search needs browser location access.");
+      return;
+    }
+    setSearchingArea(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        const latDelta = radiusMiles / 69;
+        const lngDelta = radiusMiles / Math.max(20, Math.cos((lat * Math.PI) / 180) * 69);
+        searchMapArea({ min_lat: lat - latDelta, max_lat: lat + latDelta, min_lng: lng - lngDelta, max_lng: lng + lngDelta });
+      },
+      () => {
+        setSearchingArea(false);
+        setError("Location permission was not granted. Try searching by city or ZIP.");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
+    );
+  }, [radiusMiles, searchMapArea]);
 
   useEffect(() => {
     doSearch(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state, city, serviceType, only24_7, onlyMobile]);
+  }, [state, city, serviceType, only24_7, onlyMobile, verifiedOnly]);
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const cityGroups = useMemo(() => groupMechanicsByCity(results?.mechanics || []), [results]);
+  const handleViewMap = useCallback((mechanic: Mechanic) => {
+    setView("map");
+    setMapWorkspaceMode("split");
+    setMapSidePanelOpen(true);
+    if (mechanic.city || mechanic.state) setMapAreaSummary(`Showing map near ${[mechanic.city, mechanic.state].filter(Boolean).join(", ")}`);
+  }, []);
   const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide" && mapWorkspaceMode !== "minimized";
   const mapShellClass = mapWorkspaceMode === "fullscreen"
     ? "fixed inset-x-3 bottom-3 top-24 z-40 overflow-hidden rounded-3xl border border-roadcall-cyan/25 bg-[#02050c]/95 p-4 shadow-2xl shadow-black/70 backdrop-blur-xl sm:inset-x-6 sm:bottom-6 sm:top-24"
@@ -509,28 +1034,38 @@ function SearchPageInner() {
             <p className="text-roadcall-muted text-sm">Search mechanics, repair shops, towing, and roadside providers nationwide.</p>
           </div>
 
-          {/* Main search bar */}
-          <form
-            onSubmit={(e) => { e.preventDefault(); doSearch(true); }}
-            className="flex gap-2 mb-4"
-          >
-            <div className="relative flex-1">
-              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-roadcall-muted pointer-events-none" />
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Shop name, city, state, or service type…"
-                className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-roadcall-panel/60 border border-roadcall-cyan/15 text-white placeholder:text-roadcall-muted/60 focus:outline-none focus:border-roadcall-cyan/40 focus:bg-roadcall-panel/80 text-sm transition-all"
-              />
-            </div>
-            <button
-              type="submit"
-              className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-6 py-3.5 rounded-xl text-sm transition-all shrink-0"
+          {/* Main search bar + intake button */}
+          <div className="flex gap-2 mb-4">
+            <form
+              onSubmit={(e) => { e.preventDefault(); doSearch(true); }}
+              className="flex-1 flex gap-2"
             >
-              Search
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-roadcall-muted pointer-events-none" />
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Shop name, city, state, or service type…"
+                  className="w-full pl-10 pr-4 py-3.5 rounded-xl bg-roadcall-panel/60 border border-roadcall-cyan/15 text-white placeholder:text-roadcall-muted/60 focus:outline-none focus:border-roadcall-cyan/40 focus:bg-roadcall-panel/80 text-sm transition-all"
+                />
+              </div>
+              <button
+                type="submit"
+                className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-6 py-3.5 rounded-xl text-sm transition-all shrink-0"
+              >
+                Search
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={() => setIntakeOpen(true)}
+              className="rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 px-6 py-3.5 font-bold text-slate-950 hover:brightness-110 text-sm shadow-lg"
+            >
+              Request Service
             </button>
-          </form>
+          </div>
+  {intakeOpen && <IntakeModal onClose={() => setIntakeOpen(false)} />}
 
           {/* Quick filters row */}
           <div className="flex flex-wrap items-center gap-2">
@@ -586,7 +1121,7 @@ function SearchPageInner() {
               <button
                 onClick={() => {
                   setQuery(""); setState(""); setCity(""); setServiceType("");
-                  setOnly24_7(false); setOnlyMobile(false);
+                  setOnly24_7(false); setOnlyMobile(false); setVerifiedOnly(false);
                   setMapAreaSummary(null);
                 }}
                 className="flex items-center gap-1 text-xs text-roadcall-muted hover:text-white transition-colors"
@@ -596,9 +1131,31 @@ function SearchPageInner() {
             )}
           </div>
 
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {QUICK_FILTERS.map((filter) => {
+              const active = filter.kind === "mobile" ? onlyMobile : filter.kind === "emergency" ? only24_7 : filter.kind === "verified" ? verifiedOnly : filter.service ? serviceType === filter.service : query === filter.query;
+              return (
+                <button
+                  key={filter.label}
+                  type="button"
+                  onClick={() => {
+                    if (filter.kind === "mobile") setOnlyMobile((value) => !value);
+                    else if (filter.kind === "emergency") setOnly24_7((value) => !value);
+                    else if (filter.kind === "verified") setVerifiedOnly((value) => !value);
+                    else if (filter.service) setServiceType(active ? "" : filter.service);
+                    else if (filter.query) setQuery(active ? "" : filter.query);
+                  }}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-bold transition ${active ? "border-roadcall-cyan bg-roadcall-cyan text-slate-950" : "border-roadcall-cyan/15 bg-roadcall-panel/40 text-roadcall-silver hover:border-roadcall-cyan/35 hover:text-white"}`}
+                >
+                  {filter.label}
+                </button>
+              );
+            })}
+          </div>
+
           {/* Expanded filters */}
           {filtersOpen && (
-            <div className="mt-3 p-4 rounded-xl bg-roadcall-panel/40 border border-roadcall-cyan/10 flex flex-wrap gap-4">
+            <div className="mt-3 p-4 rounded-xl bg-roadcall-panel/40 border border-roadcall-cyan/10 flex flex-wrap items-center gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -617,6 +1174,32 @@ function SearchPageInner() {
                 />
                 <span className="text-sm text-roadcall-silver">Mobile / Roadside Only</span>
               </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={verifiedOnly}
+                  onChange={(e) => setVerifiedOnly(e.target.checked)}
+                  className="accent-roadcall-orange w-4 h-4"
+                />
+                <span className="text-sm text-roadcall-silver">Verified / Claimed Only</span>
+              </label>
+              <label className="flex items-center gap-2 text-sm text-roadcall-silver">
+                Radius
+                <select
+                  value={radiusMiles}
+                  onChange={(event) => setRadiusMiles(Number(event.target.value))}
+                  className="rounded-lg border border-roadcall-cyan/15 bg-roadcall-panel/70 px-2 py-1 text-sm text-roadcall-silver"
+                >
+                  {[25, 50, 75, 100, 150, 250].map((value) => <option key={value} value={value}>{value} mi</option>)}
+                </select>
+              </label>
+              <button
+                type="button"
+                onClick={searchNearMe}
+                className="rounded-lg border border-roadcall-cyan/20 bg-roadcall-cyan/10 px-3 py-2 text-sm font-bold text-roadcall-cyan hover:bg-roadcall-cyan/15"
+              >
+                Near me
+              </button>
             </div>
           )}
         </div>
@@ -646,17 +1229,24 @@ function SearchPageInner() {
               <div className="inline-flex rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/50 p-1">
                 <button
                   type="button"
-                  onClick={() => setView("cards")}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "cards" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" /> Cards
-                </button>
-                <button
-                  type="button"
                   onClick={() => setView("map")}
                   className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "map" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
                 >
-                  <MapIcon className="h-3.5 w-3.5" /> Map
+                  <MapIcon className="h-3.5 w-3.5" /> Map View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView("cards")}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "cards" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
+                >
+                  <LayoutGrid className="h-3.5 w-3.5" /> Card View
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setView("list")}
+                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "list" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
+                >
+                  <Rows3 className="h-3.5 w-3.5" /> List View
                 </button>
               </div>
             )}
@@ -732,15 +1322,17 @@ function SearchPageInner() {
                     </div>
                   </div>
                   <div className={mapWorkspaceMode === "minimized" ? "grid gap-4 md:grid-cols-2 xl:grid-cols-3" : "space-y-4"}>
-                    {cityGroups.map((group) => <CityMechanicGroup key={group.label} label={group.label} providers={group.providers} />)}
+                    {cityGroups.map((group) => <CityMechanicGroup key={group.label} label={group.label} providers={group.providers} onClaim={setClaimTarget} onViewMap={handleViewMap} />)}
                   </div>
                 </div>
               ) : null}
             </div>
           </div>
+        ) : results && results.mechanics.length > 0 && view === "list" ? (
+          <MechanicListView mechanics={results.mechanics} onClaim={setClaimTarget} onViewMap={handleViewMap} />
         ) : results && results.mechanics.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {results.mechanics.map((m) => <MechanicCard key={m.id} m={m} />)}
+            {results.mechanics.map((m) => <MechanicCard key={m.id} m={m} onClaim={setClaimTarget} onViewMap={handleViewMap} />)}
           </div>
         ) : !loading && (
           <div className="text-center py-20">
@@ -806,6 +1398,13 @@ function SearchPageInner() {
           </div>
         </div>
       </section>
+      {claimStatus ? (
+        <div className="fixed bottom-4 left-1/2 z-50 w-[min(520px,calc(100%-2rem))] -translate-x-1/2 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 px-4 py-3 text-center text-sm font-bold text-emerald-200 shadow-2xl backdrop-blur">
+          {claimStatus}
+          <button type="button" onClick={() => setClaimStatus(null)} className="ml-3 text-emerald-100/80 hover:text-white">Dismiss</button>
+        </div>
+      ) : null}
+      {claimTarget ? <ClaimUpdateModal mechanic={claimTarget} onClose={() => setClaimTarget(null)} onSubmitted={setClaimStatus} /> : null}
       </NoCopySurface>
     </PageLayout>
   );
