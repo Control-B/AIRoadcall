@@ -135,6 +135,7 @@ async def test_provisioning_endpoint_accepts_all_plans(monkeypatch):
             "name": payload.plan_id.title(),
             "price_monthly": get_plan_config(payload.plan_id).price_monthly,
             "setup_fee": get_plan_config(payload.plan_id).setup_fee,
+            "trial_days": get_plan_config(payload.plan_id).trial_days,
             "ecosystem": get_plan_config(payload.plan_id).ecosystem,
             "billing_system": get_plan_config(payload.plan_id).billing_system,
             "onboarding_mode": get_plan_config(payload.plan_id).onboarding_mode,

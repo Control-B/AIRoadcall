@@ -14,6 +14,7 @@ class PlanConfigView(BaseModel):
     name: str
     price_monthly: float
     setup_fee: float
+    trial_days: int = 7
     ecosystem: str | None = None
     billing_system: str | None = None
     onboarding_mode: str | None = None

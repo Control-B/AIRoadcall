@@ -31,6 +31,13 @@ import {
   RectangleHorizontal,
   Rows3,
   Loader2,
+  Lock,
+  CloudRain,
+  Route,
+  Activity,
+  RadioTower,
+  Layers3,
+  Satellite,
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
@@ -294,6 +301,7 @@ type MapBounds = {
 
 type MapWorkspaceMode = "split" | "wide" | "fullscreen" | "minimized";
 type ProviderViewMode = "map" | "cards" | "list";
+type PremiumMapMode = "basic" | "operations" | "satellite" | "traffic" | "weather" | "density" | "hotspots" | "route";
 
 const VIEW_STORAGE_KEY = "roadcall-provider-view";
 
@@ -313,6 +321,17 @@ const QUICK_FILTERS: QuickFilter[] = [
   { label: "Towing", service: "towing" },
   { label: "Trucking company", query: "trucking company" },
   { label: "Verified provider", kind: "verified" },
+];
+
+const PREMIUM_MAP_MODES: { id: PremiumMapMode; label: string; description: string; icon: typeof Activity; fleetOnly?: boolean }[] = [
+  { id: "basic", label: "Basic", description: "Standard provider pins and simple search.", icon: MapIcon },
+  { id: "operations", label: "Operations", description: "Active events, AI dispatch zones, provider activity, and roadside intelligence.", icon: RadioTower },
+  { id: "satellite", label: "Satellite", description: "Premium imagery for industrial zones, truck stops, rural access, and service roads.", icon: Satellite },
+  { id: "traffic", label: "Traffic", description: "Congestion, delay risk, traffic-adjusted ETA, and responder routing.", icon: Activity },
+  { id: "weather", label: "Weather", description: "Storm, rain, wind, flood, and severe-weather roadside risk overlays.", icon: CloudRain },
+  { id: "density", label: "Density", description: "Coverage heatmaps for mobile repair, towing, tires, and after-hours support.", icon: Layers3, fleetOnly: true },
+  { id: "hotspots", label: "Hotspots", description: "Historical breakdown corridors, service gaps, bottlenecks, and delay regions.", icon: Zap, fleetOnly: true },
+  { id: "route", label: "Route AI", description: "Providers ahead on route, corridor risk, and predictive roadside recommendations.", icon: Route },
 ];
 
 function safeExternalUrl(value?: string | null) {
@@ -354,13 +373,19 @@ function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: numbe
   return typeof mechanic.lat === "number" && Number.isFinite(mechanic.lat) && typeof mechanic.lng === "number" && Number.isFinite(mechanic.lng);
 }
 
-function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode, hasPremiumAccess }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode; hasPremiumAccess: boolean }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
   const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
   const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<Mechanic | null>(null);
+  const premiumModeEnabled = hasPremiumAccess && premiumMode !== "basic";
+  const mapStyle = premiumMode === "satellite" && hasPremiumAccess
+    ? "mapbox://styles/mapbox/satellite-streets-v12"
+    : premiumModeEnabled
+      ? "mapbox://styles/mapbox/dark-v11"
+      : "mapbox://styles/mapbox/streets-v12";
 
   useEffect(() => {
     if (!containerRef.current || !configured || points.length === 0) return;
@@ -375,9 +400,11 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       const first = points[0];
       map = new mapboxgl.Map({
         container: containerRef.current,
-        style: "mapbox://styles/mapbox/streets-v12",
+        style: mapStyle,
         center: [first.lng, first.lat],
         zoom: points.length === 1 ? 10 : 4,
+        pitch: premiumModeEnabled ? 48 : 0,
+        bearing: premiumModeEnabled ? -18 : 0,
       });
       mapRef.current = map;
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-left");
@@ -408,6 +435,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                 company_name: mechanic.company_name,
                 category: mechanic.business_category || "Roadside Provider",
                 color: providerTypeColor(mechanic),
+                priority_score: mechanic.priority_score || mechanic.dispatch_fit_score || mechanic.marketplace_score || 0.5,
               },
               geometry: { type: "Point", coordinates: [mechanic.lng, mechanic.lat] },
             };
@@ -453,6 +481,30 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             "circle-stroke-width": 2,
           },
         });
+        if (premiumModeEnabled && ["operations", "density", "hotspots", "traffic", "weather", "route"].includes(premiumMode)) {
+          map.addLayer({
+            id: "roadside-intelligence-heat",
+            type: "heatmap",
+            source: "providers",
+            maxzoom: 11,
+            paint: {
+              "heatmap-weight": ["interpolate", ["linear"], ["coalesce", ["get", "priority_score"], 0.5], 0, 0.25, 1, 1],
+              "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 0, 0.6, 9, 1.8],
+              "heatmap-color": [
+                "interpolate",
+                ["linear"],
+                ["heatmap-density"],
+                0, "rgba(8,47,73,0)",
+                0.25, "rgba(14,165,233,0.28)",
+                0.55, "rgba(34,211,238,0.42)",
+                0.8, "rgba(251,146,60,0.52)",
+                1, "rgba(239,68,68,0.62)",
+              ],
+              "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 18, 9, 42],
+              "heatmap-opacity": premiumMode === "density" || premiumMode === "hotspots" ? 0.82 : 0.45,
+            },
+          }, "provider-pins");
+        }
         map.addLayer({
           id: "provider-pin-labels",
           type: "symbol",
@@ -495,7 +547,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       if (map) map.remove();
       mapRef.current = null;
     };
-  }, [configured, points, token]);
+  }, [configured, hasPremiumAccess, mapStyle, points, premiumMode, premiumModeEnabled, token]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => mapRef.current?.resize(), 120);
@@ -528,6 +580,8 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         </button>
       </div>
       {workspaceControls ? <div className="absolute right-4 top-4 z-10 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
+      {premiumModeEnabled ? <PremiumOperationsOverlay mechanics={points} mode={premiumMode} /> : null}
+      {!hasPremiumAccess && premiumMode !== "basic" ? <LockedPremiumMapOverlay mode={premiumMode} /> : null}
       {selectedProvider ? (
         <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
           <button type="button" onClick={() => setSelectedProvider(null)} className="absolute right-3 top-3 rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"><X className="h-4 w-4" /></button>
@@ -826,6 +880,100 @@ function ClaimUpdateModal({ mechanic, onClose, onSubmitted }: { mechanic: Mechan
   );
 }
 
+function PremiumMapModeControls({ mode, hasPremiumAccess, onModeChange }: { mode: PremiumMapMode; hasPremiumAccess: boolean; onModeChange: (mode: PremiumMapMode) => void }) {
+  return (
+    <div className="rounded-2xl border border-roadcall-cyan/15 bg-[#06101f]/90 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-roadcall-cyan">Premium map modes</p>
+          <p className="mt-1 text-xs text-roadcall-muted">7-day trial unlocks operational intelligence.</p>
+        </div>
+        {!hasPremiumAccess ? <Lock className="h-4 w-4 text-roadcall-orange" /> : <Activity className="h-4 w-4 text-emerald-300" />}
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {PREMIUM_MAP_MODES.map((item) => {
+          const Icon = item.icon;
+          const locked = item.id !== "basic" && !hasPremiumAccess;
+          const active = mode === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onModeChange(item.id)}
+              className={`rounded-xl border p-3 text-left transition ${active ? "border-roadcall-cyan bg-roadcall-cyan/15" : "border-white/10 bg-white/[0.035] hover:border-roadcall-cyan/30"}`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <Icon className={active ? "h-4 w-4 text-roadcall-cyan" : "h-4 w-4 text-roadcall-silver"} />
+                {locked ? <Lock className="h-3.5 w-3.5 text-roadcall-orange" /> : null}
+              </div>
+              <p className="mt-2 text-xs font-black text-white">{item.label}</p>
+              <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-roadcall-muted">{item.description}</p>
+              {item.fleetOnly ? <p className="mt-2 text-[10px] font-bold uppercase tracking-wide text-blue-200">Fleet plan</p> : null}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function LockedPremiumMapOverlay({ mode }: { mode: PremiumMapMode }) {
+  const selected = PREMIUM_MAP_MODES.find((item) => item.id === mode);
+  return (
+    <div className="absolute inset-x-4 bottom-4 z-20 rounded-2xl border border-roadcall-orange/25 bg-[#02050c]/85 p-4 shadow-2xl shadow-black/50 backdrop-blur-xl">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex gap-3">
+          <div className="grid h-10 w-10 place-items-center rounded-xl border border-roadcall-orange/30 bg-roadcall-orange/15">
+            <Lock className="h-5 w-5 text-roadcall-orange" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-white">Unlock {selected?.label || "premium"} intelligence</p>
+            <p className="mt-1 text-xs leading-5 text-roadcall-muted">Advanced overlays require Driver Pro or Fleet Operations. Start a 7-day trial to unlock ETA intelligence, operational layers, and dispatch-aware ranking.</p>
+          </div>
+        </div>
+        <Link href="/fleet/pricing" className="inline-flex shrink-0 items-center justify-center rounded-xl bg-roadcall-cyan px-4 py-2 text-xs font-black text-slate-950 hover:brightness-110">
+          Start 7-day trial <ArrowRight className="ml-2 h-3.5 w-3.5" />
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+function PremiumOperationsOverlay({ mechanics, mode }: { mechanics: (Mechanic & { lat: number; lng: number })[]; mode: PremiumMapMode }) {
+  const emergencyReady = mechanics.filter((mechanic) => mechanic.emergency_service || mechanic.is_emergency_24_7).length;
+  const mobileActive = mechanics.filter((mechanic) => mechanic.accepts_mobile_roadside).length;
+  const avgEta = Math.round(
+    mechanics.reduce((sum, mechanic) => sum + (mechanic.estimated_response_minutes || 38), 0) / Math.max(1, mechanics.length),
+  );
+  const message = mode === "route"
+    ? `${Math.min(3, mobileActive)} verified mobile providers ahead within 40 miles.`
+    : mode === "weather"
+      ? "Storm conditions may affect response times in this corridor."
+      : mode === "traffic"
+        ? "Traffic-adjusted ETA favors the fastest responder, not nearest distance."
+        : mode === "density"
+          ? "Coverage density identifies low-service gaps and after-hours risk."
+          : mode === "hotspots"
+            ? "High roadside activity detected across recurring breakdown corridors."
+            : "AI dispatch zones and live provider readiness are active.";
+  return (
+    <div className="pointer-events-none absolute left-4 top-20 z-10 w-[min(360px,calc(100%-2rem))] space-y-3">
+      <div className="rounded-2xl border border-roadcall-cyan/20 bg-[#02050c]/80 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.22em] text-roadcall-cyan">AI roadside operations center</p>
+        <p className="mt-2 text-sm font-bold text-white">{message}</p>
+        <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2"><p className="text-lg font-black text-white">{emergencyReady}</p><p className="text-[10px] text-roadcall-muted">Emergency</p></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2"><p className="text-lg font-black text-white">{mobileActive}</p><p className="text-[10px] text-roadcall-muted">Mobile</p></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-2"><p className="text-lg font-black text-white">{avgEta}m</p><p className="text-[10px] text-roadcall-muted">ETA</p></div>
+        </div>
+      </div>
+      <div className="rounded-2xl border border-red-400/25 bg-red-400/10 p-3 text-xs font-bold text-red-100 shadow-2xl backdrop-blur-xl">
+        <span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-red-300" /> Emergency Breakdown workflow armed
+      </div>
+    </div>
+  );
+}
+
 function MapWorkspaceControls({
   mode,
   sidePanelOpen,
@@ -893,12 +1041,14 @@ function SearchPageInner() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [view, setView] = useState<ProviderViewMode>("map");
   const [mapWorkspaceMode, setMapWorkspaceMode] = useState<MapWorkspaceMode>("split");
+  const [premiumMapMode, setPremiumMapMode] = useState<PremiumMapMode>("basic");
   const [mapSidePanelOpen, setMapSidePanelOpen] = useState(true);
   const [mapAreaSummary, setMapAreaSummary] = useState<string | null>(null);
   const [searchingArea, setSearchingArea] = useState(false);
   const [claimTarget, setClaimTarget] = useState<Mechanic | null>(null);
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const hasPremiumMapAccess = searchParams.get("premium") === "1" || searchParams.get("plan") === "driver_pro" || searchParams.get("plan")?.startsWith("fleet_") === true;
 
   useEffect(() => {
     const storedView = window.localStorage.getItem(VIEW_STORAGE_KEY) as ProviderViewMode | null;
@@ -1022,6 +1172,7 @@ function SearchPageInner() {
     : mapWorkspaceMode === "wide"
       ? "h-[680px] min-h-[520px]"
       : "h-[520px] min-h-[420px]";
+  const premiumModeLabel = PREMIUM_MAP_MODES.find((mode) => mode.id === premiumMapMode)?.label || "Basic";
 
   return (
     <PageLayout>
@@ -1034,8 +1185,8 @@ function SearchPageInner() {
               <Shield className="h-3.5 w-3.5 text-roadcall-cyan" />
               <span className="text-xs font-medium text-roadcall-silver/85 tracking-wide">35,000+ Verified Providers · All 50 States</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">Search Truck Service Near You</h1>
-            <p className="text-roadcall-muted text-sm">Search mechanics, repair shops, towing, and roadside providers nationwide.</p>
+            <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">AI Roadside Operations Center</h1>
+            <p className="text-roadcall-muted text-sm">Free users get basic search and pins. Paid members unlock dispatch intelligence, operational overlays, and route-aware roadside decisions.</p>
           </div>
 
           {/* Main search bar + intake button */}
@@ -1274,10 +1425,20 @@ function SearchPageInner() {
           <div className={mapShellClass}>
             <div className="mb-3">
               <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-cyan">Map workspace</p>
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-cyan">{premiumModeLabel} map workspace</p>
                 <p className="mt-1 text-sm text-roadcall-muted">
-                  {mapWorkspaceMode === "minimized" ? "Map is minimized. Provider panels stay available." : mapWorkspaceMode === "fullscreen" ? "Expanded map workspace with optional provider panels." : "Use the controls to focus, expand, minimize, or hide panels."}
+                  {hasPremiumMapAccess ? "Premium overlays are active for this session." : "Advanced map modes are locked behind Driver Pro and Fleet Operations memberships."} {mapWorkspaceMode === "minimized" ? "Map is minimized. Provider panels stay available." : mapWorkspaceMode === "fullscreen" ? "Expanded map workspace with optional provider panels." : "Use the controls to focus, expand, minimize, or hide panels."}
                 </p>
+              </div>
+              <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+                <PremiumMapModeControls mode={premiumMapMode} hasPremiumAccess={hasPremiumMapAccess} onModeChange={setPremiumMapMode} />
+                <button
+                  type="button"
+                  onClick={() => hasPremiumMapAccess ? setIntakeOpen(true) : setPremiumMapMode("operations")}
+                  className="inline-flex items-center justify-center rounded-2xl border border-red-400/35 bg-red-400/15 px-5 py-4 text-sm font-black text-red-100 shadow-xl shadow-red-950/20 hover:bg-red-400/20"
+                >
+                  <Zap className="mr-2 h-4 w-4" /> Emergency Breakdown
+                </button>
               </div>
             </div>
             <div className={mapGridClass}>
@@ -1288,6 +1449,8 @@ function SearchPageInner() {
                   searchingArea={searchingArea}
                   className={mapHeightClass}
                   layoutKey={`${mapWorkspaceMode}-${mapSidePanelOpen}`}
+                  premiumMode={premiumMapMode}
+                  hasPremiumAccess={hasPremiumMapAccess}
                   workspaceControls={(
                     <MapWorkspaceControls
                       mode={mapWorkspaceMode}

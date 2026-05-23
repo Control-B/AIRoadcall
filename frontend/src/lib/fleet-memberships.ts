@@ -2,7 +2,7 @@ export const FLEET_MEMBERSHIP_PLANS = [
   {
     id: "driver_pro",
     name: "Driver Pro",
-    price: "$9.99",
+    price: "$19.99",
     period: "/mo",
     range: "Owner operators and independent drivers",
     positioning: "AI Roadside Intelligence Membership",
@@ -29,7 +29,7 @@ export const FLEET_MEMBERSHIP_PLANS = [
   {
     id: "fleet_starter",
     name: "Fleet Starter",
-    price: "$49",
+    price: "$99",
     period: "/mo",
     range: "Small trucking companies under 50 trucks",
     positioning: "Fleet Roadside Coordination Platform",
@@ -55,7 +55,7 @@ export const FLEET_MEMBERSHIP_PLANS = [
   {
     id: "fleet_professional",
     name: "Fleet Professional",
-    price: "$199",
+    price: "$299",
     period: "/mo",
     range: "Medium fleets with 60 to 200 trucks",
     positioning: "AI Fleet Roadside Operations Software",
@@ -81,7 +81,7 @@ export const FLEET_MEMBERSHIP_PLANS = [
   {
     id: "fleet_enterprise",
     name: "Fleet Enterprise",
-    price: "$299+",
+    price: "$999+",
     period: "/mo",
     range: "Large fleets over 250 trucks and national carriers",
     positioning: "Enterprise Roadside Operations Infrastructure",

@@ -145,6 +145,7 @@ class PlanConfig:
     name: str
     price_monthly: float
     setup_fee: float
+    trial_days: int
     ecosystem: str
     billing_system: str
     onboarding_mode: str
@@ -271,6 +272,7 @@ def _plan(
     webhook_permissions: tuple[str, ...],
     dashboard_permissions: tuple[str, ...],
     ai_feature_permissions: tuple[str, ...],
+    trial_days: int = 7,
     snapshot_id: str = "",
     dispatch_permissions: tuple[str, ...] = (),
 ) -> PlanConfig:
@@ -279,6 +281,7 @@ def _plan(
         name=name,
         price_monthly=price_monthly,
         setup_fee=setup_fee,
+        trial_days=trial_days,
         ecosystem=ecosystem,
         billing_system=billing_system,
         onboarding_mode=onboarding_mode,
@@ -345,7 +348,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "driver_pro": _plan(
             id=PlanTier.driver_pro,
             name="Driver Pro",
-            price_monthly=9.99,
+            price_monthly=19.99,
             setup_fee=0,
             ecosystem="roadside_intelligence_membership",
             billing_system="stripe",
@@ -361,7 +364,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "fleet_starter": _plan(
             id=PlanTier.fleet_starter,
             name="Fleet Starter",
-            price_monthly=49,
+            price_monthly=99,
             setup_fee=0,
             ecosystem="fleet_operations_platform",
             billing_system="stripe",
@@ -377,7 +380,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "fleet_professional": _plan(
             id=PlanTier.fleet_professional,
             name="Fleet Professional",
-            price_monthly=199,
+            price_monthly=299,
             setup_fee=0,
             ecosystem="fleet_operations_platform",
             billing_system="stripe",
@@ -393,7 +396,7 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "fleet_enterprise": _plan(
             id=PlanTier.fleet_enterprise,
             name="Fleet Enterprise",
-            price_monthly=299,
+            price_monthly=999,
             setup_fee=0,
             ecosystem="fleet_operations_platform",
             billing_system="stripe",
@@ -497,6 +500,7 @@ def plan_payload(config: PlanConfig) -> dict[str, object]:
         "name": config.name,
         "price_monthly": config.price_monthly,
         "setup_fee": config.setup_fee,
+        "trial_days": config.trial_days,
         "ecosystem": config.ecosystem,
         "billing_system": config.billing_system,
         "onboarding_mode": config.onboarding_mode,

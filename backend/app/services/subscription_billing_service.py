@@ -224,6 +224,7 @@ class SubscriptionBillingService:
                 "uses_saas_mode": str(plan_config.uses_saas_mode).lower(),
             },
             "subscription_data": {
+                "trial_period_days": plan_config.trial_days,
                 "metadata": {
                     "tenant_id": str(tenant.id),
                     "organization_id": str(org.id),

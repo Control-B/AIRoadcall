@@ -27,25 +27,25 @@ const PLANS = {
   },
   driver_pro: {
     name: "Driver Pro",
-    price: "$9.99/mo",
+    price: "$19.99/mo",
     setup: "No setup fee",
     features: ["AI dispatch priority", "Saved truck profile", "Emergency mode", "Live dispatch tracking", "Route-aware intelligence"],
   },
   fleet_starter: {
     name: "Fleet Starter",
-    price: "$49/mo",
+    price: "$99/mo",
     setup: "No setup fee",
     features: ["Fleet dashboard", "Multi-driver management", "Roadside activity feed", "Provider preferences", "Centralized dispatch visibility"],
   },
   fleet_professional: {
     name: "Fleet Professional",
-    price: "$199/mo",
+    price: "$299/mo",
     setup: "No setup fee",
     features: ["Advanced AI dispatch", "Downtime analytics", "SLA tracking", "Roadside heatmaps", "Operational dashboards"],
   },
   fleet_enterprise: {
     name: "Fleet Enterprise",
-    price: "$299+/mo",
+    price: "$999+/mo",
     setup: "No setup fee",
     features: ["Command center", "Multi-location operations", "API integrations", "Custom workflows", "AI fleet intelligence"],
   },
@@ -102,7 +102,7 @@ function MechanicCheckoutContent() {
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
           <Link href="/pricing" className="text-sm font-semibold text-blue-300 hover:text-blue-200">← Back to pricing</Link>
           <h1 className="mt-8 text-4xl font-black tracking-tight">Start your Roadcall AI operating system.</h1>
-          <p className="mt-4 text-slate-300">Subscribe, complete your profile, then Roadcall activates the right AI service, Driver Pro, or Fleet Operations membership.</p>
+          <p className="mt-4 text-slate-300">Start with 7 days free, complete your profile, then Roadcall activates the right AI service, Driver Pro, or Fleet Operations membership.</p>
           <div className="mt-8 space-y-3">
             {["Secure billing activates your subscription", "Driver and fleet plans require authenticated premium access", "GHL Standard, Professional, and Advanced are started in GHL", "Your profile is completed after checkout"].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
@@ -145,7 +145,7 @@ function MechanicCheckoutContent() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             Continue to secure checkout for {selectedPlan.name}
           </button>
-          <p className="mt-4 text-center text-xs text-slate-500">You’ll manage billing through a secure customer portal after checkout.</p>
+          <p className="mt-4 text-center text-xs text-slate-500">Includes a 7-day free trial. Your paid subscription starts after the trial unless canceled.</p>
         </form>
       </div>
     </main>

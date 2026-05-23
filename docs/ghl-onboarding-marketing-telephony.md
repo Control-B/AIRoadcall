@@ -22,7 +22,7 @@ Roadcall now has two product ecosystems:
 
 | Ecosystem | Plans | Billing | Onboarding | GHL SaaS Mode |
 | --- | --- | --- | --- | --- |
-| Simple Roadcall Services | Widget Only ($99.99), AI Telephony Only ($99.99), Widget + AI Telephony ($149.99), Driver Pro ($9.99), Fleet Starter ($49), Fleet Professional ($199), Fleet Enterprise ($299+) | Stripe | Roadcall lightweight profile/widget/voice/driver/fleet setup | No |
+| Simple Roadcall Services | Widget Only ($99.99), AI Telephony Only ($99.99), Widget + AI Telephony ($149.99), Driver Pro ($19.99), Fleet Starter ($99), Fleet Professional ($299), Fleet Enterprise ($999+) | Stripe | Roadcall lightweight profile/widget/voice/driver/fleet setup | No |
 | GHL Business OS | Standard ($297 + $149 setup), Professional ($497 + $199 setup), Advanced ($997 + $299 setup) | GHL | Roadcall tenant plus GHL SaaS snapshot | Yes |
 
 Rules:
@@ -326,10 +326,10 @@ The lightweight plans are Roadcall-owned services and should not be built as GHL
 - Widget Only — $99.99/mo + $49.99 setup: AI widget for mechanics that do not want a new website.
 - AI Telephony Only — $99.99/mo + $49.99 setup: AI phone answering, intake, missed-call text-back, and call summaries.
 - Widget + AI Telephony — $149.99/mo + $97.99 setup: combined widget and AI phone package.
-- Driver Pro — $9.99/mo: AI roadside intelligence membership for owner operators and independent drivers.
-- Fleet Starter — $49/mo: fleet roadside coordination for small fleets under 50 trucks.
-- Fleet Professional — $199/mo: AI fleet roadside operations for fleets with 60 to 200 trucks.
-- Fleet Enterprise — $299+/mo: enterprise roadside operations infrastructure for larger fleets over 250 trucks.
+- Driver Pro — $19.99/mo after a 7-day free trial: AI roadside intelligence membership for owner operators and independent drivers.
+- Fleet Starter — $99/mo after a 7-day free trial: fleet roadside coordination for small fleets under 50 trucks.
+- Fleet Professional — $299/mo after a 7-day free trial: AI fleet roadside operations for medium fleets.
+- Fleet Enterprise — $999+/mo after a 7-day free trial: enterprise roadside operations infrastructure for larger carriers.
 
 Use the snapshot builder to generate source-location build guides:
 

@@ -42,7 +42,7 @@ const plans = [
   {
     id: "driver_pro",
     name: "Driver Pro",
-    price: "$9.99",
+    price: "$19.99",
     period: "/mo",
     setup: "No setup fee",
     description: "AI roadside intelligence membership for owner operators and independent drivers.",
