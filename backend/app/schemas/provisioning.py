@@ -6,14 +6,14 @@ from typing import Any
 from pydantic import BaseModel, EmailStr, Field
 
 
-PLAN_ID_PATTERN = "^(ai_chat|widget_voice|driver_pro|professional|premium|enterprise|starter|growth|pro|standard|advanced)$"
+PLAN_ID_PATTERN = "^(widget_only|ai_telephony|widget_voice|enterprise|standard|professional|advanced|ai_chat|driver_pro|starter|growth|premium|pro)$"
 
 
 class PlanConfigView(BaseModel):
     id: str
     name: str
     price_monthly: float
-    setup_fee: int
+    setup_fee: float
     ecosystem: str | None = None
     billing_system: str | None = None
     onboarding_mode: str | None = None
@@ -163,7 +163,7 @@ class TenantRetellProvisionIn(BaseModel):
 
 class ShopSnapshotProvisionIn(BaseModel):
     snapshot_key: str = Field(default="shop_ai_intake_v1", max_length=80)
-    plan_id: str = Field(default="premium", pattern=PLAN_ID_PATTERN)
+    plan_id: str = Field(default="standard", pattern=PLAN_ID_PATTERN)
     business_name: str = Field(min_length=2, max_length=255)
     organization_slug: str | None = Field(default=None, max_length=120)
     owner_name: str | None = Field(default=None, max_length=255)

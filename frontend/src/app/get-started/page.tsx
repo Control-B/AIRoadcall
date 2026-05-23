@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
+import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
 import AgentsLink from "./AgentsLink";
 
 type Track = "shop" | "fleet";
@@ -36,20 +37,20 @@ const SHOP_PLANS = [
   {
     id: "standard",
     name: "Standard",
-    price: "$197/mo",
-    setup: "$99 setup",
-    bullets: ["AI Telephony", "Leads", "Calendar", "CRM", "Form Builder", "Missed Call Text Back"],
+    price: "$297/mo",
+    setup: "$149 setup",
+    bullets: ["Website", "AI Telephone", "AI Widget", "CRM", "GHL SaaS Mode"],
     cta: "Start Standard",
-    href: "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k",
+    href: GHL_GET_STARTED_URL,
   },
   {
-    id: "premium",
+    id: "professional",
     name: "Professional",
-    price: "$297/mo",
+    price: "$497/mo",
     setup: "$199 setup",
-    bullets: ["Everything in Standard", "Website", "Web Chat", "Email Marketing", "Survey Builder"],
+    bullets: ["Everything in Standard", "Mobile App", "Customer Portal", "GHL SaaS Mode"],
     cta: "Start Professional",
-    href: "https://buy.stripe.com/fZu28t94c8Fw0IG6Ee1sQ0l",
+    href: GHL_GET_STARTED_URL,
     accent: true,
   },
   {
@@ -57,9 +58,9 @@ const SHOP_PLANS = [
     name: "Advanced",
     price: "$997/mo",
     setup: "$299 setup",
-    bullets: ["Everything in Professional", "Social Media Marketing", "Funnels", "Email Marketing"],
+    bullets: ["Everything in Professional", "Social Media Marketing", "Content Planning"],
     cta: "Start Advanced",
-    href: "https://buy.stripe.com/3cI9AVgwE0909fcd2C1sQ0m",
+    href: GHL_GET_STARTED_URL,
   },
 ];
 

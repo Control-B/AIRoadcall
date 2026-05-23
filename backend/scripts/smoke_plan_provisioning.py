@@ -9,7 +9,7 @@ import urllib.error
 import urllib.request
 
 
-PLANS = ("ai_chat", "widget_voice", "driver_pro", "professional", "premium", "enterprise")
+PLANS = ("widget_only", "ai_telephony", "widget_voice", "enterprise", "standard", "professional", "advanced")
 
 
 def build_payload(plan: str) -> dict[str, object]:

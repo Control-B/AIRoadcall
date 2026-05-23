@@ -164,6 +164,8 @@ class SubscriptionBillingService:
     async def create_checkout_session(self, db, payload: CheckoutSessionCreateIn) -> dict[str, str]:
         plan_id = canonical_plan_id(payload.plan_id)
         plan_config = get_plan_config(plan_id)
+        if plan_config.billing_system != "stripe":
+            raise ValueError(f"{plan_config.name} checkout is managed in GHL")
         price_id = settings.stripe_price_id_for_plan(plan_id)
         if not price_id:
             raise ValueError(f"Stripe price ID is not configured for {plan_id}")
@@ -499,7 +501,7 @@ class SubscriptionBillingService:
         dashboard token required)."""
         tenant_id = tenant.id
         profile = (await db.execute(select(ShopProfile).where(ShopProfile.tenant_id == tenant_id))).scalar_one_or_none()
-        if tenant.current_plan in {"standard", "premium", "advanced", "starter", "growth", "pro", "professional"} and settings.GHL_API_KEY:
+        if get_plan_config(tenant.current_plan).uses_saas_mode and settings.GHL_API_KEY:
             config = get_plan_config(tenant.current_plan)
             connection = (await db.execute(select(GHLConnection).where(GHLConnection.tenant_id == tenant_id))).scalar_one_or_none()
             if connection is None:

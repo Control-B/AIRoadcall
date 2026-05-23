@@ -66,50 +66,52 @@ def _fake_tenant(plan_id: str):
 def test_plan_configs_cover_required_tiers_and_permissions():
     configs = get_plan_configs()
 
-    assert set(configs) == {"ai_chat", "widget_voice", "driver_pro", "professional", "premium", "enterprise"}
-    assert PlanFeature.ai_widget in configs["ai_chat"].features
+    assert set(configs) == {"widget_only", "ai_telephony", "widget_voice", "enterprise", "standard", "professional", "advanced"}
+    assert PlanFeature.ai_widget in configs["widget_only"].features
+    assert PlanFeature.ai_answering in configs["ai_telephony"].features
     assert PlanFeature.ai_answering in configs["widget_voice"].features
-    assert PlanFeature.ghl_saas_mode in configs["professional"].features
-    assert PlanFeature.fleet_dashboard in configs["premium"].features
-    assert PlanFeature.marketing_funnels in configs["enterprise"].features
-    assert configs["ai_chat"].uses_saas_mode is False
-    assert configs["professional"].automatic_subaccount_provisioning is True
+    assert PlanFeature.map_view in configs["enterprise"].features
+    assert PlanFeature.ghl_saas_mode in configs["standard"].features
+    assert PlanFeature.mobile_app in configs["professional"].features
+    assert PlanFeature.social_media_marketing in configs["advanced"].features
+    assert configs["widget_only"].uses_saas_mode is False
+    assert configs["standard"].automatic_subaccount_provisioning is True
 
 
 def test_locked_features_show_upgrade_behavior():
-    ai_chat = get_plan_config("ai_chat")
-    locked = locked_features_for("ai_chat", [feature.value for feature in ai_chat.features])
+    widget_only = get_plan_config("widget_only")
+    locked = locked_features_for("widget_only", [feature.value for feature in widget_only.features])
 
     assert "ai_answering" in locked
-    assert "marketing_funnels" in locked
+    assert "social_media_marketing" in locked
     assert "ai_widget" not in locked
 
 
 @pytest.mark.asyncio
 async def test_plan_gating_allows_enabled_feature(monkeypatch):
-    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="enterprise")
+    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="advanced")
 
     async def fake_has_feature(_db, tenant_id, feature):
         assert tenant_id == tenant.id
-        assert feature == "marketing_funnels"
+        assert feature == "social_media_marketing"
         return True, tenant
 
     monkeypatch.setattr("app.api.plan_deps.service.tenant_has_feature", fake_has_feature)
-    dependency = require_tenant_feature(PlanFeature.marketing_funnels)
+    dependency = require_tenant_feature(PlanFeature.social_media_marketing)
 
     assert await dependency(x_roadcall_tenant_id=str(tenant.id), db=None) is tenant
 
 
 @pytest.mark.asyncio
 async def test_plan_gating_blocks_locked_feature(monkeypatch):
-    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="ai_chat")
+    tenant = SimpleNamespace(id=uuid.uuid4(), current_plan="widget_only")
 
     async def fake_has_feature(_db, _tenant_id, feature):
-        assert feature == "marketing_funnels"
+        assert feature == "social_media_marketing"
         return False, tenant
 
     monkeypatch.setattr("app.api.plan_deps.service.tenant_has_feature", fake_has_feature)
-    dependency = require_tenant_feature(PlanFeature.marketing_funnels)
+    dependency = require_tenant_feature(PlanFeature.social_media_marketing)
 
     with pytest.raises(HTTPException) as exc:
         await dependency(x_roadcall_tenant_id=str(tenant.id), db=None)
@@ -148,7 +150,7 @@ async def test_provisioning_endpoint_accepts_all_plans(monkeypatch):
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        for plan_id in ("ai_chat", "widget_voice", "driver_pro", "professional", "premium", "enterprise"):
+        for plan_id in ("widget_only", "ai_telephony", "widget_voice", "enterprise", "standard", "professional", "advanced"):
             resp = await ac.post(
                 "/api/provisioning/tenants",
                 headers={"x-admin-key": "test-admin-key"},
@@ -171,7 +173,7 @@ async def test_ghl_snapshot_assignment_placeholder_is_safe_without_webhook(monke
         organization_id=str(uuid.uuid4()),
         location_id="loc_123",
         snapshot_id="snap_123",
-        plan_id="premium",
+        plan_id="professional",
         tenant_id=str(uuid.uuid4()),
     )
 

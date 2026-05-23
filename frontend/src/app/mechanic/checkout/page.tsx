@@ -7,41 +7,29 @@ import { ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { getApiBase } from "@/lib/api-client";
 
 const PLANS = {
-  ai_chat: {
-    name: "AI Chat",
-    price: "$49/mo",
-    setup: "No setup fee",
-    features: ["AI website widget", "FAQ assistant", "Appointment capture", "Lead capture", "No SaaS Mode provisioning"],
+  widget_only: {
+    name: "Widget Only",
+    price: "$99.99/mo",
+    setup: "$49.99 setup",
+    features: ["AI widget", "FAQ assistant", "Appointment capture", "Lead capture", "No SaaS Mode provisioning"],
+  },
+  ai_telephony: {
+    name: "AI Telephony Only",
+    price: "$99.99/mo",
+    setup: "$49.99 setup",
+    features: ["AI phone answering", "AI intake", "Missed-call text-back", "Call summaries", "No SaaS Mode provisioning"],
   },
   widget_voice: {
-    name: "Widget + Voice",
-    price: "$149/mo",
-    setup: "No setup fee",
-    features: ["Everything in AI Chat", "AI phone answering", "AI intake", "Missed-call text-back", "No SaaS Mode provisioning"],
-  },
-  driver_pro: {
-    name: "Driver Pro",
-    price: "$9.99/mo",
-    setup: "No setup fee",
-    features: ["Saved truck profile", "Roadside intake", "Preferred providers", "Dispatch tracking", "No SaaS Mode provisioning"],
-  },
-  professional: {
-    name: "Professional",
-    price: "$297/mo",
-    setup: "$199 setup",
-    features: ["AI website", "CRM and pipelines", "Workflows", "Calendars", "GHL SaaS Mode snapshot"],
-  },
-  premium: {
-    name: "Premium",
-    price: "$497/mo",
-    setup: "$299 setup",
-    features: ["Everything in Professional", "Mobile app", "Customer portal", "Fleet dashboard", "Advanced reporting"],
+    name: "Widget + AI Telephony",
+    price: "$149.99/mo",
+    setup: "$97.99 setup",
+    features: ["AI widget", "AI phone answering", "Lead capture", "Call summaries", "No SaaS Mode provisioning"],
   },
   enterprise: {
     name: "Enterprise",
-    price: "$997/mo",
-    setup: "$499 setup",
-    features: ["Everything in Premium", "Social media marketing", "Funnels and campaigns", "Content automation", "Priority support"],
+    price: "$19.99/mo",
+    setup: "No setup fee",
+    features: ["Map view access", "Additional provider information", "Trucking company profile", "Dispatch status visibility"],
   },
 } as const;
 
@@ -50,7 +38,7 @@ type PlanId = keyof typeof PLANS;
 function MechanicCheckoutContent() {
   const params = useSearchParams();
   const rawPlan = params.get("plan") || "widget_voice";
-  const initialPlan = ({ starter: "ai_chat", standard: "widget_voice", growth: "professional", pro: "premium", advanced: "enterprise" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
+  const initialPlan = ({ starter: "widget_only", ai_chat: "widget_only", voice: "ai_telephony", driver_pro: "enterprise" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
   const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "widget_voice");
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -96,9 +84,9 @@ function MechanicCheckoutContent() {
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
           <Link href="/pricing" className="text-sm font-semibold text-blue-300 hover:text-blue-200">← Back to pricing</Link>
           <h1 className="mt-8 text-4xl font-black tracking-tight">Start your Roadcall AI advisor.</h1>
-          <p className="mt-4 text-slate-300">Subscribe, complete your profile, then Roadcall activates the right AI service or full business OS workspace for your plan.</p>
+          <p className="mt-4 text-slate-300">Subscribe, complete your profile, then Roadcall activates the right simple AI or trucking access plan.</p>
           <div className="mt-8 space-y-3">
-            {["Secure billing activates your subscription", "Lightweight plans skip GHL SaaS Mode provisioning", "Full OS plans create the Roadcall/GHL workspace", "Your profile is completed after checkout"].map((item) => (
+            {["Secure billing activates your subscription", "Simple plans skip GHL SaaS Mode provisioning", "GHL Standard, Professional, and Advanced are started in GHL", "Your profile is completed after checkout"].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
             ))}
           </div>

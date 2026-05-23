@@ -72,8 +72,12 @@ export default function ShopsPage() {
 
   const planColors: Record<string, string> = {
     standard: "bg-slate-500/20 text-slate-300",
-    premium: "bg-blue-500/20 text-blue-300",
+    professional: "bg-blue-500/20 text-blue-300",
     advanced: "bg-purple-500/20 text-purple-300",
+    widget_only: "bg-cyan-500/20 text-cyan-300",
+    ai_telephony: "bg-emerald-500/20 text-emerald-300",
+    widget_voice: "bg-orange-500/20 text-orange-300",
+    enterprise: "bg-indigo-500/20 text-indigo-300",
   };
 
   return (

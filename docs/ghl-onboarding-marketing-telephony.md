@@ -22,14 +22,14 @@ Roadcall now has two product ecosystems:
 
 | Ecosystem | Plans | Billing | Onboarding | GHL SaaS Mode |
 | --- | --- | --- | --- | --- |
-| Lightweight AI Services | AI Chat ($49), Widget + Voice ($149), Driver Pro ($9.99) | Stripe | Roadcall lightweight profile/widget/voice setup | No |
-| Full Business OS | Professional ($297), Premium ($497), Enterprise ($997) | Stripe | Roadcall tenant plus GHL SaaS snapshot | Yes |
+| Simple Roadcall Services | Widget Only ($99.99), AI Telephony Only ($99.99), Widget + AI Telephony ($149.99), Enterprise trucking map access ($19.99) | Stripe | Roadcall lightweight profile/widget/voice/map setup | No |
+| GHL Business OS | Standard ($297 + $149 setup), Professional ($497 + $199 setup), Advanced ($997 + $299 setup) | GHL | Roadcall tenant plus GHL SaaS snapshot | Yes |
 
 Rules:
 
-- AI Chat, Widget + Voice, and Driver Pro must not create GHL SaaS sub-accounts automatically.
-- Professional, Premium, and Enterprise are the only plans that should trigger GHL SaaS Mode snapshot provisioning.
-- Stripe remains billing truth for all plans.
+- Widget Only, AI Telephony Only, Widget + AI Telephony, and Enterprise trucking map access must not create GHL SaaS sub-accounts automatically.
+- Standard, Professional, and Advanced are the only plans that should trigger GHL SaaS Mode snapshot provisioning.
+- Stripe remains billing truth for simple Roadcall services. GHL owns checkout/billing for Standard, Professional, and Advanced.
 - Roadcall remains operational truth for tenants, profiles, AI widgets, AI telephony, driver profiles, fleet dashboards, dispatch state, and entitlements.
 - GHL remains CRM, workflows, pipelines, calendars, forms, email/SMS marketing, reputation, funnels, and onboarding automation for full Business OS accounts.
 
@@ -317,15 +317,16 @@ Roadcall endpoints already exist for:
 
 Only the full Business OS plans require GHL snapshots:
 
-- Professional — $297/mo + $199 setup: AI website, widget, AI phone, CRM, pipelines, workflows, calendars, and reputation management.
-- Premium — $497/mo + $299 setup: everything in Professional plus mobile app, customer portal, multi-user access, fleet dashboard, and advanced reporting.
-- Enterprise — $997/mo + $499 setup: everything in Premium plus social media marketing, content automation, funnels, CRM campaigns, multi-location support, and custom workflows.
+- Standard — $297/mo + $149 setup: website, AI telephone, widget, CRM, pipelines, workflows, calendars, and reputation management.
+- Professional — $497/mo + $199 setup: everything in Standard plus mobile app and customer portal access.
+- Advanced — $997/mo + $299 setup: everything in Professional plus social media marketing.
 
 The lightweight plans are Roadcall-owned services and should not be built as GHL SaaS snapshots:
 
-- AI Chat — $49/mo: website AI widget, FAQ assistant, lead capture, and booking assistant.
-- Widget + Voice — $149/mo: AI widget plus AI phone answering, intake, lead qualification, missed-call text-back, and call summaries.
-- Driver Pro — $9.99/mo: saved truck profile, roadside intake, preferred providers, and dispatch tracking.
+- Widget Only — $99.99/mo + $49.99 setup: AI widget for mechanics that do not want a new website.
+- AI Telephony Only — $99.99/mo + $49.99 setup: AI phone answering, intake, missed-call text-back, and call summaries.
+- Widget + AI Telephony — $149.99/mo + $97.99 setup: combined widget and AI phone package.
+- Enterprise — $19.99/mo: trucking company access to map view and additional provider information.
 
 Use the snapshot builder to generate source-location build guides:
 
@@ -335,14 +336,14 @@ python backend/scripts/build_ghl_plan_snapshots.py
 
 Artifacts are written to:
 
+- `ghl/generated/standard/`
 - `ghl/generated/professional/`
-- `ghl/generated/premium/`
-- `ghl/generated/enterprise/`
+- `ghl/generated/advanced/`
 
 If you want the script to push the safe subset of assets to a clean GHL source location, set `GHL_API_KEY` and `GHL_LOCATION_ID`, then run:
 
 ```bash
-python backend/scripts/build_ghl_plan_snapshots.py --plan enterprise --apply
+python backend/scripts/build_ghl_plan_snapshots.py --plan advanced --apply
 ```
 
 The script does not print secrets. It applies only conservative, location-level assets currently represented as tags and custom fields. After that, use the generated guide to create/verify pipelines, workflows, templates, calendars, and AI prompts, then save the configured source location as the official GHL agency Snapshot.

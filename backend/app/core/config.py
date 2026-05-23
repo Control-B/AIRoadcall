@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     STRIPE_STANDARD_PRICE_ID: str = ""
     STRIPE_PREMIUM_PRICE_ID: str = ""
     STRIPE_ADVANCED_PRICE_ID: str = ""
+    STRIPE_WIDGET_ONLY_PRICE_ID: str = ""
+    STRIPE_AI_TELEPHONY_PRICE_ID: str = ""
     STRIPE_AI_CHAT_PRICE_ID: str = ""
     STRIPE_WIDGET_VOICE_PRICE_ID: str = ""
     STRIPE_DRIVER_PRO_PRICE_ID: str = ""
@@ -119,17 +121,13 @@ class Settings(BaseSettings):
 
     def stripe_price_id_for_plan(self, plan_id: str) -> str:
         return {
-            "ai_chat": self.STRIPE_AI_CHAT_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
+            "widget_only": self.STRIPE_WIDGET_ONLY_PRICE_ID or self.STRIPE_AI_CHAT_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
+            "ai_telephony": self.STRIPE_AI_TELEPHONY_PRICE_ID,
             "widget_voice": self.STRIPE_WIDGET_VOICE_PRICE_ID or self.STRIPE_STANDARD_PRICE_ID,
-            "driver_pro": self.STRIPE_DRIVER_PRO_PRICE_ID,
-            "professional": self.STRIPE_PROFESSIONAL_PRICE_ID or self.STRIPE_GROWTH_PRICE_ID,
-            "premium": self.STRIPE_PREMIUM_PRICE_ID or self.STRIPE_PRO_PRICE_ID,
-            "enterprise": self.STRIPE_ENTERPRISE_PRICE_ID or self.STRIPE_ADVANCED_PRICE_ID,
-            "standard": self.STRIPE_WIDGET_VOICE_PRICE_ID or self.STRIPE_STANDARD_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
-            "starter": self.STRIPE_AI_CHAT_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
-            "growth": self.STRIPE_PROFESSIONAL_PRICE_ID or self.STRIPE_GROWTH_PRICE_ID,
-            "pro": self.STRIPE_PREMIUM_PRICE_ID or self.STRIPE_PRO_PRICE_ID,
-            "advanced": self.STRIPE_ENTERPRISE_PRICE_ID or self.STRIPE_ADVANCED_PRICE_ID,
+            "enterprise": self.STRIPE_ENTERPRISE_PRICE_ID or self.STRIPE_DRIVER_PRO_PRICE_ID,
+            "ai_chat": self.STRIPE_WIDGET_ONLY_PRICE_ID or self.STRIPE_AI_CHAT_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
+            "driver_pro": self.STRIPE_ENTERPRISE_PRICE_ID or self.STRIPE_DRIVER_PRO_PRICE_ID,
+            "starter": self.STRIPE_WIDGET_ONLY_PRICE_ID or self.STRIPE_AI_CHAT_PRICE_ID or self.STRIPE_STARTER_PRICE_ID,
         }.get(plan_id, "")
 
     model_config = {

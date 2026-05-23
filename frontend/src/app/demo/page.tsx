@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/card";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { SiteFooter } from "@/components/site-footer";
+import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
 
 const features = [
   {
@@ -67,45 +68,42 @@ const features = [
 const plans = [
   {
     name: "Standard",
-    price: 197,
-    setup: "$99 setup",
-    description: "AI telephony essentials",
-    href: "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k",
+    price: 297,
+    setup: "$149 setup",
+    description: "Website, AI telephone, and widget",
+    href: GHL_GET_STARTED_URL,
     features: [
-      "AI Telephony",
-      "Leads",
-      "Calendar",
+      "Website",
+      "AI Telephone",
+      "AI Widget",
       "CRM",
-      "Form Builder",
-      "Missed Call Text Back",
+      "GHL SaaS Mode",
     ],
   },
   {
     name: "Professional",
-    price: 297,
+    price: 497,
     setup: "$199 setup",
-    description: "Website and marketing suite",
+    description: "Standard plus mobile app",
     popular: true,
-    href: "https://buy.stripe.com/fZu28t94c8Fw0IG6Ee1sQ0l",
+    href: GHL_GET_STARTED_URL,
     features: [
       "Everything in Standard",
-      "Website",
-      "Web Chat",
-      "Email Marketing",
-      "Survey Builder",
+      "Mobile App",
+      "Customer Portal",
+      "GHL SaaS Mode",
     ],
   },
   {
     name: "Advanced",
     price: 997,
     setup: "$299 setup",
-    description: "Full marketing engine",
-    href: "https://buy.stripe.com/3cI9AVgwE0909fcd2C1sQ0m",
+    description: "Professional plus social media marketing",
+    href: GHL_GET_STARTED_URL,
     features: [
       "Everything in Professional",
       "Social Media Marketing",
-      "Funnels",
-      "Email Marketing",
+      "Content Planning",
     ],
   },
 ];

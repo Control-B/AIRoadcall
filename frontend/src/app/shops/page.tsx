@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
 import roadcallRoadsideVideo from "@/assets/videos/Roadcall.Roadside.mp4";
 import { mediaUrl } from "@/lib/media";
 
@@ -74,69 +75,80 @@ const howItWorks = [
 
 const plans = [
   {
-    id: "ai_chat",
-    name: "AI Chat",
-    price: "$49",
+    id: "widget_only",
+    name: "Widget Only",
+    price: "$99.99",
     period: "/mo",
-    setup: "No setup fee",
-    description: "Lightweight AI widget for website chat, FAQs, booking capture, and lead intake",
-    features: ["AI website widget", "FAQ assistant", "Appointment capture", "Lead capture", "No SaaS Mode"],
-    cta: "Start AI Chat",
+    setup: "$49.99 setup",
+    description: "AI widget for mechanics that do not want a new website",
+    features: ["AI widget", "FAQ assistant", "Appointment capture", "Lead capture", "No SaaS Mode"],
+    cta: "Start Widget Only",
+    highlighted: false,
+  },
+  {
+    id: "ai_telephony",
+    name: "AI Telephony Only",
+    price: "$99.99",
+    period: "/mo",
+    setup: "$49.99 setup",
+    description: "AI answering and intake without a website or widget package",
+    features: ["AI phone answering", "AI intake", "Missed-call text-back", "Call summaries", "No SaaS Mode"],
+    cta: "Start AI Telephony",
     highlighted: false,
   },
   {
     id: "widget_voice",
-    name: "Widget + Voice",
-    price: "$149",
+    name: "Widget + AI Telephony",
+    price: "$149.99",
     period: "/mo",
-    setup: "No setup fee",
-    description: "AI chat plus AI answering, intake, qualification, missed-call text-back, and summaries",
-    features: ["Everything in AI Chat", "AI phone answering", "AI intake", "Missed-call text-back", "No SaaS Mode"],
-    cta: "Start Widget + Voice",
+    setup: "$97.99 setup",
+    description: "AI widget plus AI phone answering for shops that do not need GHL",
+    features: ["AI widget", "AI phone answering", "Lead capture", "Call summaries", "No SaaS Mode"],
+    cta: "Start Widget + AI Telephony",
     highlighted: true,
   },
   {
-    id: "driver_pro",
-    name: "Driver Pro",
-    price: "$9.99",
+    id: "enterprise",
+    name: "Enterprise",
+    price: "$19.99",
     period: "/mo",
     setup: "No setup fee",
-    description: "Driver roadside profile for faster intake, preferred providers, and dispatch status",
-    features: ["Saved truck profile", "Roadside intake", "Preferred providers", "Dispatch tracking"],
-    cta: "Start Driver Pro",
+    description: "Trucking company access to map view and additional provider information",
+    features: ["Map view access", "Provider information", "Trucking company profile", "Dispatch status visibility"],
+    cta: "Start Enterprise",
+    highlighted: false,
+  },
+  {
+    id: "standard",
+    name: "Standard",
+    price: "$297",
+    period: "/mo",
+    setup: "$149 setup",
+    description: "GHL website, AI telephone, widget, CRM, and workflow foundation",
+    features: ["Website", "AI telephone", "AI widget", "CRM and workflows", "GHL SaaS Mode"],
+    cta: "Start Standard",
     highlighted: false,
   },
   {
     id: "professional",
     name: "Professional",
-    price: "$297",
+    price: "$497",
     period: "/mo",
     setup: "$199 setup",
-    description: "Full business OS with AI website, CRM, pipelines, workflows, calendars, and reputation",
-    features: ["AI website", "CRM and pipelines", "Workflows", "Calendars", "GHL SaaS Mode"],
+    description: "Everything in Standard plus mobile app access",
+    features: ["Everything in Standard", "Mobile app", "Customer portal access", "GHL SaaS Mode"],
     cta: "Start Professional",
     highlighted: false,
   },
   {
-    id: "premium",
-    name: "Premium",
-    price: "$497",
-    period: "/mo",
-    setup: "$299 setup",
-    description: "Business OS plus mobile app, customer portal, fleet dashboard, and reporting",
-    features: ["Everything in Professional", "Mobile app", "Customer portal", "Fleet dashboard", "Advanced reporting"],
-    cta: "Start Premium",
-    highlighted: false,
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
+    id: "advanced",
+    name: "Advanced",
     price: "$997",
     period: "/mo",
-    setup: "$499 setup",
-    description: "Multi-location business OS with campaigns, funnels, content automation, and custom workflows",
-    features: ["Everything in Premium", "Social media marketing", "Funnels and campaigns", "Content automation", "Priority support"],
-    cta: "Start Enterprise",
+    setup: "$299 setup",
+    description: "Everything in Professional plus social media marketing",
+    features: ["Everything in Professional", "Social media marketing", "Content planning", "GHL SaaS Mode"],
+    cta: "Start Advanced",
     highlighted: false,
   },
 ];
@@ -253,7 +265,7 @@ export default function ShopsPage() {
       {/* Pricing */}
       <section className="py-24 md:py-32 border-t border-roadcall-cyan/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <SectionHeading eyebrow="Hybrid Pricing" title="Lightweight AI services or the full business OS." />
+          <SectionHeading eyebrow="Hybrid Pricing" title="Simple Stripe plans or GHL-powered growth plans." />
           <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
             {plans.map((plan) => (
               <FadeIn key={plan.name}>
@@ -277,7 +289,7 @@ export default function ShopsPage() {
                       </li>
                     ))}
                   </ul>
-                  <Link href={`/mechanic/checkout?plan=${plan.id}`}>
+                  <Link href={["standard", "professional", "advanced"].includes(plan.id) ? GHL_GET_STARTED_URL : `/mechanic/checkout?plan=${plan.id}`}>
                     <Button className={`w-full rounded-full ${plan.highlighted ? "bg-gradient-to-r from-roadcall-orange to-roadcall-blue hover:from-roadcall-orange hover:to-roadcall-blue" : "bg-roadcall-panel/60 hover:bg-white/15"}`}>
                       {plan.cta}
                     </Button>

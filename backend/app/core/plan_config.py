@@ -7,12 +7,13 @@ from app.core.config import get_settings
 
 
 class PlanTier(StrEnum):
-    ai_chat = "ai_chat"
+    widget_only = "widget_only"
+    ai_telephony = "ai_telephony"
     widget_voice = "widget_voice"
-    driver_pro = "driver_pro"
-    professional = "professional"
-    premium = "premium"
     enterprise = "enterprise"
+    standard = "standard"
+    professional = "professional"
+    advanced = "advanced"
 
 
 class PlanFeature(StrEnum):
@@ -32,6 +33,9 @@ class PlanFeature(StrEnum):
     saved_truck_profile = "saved_truck_profile"
     preferred_providers = "preferred_providers"
     dispatch_tracking = "dispatch_tracking"
+    map_view = "map_view"
+    provider_directory = "provider_directory"
+    trucking_company_profile = "trucking_company_profile"
     website_widget = "website_widget"
     ai_website = "ai_website"
     web_chat = "web_chat"
@@ -83,17 +87,24 @@ class PlanFeature(StrEnum):
 
 
 PLAN_ALIASES = {
-    "chat": PlanTier.ai_chat,
-    "ai-chat": PlanTier.ai_chat,
-    "starter": PlanTier.ai_chat,
-    "voice": PlanTier.widget_voice,
+    "chat": PlanTier.widget_only,
+    "ai_chat": PlanTier.widget_only,
+    "ai-chat": PlanTier.widget_only,
+    "starter": PlanTier.widget_only,
+    "widget": PlanTier.widget_only,
+    "widget-only": PlanTier.widget_only,
+    "voice": PlanTier.ai_telephony,
+    "ai-phone": PlanTier.ai_telephony,
+    "ai-telephony": PlanTier.ai_telephony,
     "widget+voice": PlanTier.widget_voice,
-    "standard": PlanTier.widget_voice,
-    "driver": PlanTier.driver_pro,
-    "driver-pro": PlanTier.driver_pro,
-    "growth": PlanTier.professional,
-    "pro": PlanTier.premium,
-    "advanced": PlanTier.enterprise,
+    "widget-ai-telephony": PlanTier.widget_voice,
+    "driver": PlanTier.enterprise,
+    "driver_pro": PlanTier.enterprise,
+    "driver-pro": PlanTier.enterprise,
+    "trucking": PlanTier.enterprise,
+    "growth": PlanTier.standard,
+    "premium": PlanTier.professional,
+    "pro": PlanTier.professional,
 }
 
 
@@ -102,7 +113,7 @@ class PlanConfig:
     id: PlanTier
     name: str
     price_monthly: float
-    setup_fee: int
+    setup_fee: float
     ecosystem: str
     billing_system: str
     onboarding_mode: str
@@ -117,33 +128,36 @@ class PlanConfig:
     ai_feature_permissions: tuple[str, ...]
 
 
-AI_CHAT_FEATURES = (
+WIDGET_ONLY_FEATURES = (
     PlanFeature.ai_widget,
     PlanFeature.faq_assistant,
     PlanFeature.lead_capture,
     PlanFeature.appointment_scheduling,
-    PlanFeature.website_widget,
 )
 
-WIDGET_VOICE_FEATURES = AI_CHAT_FEATURES + (
+AI_TELEPHONY_FEATURES = (
     PlanFeature.ai_answering,
     PlanFeature.ai_intake,
     PlanFeature.lead_qualification,
     PlanFeature.missed_call_text_back,
-    PlanFeature.crm_integration,
     PlanFeature.call_summaries,
+    PlanFeature.lead_capture,
 )
 
-DRIVER_PRO_FEATURES = (
+WIDGET_VOICE_FEATURES = WIDGET_ONLY_FEATURES + AI_TELEPHONY_FEATURES
+
+ENTERPRISE_TRUCKING_FEATURES = (
+    PlanFeature.map_view,
+    PlanFeature.provider_directory,
+    PlanFeature.trucking_company_profile,
     PlanFeature.roadside_intake,
-    PlanFeature.saved_truck_profile,
     PlanFeature.dispatch_tracking,
     PlanFeature.preferred_providers,
-    PlanFeature.driver_intake,
 )
 
-PROFESSIONAL_FEATURES = WIDGET_VOICE_FEATURES + (
+STANDARD_FEATURES = WIDGET_VOICE_FEATURES + (
     PlanFeature.ai_website,
+    PlanFeature.website_widget,
     PlanFeature.crm,
     PlanFeature.pipelines,
     PlanFeature.workflows,
@@ -153,24 +167,17 @@ PROFESSIONAL_FEATURES = WIDGET_VOICE_FEATURES + (
     PlanFeature.snapshot_deployment,
 )
 
-PREMIUM_FEATURES = PROFESSIONAL_FEATURES + (
+PROFESSIONAL_FEATURES = STANDARD_FEATURES + (
     PlanFeature.mobile_app,
     PlanFeature.customer_portal,
     PlanFeature.multi_user_access,
-    PlanFeature.enhanced_automation,
-    PlanFeature.fleet_dashboard,
-    PlanFeature.advanced_reporting,
 )
 
-ENTERPRISE_FEATURES = PREMIUM_FEATURES + (
+ADVANCED_FEATURES = PROFESSIONAL_FEATURES + (
     PlanFeature.social_media_marketing,
     PlanFeature.content_automation,
     PlanFeature.marketing_funnels,
     PlanFeature.crm_campaigns,
-    PlanFeature.multi_location_support,
-    PlanFeature.custom_workflows,
-    PlanFeature.priority_support,
-    PlanFeature.growth_automation,
 )
 
 
@@ -179,8 +186,9 @@ def _plan(
     id: PlanTier,
     name: str,
     price_monthly: float,
-    setup_fee: int,
+    setup_fee: float,
     ecosystem: str,
+    billing_system: str,
     onboarding_mode: str,
     uses_saas_mode: bool,
     features: tuple[PlanFeature, ...],
@@ -197,7 +205,7 @@ def _plan(
         price_monthly=price_monthly,
         setup_fee=setup_fee,
         ecosystem=ecosystem,
-        billing_system="stripe",
+        billing_system=billing_system,
         onboarding_mode=onboarding_mode,
         uses_saas_mode=uses_saas_mode,
         automatic_subaccount_provisioning=uses_saas_mode,
@@ -214,95 +222,114 @@ def _plan(
 def get_plan_configs() -> dict[str, PlanConfig]:
     settings = get_settings()
     return {
-        "ai_chat": _plan(
-            id=PlanTier.ai_chat,
-            name="AI Chat",
-            price_monthly=49,
-            setup_fee=0,
-            ecosystem="lightweight_ai_services",
+        "widget_only": _plan(
+            id=PlanTier.widget_only,
+            name="Widget Only",
+            price_monthly=99.99,
+            setup_fee=49.99,
+            ecosystem="simple_ai_services",
+            billing_system="stripe",
             onboarding_mode="lightweight_widget",
             uses_saas_mode=False,
-            features=AI_CHAT_FEATURES,
-            allowed_modules=("ai_widget", "lead_capture", "booking", "website_qa"),
+            features=WIDGET_ONLY_FEATURES,
+            allowed_modules=("ai_widget", "lead_capture", "booking"),
             webhook_permissions=("subscription", "widget.lead", "widget.conversation"),
             dashboard_permissions=("dashboard.read", "widget.read", "leads.read"),
             ai_feature_permissions=("ai.widget", "ai.faq", "ai.booking_assistant"),
         ),
+        "ai_telephony": _plan(
+            id=PlanTier.ai_telephony,
+            name="AI Telephony Only",
+            price_monthly=99.99,
+            setup_fee=49.99,
+            ecosystem="simple_ai_services",
+            billing_system="stripe",
+            onboarding_mode="lightweight_voice",
+            uses_saas_mode=False,
+            features=AI_TELEPHONY_FEATURES,
+            allowed_modules=("ai_phone", "lead_capture", "sms", "call_summaries"),
+            webhook_permissions=("subscription", "call.summary", "missed_call"),
+            dashboard_permissions=("dashboard.read", "calls.read", "leads.read"),
+            ai_feature_permissions=("ai.telephony", "ai.intake", "ai.missed_call_text_back"),
+        ),
         "widget_voice": _plan(
             id=PlanTier.widget_voice,
-            name="Widget + Voice",
-            price_monthly=149,
-            setup_fee=0,
-            ecosystem="lightweight_ai_services",
+            name="Widget + AI Telephony",
+            price_monthly=149.99,
+            setup_fee=97.99,
+            ecosystem="simple_ai_services",
+            billing_system="stripe",
             onboarding_mode="lightweight_widget_voice",
             uses_saas_mode=False,
             features=WIDGET_VOICE_FEATURES,
-            allowed_modules=("ai_widget", "ai_phone", "lead_capture", "crm_integration", "sms", "call_summaries"),
+            allowed_modules=("ai_widget", "ai_phone", "lead_capture", "sms", "call_summaries"),
             webhook_permissions=("subscription", "widget.lead", "call.summary", "missed_call"),
             dashboard_permissions=("dashboard.read", "widget.read", "calls.read", "leads.read"),
             ai_feature_permissions=("ai.widget", "ai.telephony", "ai.intake", "ai.missed_call_text_back"),
         ),
-        "driver_pro": _plan(
-            id=PlanTier.driver_pro,
-            name="Driver Pro",
-            price_monthly=9.99,
+        "enterprise": _plan(
+            id=PlanTier.enterprise,
+            name="Enterprise",
+            price_monthly=19.99,
             setup_fee=0,
-            ecosystem="lightweight_ai_services",
-            onboarding_mode="driver_self_service",
+            ecosystem="simple_trucking_services",
+            billing_system="stripe",
+            onboarding_mode="trucking_self_service",
             uses_saas_mode=False,
-            features=DRIVER_PRO_FEATURES,
-            allowed_modules=("driver_profile", "roadside_access", "dispatch_tracking", "preferred_providers"),
+            features=ENTERPRISE_TRUCKING_FEATURES,
+            allowed_modules=("map_view", "provider_directory", "trucking_profile", "dispatch_tracking"),
             webhook_permissions=("subscription", "roadside.request", "dispatch.status"),
-            dashboard_permissions=("driver.profile.read", "dispatch.read"),
+            dashboard_permissions=("map.read", "providers.read", "dispatch.read"),
             dispatch_permissions=("roadside.request", "dispatch.status.read"),
             ai_feature_permissions=("ai.roadside", "ai.driver_intake"),
+        ),
+        "standard": _plan(
+            id=PlanTier.standard,
+            name="Standard",
+            price_monthly=297,
+            setup_fee=149,
+            ecosystem="ghl_business_os",
+            billing_system="ghl",
+            onboarding_mode="ghl_saas_snapshot",
+            uses_saas_mode=True,
+            features=STANDARD_FEATURES,
+            snapshot_id=settings.GHL_STANDARD_SNAPSHOT_ID or settings.GHL_PROFESSIONAL_SNAPSHOT_ID or "TODO_GHL_STANDARD_SNAPSHOT_ID",
+            allowed_modules=("ai_website", "ai_widget", "ai_phone", "crm", "pipelines", "workflows", "calendar", "sms"),
+            webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "ghl.appointment", "call.summary"),
+            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "calendar.read", "website.read"),
+            ai_feature_permissions=("ai.telephony", "ai.widget", "ai.web_chat", "ai.lead_qualification"),
         ),
         "professional": _plan(
             id=PlanTier.professional,
             name="Professional",
-            price_monthly=297,
+            price_monthly=497,
             setup_fee=199,
-            ecosystem="full_business_os",
+            ecosystem="ghl_business_os",
+            billing_system="ghl",
             onboarding_mode="ghl_saas_snapshot",
             uses_saas_mode=True,
             features=PROFESSIONAL_FEATURES,
             snapshot_id=settings.GHL_PROFESSIONAL_SNAPSHOT_ID or settings.GHL_PREMIUM_SNAPSHOT_ID or "TODO_GHL_PROFESSIONAL_SNAPSHOT_ID",
-            allowed_modules=("ai_website", "ai_widget", "ai_phone", "crm", "pipelines", "workflows", "calendar", "sms", "reputation"),
-            webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "ghl.appointment", "call.summary"),
-            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "calendar.read", "website.read", "reputation.read"),
-            ai_feature_permissions=("ai.telephony", "ai.widget", "ai.web_chat", "ai.lead_qualification"),
-        ),
-        "premium": _plan(
-            id=PlanTier.premium,
-            name="Premium",
-            price_monthly=497,
-            setup_fee=299,
-            ecosystem="full_business_os",
-            onboarding_mode="ghl_saas_snapshot",
-            uses_saas_mode=True,
-            features=PREMIUM_FEATURES,
-            snapshot_id=settings.GHL_PREMIUM_SNAPSHOT_ID or settings.GHL_PROFESSIONAL_SNAPSHOT_ID or "TODO_GHL_PREMIUM_SNAPSHOT_ID",
-            allowed_modules=("mobile_app", "customer_portal", "ai_phone", "ai_widget", "crm", "calendar", "sms", "website", "fleet_dashboard", "reporting", "automation"),
-            webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "ghl.appointment", "ghl.workflow", "call.summary", "fleet.dashboard"),
-            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "calendar.read", "portal.read", "fleet.read", "reports.read"),
-            dispatch_permissions=("dispatch.dashboard.read",),
+            allowed_modules=("mobile_app", "customer_portal", "ai_phone", "ai_widget", "crm", "calendar", "sms", "website", "automation"),
+            webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "ghl.appointment", "ghl.workflow", "call.summary"),
+            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "calendar.read", "portal.read"),
             ai_feature_permissions=("ai.telephony", "ai.widget", "ai.web_chat", "ai.advanced_workflows"),
         ),
-        "enterprise": _plan(
-            id=PlanTier.enterprise,
-            name="Enterprise",
+        "advanced": _plan(
+            id=PlanTier.advanced,
+            name="Advanced",
             price_monthly=997,
-            setup_fee=499,
-            ecosystem="full_business_os",
-            onboarding_mode="ghl_saas_snapshot_plus_custom",
+            setup_fee=299,
+            ecosystem="ghl_business_os",
+            billing_system="ghl",
+            onboarding_mode="ghl_saas_snapshot_plus_marketing",
             uses_saas_mode=True,
-            features=ENTERPRISE_FEATURES,
-            snapshot_id=settings.GHL_ADVANCED_SNAPSHOT_ID or settings.GHL_PREMIUM_SNAPSHOT_ID or "TODO_GHL_ENTERPRISE_SNAPSHOT_ID",
-            allowed_modules=("multi_location", "social_media", "content", "funnels", "crm_campaigns", "custom_ai", "priority_support", "growth_automation", "fleet_dashboard"),
-            webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "ghl.appointment", "ghl.social", "ghl.funnel", "ghl.campaign", "ai.voice"),
-            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "calendar.read", "social.read", "funnels.read", "campaigns.read", "fleet.read"),
-            dispatch_permissions=("dispatch.dashboard.read", "dispatch.escalation.write", "fleet.reporting.read"),
-            ai_feature_permissions=("ai.telephony", "ai.widget", "ai.custom_workflows", "ai.marketing_automation", "ai.dispatch_intelligence"),
+            features=ADVANCED_FEATURES,
+            snapshot_id=settings.GHL_ADVANCED_SNAPSHOT_ID or settings.GHL_PREMIUM_SNAPSHOT_ID or "TODO_GHL_ADVANCED_SNAPSHOT_ID",
+            allowed_modules=("mobile_app", "customer_portal", "social_media", "content", "funnels", "crm_campaigns", "automation"),
+            webhook_permissions=("subscription", "ghl.contact", "ghl.opportunity", "ghl.appointment", "ghl.social", "ghl.funnel", "ghl.campaign"),
+            dashboard_permissions=("dashboard.read", "leads.read", "crm.read", "calendar.read", "social.read", "campaigns.read"),
+            ai_feature_permissions=("ai.telephony", "ai.widget", "ai.marketing_automation"),
         ),
     }
 
@@ -313,15 +340,7 @@ def get_plan_config(plan_id: str | PlanTier) -> PlanConfig:
         tier = PLAN_ALIASES.get(plan_key) or PlanTier(plan_key)
     except ValueError as exc:
         raise KeyError(f"Unknown Roadcall plan: {plan_id}") from exc
-    plan_config_key = {
-        PlanTier.ai_chat: "ai_chat",
-        PlanTier.widget_voice: "widget_voice",
-        PlanTier.driver_pro: "driver_pro",
-        PlanTier.professional: "professional",
-        PlanTier.premium: "premium",
-        PlanTier.enterprise: "enterprise",
-    }[tier]
-    return get_plan_configs()[plan_config_key]
+    return get_plan_configs()[tier.value]
 
 
 def canonical_plan_id(plan_id: str | PlanTier) -> str:
@@ -331,12 +350,13 @@ def canonical_plan_id(plan_id: str | PlanTier) -> str:
 def included_leads_for(plan_id: str | PlanTier) -> int:
     tier = get_plan_config(plan_id).id
     return {
-        PlanTier.ai_chat: 25,
+        PlanTier.widget_only: 25,
+        PlanTier.ai_telephony: 50,
         PlanTier.widget_voice: 75,
-        PlanTier.driver_pro: 0,
-        PlanTier.professional: 250,
-        PlanTier.premium: 750,
-        PlanTier.enterprise: 2500,
+        PlanTier.enterprise: 0,
+        PlanTier.standard: 250,
+        PlanTier.professional: 750,
+        PlanTier.advanced: 2500,
     }[tier]
 
 

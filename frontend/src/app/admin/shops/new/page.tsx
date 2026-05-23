@@ -236,8 +236,8 @@ export default function NewShopPage() {
                 onChange={(e) => updateField("plan", e.target.value)}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               >
-                <option value="standard">Standard ($197/mo)</option>
-                <option value="premium">Professional ($297/mo)</option>
+                <option value="standard">Standard ($297/mo)</option>
+                <option value="professional">Professional ($497/mo)</option>
                 <option value="advanced">Advanced ($997/mo)</option>
               </select>
             </div>

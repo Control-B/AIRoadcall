@@ -6,14 +6,14 @@ from typing import Any
 from pydantic import BaseModel, EmailStr, Field
 
 
-PLAN_ID_PATTERN = "^(ai_chat|widget_voice|driver_pro|professional|premium|enterprise|starter|growth|pro|standard|advanced)$"
+PLAN_ID_PATTERN = "^(widget_only|ai_telephony|widget_voice|enterprise|standard|professional|advanced|ai_chat|driver_pro|starter|growth|premium|pro)$"
 
 
 class BillingPlanView(BaseModel):
     id: str
     name: str
     price_monthly: float
-    setup_fee: int
+    setup_fee: float
     ecosystem: str | None = None
     billing_system: str | None = None
     onboarding_mode: str | None = None
