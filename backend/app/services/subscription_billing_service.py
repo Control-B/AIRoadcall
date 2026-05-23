@@ -191,9 +191,22 @@ class SubscriptionBillingService:
             )
         await db.flush()
 
+        line_items = [{"price": price_id, "quantity": 1}]
+        if plan_config.setup_fee > 0:
+            line_items.append(
+                {
+                    "price_data": {
+                        "currency": "usd",
+                        "product_data": {"name": f"{plan_config.name} setup fee"},
+                        "unit_amount": int(round(plan_config.setup_fee * 100)),
+                    },
+                    "quantity": 1,
+                }
+            )
+
         checkout_payload = {
             "mode": "subscription",
-            "line_items": [{"price": price_id, "quantity": 1}],
+            "line_items": line_items,
             "success_url": self._success_url(tenant.id, account.dashboard_token),
             "cancel_url": self._cancel_url(),
             "allow_promotion_codes": True,
