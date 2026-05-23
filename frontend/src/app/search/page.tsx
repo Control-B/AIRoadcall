@@ -323,7 +323,7 @@ const QUICK_FILTERS: QuickFilter[] = [
 ];
 
 const PREMIUM_MAP_MODES: { id: PremiumMapMode; label: string; description: string; icon: typeof Activity; fleetOnly?: boolean }[] = [
-  { id: "basic", label: "Basic", description: "Standard provider pins and simple search.", icon: MapIcon },
+  { id: "basic", label: "City", description: "Standard city map, provider pins, and simple search.", icon: MapIcon },
   { id: "operations", label: "Operations", description: "Active events, AI dispatch zones, provider activity, and roadside intelligence.", icon: RadioTower },
   { id: "satellite", label: "Satellite", description: "Premium imagery for industrial zones, truck stops, rural access, and service roads.", icon: Satellite },
   { id: "traffic", label: "Traffic", description: "Congestion, delay risk, traffic-adjusted ETA, and responder routing.", icon: Activity },
@@ -916,6 +916,31 @@ function PremiumMapModeControls({ mode, hasPremiumAccess, onModeChange }: { mode
   );
 }
 
+function FullscreenMapModeControls({ mode, hasPremiumAccess, onModeChange }: { mode: PremiumMapMode; hasPremiumAccess: boolean; onModeChange: (mode: PremiumMapMode) => void }) {
+  return (
+    <div className="flex max-w-[min(72vw,760px)] items-center gap-1 overflow-x-auto rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/85 p-1 shadow-2xl shadow-black/30 backdrop-blur-md">
+      {PREMIUM_MAP_MODES.map((item) => {
+        const Icon = item.icon;
+        const active = mode === item.id;
+        const locked = item.id !== "basic" && !hasPremiumAccess;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onModeChange(item.id)}
+            title={locked ? `${item.label} requires Driver Pro or Fleet Operations` : item.description}
+            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-black transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            <span>{item.label}</span>
+            {locked ? <Lock className="h-3 w-3 text-roadcall-orange" /> : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function LockedPremiumMapOverlay({ mode }: { mode: PremiumMapMode }) {
   const selected = PREMIUM_MAP_MODES.find((item) => item.id === mode);
   return (
@@ -1183,15 +1208,15 @@ function SearchPageInner() {
 
   const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide" && !isFullscreenMap;
   const mapShellClass = mapWorkspaceMode === "fullscreen"
-    ? "fixed inset-0 z-[100] flex flex-col overflow-hidden bg-[#02050c] shadow-2xl shadow-black/80"
+    ? "fixed inset-x-0 bottom-0 top-20 z-40 flex flex-col overflow-hidden bg-[#02050c] shadow-2xl shadow-black/80"
     : "";
   const mapGridClass = mapWorkspaceMode === "fullscreen"
-    ? "grid h-screen min-h-0"
+    ? "grid h-full min-h-0"
     : showMapSidePanel
       ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
       : "grid gap-4";
   const mapHeightClass = mapWorkspaceMode === "fullscreen"
-    ? "h-screen min-h-0 rounded-none border-0"
+    ? "h-full min-h-0 rounded-none border-0"
     : mapWorkspaceMode === "wide"
       ? "h-[680px] min-h-[520px]"
       : "h-[520px] min-h-[420px]";
@@ -1474,15 +1499,18 @@ function SearchPageInner() {
                 premiumMode={premiumMapMode}
                 hasPremiumAccess={hasPremiumMapAccess}
                 workspaceControls={(
-                  <MapWorkspaceControls
-                    mode={mapWorkspaceMode}
-                    sidePanelOpen={mapSidePanelOpen}
-                    onToggleSidePanel={() => setMapSidePanelOpen((open) => !open)}
-                    onModeChange={(mode) => {
-                      setMapWorkspaceMode(mode);
-                      if (mode === "fullscreen") setMapSidePanelOpen(false);
-                    }}
-                  />
+                  <div className="flex items-center gap-2">
+                    {isFullscreenMap ? <FullscreenMapModeControls mode={premiumMapMode} hasPremiumAccess={hasPremiumMapAccess} onModeChange={setPremiumMapMode} /> : null}
+                    <MapWorkspaceControls
+                      mode={mapWorkspaceMode}
+                      sidePanelOpen={mapSidePanelOpen}
+                      onToggleSidePanel={() => setMapSidePanelOpen((open) => !open)}
+                      onModeChange={(mode) => {
+                        setMapWorkspaceMode(mode);
+                        if (mode === "fullscreen") setMapSidePanelOpen(false);
+                      }}
+                    />
+                  </div>
                 )}
               />
               {showMapSidePanel ? (
