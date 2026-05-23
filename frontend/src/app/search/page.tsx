@@ -1,5 +1,6 @@
-export const dynamic = "force-dynamic";
+
 "use client";
+export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense, useMemo, useRef, type FormEvent, type ReactNode } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -1413,7 +1414,7 @@ function SearchPageInner() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-roadcall-void" />}>
+    <Suspense fallback={<div className="min-h-screen bg-roadcall-void" />}> 
       <SearchPageInner />
     </Suspense>
   );
