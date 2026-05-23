@@ -100,6 +100,39 @@ interface EnrichmentStatus {
   pending_total: number;
 }
 
+interface AdminReviewQueues {
+  pending_claims: {
+    id: string;
+    listing_id: string;
+    company_name: string;
+    claimant_name: string;
+    claimant_email: string | null;
+    claimant_phone: string;
+    method: string;
+    notes: string | null;
+    created_at: string;
+  }[];
+  pending_updates: {
+    id: string;
+    listing_id: string;
+    company_name: string;
+    requester_name: string;
+    requester_email: string;
+    requester_role: string;
+    match_score: number | null;
+    email_domain_matches_website: boolean | null;
+    requested_changes: Record<string, unknown>;
+    proof_message: string | null;
+    created_at: string;
+  }[];
+  data_quality: {
+    missing_websites: number;
+    missing_phone_numbers: number;
+    pending_public_submissions: number;
+    low_confidence_addresses: number;
+  };
+}
+
 const PAGE_SIZE = 200;
 const STATS_REFRESH_MS = 30_000;
 
@@ -205,6 +238,8 @@ export default function AdminMechanicsPage() {
   const [enrichStatusKind, setEnrichStatusKind] = useState<EnrichmentStatus["kind"]>("emails");
   const [enrichBusy, setEnrichBusy] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
+  const [reviewQueues, setReviewQueues] = useState<AdminReviewQueues | null>(null);
+  const [reviewBusy, setReviewBusy] = useState<string | null>(null);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams({
@@ -226,12 +261,14 @@ export default function AdminMechanicsPage() {
     if (!options?.silent) setLoading(true);
     setError(null);
     try {
-      const [statsData, listData] = await Promise.all([
+      const [statsData, listData, reviewQueueData] = await Promise.all([
         adminFetch<MechanicStats>("/mechanics/admin/stats"),
         adminFetch<MechanicListResponse>(`/mechanics/admin/list?${queryString}`),
+        adminFetch<AdminReviewQueues>("/marketplace/admin/review-queues"),
       ]);
       setStats(statsData);
       setRecords(listData);
+      setReviewQueues(reviewQueueData);
       setLastLoadedAt(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load mechanics");
@@ -308,6 +345,51 @@ export default function AdminMechanicsPage() {
       setError(err instanceof Error ? err.message : "Failed to sync Apify email datasets");
     } finally {
       setEnrichBusy(false);
+    }
+  }
+
+  async function reviewClaim(claimId: string, status: "approved" | "rejected") {
+    setReviewBusy(`claim:${claimId}`);
+    try {
+      await adminFetch(`/marketplace/admin/claims/${claimId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      await loadData({ silent: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to review claim");
+    } finally {
+      setReviewBusy(null);
+    }
+  }
+
+  async function reviewUpdateRequest(requestId: string, status: "approved" | "rejected" | "more_info_requested") {
+    setReviewBusy(`update:${requestId}`);
+    try {
+      await adminFetch(`/marketplace/admin/update-requests/${requestId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
+      await loadData({ silent: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to review listing update");
+    } finally {
+      setReviewBusy(null);
+    }
+  }
+
+  async function markProviderVerified(mechanicId: string) {
+    setReviewBusy(`verify:${mechanicId}`);
+    try {
+      await adminFetch(`/marketplace/admin/${mechanicId}/verify`, {
+        method: "POST",
+        body: JSON.stringify({ verification_status: "verified" }),
+      });
+      await loadData({ silent: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to verify provider");
+    } finally {
+      setReviewBusy(null);
     }
   }
 
@@ -412,6 +494,106 @@ export default function AdminMechanicsPage() {
           </div>
         )}
       </div>
+
+      {reviewQueues && (
+        <div className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
+          <Card className="border-white/5 bg-slate-950/60">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="h-4 w-4 text-amber-300" /> Data Quality
+              </CardTitle>
+              <CardDescription>Provider records that need enrichment or review before they become fully platform-ready.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ["Missing websites", reviewQueues.data_quality.missing_websites],
+                  ["Missing phones", reviewQueues.data_quality.missing_phone_numbers],
+                  ["Public submissions", reviewQueues.data_quality.pending_public_submissions],
+                  ["Low-confidence addresses", reviewQueues.data_quality.low_confidence_addresses],
+                ].map(([label, value]) => (
+                  <div key={String(label)} className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                    <p className="text-xs text-slate-500">{label}</p>
+                    <p className="mt-1 text-2xl font-bold text-white">{Number(value).toLocaleString()}</p>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-white/5 bg-slate-950/60">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <CheckCircle2 className="h-4 w-4 text-emerald-300" /> Claim & Update Review Queue
+              </CardTitle>
+              <CardDescription>Approve ownership claims and pending listing updates. Public data only changes after admin approval.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white">Pending claims</h3>
+                  <Badge variant="outline">{reviewQueues.pending_claims.length}</Badge>
+                </div>
+                {reviewQueues.pending_claims.length === 0 ? (
+                  <p className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-sm text-slate-500">No pending claim requests.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {reviewQueues.pending_claims.slice(0, 4).map((claim) => (
+                      <div key={claim.id} className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <p className="font-semibold text-white">{claim.company_name}</p>
+                            <p className="mt-1 text-xs text-slate-400">{claim.claimant_name} · {claim.claimant_email || "no email"} · {claim.claimant_phone}</p>
+                            {claim.notes && <p className="mt-2 text-xs text-slate-500">{claim.notes}</p>}
+                          </div>
+                          <div className="flex shrink-0 flex-wrap gap-2">
+                            <Button size="sm" variant="outline" disabled={reviewBusy === `claim:${claim.id}`} onClick={() => reviewClaim(claim.id, "rejected")}>Reject</Button>
+                            <Button size="sm" disabled={reviewBusy === `claim:${claim.id}`} onClick={() => reviewClaim(claim.id, "approved")}>Approve claim</Button>
+                            <Button size="sm" variant="outline" disabled={reviewBusy === `verify:${claim.listing_id}`} onClick={() => markProviderVerified(claim.listing_id)}>Mark verified</Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-white">Pending listing updates</h3>
+                  <Badge variant="outline">{reviewQueues.pending_updates.length}</Badge>
+                </div>
+                {reviewQueues.pending_updates.length === 0 ? (
+                  <p className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-sm text-slate-500">No pending listing updates.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {reviewQueues.pending_updates.slice(0, 4).map((update) => (
+                      <div key={update.id} className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                          <div>
+                            <p className="font-semibold text-white">{update.company_name}</p>
+                            <p className="mt-1 text-xs text-slate-400">{update.requester_name} · {update.requester_role.replaceAll("_", " ")} · {update.requester_email}</p>
+                            <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                              <Badge variant="outline">Name match {update.match_score === null ? "n/a" : `${Math.round(update.match_score * 100)}%`}</Badge>
+                              <Badge variant="outline">Domain {update.email_domain_matches_website === null ? "unknown" : update.email_domain_matches_website ? "matched" : "mismatch"}</Badge>
+                            </div>
+                            <pre className="mt-2 max-h-24 overflow-auto rounded-lg bg-slate-950/80 p-2 text-xs text-slate-300">{JSON.stringify(update.requested_changes, null, 2)}</pre>
+                          </div>
+                          <div className="flex shrink-0 flex-wrap gap-2">
+                            <Button size="sm" variant="outline" disabled={reviewBusy === `update:${update.id}`} onClick={() => reviewUpdateRequest(update.id, "rejected")}>Reject</Button>
+                            <Button size="sm" variant="outline" disabled={reviewBusy === `update:${update.id}`} onClick={() => reviewUpdateRequest(update.id, "more_info_requested")}>Request info</Button>
+                            <Button size="sm" disabled={reviewBusy === `update:${update.id}`} onClick={() => reviewUpdateRequest(update.id, "approved")}>Approve update</Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filters */}
       <Card className="border-white/5 bg-slate-950/60">

@@ -56,6 +56,9 @@ const productLanes = [
     label: "Lane 1",
     title: "AI Roadside Support",
     description: "Driver calls from the side of the road. The agent captures location, issue type, vehicle details, and routes help.",
+    image: "https://upload.wikimedia.org/wikipedia/commons/a/af/Freightliner_Cascadia_-_Love%E2%80%99s_Travel_Centers.jpg",
+    imageAlt: "Freightliner Cascadia semi truck at a truck stop",
+    bullets: ["GPS location capture", "Issue and vehicle intake", "Help routed fast"],
     href: "/driver",
     cta: "See driver support",
   },
@@ -64,6 +67,9 @@ const productLanes = [
     label: "Lane 2",
     title: "AI Telephony for Mechanics",
     description: "Mechanics attach a phone number, configure their AI service advisor, book jobs, and escalate urgent calls.",
+    image: "https://upload.wikimedia.org/wikipedia/commons/a/ac/US_Navy_030618-N-9433H-002_Construction_Mechanic_2nd_Class_Craig_Nelson_assigned_to_Naval_Mobile_Construction_Battalion_Two_Six_%28NMCB-26%29%2C_is_working_on_a_semi-tractor_used_to_haul_heavy_equipment.jpg",
+    imageAlt: "Mechanic working on a semi-tractor used to haul heavy equipment",
+    bullets: ["24/7 AI answering", "Job booking and notes", "Urgent call escalation"],
     href: "/ai-telephony",
     cta: "Explore AI phone",
   },
@@ -72,6 +78,9 @@ const productLanes = [
     label: "Lane 3",
     title: "AI Fleet Roadside",
     description: "Trucking companies connect truck, trailer, driver, and vendor data so AI can handle roadside calls like a dispatch department.",
+    image: "https://upload.wikimedia.org/wikipedia/commons/8/8f/Trucks_parked_in_USA.jpg",
+    imageAlt: "American semi trucks parked in a fleet lot",
+    bullets: ["Driver and asset context", "Vendor routing logic", "Dispatch visibility"],
     href: "/fleet",
     cta: "Explore fleet AI",
   },
@@ -80,6 +89,9 @@ const productLanes = [
     label: "Lane 4",
     title: "General Search Directory",
     description: "Search Truck Service public directory for truck repair, towing, and national vendors.",
+    image: "https://upload.wikimedia.org/wikipedia/commons/0/06/2019_International_LT_625_trailer_truck%2C_front_left.jpg",
+    imageAlt: "International LT semi truck and trailer",
+    bullets: ["35,000+ providers", "Truck repair and towing", "National vendor lookup"],
     href: "/search",
     cta: "Search providers",
   },
@@ -288,22 +300,56 @@ export default function HomePage() {
       {/* ── Four product lanes ─────────────────────────────────────── */}
       <section className="border-y border-roadcall-cyan/10 bg-roadcall-panel/15 px-4 py-20 sm:px-6">
         <div className="mx-auto max-w-7xl">
-          <div className="mx-auto mb-12 max-w-3xl text-center">
-            <p className="text-sm font-bold uppercase tracking-[0.28em] text-roadcall-cyan">Roadcall product map</p>
-            <h2 className="mt-4 text-4xl font-black tracking-tight text-white md:text-5xl">Four lanes. No more mixed messaging.</h2>
-            <p className="mt-4 text-roadcall-muted">Roadcall serves drivers, fleets, mechanic shops, and provider growth — but each lane has a different workflow and CTA.</p>
+          <div className="mb-12 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="max-w-3xl">
+              <p className="inline-flex items-center gap-2 rounded-full border border-roadcall-cyan/25 bg-roadcall-cyan/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.24em] text-roadcall-cyan">
+                <span className="h-1.5 w-1.5 rounded-full bg-roadcall-cyan" />
+                Roadcall product map
+              </p>
+              <h2 className="mt-6 text-4xl font-black tracking-tight text-white md:text-5xl">Four lanes. No more mixed messaging.</h2>
+              <p className="mt-4 max-w-2xl text-lg leading-8 text-roadcall-muted">Roadcall serves drivers, fleets, mechanic shops, and provider growth with separate workflows, dashboards, and CTAs.</p>
+            </div>
+            <Link
+              href="/solutions"
+              className="inline-flex w-fit items-center justify-center rounded-xl border border-roadcall-cyan/30 bg-roadcall-void/70 px-5 py-3 text-sm font-bold text-roadcall-cyan shadow-[0_0_28px_rgba(20,216,255,0.12)] transition hover:border-roadcall-cyan/60 hover:bg-roadcall-cyan/10"
+            >
+              View all lanes <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </div>
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {productLanes.map((lane) => (
-              <Link key={lane.title} href={lane.href} className="group rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-6 transition hover:-translate-y-1 hover:border-roadcall-cyan/40 hover:bg-white/[0.07]">
-                <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-roadcall-cyan/10 text-roadcall-cyan">
-                  <lane.icon className="h-6 w-6" />
+              <Link key={lane.title} href={lane.href} className="group overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.04] shadow-[0_0_35px_rgba(0,0,0,0.22)] transition hover:-translate-y-1 hover:border-roadcall-cyan/45 hover:bg-white/[0.07]">
+                <div className="relative h-48 overflow-hidden border-b border-roadcall-cyan/10">
+                  <Image
+                    src={lane.image}
+                    alt={lane.imageAlt}
+                    fill
+                    className="object-cover transition duration-700 group-hover:scale-105"
+                    sizes="(min-width: 1280px) 25vw, (min-width: 768px) 50vw, 100vw"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#02050c] via-[#02050c]/50 to-transparent" />
+                  <div className="absolute inset-0 bg-roadcall-blue/10 mix-blend-color" />
+                  <div className="absolute bottom-4 left-4 flex h-11 w-11 items-center justify-center rounded-2xl border border-roadcall-cyan/35 bg-roadcall-cyan/15 text-roadcall-cyan shadow-[0_0_24px_rgba(20,216,255,0.28)] backdrop-blur-md">
+                    <lane.icon className="h-5 w-5" />
+                  </div>
+                  <div className="absolute bottom-5 left-20 right-4">
+                    <p className="text-xs font-bold uppercase tracking-[0.22em] text-roadcall-orange">{lane.label}</p>
+                    <h3 className="mt-1 text-xl font-black leading-tight text-white drop-shadow-lg">{lane.title}</h3>
+                  </div>
                 </div>
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-roadcall-orange">{lane.label}</p>
-                <h3 className="mt-3 text-xl font-bold text-white">{lane.title}</h3>
-                <p className="mt-3 min-h-24 text-sm leading-7 text-roadcall-muted">{lane.description}</p>
-                <div className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-roadcall-cyan">
-                  {lane.cta} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                <div className="p-6">
+                  <p className="min-h-28 text-sm leading-7 text-roadcall-muted">{lane.description}</p>
+                  <ul className="mt-5 space-y-2.5">
+                    {lane.bullets.map((bullet) => (
+                      <li key={bullet} className="flex items-center gap-2 text-xs font-medium text-roadcall-silver">
+                        <span className="h-1.5 w-1.5 rounded-full bg-roadcall-cyan shadow-[0_0_10px_rgba(20,216,255,0.9)]" />
+                        {bullet}
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="mt-7 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-roadcall-cyan/25 bg-roadcall-void/70 px-4 py-3 text-sm font-bold text-roadcall-cyan shadow-[0_0_24px_rgba(20,216,255,0.1)] transition group-hover:border-roadcall-cyan/55 group-hover:bg-roadcall-cyan/10">
+                    {lane.cta} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+                  </div>
                 </div>
               </Link>
             ))}
