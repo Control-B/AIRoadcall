@@ -235,21 +235,27 @@ export default function HomePage() {
           Video uses object-contain so the entire frame fits — never cut,
           never stretched. Cards overlap the bottom of the hero.
       ═══════════════════════════════════════════════════════════════ */}
-        <section className="relative mt-0 min-h-[100vh] flex flex-col overflow-hidden bg-roadcall-void">
+        <section className="relative mt-0 min-h-[100vh] overflow-hidden bg-roadcall-void">
 
-        {/* Video background — object-contain keeps the whole frame visible */}
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="absolute inset-0 w-full h-full object-contain"
-          src={mediaUrl("videos/RoadcallPremium.mp4")}
-        />
+        {/* Mobile-first media block: video appears first. Desktop keeps full-bleed hero background. */}
+        <div className="relative order-1 h-[48vh] min-h-[300px] w-full sm:absolute sm:inset-0 sm:h-full sm:min-h-0">
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="h-full w-full object-cover sm:object-contain"
+            src={mediaUrl("videos/RoadcallPremium.mp4")}
+          />
 
-        {/* Sound toggle button + Hero CTAs — top-right corner, stacked */}
-        <div className="absolute top-20 right-4 sm:right-6 z-30 flex flex-col items-end gap-2">
+          {/* Light vignettes for headline readability without dimming the video */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-gradient-to-t from-[#02050c]/85 via-[#02050c]/35 to-transparent z-10" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-gradient-to-b from-[#02050c]/70 via-[#02050c]/20 to-transparent z-10" />
+        </div>
+
+        {/* Sound toggle button + Hero CTAs — stacked below media on mobile, top-right on desktop */}
+        <div className="relative z-30 mx-auto flex w-full max-w-7xl flex-col items-end gap-2 px-4 pb-4 pt-4 sm:absolute sm:right-6 sm:top-20 sm:mx-0 sm:w-auto sm:px-0 sm:pb-0 sm:pt-0">
           {/* Hero CTAs — above the sound button */}
           <Link
             href="/go"
@@ -288,12 +294,8 @@ export default function HomePage() {
           </button>
         </div>
 
-        {/* Light vignettes for headline readability without dimming the video */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[35%] bg-gradient-to-t from-[#02050c]/85 via-[#02050c]/35 to-transparent z-10" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-[28%] bg-gradient-to-b from-[#02050c]/70 via-[#02050c]/20 to-transparent z-10" />
-
         {/* Rotating marketing card — bottom-right */}
-        <div className="absolute bottom-6 right-4 sm:bottom-8 sm:right-8 md:bottom-10 md:right-12 z-20">
+        <div className="relative z-20 mx-auto w-full max-w-7xl px-4 pb-6 sm:absolute sm:bottom-8 sm:right-8 sm:mx-0 sm:w-auto sm:px-0 sm:pb-0 md:bottom-10 md:right-12">
           <RotatingMarketingBadge />
         </div>
       </section>
