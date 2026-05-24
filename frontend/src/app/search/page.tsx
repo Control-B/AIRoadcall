@@ -343,6 +343,11 @@ const VIEW_STORAGE_KEY = "roadcall-provider-view";
 const DEFAULT_PROVIDER_PREVIEW_LIMIT = 48;
 const FOCUSED_PROVIDER_PREVIEW_LIMIT = 500;
 const MAP_PROVIDER_LIMIT = 1500;
+// Directories (national vendors, trucking companies) are pre-curated reference
+// data — fetch the full set so every TA Petro / Pilot / Love's pin shows on the
+// map regardless of zoom or alphabetical cutoff.
+const DIRECTORY_VENDOR_LIMIT = 5000;
+const DIRECTORY_TRUCKING_LIMIT = 10000;
 
 type QuickFilter = {
   label: string;
@@ -1386,7 +1391,7 @@ function SearchPageInner() {
     return params;
   }, [city, only24_7, onlyMobile, page, query, serviceType, state, verifiedOnly]);
 
-  const buildDirectoryParams = useCallback((options?: { bounds?: MapBounds }) => {
+  const buildDirectoryParams = useCallback((options?: { bounds?: MapBounds; limit?: number }) => {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
     if (state) params.set("state", state);
@@ -1397,13 +1402,12 @@ function SearchPageInner() {
       params.set("min_lng", String(options.bounds.min_lng));
       params.set("max_lng", String(options.bounds.max_lng));
     }
-    const focused = Boolean(options?.bounds || city || state || query || serviceType || only24_7 || onlyMobile || verifiedOnly);
-    params.set("limit", String(focused ? FOCUSED_PROVIDER_PREVIEW_LIMIT : DEFAULT_PROVIDER_PREVIEW_LIMIT));
+    params.set("limit", String(options?.limit ?? DIRECTORY_VENDOR_LIMIT));
     return params;
-  }, [city, only24_7, onlyMobile, query, serviceType, state, verifiedOnly]);
+  }, [city, query, state]);
 
   const fetchNationalVendors = useCallback(async (options?: { bounds?: MapBounds }) => {
-    const params = buildDirectoryParams(options);
+    const params = buildDirectoryParams({ ...options, limit: DIRECTORY_VENDOR_LIMIT });
     const response = await fetch(`${API_URL}/directories/national-vendors?${params}`);
     if (!response.ok) throw new Error("National vendor search failed");
     const data = await response.json() as NationalVendorResponse;
@@ -1411,7 +1415,7 @@ function SearchPageInner() {
   }, [buildDirectoryParams]);
 
   const fetchTruckingCompanies = useCallback(async (options?: { bounds?: MapBounds }) => {
-    const params = buildDirectoryParams(options);
+    const params = buildDirectoryParams({ ...options, limit: DIRECTORY_TRUCKING_LIMIT });
     const response = await fetch(`${API_URL}/directories/trucking-companies?${params}`);
     if (!response.ok) throw new Error("Trucking company search failed");
     const data = await response.json() as TruckingCompanyResponse;
