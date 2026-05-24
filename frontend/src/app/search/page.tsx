@@ -298,6 +298,7 @@ type MapBounds = {
 type MapWorkspaceMode = "split" | "wide" | "fullscreen";
 type ProviderViewMode = "map" | "cards" | "list";
 type PremiumMapMode = "basic" | "operations" | "satellite" | "density" | "hotspots";
+type VendorScopeMode = "all" | "national" | "local";
 
 const VIEW_STORAGE_KEY = "roadcall-provider-view";
 
@@ -326,6 +327,45 @@ const PREMIUM_MAP_MODES: { id: PremiumMapMode; label: string; description: strin
   { id: "density", label: "Density", description: "Coverage heatmaps for mobile repair, towing, tires, and after-hours support from provider data.", icon: Layers3, fleetOnly: true },
   { id: "hotspots", label: "Hotspots", description: "Coverage gaps and high-priority service clusters from Roadcall provider signals.", icon: Zap, fleetOnly: true },
 ];
+
+const VENDOR_SCOPE_MODES: { id: VendorScopeMode; label: string; description: string; icon: typeof MapIcon }[] = [
+  { id: "all", label: "All Vendors", description: "Show national chains and local providers together.", icon: MapIcon },
+  { id: "national", label: "National Vendors", description: "Show larger regional and nationwide service brands.", icon: Truck },
+  { id: "local", label: "Local Vendors", description: "Show independent and local service providers.", icon: Wrench },
+];
+
+const NATIONAL_VENDOR_HINTS = [
+  "loves",
+  "love's",
+  "travelcenters",
+  "travel centers",
+  "ta truck service",
+  "ta express",
+  "petro",
+  "pilot",
+  "flying j",
+  "speedco",
+  "boss shop",
+  "southern tire mart",
+  "snider fleet",
+  "goodyear commercial",
+  "bridgestone",
+  "firestone",
+  "rush truck centers",
+  "m&k truck centers",
+  "kenworth",
+  "peterbilt",
+  "freightliner",
+  "international truck",
+  "volvo truck",
+  "mack truck",
+  "thermo king",
+  "carrier transicold",
+  "fleetpride",
+  "napa truck service",
+];
+
+const NATIONAL_VENDOR_CATEGORY_HINTS = ["national", "chain", "truck stop", "travel center", "dealer", "dealership", "fleet service", "commercial tire"];
 
 function safeExternalUrl(value?: string | null) {
   if (!value) return null;
@@ -364,6 +404,28 @@ function verificationLabel(status?: Mechanic["verification_status"]) {
 
 function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: number; lng: number } {
   return typeof mechanic.lat === "number" && Number.isFinite(mechanic.lat) && typeof mechanic.lng === "number" && Number.isFinite(mechanic.lng);
+}
+
+function isNationalVendor(mechanic: Mechanic) {
+  const haystack = [
+    mechanic.company_name,
+    mechanic.business_category,
+    mechanic.website,
+    mechanic.source_url,
+    ...(mechanic.badges || []),
+    ...(mechanic.reasons || []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/&/g, "and");
+  const category = (mechanic.business_category || "").toLowerCase();
+  return NATIONAL_VENDOR_HINTS.some((hint) => haystack.includes(hint)) || NATIONAL_VENDOR_CATEGORY_HINTS.some((hint) => category.includes(hint));
+}
+
+function filterMechanicsByVendorScope(mechanics: Mechanic[], scope: VendorScopeMode) {
+  if (scope === "all") return mechanics;
+  return mechanics.filter((mechanic) => isNationalVendor(mechanic) === (scope === "national"));
 }
 
 function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode }) {
@@ -930,6 +992,30 @@ function FullscreenMapModeControls({ mode, onModeChange }: { mode: PremiumMapMod
   );
 }
 
+function VendorScopeControls({ mode, counts, onModeChange }: { mode: VendorScopeMode; counts: Record<VendorScopeMode, number>; onModeChange: (mode: VendorScopeMode) => void }) {
+  return (
+    <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-full border border-roadcall-cyan/20 bg-[#06101f]/90 p-1 shadow-2xl shadow-black/35 backdrop-blur-md">
+      {VENDOR_SCOPE_MODES.map((item) => {
+        const Icon = item.icon;
+        const active = mode === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onModeChange(item.id)}
+            title={item.description}
+            className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-full px-4 text-sm font-black transition ${active ? "bg-roadcall-cyan text-slate-950 shadow-lg shadow-cyan-500/20" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
+          >
+            <Icon className="h-4 w-4" />
+            <span>{item.label}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] ${active ? "bg-slate-950/10 text-slate-950" : "bg-white/10 text-roadcall-muted"}`}>{counts[item.id]}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function PremiumOperationsOverlay({ mechanics, mode }: { mechanics: (Mechanic & { lat: number; lng: number })[]; mode: PremiumMapMode }) {
   const emergencyReady = mechanics.filter((mechanic) => mechanic.emergency_service || mechanic.is_emergency_24_7).length;
   const mobileActive = mechanics.filter((mechanic) => mechanic.accepts_mobile_roadside).length;
@@ -1043,6 +1129,7 @@ function SearchPageInner() {
   const [view, setView] = useState<ProviderViewMode>("map");
   const [mapWorkspaceMode, setMapWorkspaceMode] = useState<MapWorkspaceMode>("split");
   const [premiumMapMode, setPremiumMapMode] = useState<PremiumMapMode>("basic");
+  const [vendorScopeMode, setVendorScopeMode] = useState<VendorScopeMode>("all");
   const [mapSidePanelOpen, setMapSidePanelOpen] = useState(true);
   const [mapAreaSummary, setMapAreaSummary] = useState<string | null>(null);
   const [searchingArea, setSearchingArea] = useState(false);
@@ -1150,7 +1237,13 @@ function SearchPageInner() {
   }, [state, city, serviceType, only24_7, onlyMobile, verifiedOnly]);
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
-  const cityGroups = useMemo(() => groupMechanicsByCity(results?.mechanics || []), [results]);
+  const mechanics = results?.mechanics || [];
+  const vendorScopeCounts = useMemo(() => {
+    const national = mechanics.filter(isNationalVendor).length;
+    return { all: mechanics.length, national, local: mechanics.length - national };
+  }, [mechanics]);
+  const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(mechanics, vendorScopeMode), [mechanics, vendorScopeMode]);
+  const cityGroups = useMemo(() => groupMechanicsByCity(scopedMechanics), [scopedMechanics]);
   const handleViewMap = useCallback((mechanic: Mechanic) => {
     setView("map");
     setMapWorkspaceMode("split");
@@ -1447,8 +1540,10 @@ function SearchPageInner() {
                   Advanced map modes are open for this session. Use the controls to focus, expand, or hide panels.
                 </p>
               </div>
-              <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
-                <PremiumMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} />
+              <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_auto] xl:items-start">
+                <div className="space-y-3">
+                  <PremiumMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} />
+                </div>
                 <button
                   type="button"
                   onClick={() => setIntakeOpen(true)}
@@ -1460,14 +1555,15 @@ function SearchPageInner() {
             </div> : null}
             <div className={mapGridClass}>
               <SearchResultsMap
-                mechanics={results.mechanics}
+                mechanics={scopedMechanics}
                 onSearchArea={searchMapArea}
                 searchingArea={searchingArea}
                 className={mapHeightClass}
-                layoutKey={`${mapWorkspaceMode}-${mapSidePanelOpen}`}
+                layoutKey={`${mapWorkspaceMode}-${mapSidePanelOpen}-${vendorScopeMode}`}
                 premiumMode={premiumMapMode}
                 workspaceControls={(
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />
                     {isFullscreenMap ? <FullscreenMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} /> : null}
                     <MapWorkspaceControls
                       mode={mapWorkspaceMode}
