@@ -534,7 +534,7 @@ function truckingCompanyToMechanic(company: PublicTruckingCompany, index: number
   };
 }
 
-function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode, city, state, onLocationSearch }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode; city: string; state: string; onLocationSearch: (city: string, state: string) => void }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode, city, state, serviceType, onLocationSearch, onServiceTypeChange }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode; city: string; state: string; serviceType: string; onLocationSearch: (city: string, state: string) => void; onServiceTypeChange: (serviceType: string) => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
@@ -544,6 +544,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   const [mapSearchOpen, setMapSearchOpen] = useState(true);
   const [mapCity, setMapCity] = useState(city);
   const [mapState, setMapState] = useState(state);
+  const [mapServiceType, setMapServiceType] = useState(serviceType);
   const premiumModeEnabled = premiumMode !== "basic";
   const mapStyle = premiumMode === "satellite"
     ? "mapbox://styles/mapbox/satellite-streets-v12"
@@ -726,7 +727,8 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   useEffect(() => {
     setMapCity(city);
     setMapState(state);
-  }, [city, state]);
+    setMapServiceType(serviceType);
+  }, [city, serviceType, state]);
 
   if (loading) {
     return <div className={`grid place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 text-sm text-roadcall-muted ${className}`}>Loading map…</div>;
@@ -772,6 +774,21 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
               >
                 <option value="">State</option>
                 {US_STATES.map((stateCode) => <option key={stateCode} value={stateCode}>{stateCode}</option>)}
+              </select>
+            </div>
+            <div className="mt-2">
+              <select
+                value={mapServiceType}
+                onChange={(event) => {
+                  const nextServiceType = event.target.value;
+                  setMapServiceType(nextServiceType);
+                  onServiceTypeChange(nextServiceType);
+                }}
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-cyan-500"
+              >
+                {SERVICE_TYPES.map(([value, label]) => (
+                  <option key={value || "all_services"} value={value}>{label}</option>
+                ))}
               </select>
             </div>
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -1753,7 +1770,9 @@ function SearchPageInner() {
                 premiumMode={premiumMapMode}
                 city={city}
                 state={state}
+                serviceType={serviceType}
                 onLocationSearch={searchMapLocation}
+                onServiceTypeChange={setServiceType}
                 workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} />}
               />
             </div>
