@@ -394,7 +394,8 @@ class MechanicDataService:
 
         total_count = await db.scalar(select(func.count(Mechanic.id)).where(*filters)) or 0
         base_query = select(Mechanic).where(*filters)
-        candidate_limit = max(page_size * page, min(1500, int(total_count))) if total_count else page_size
+        candidate_ceiling = 1500 if has_bounds else 300
+        candidate_limit = max(page_size * page, min(candidate_ceiling, int(total_count))) if total_count else page_size
         candidate_query = base_query.order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc()).limit(candidate_limit)
         result = await db.execute(candidate_query)
         mechanics = list(result.scalars().all())

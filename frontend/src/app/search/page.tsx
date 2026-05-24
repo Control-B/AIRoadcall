@@ -338,8 +338,9 @@ type PremiumMapMode = "basic" | "operations" | "satellite" | "density" | "hotspo
 type VendorScopeMode = "all" | "national" | "local";
 
 const VIEW_STORAGE_KEY = "roadcall-provider-view";
-const DEFAULT_PROVIDER_PREVIEW_LIMIT = 500;
-const FOCUSED_PROVIDER_PREVIEW_LIMIT = 1500;
+const DEFAULT_PROVIDER_PREVIEW_LIMIT = 48;
+const FOCUSED_PROVIDER_PREVIEW_LIMIT = 500;
+const MAP_PROVIDER_LIMIT = 1500;
 
 type QuickFilter = {
   label: string;
@@ -1069,6 +1070,29 @@ function ClaimUpdateModal({ mechanic, onClose, onSubmitted }: { mechanic: Mechan
   );
 }
 
+function MapModeToolbar({ mode, onModeChange }: { mode: PremiumMapMode; onModeChange: (mode: PremiumMapMode) => void }) {
+  return (
+    <div className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-[#06101f]/90 p-1 shadow-2xl shadow-black/50 backdrop-blur-xl">
+      {PREMIUM_MAP_MODES.map((item) => {
+        const Icon = item.icon;
+        const active = mode === item.id;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onModeChange(item.id)}
+            title={`${item.label} — ${item.description}`}
+            className={`inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[11px] font-black uppercase tracking-wide transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
+          >
+            <Icon className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">{item.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function PremiumMapModeControls({ mode, onModeChange }: { mode: PremiumMapMode; onModeChange: (mode: PremiumMapMode) => void }) {
   return (
     <div className="rounded-2xl border border-roadcall-cyan/15 bg-[#06101f]/90 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
@@ -1310,7 +1334,7 @@ function SearchPageInner() {
     setLoading(true);
     setError(null);
     setPage(1);
-    const params = buildSearchParams({ bounds, pageOverride: 1, pageSize: FOCUSED_PROVIDER_PREVIEW_LIMIT });
+    const params = buildSearchParams({ bounds, pageOverride: 1, pageSize: MAP_PROVIDER_LIMIT });
 
     try {
       const [res, nationalVendorData, truckingCompanyData] = await Promise.all([
@@ -1636,7 +1660,7 @@ function SearchPageInner() {
                 city={city}
                 state={state}
                 onLocationSearch={searchMapLocation}
-                workspaceControls={isFullscreenMap ? <FullscreenMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} /> : undefined}
+                workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} />}
               />
             </div>
             {!isFullscreenMap ? (
