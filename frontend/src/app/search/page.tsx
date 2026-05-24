@@ -569,6 +569,11 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       });
       mapRef.current = map;
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-left");
+      map.addControl(new mapboxgl.GeolocateControl({
+        positionOptions: { enableHighAccuracy: true },
+        trackUserLocation: true,
+        showUserHeading: true,
+      }), "bottom-left");
       map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
       const updateVisibleBounds = () => {
@@ -1281,7 +1286,7 @@ function PremiumOperationsOverlay({ mechanics, mode }: { mechanics: (Mechanic & 
         ? "Satellite imagery is active for rural access, yards, and service roads."
         : "Roadcall provider readiness and dispatch-fit signals are active.";
   return (
-    <div className="pointer-events-none absolute bottom-20 left-4 z-10 w-[min(320px,calc(100%-2rem))] space-y-3">
+    <div className="pointer-events-none absolute bottom-20 right-4 z-10 w-[min(320px,calc(100%-2rem))] space-y-3">
       <div className="rounded-2xl border border-roadcall-cyan/20 bg-[#02050c]/80 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-roadcall-cyan">AI roadside operations center</p>
         <p className="mt-2 text-sm font-bold text-white">{message}</p>
