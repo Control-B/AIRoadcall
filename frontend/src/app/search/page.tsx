@@ -255,6 +255,7 @@ const SERVICE_TYPES = [
 type Mechanic = {
   id: string;
   company_name: string;
+  vendor_scope?: "national" | "local";
   business_category?: string | null;
   address?: string | null;
   city: string | null;
@@ -293,6 +294,27 @@ type MapBounds = {
   max_lat: number;
   min_lng: number;
   max_lng: number;
+};
+
+type PublicNationalVendor = {
+  brand_name: string;
+  location_name: string;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  rating: number | null;
+  review_count: number | null;
+  services: string[];
+};
+
+type NationalVendorResponse = {
+  total: number;
+  limit: number;
+  offset: number;
+  items: PublicNationalVendor[];
 };
 
 type MapWorkspaceMode = "split" | "wide" | "fullscreen";
@@ -407,6 +429,8 @@ function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: numbe
 }
 
 function isNationalVendor(mechanic: Mechanic) {
+  if (mechanic.vendor_scope === "national") return true;
+  if (mechanic.vendor_scope === "local") return false;
   const haystack = [
     mechanic.company_name,
     mechanic.business_category,
@@ -426,6 +450,35 @@ function isNationalVendor(mechanic: Mechanic) {
 function filterMechanicsByVendorScope(mechanics: Mechanic[], scope: VendorScopeMode) {
   if (scope === "all") return mechanics;
   return mechanics.filter((mechanic) => isNationalVendor(mechanic) === (scope === "national"));
+}
+
+function nationalVendorToMechanic(vendor: PublicNationalVendor, index: number): Mechanic {
+  const serviceTypes = vendor.services || [];
+  return {
+    id: `national-${vendor.brand_name}-${vendor.location_name}-${vendor.address || index}`,
+    company_name: vendor.location_name && vendor.location_name !== vendor.brand_name ? `${vendor.brand_name} - ${vendor.location_name}` : vendor.brand_name,
+    vendor_scope: "national",
+    business_category: "National Vendor",
+    address: vendor.address,
+    city: vendor.city,
+    state: vendor.state,
+    lat: vendor.lat,
+    lng: vendor.lng,
+    phone: vendor.phone,
+    rating: vendor.rating,
+    review_count: vendor.review_count,
+    accepts_mobile_roadside: serviceTypes.some((service) => /roadside|mobile/i.test(service)),
+    emergency_service: serviceTypes.some((service) => /roadside|emergency|truck_service/i.test(service)),
+    is_emergency_24_7: false,
+    service_types: serviceTypes,
+    priority_score: 0.82,
+    verification_status: "verified",
+    claim_status: "claimed",
+    contact_protected: false,
+    export_status: "ready",
+    badges: ["National vendor"],
+    reasons: ["National vendor directory"],
+  };
 }
 
 function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode }) {
@@ -1123,6 +1176,7 @@ function SearchPageInner() {
   const [page, setPage] = useState(1);
 
   const [results, setResults] = useState<SearchResult | null>(null);
+  const [nationalVendors, setNationalVendors] = useState<Mechanic[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -1165,6 +1219,24 @@ function SearchPageInner() {
     return params;
   }, [city, only24_7, onlyMobile, page, query, serviceType, state, verifiedOnly]);
 
+  const fetchNationalVendors = useCallback(async (options?: { bounds?: MapBounds }) => {
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (state) params.set("state", state);
+    if (city && !options?.bounds) params.set("city", city);
+    if (options?.bounds) {
+      params.set("min_lat", String(options.bounds.min_lat));
+      params.set("max_lat", String(options.bounds.max_lat));
+      params.set("min_lng", String(options.bounds.min_lng));
+      params.set("max_lng", String(options.bounds.max_lng));
+    }
+    params.set("limit", "5000");
+    const response = await fetch(`${API_URL}/directories/national-vendors?${params}`);
+    if (!response.ok) throw new Error("National vendor search failed");
+    const data = await response.json() as NationalVendorResponse;
+    return data.items.map(nationalVendorToMechanic).filter(hasCoordinates);
+  }, [city, query, state]);
+
   const doSearch = useCallback(async (resetPage = false, pageOverride?: number) => {
     const currentPage = resetPage ? 1 : pageOverride ?? page;
     if (resetPage || pageOverride) setPage(currentPage);
@@ -1174,18 +1246,23 @@ function SearchPageInner() {
     const params = buildSearchParams({ pageOverride: currentPage });
 
     try {
-      const res = await fetch(`${API_URL}/mechanics/search?${params}`);
+      const [res, nationalVendorRows] = await Promise.all([
+        fetch(`${API_URL}/mechanics/search?${params}`),
+        fetchNationalVendors().catch(() => [] as Mechanic[]),
+      ]);
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
+      setNationalVendors(nationalVendorRows);
       setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
     } catch {
       // Fall back to a public-friendly empty state
       setResults({ mechanics: [], total: 0, page: 1, page_size: 24 });
+      setNationalVendors([]);
       setError("Search unavailable — try the AI dispatcher for instant help.");
     } finally {
       setLoading(false);
     }
-  }, [buildSearchParams, page, verifiedOnly]);
+  }, [buildSearchParams, fetchNationalVendors, page, verifiedOnly]);
 
   const searchMapArea = useCallback(async (bounds: MapBounds) => {
     setSearchingArea(true);
@@ -1195,11 +1272,15 @@ function SearchPageInner() {
     const params = buildSearchParams({ bounds, pageOverride: 1, pageSize: 100 });
 
     try {
-      const res = await fetch(`${API_URL}/mechanics/search?${params}`);
+      const [res, nationalVendorRows] = await Promise.all([
+        fetch(`${API_URL}/mechanics/search?${params}`),
+        fetchNationalVendors({ bounds }).catch(() => [] as Mechanic[]),
+      ]);
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
+      setNationalVendors(nationalVendorRows);
       setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
-      setMapAreaSummary(`Showing ${data.mechanics.length.toLocaleString()} mapped providers in the visible map area`);
+      setMapAreaSummary(`Showing ${(data.mechanics.length + nationalVendorRows.length).toLocaleString()} mapped providers in the visible map area`);
       setView("map");
     } catch {
       setError("Map area search unavailable — try zooming out or clearing filters.");
@@ -1207,7 +1288,7 @@ function SearchPageInner() {
       setLoading(false);
       setSearchingArea(false);
     }
-  }, [buildSearchParams, verifiedOnly]);
+  }, [buildSearchParams, fetchNationalVendors, verifiedOnly]);
 
   const searchNearMe = useCallback(() => {
     if (!navigator.geolocation) {
@@ -1238,11 +1319,13 @@ function SearchPageInner() {
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const mechanics = results?.mechanics || [];
+  const mapMechanics = useMemo(() => [...nationalVendors, ...mechanics.map((mechanic) => ({ ...mechanic, vendor_scope: mechanic.vendor_scope || "local" as const }))], [mechanics, nationalVendors]);
+  const allProviderCount = (results?.total || 0) + nationalVendors.length;
   const vendorScopeCounts = useMemo(() => {
-    const national = mechanics.filter(isNationalVendor).length;
-    return { all: mechanics.length, national, local: mechanics.length - national };
-  }, [mechanics]);
-  const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(mechanics, vendorScopeMode), [mechanics, vendorScopeMode]);
+    const national = mapMechanics.filter(isNationalVendor).length;
+    return { all: mapMechanics.length, national, local: mapMechanics.length - national };
+  }, [mapMechanics]);
+  const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(mapMechanics, vendorScopeMode), [mapMechanics, vendorScopeMode]);
   const cityGroups = useMemo(() => groupMechanicsByCity(scopedMechanics), [scopedMechanics]);
   const handleViewMap = useCallback((mechanic: Mechanic) => {
     setView("map");
@@ -1482,7 +1565,7 @@ function SearchPageInner() {
             ) : results ? (
               <div className="space-y-1">
                 <span className="block text-sm text-roadcall-muted">
-                  <span className="text-white font-semibold">{results.total.toLocaleString()}</span> providers found
+                  <span className="text-white font-semibold">{allProviderCount.toLocaleString()}</span> providers found
                   {state && ` in ${state}`}{city && !mapAreaSummary && `, ${city}`}
                 </span>
                 {mapAreaSummary ? <span className="block text-xs font-semibold text-roadcall-cyan">{mapAreaSummary}</span> : null}
@@ -1490,7 +1573,7 @@ function SearchPageInner() {
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-            {results && results.mechanics.length > 0 && (
+            {results && mapMechanics.length > 0 && (
               <div className="inline-flex rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/50 p-1">
                 <button
                   type="button"
@@ -1531,7 +1614,7 @@ function SearchPageInner() {
               <div key={i} className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 h-48 animate-pulse" />
             ))}
           </div>
-        ) : results && results.mechanics.length > 0 && view === "map" ? (
+        ) : results && mapMechanics.length > 0 && view === "map" ? (
           <div className={mapShellClass}>
             {!isFullscreenMap ? <div className="mb-3">
               <div>
