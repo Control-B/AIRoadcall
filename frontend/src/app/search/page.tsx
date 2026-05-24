@@ -29,8 +29,6 @@ import {
   RadioTower,
   Layers3,
   Satellite,
-  Maximize2,
-  Minimize2,
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
@@ -1106,7 +1104,7 @@ function ClaimUpdateModal({ mechanic, onClose, onSubmitted }: { mechanic: Mechan
   );
 }
 
-function MapModeToolbar({ mode, onModeChange, isFullscreen, onToggleFullscreen }: { mode: PremiumMapMode; onModeChange: (mode: PremiumMapMode) => void; isFullscreen?: boolean; onToggleFullscreen?: () => void }) {
+function MapModeToolbar({ mode, onModeChange }: { mode: PremiumMapMode; onModeChange: (mode: PremiumMapMode) => void }) {
   return (
     <div className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-[#06101f]/90 p-1 shadow-2xl shadow-black/50 backdrop-blur-xl">
       {PREMIUM_MAP_MODES.map((item) => {
@@ -1125,17 +1123,6 @@ function MapModeToolbar({ mode, onModeChange, isFullscreen, onToggleFullscreen }
           </button>
         );
       })}
-      {onToggleFullscreen ? (
-        <button
-          type="button"
-          onClick={onToggleFullscreen}
-          title={isFullscreen ? "Exit fullscreen map" : "Expand map to fullscreen"}
-          className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-2.5 text-[11px] font-black uppercase tracking-wide text-white transition hover:bg-white/20"
-        >
-          {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-          <span className="hidden sm:inline">{isFullscreen ? "Exit" : "Fullscreen"}</span>
-        </button>
-      ) : null}
     </div>
   );
 }
@@ -1532,11 +1519,9 @@ function SearchPageInner() {
     setView("map");
     if (mechanic.city || mechanic.state) setMapAreaSummary(`Showing map near ${[mechanic.city, mechanic.state].filter(Boolean).join(", ")}`);
   }, []);
-  const [isFullscreenMap, setIsFullscreenMap] = useState(true);
-  const toggleFullscreenMap = useCallback(() => setIsFullscreenMap((value) => !value), []);
-  const mapShellClass = isFullscreenMap ? "fixed inset-0 z-[60] bg-[#040810] p-3" : "";
+  const mapShellClass = "fixed inset-0 z-[60] bg-[#040810] p-3";
   const mapGridClass = "grid gap-4";
-  const mapHeightClass = isFullscreenMap ? "h-[calc(100vh-24px)] min-h-[420px]" : "h-[520px] min-h-[420px]";
+  const mapHeightClass = "h-[calc(100vh-24px)] min-h-[420px]";
 
   return (
     <PageLayout>
@@ -1769,67 +1754,22 @@ function SearchPageInner() {
                 city={city}
                 state={state}
                 onLocationSearch={searchMapLocation}
-                workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} isFullscreen={isFullscreenMap} onToggleFullscreen={toggleFullscreenMap} />}
+                workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} />}
               />
             </div>
-            {isFullscreenMap ? (
-              <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[70] flex justify-center px-3">
-                <div className="pointer-events-auto">
-                  <ResultsToolbar
-                    view={view}
-                    onViewChange={setView}
-                    scope={vendorScopeMode}
-                    scopeCounts={vendorScopeCounts}
-                    onScopeChange={setVendorScopeMode}
-                    sourceTotals={sourceTotals}
-                    compact
-                  />
-                </div>
+            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[70] flex justify-center px-3">
+              <div className="pointer-events-auto">
+                <ResultsToolbar
+                  view={view}
+                  onViewChange={setView}
+                  scope={vendorScopeMode}
+                  scopeCounts={vendorScopeCounts}
+                  onScopeChange={setVendorScopeMode}
+                  sourceTotals={sourceTotals}
+                  compact
+                />
               </div>
-            ) : null}
-            {!isFullscreenMap ? (
-              <div className="mt-4 space-y-4">
-                <div className="flex flex-col gap-3 rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="space-y-1">
-                    <span className="block text-sm text-roadcall-muted">
-                      <span className="text-white font-semibold">{allProviderCount.toLocaleString()}</span> providers found
-                      {state && ` in ${state}`}{city && !mapAreaSummary && `, ${city}`}
-                    </span>
-                    {mapAreaSummary ? <span className="block text-xs font-semibold text-roadcall-cyan">{mapAreaSummary}</span> : null}
-                  </div>
-                  <a
-                    href={telHref(HELP_PHONE)}
-                    className="inline-flex items-center justify-center gap-2 rounded-full border border-roadcall-orange/30 bg-roadcall-orange/10 px-4 py-2 text-xs font-semibold text-roadcall-orange transition-all hover:bg-roadcall-orange/20"
-                  >
-                    <Zap className="h-3.5 w-3.5" /> Let AI dispatch for you
-                  </a>
-                </div>
-                <VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />
-                <div className="grid gap-3 xl:grid-cols-[1fr_auto] xl:items-start">
-                  <PremiumMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} />
-                  <button
-                    type="button"
-                    onClick={() => setIntakeOpen(true)}
-                    className="inline-flex items-center justify-center rounded-2xl border border-red-400/35 bg-red-400/15 px-5 py-4 text-sm font-black text-red-100 shadow-xl shadow-red-950/20 hover:bg-red-400/20"
-                  >
-                    <Zap className="mr-2 h-4 w-4" /> Emergency Breakdown
-                  </button>
-                </div>
-                <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 p-4">
-                  <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-muted">Visible cities</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {cityGroups.slice(0, 8).map((group) => (
-                      <span key={group.label} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-roadcall-silver">
-                        {group.label} · {group.providers.length}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="grid gap-4 lg:grid-cols-2">
-                  {cityGroups.map((group) => <CityMechanicGroup key={group.label} label={group.label} providers={group.providers} onClaim={setClaimTarget} onViewMap={handleViewMap} />)}
-                </div>
-              </div>
-            ) : null}
+            </div>
           </div>
         ) : results && scopedMechanics.length > 0 && view === "list" ? (
           <MechanicListView mechanics={scopedMechanics} onClaim={setClaimTarget} onViewMap={handleViewMap} />
