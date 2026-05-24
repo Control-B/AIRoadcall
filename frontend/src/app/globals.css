@@ -120,3 +120,9 @@
   margin: 0 0 12px 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
+
+/* Hide Mapbox branding (logo + "Improve this map" attribution link) */
+.mapboxgl-ctrl-logo,
+.mapboxgl-ctrl-attrib {
+  display: none !important;
+}
