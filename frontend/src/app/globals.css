@@ -109,8 +109,14 @@
   }
 }
 
-/* Map controls for mobile */
+/* Map control styling */
 .mapboxgl-ctrl-bottom-left,
 .mapboxgl-ctrl-bottom-right {
-  display: none !important;
+  z-index: 30;
+}
+
+.mapboxgl-ctrl-bottom-left .mapboxgl-ctrl-group,
+.mapboxgl-ctrl-bottom-right .mapboxgl-ctrl-group {
+  margin: 0 0 12px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
