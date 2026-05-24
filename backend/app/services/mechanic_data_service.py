@@ -358,6 +358,25 @@ class MechanicDataService:
             city_terms = MechanicDataService._city_search_terms(normalized_city)
             if city_terms:
                 filters.append(or_(*(Mechanic.city.ilike(f"%{term}%") for term in city_terms)))
+        if q:
+            query_terms = [term for term in (intent.location_terms + intent.capability_terms) if term]
+            if query_terms:
+                search_conditions = []
+                service_text = cast(Mechanic.service_types, String)
+                vehicle_text = cast(Mechanic.vehicle_types_supported, String)
+                for term in query_terms:
+                    pattern = f"%{term}%"
+                    search_conditions.extend([
+                        Mechanic.company_name.ilike(pattern),
+                        Mechanic.address.ilike(pattern),
+                        Mechanic.city.ilike(pattern),
+                        Mechanic.state.ilike(pattern),
+                        Mechanic.zip_code.ilike(pattern),
+                        Mechanic.website.ilike(pattern),
+                        service_text.ilike(pattern),
+                        vehicle_text.ilike(pattern),
+                    ])
+                filters.append(or_(*search_conditions))
         if service_type:
             filters.append(MechanicDataService._service_filter_condition(service_type))
         if mobile_only:
@@ -373,8 +392,9 @@ class MechanicDataService:
         if max_lng is not None:
             filters.append(Mechanic.base_lng <= max_lng)
 
+        total_count = await db.scalar(select(func.count(Mechanic.id)).where(*filters)) or 0
         base_query = select(Mechanic).where(*filters)
-        candidate_limit = max(1500, min(page_size * page, 5000))
+        candidate_limit = max(page_size * page, min(1500, int(total_count))) if total_count else page_size
         candidate_query = base_query.order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc()).limit(candidate_limit)
         result = await db.execute(candidate_query)
         mechanics = list(result.scalars().all())
@@ -417,7 +437,7 @@ class MechanicDataService:
             scored.append((mechanic, intelligence, distance_miles, score))
 
         scored.sort(key=lambda item: (item[3], item[1].dispatch_fit_score, item[1].trust_score), reverse=True)
-        total = len(scored)
+        total = int(total_count) if not has_bounds else len(scored)
         start = (page - 1) * page_size
         page_items = scored[start:start + page_size]
 

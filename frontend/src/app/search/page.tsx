@@ -23,10 +23,6 @@ import {
   Shield,
   Map as MapIcon,
   LayoutGrid,
-  Maximize2,
-  PanelRightClose,
-  PanelRightOpen,
-  RectangleHorizontal,
   Rows3,
   Loader2,
   Activity,
@@ -309,6 +305,20 @@ type PublicNationalVendor = {
   services: string[];
 };
 
+type PublicTruckingCompany = {
+  company_name: string;
+  phone: string | null;
+  website?: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  rating: number | null;
+  review_count: number | null;
+  categories: string[];
+};
+
 type NationalVendorResponse = {
   total: number;
   limit: number;
@@ -316,7 +326,13 @@ type NationalVendorResponse = {
   items: PublicNationalVendor[];
 };
 
-type MapWorkspaceMode = "split" | "wide" | "fullscreen";
+type TruckingCompanyResponse = {
+  total: number;
+  limit: number;
+  offset: number;
+  items: PublicTruckingCompany[];
+};
+
 type ProviderViewMode = "map" | "cards" | "list";
 type PremiumMapMode = "basic" | "operations" | "satellite" | "density" | "hotspots";
 type VendorScopeMode = "all" | "national" | "local";
@@ -477,6 +493,36 @@ function nationalVendorToMechanic(vendor: PublicNationalVendor, index: number): 
     export_status: "ready",
     badges: ["National vendor"],
     reasons: ["National vendor database"],
+  };
+}
+
+function truckingCompanyToMechanic(company: PublicTruckingCompany, index: number): Mechanic {
+  const categories = company.categories || [];
+  return {
+    id: `trucking-${company.company_name}-${company.address || index}`,
+    company_name: company.company_name,
+    vendor_scope: "local",
+    business_category: "Trucking Company",
+    address: company.address,
+    city: company.city,
+    state: company.state,
+    lat: company.lat,
+    lng: company.lng,
+    phone: company.phone,
+    website: company.website,
+    rating: company.rating,
+    review_count: company.review_count,
+    accepts_mobile_roadside: false,
+    emergency_service: false,
+    is_emergency_24_7: false,
+    service_types: categories.length ? categories : ["trucking company"],
+    priority_score: 0.55,
+    verification_status: "unverified",
+    claim_status: "unclaimed",
+    contact_protected: false,
+    export_status: company.phone || company.website ? "ready" : "needs_enrichment",
+    badges: ["Trucking company"],
+    reasons: ["Trucking company database"],
   };
 }
 
@@ -1085,67 +1131,6 @@ function PremiumOperationsOverlay({ mechanics, mode }: { mechanics: (Mechanic & 
   );
 }
 
-function MapWorkspaceControls({
-  mode,
-  sidePanelOpen,
-  onModeChange,
-  onToggleSidePanel,
-}: {
-  mode: MapWorkspaceMode;
-  sidePanelOpen: boolean;
-  onModeChange: (mode: MapWorkspaceMode) => void;
-  onToggleSidePanel: () => void;
-}) {
-  if (mode === "fullscreen") {
-    return (
-      <div className="inline-flex items-center rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/80 p-1 shadow-2xl shadow-black/30 backdrop-blur-md">
-        <button
-          type="button"
-          onClick={() => onModeChange("split")}
-          title="Exit full page map"
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-roadcall-cyan text-slate-950 transition hover:brightness-110"
-        >
-          <Maximize2 className="h-4 w-4" />
-        </button>
-      </div>
-    );
-  }
-
-  const controls = [
-    { id: "split" as const, label: "Split map and list", icon: Rows3 },
-    { id: "wide" as const, label: "Focus map", icon: RectangleHorizontal },
-    { id: "fullscreen" as const, label: "Expand map to full page", icon: Maximize2 },
-  ];
-  return (
-    <div className="inline-flex items-center rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/80 p-1 shadow-2xl shadow-black/30 backdrop-blur-md">
-      <button
-        type="button"
-        onClick={onToggleSidePanel}
-        title={sidePanelOpen ? "Hide provider panel" : "Show provider panel"}
-        className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${sidePanelOpen ? "text-roadcall-cyan hover:bg-white/10" : "bg-roadcall-cyan text-slate-950"}`}
-      >
-        {sidePanelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-      </button>
-      <span className="mx-1 h-5 w-px bg-white/10" />
-      {controls.map((control) => {
-        const Icon = control.icon;
-        const active = mode === control.id;
-        return (
-          <button
-            key={control.id}
-            type="button"
-            onClick={() => onModeChange(control.id)}
-            title={control.label}
-            className={`inline-flex h-8 w-8 items-center justify-center rounded-full transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
-          >
-            <Icon className="h-4 w-4" />
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 function SearchPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -1162,14 +1147,14 @@ function SearchPageInner() {
 
   const [results, setResults] = useState<SearchResult | null>(null);
   const [nationalVendors, setNationalVendors] = useState<Mechanic[]>([]);
+  const [truckingCompanies, setTruckingCompanies] = useState<Mechanic[]>([]);
+  const [sourceTotals, setSourceTotals] = useState({ mechanics: 0, national: 0, trucking: 0 });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [view, setView] = useState<ProviderViewMode>("map");
-  const [mapWorkspaceMode, setMapWorkspaceMode] = useState<MapWorkspaceMode>("split");
   const [premiumMapMode, setPremiumMapMode] = useState<PremiumMapMode>("basic");
   const [vendorScopeMode, setVendorScopeMode] = useState<VendorScopeMode>("all");
-  const [mapSidePanelOpen, setMapSidePanelOpen] = useState(true);
   const [mapAreaSummary, setMapAreaSummary] = useState<string | null>(null);
   const [searchingArea, setSearchingArea] = useState(false);
   const [claimTarget, setClaimTarget] = useState<Mechanic | null>(null);
@@ -1200,11 +1185,11 @@ function SearchPageInner() {
       params.set("max_lng", String(options.bounds.max_lng));
     }
     params.set("page", String(options?.pageOverride ?? page));
-    params.set("page_size", String(options?.pageSize ?? 5000));
+    params.set("page_size", String(options?.pageSize ?? 10000));
     return params;
   }, [city, only24_7, onlyMobile, page, query, serviceType, state, verifiedOnly]);
 
-  const fetchNationalVendors = useCallback(async (options?: { bounds?: MapBounds }) => {
+  const buildDirectoryParams = useCallback((options?: { bounds?: MapBounds }) => {
     const params = new URLSearchParams();
     if (query) params.set("q", query);
     if (state) params.set("state", state);
@@ -1215,12 +1200,25 @@ function SearchPageInner() {
       params.set("min_lng", String(options.bounds.min_lng));
       params.set("max_lng", String(options.bounds.max_lng));
     }
-    params.set("limit", "5000");
+    params.set("limit", "10000");
+    return params;
+  }, [city, query, state]);
+
+  const fetchNationalVendors = useCallback(async (options?: { bounds?: MapBounds }) => {
+    const params = buildDirectoryParams(options);
     const response = await fetch(`${API_URL}/directories/national-vendors?${params}`);
     if (!response.ok) throw new Error("National vendor search failed");
     const data = await response.json() as NationalVendorResponse;
-    return data.items.map(nationalVendorToMechanic).filter(hasCoordinates);
-  }, [city, query, state]);
+    return { total: data.total, items: data.items.map(nationalVendorToMechanic) };
+  }, [buildDirectoryParams]);
+
+  const fetchTruckingCompanies = useCallback(async (options?: { bounds?: MapBounds }) => {
+    const params = buildDirectoryParams(options);
+    const response = await fetch(`${API_URL}/directories/trucking-companies?${params}`);
+    if (!response.ok) throw new Error("Trucking company search failed");
+    const data = await response.json() as TruckingCompanyResponse;
+    return { total: data.total, items: data.items.map(truckingCompanyToMechanic) };
+  }, [buildDirectoryParams]);
 
   const doSearch = useCallback(async (resetPage = false, pageOverride?: number) => {
     const currentPage = resetPage ? 1 : pageOverride ?? page;
@@ -1231,23 +1229,28 @@ function SearchPageInner() {
     const params = buildSearchParams({ pageOverride: currentPage });
 
     try {
-      const [res, nationalVendorRows] = await Promise.all([
+      const [res, nationalVendorData, truckingCompanyData] = await Promise.all([
         fetch(`${API_URL}/mechanics/search?${params}`),
-        fetchNationalVendors().catch(() => [] as Mechanic[]),
+        fetchNationalVendors().catch(() => ({ total: 0, items: [] as Mechanic[] })),
+        fetchTruckingCompanies().catch(() => ({ total: 0, items: [] as Mechanic[] })),
       ]);
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
-      setNationalVendors(nationalVendorRows);
+      setNationalVendors(nationalVendorData.items);
+      setTruckingCompanies(truckingCompanyData.items);
+      setSourceTotals({ mechanics: data.total || 0, national: nationalVendorData.total, trucking: truckingCompanyData.total });
       setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
     } catch {
       // Fall back to a public-friendly empty state
       setResults({ mechanics: [], total: 0, page: 1, page_size: 24 });
       setNationalVendors([]);
+      setTruckingCompanies([]);
+      setSourceTotals({ mechanics: 0, national: 0, trucking: 0 });
       setError("Search unavailable — try the AI dispatcher for instant help.");
     } finally {
       setLoading(false);
     }
-  }, [buildSearchParams, fetchNationalVendors, page, verifiedOnly]);
+  }, [buildSearchParams, fetchNationalVendors, fetchTruckingCompanies, page, verifiedOnly]);
 
   const searchMapArea = useCallback(async (bounds: MapBounds) => {
     setSearchingArea(true);
@@ -1257,15 +1260,18 @@ function SearchPageInner() {
     const params = buildSearchParams({ bounds, pageOverride: 1, pageSize: 5000 });
 
     try {
-      const [res, nationalVendorRows] = await Promise.all([
+      const [res, nationalVendorData, truckingCompanyData] = await Promise.all([
         fetch(`${API_URL}/mechanics/search?${params}`),
-        fetchNationalVendors({ bounds }).catch(() => [] as Mechanic[]),
+        fetchNationalVendors({ bounds }).catch(() => ({ total: 0, items: [] as Mechanic[] })),
+        fetchTruckingCompanies({ bounds }).catch(() => ({ total: 0, items: [] as Mechanic[] })),
       ]);
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
-      setNationalVendors(nationalVendorRows);
+      setNationalVendors(nationalVendorData.items);
+      setTruckingCompanies(truckingCompanyData.items);
+      setSourceTotals({ mechanics: data.total || 0, national: nationalVendorData.total, trucking: truckingCompanyData.total });
       setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
-      setMapAreaSummary(`Showing ${(data.mechanics.length + nationalVendorRows.length).toLocaleString()} mapped providers in the visible map area`);
+      setMapAreaSummary(`Showing ${(data.mechanics.length + nationalVendorData.items.length + truckingCompanyData.items.length).toLocaleString()} mapped providers in the visible map area`);
       setView("map");
     } catch {
       setError("Map area search unavailable — try zooming out or clearing filters.");
@@ -1273,7 +1279,7 @@ function SearchPageInner() {
       setLoading(false);
       setSearchingArea(false);
     }
-  }, [buildSearchParams, fetchNationalVendors, verifiedOnly]);
+  }, [buildSearchParams, fetchNationalVendors, fetchTruckingCompanies, verifiedOnly]);
 
   const searchNearMe = useCallback(() => {
     if (!navigator.geolocation) {
@@ -1304,53 +1310,23 @@ function SearchPageInner() {
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const mechanics = results?.mechanics || [];
-  const combinedProviders = useMemo(() => [...nationalVendors, ...mechanics.map((mechanic) => ({ ...mechanic, vendor_scope: "local" as const }))], [mechanics, nationalVendors]);
-  const allProviderCount = (results?.total || 0) + nationalVendors.length;
-  const vendorScopeCounts = useMemo(() => {
-    const national = combinedProviders.filter(isNationalVendor).length;
-    return { all: combinedProviders.length, national, local: combinedProviders.length - national };
-  }, [combinedProviders]);
+  const combinedProviders = useMemo(() => [...nationalVendors, ...mechanics.map((mechanic) => ({ ...mechanic, vendor_scope: "local" as const })), ...truckingCompanies], [mechanics, nationalVendors, truckingCompanies]);
+  const allProviderCount = sourceTotals.mechanics + sourceTotals.national + sourceTotals.trucking;
+  const vendorScopeCounts = useMemo(() => ({
+    all: allProviderCount,
+    national: sourceTotals.national,
+    local: sourceTotals.mechanics + sourceTotals.trucking,
+  }), [allProviderCount, sourceTotals]);
   const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(combinedProviders, vendorScopeMode), [combinedProviders, vendorScopeMode]);
   const cityGroups = useMemo(() => groupMechanicsByCity(scopedMechanics), [scopedMechanics]);
   const handleViewMap = useCallback((mechanic: Mechanic) => {
     setView("map");
-    setMapWorkspaceMode("split");
-    setMapSidePanelOpen(true);
     if (mechanic.city || mechanic.state) setMapAreaSummary(`Showing map near ${[mechanic.city, mechanic.state].filter(Boolean).join(", ")}`);
   }, []);
-  const isFullscreenMap = mapWorkspaceMode === "fullscreen";
-  useEffect(() => {
-    if (!isFullscreenMap) return;
-    const previousOverflow = document.body.style.overflow;
-    const footers = Array.from(document.querySelectorAll<HTMLElement>("footer"));
-    const previousFooterDisplays = footers.map((footer) => footer.style.display);
-    document.body.style.overflow = "hidden";
-    footers.forEach((footer) => {
-      footer.style.display = "none";
-    });
-    return () => {
-      document.body.style.overflow = previousOverflow;
-      footers.forEach((footer, index) => {
-        footer.style.display = previousFooterDisplays[index] || "";
-      });
-    };
-  }, [isFullscreenMap]);
-
-  const showMapSidePanel = mapSidePanelOpen && mapWorkspaceMode !== "wide" && !isFullscreenMap;
-  const mapShellClass = mapWorkspaceMode === "fullscreen"
-    ? "fixed inset-x-0 bottom-0 top-20 z-[60] overflow-hidden bg-[#02050c] shadow-2xl shadow-black/80"
-    : "";
-  const mapGridClass = mapWorkspaceMode === "fullscreen"
-    ? "absolute inset-0 h-full min-h-0"
-    : showMapSidePanel
-      ? "grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]"
-      : "grid gap-4";
-  const mapHeightClass = mapWorkspaceMode === "fullscreen"
-    ? "h-full min-h-0 rounded-none border-0"
-    : mapWorkspaceMode === "wide"
-      ? "h-[680px] min-h-[520px]"
-      : "h-[520px] min-h-[420px]";
-  const premiumModeLabel = PREMIUM_MAP_MODES.find((mode) => mode.id === premiumMapMode)?.label || "Basic";
+  const isFullscreenMap = false;
+  const mapShellClass = "";
+  const mapGridClass = "grid gap-4";
+  const mapHeightClass = "h-[520px] min-h-[420px]";
 
   return (
     <PageLayout>
@@ -1547,20 +1523,11 @@ function SearchPageInner() {
               <span className="text-sm text-roadcall-muted animate-pulse">Searching…</span>
             ) : error ? (
               <span className="flex items-center gap-1.5 text-sm text-amber-400"><AlertCircle className="h-4 w-4" />{error}</span>
-            ) : results ? (
-              <div className="space-y-1">
-                <span className="block text-sm text-roadcall-muted">
-                  <span className="text-white font-semibold">{allProviderCount.toLocaleString()}</span> providers found
-                  {state && ` in ${state}`}{city && !mapAreaSummary && `, ${city}`}
-                </span>
-                {mapAreaSummary ? <span className="block text-xs font-semibold text-roadcall-cyan">{mapAreaSummary}</span> : null}
-              </div>
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {results && combinedProviders.length > 0 && (
               <>
-                <VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />
                 <div className="inline-flex rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/50 p-1">
                   <button
                     type="button"
@@ -1586,12 +1553,6 @@ function SearchPageInner() {
                 </div>
               </>
             )}
-            <a
-              href={telHref(HELP_PHONE)}
-              className="hidden sm:flex items-center gap-2 bg-roadcall-orange/10 border border-roadcall-orange/30 hover:bg-roadcall-orange/20 text-roadcall-orange text-xs font-semibold px-4 py-2 rounded-full transition-all"
-            >
-              <Zap className="h-3.5 w-3.5" /> Let AI dispatch for you
-            </a>
           </div>
         </div>
 
@@ -1604,66 +1565,58 @@ function SearchPageInner() {
           </div>
         ) : results && combinedProviders.length > 0 && view === "map" ? (
           <div className={mapShellClass}>
-            {!isFullscreenMap ? <div className="mb-3">
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-cyan">{premiumModeLabel} map workspace</p>
-                <p className="mt-1 text-sm text-roadcall-muted">
-                  Advanced map modes are open for this session. Use the controls to focus, expand, or hide panels.
-                </p>
-              </div>
-            </div> : null}
             <div className={mapGridClass}>
               <SearchResultsMap
                 mechanics={scopedMechanics}
                 onSearchArea={searchMapArea}
                 searchingArea={searchingArea}
                 className={mapHeightClass}
-                layoutKey={`${mapWorkspaceMode}-${mapSidePanelOpen}-${vendorScopeMode}`}
+                layoutKey={`standard-${vendorScopeMode}`}
                 premiumMode={premiumMapMode}
-                workspaceControls={(
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />
-                    {isFullscreenMap ? <FullscreenMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} /> : null}
-                    <MapWorkspaceControls
-                      mode={mapWorkspaceMode}
-                      sidePanelOpen={mapSidePanelOpen}
-                      onToggleSidePanel={() => setMapSidePanelOpen((open) => !open)}
-                      onModeChange={(mode) => {
-                        setMapWorkspaceMode(mode);
-                        if (mode === "fullscreen") setMapSidePanelOpen(false);
-                      }}
-                    />
-                  </div>
-                )}
+                workspaceControls={isFullscreenMap ? <FullscreenMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} /> : undefined}
               />
-              {showMapSidePanel ? (
-                <div className="max-h-[520px] space-y-4 overflow-y-auto pr-1">
-                  <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 p-4">
-                    <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-muted">Visible cities</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {cityGroups.slice(0, 8).map((group) => (
-                        <span key={group.label} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-roadcall-silver">
-                          {group.label} · {group.providers.length}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    {cityGroups.map((group) => <CityMechanicGroup key={group.label} label={group.label} providers={group.providers} onClaim={setClaimTarget} onViewMap={handleViewMap} />)}
-                  </div>
-                </div>
-              ) : null}
             </div>
             {!isFullscreenMap ? (
-              <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_auto] xl:items-start">
-                <PremiumMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} />
-                <button
-                  type="button"
-                  onClick={() => setIntakeOpen(true)}
-                  className="inline-flex items-center justify-center rounded-2xl border border-red-400/35 bg-red-400/15 px-5 py-4 text-sm font-black text-red-100 shadow-xl shadow-red-950/20 hover:bg-red-400/20"
-                >
-                  <Zap className="mr-2 h-4 w-4" /> Emergency Breakdown
-                </button>
+              <div className="mt-4 space-y-4">
+                <div className="flex flex-col gap-3 rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-1">
+                    <span className="block text-sm text-roadcall-muted">
+                      <span className="text-white font-semibold">{allProviderCount.toLocaleString()}</span> providers found
+                      {state && ` in ${state}`}{city && !mapAreaSummary && `, ${city}`}
+                    </span>
+                    {mapAreaSummary ? <span className="block text-xs font-semibold text-roadcall-cyan">{mapAreaSummary}</span> : null}
+                  </div>
+                  <a
+                    href={telHref(HELP_PHONE)}
+                    className="inline-flex items-center justify-center gap-2 rounded-full border border-roadcall-orange/30 bg-roadcall-orange/10 px-4 py-2 text-xs font-semibold text-roadcall-orange transition-all hover:bg-roadcall-orange/20"
+                  >
+                    <Zap className="h-3.5 w-3.5" /> Let AI dispatch for you
+                  </a>
+                </div>
+                <VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />
+                <div className="grid gap-3 xl:grid-cols-[1fr_auto] xl:items-start">
+                  <PremiumMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} />
+                  <button
+                    type="button"
+                    onClick={() => setIntakeOpen(true)}
+                    className="inline-flex items-center justify-center rounded-2xl border border-red-400/35 bg-red-400/15 px-5 py-4 text-sm font-black text-red-100 shadow-xl shadow-red-950/20 hover:bg-red-400/20"
+                  >
+                    <Zap className="mr-2 h-4 w-4" /> Emergency Breakdown
+                  </button>
+                </div>
+                <div className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-muted">Visible cities</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {cityGroups.slice(0, 8).map((group) => (
+                      <span key={group.label} className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-bold text-roadcall-silver">
+                        {group.label} · {group.providers.length}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="grid gap-4 lg:grid-cols-2">
+                  {cityGroups.map((group) => <CityMechanicGroup key={group.label} label={group.label} providers={group.providers} onClaim={setClaimTarget} onViewMap={handleViewMap} />)}
+                </div>
               </div>
             ) : null}
           </div>

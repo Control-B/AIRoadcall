@@ -133,7 +133,7 @@ async def public_search_mechanics(
     min_lng: float | None = Query(default=None, ge=-180, le=180),
     max_lng: float | None = Query(default=None, ge=-180, le=180),
     page: int = Query(default=1, ge=1),
-    page_size: int = Query(default=24, ge=1, le=5000),
+    page_size: int = Query(default=24, ge=1, le=10000),
     db: AsyncSession = Depends(get_session),
 ):
     """Public directory search — returns basic provider info safe for public display."""

@@ -93,9 +93,12 @@ def _public_trucking_row(row) -> dict:
     return {
         "company_name": row.company_name if hasattr(row, "company_name") else row.get("company_name"),
         "phone": row.phone if hasattr(row, "phone") else row.get("phone"),
+        "website": row.website if hasattr(row, "website") else row.get("website"),
         "address": row.address if hasattr(row, "address") else row.get("address"),
         "city": row.city if hasattr(row, "city") else row.get("city"),
         "state": row.state if hasattr(row, "state") else row.get("state"),
+        "lat": row.lat if hasattr(row, "lat") else _to_float(row.get("lat")),
+        "lng": row.lng if hasattr(row, "lng") else _to_float(row.get("lng")),
         "rating": row.rating if hasattr(row, "rating") else _to_float(row.get("rating")),
         "review_count": row.review_count if hasattr(row, "review_count") else _to_int(row.get("review_count")),
         "categories": _split_public_tags(row.categories if hasattr(row, "categories") else row.get("categories")),
@@ -144,17 +147,32 @@ async def public_trucking_company_stats(db: AsyncSession = Depends(get_session))
 @router.get("/trucking-companies")
 async def public_trucking_companies(
     q: str | None = Query(default=None, max_length=80),
+    city: str | None = Query(default=None, max_length=80),
     state: str | None = Query(default=None, min_length=2, max_length=2),
-    limit: int = Query(default=24, ge=1, le=48),
+    min_lat: float | None = Query(default=None, ge=-90, le=90),
+    max_lat: float | None = Query(default=None, ge=-90, le=90),
+    min_lng: float | None = Query(default=None, ge=-180, le=180),
+    max_lng: float | None = Query(default=None, ge=-180, le=180),
+    limit: int = Query(default=24, ge=1, le=10000),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_session),
 ):
     filters = []
     if q:
         term = _like(q)
-        filters.append(or_(TruckingCompany.company_name.ilike(term), TruckingCompany.city.ilike(term), TruckingCompany.categories.ilike(term)))
+        filters.append(or_(TruckingCompany.company_name.ilike(term), TruckingCompany.city.ilike(term), TruckingCompany.categories.ilike(term), TruckingCompany.address.ilike(term), TruckingCompany.phone.ilike(term)))
+    if city:
+        filters.append(TruckingCompany.city.ilike(_like(city)))
     if state:
         filters.append(TruckingCompany.state == state.upper())
+    if min_lat is not None:
+        filters.append(TruckingCompany.lat >= min_lat)
+    if max_lat is not None:
+        filters.append(TruckingCompany.lat <= max_lat)
+    if min_lng is not None:
+        filters.append(TruckingCompany.lng >= min_lng)
+    if max_lng is not None:
+        filters.append(TruckingCompany.lng <= max_lng)
 
     count_query = select(func.count(TruckingCompany.id))
     data_query = (
@@ -173,7 +191,12 @@ async def public_trucking_companies(
         csv_rows = [
             row for row in _load_csv("trucking_companies_us.csv")
             if _state_matches(row, state)
+            and (not city or city.lower() in (row.get("city") or "").lower())
             and (not q or _contains(row, q, ("company_name", "city", "state", "categories", "address", "phone")))
+            and (min_lat is None or ((_to_float(row.get("lat")) is not None) and _to_float(row.get("lat")) >= min_lat))
+            and (max_lat is None or ((_to_float(row.get("lat")) is not None) and _to_float(row.get("lat")) <= max_lat))
+            and (min_lng is None or ((_to_float(row.get("lng")) is not None) and _to_float(row.get("lng")) >= min_lng))
+            and (max_lng is None or ((_to_float(row.get("lng")) is not None) and _to_float(row.get("lng")) <= max_lng))
         ]
         return {
             "total": len(csv_rows),
