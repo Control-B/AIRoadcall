@@ -1,9 +1,9 @@
 """Public, limited directory APIs for SEO-safe discovery pages.
 
 These endpoints expose only display-safe directory fields: name, city/state,
-phone, address, ratings, public category/service labels, and map coordinates.
-They intentionally omit emails, websites, internal IDs, source URLs, DOT/MC
-numbers, and enrichment metadata. Admin-only APIs remain the source for full records.
+phone, address, ratings, and public category/service labels. They intentionally
+omit emails, websites, internal IDs, source URLs, coordinates, DOT/MC numbers,
+and enrichment metadata. Admin-only APIs remain the source for full records.
 """
 from __future__ import annotations
 
@@ -110,8 +110,6 @@ def _public_vendor_row(row) -> dict:
         "address": row.address if hasattr(row, "address") else row.get("address"),
         "city": row.city if hasattr(row, "city") else row.get("city"),
         "state": row.state if hasattr(row, "state") else row.get("state"),
-        "lat": row.lat if hasattr(row, "lat") else _to_float(row.get("lat")),
-        "lng": row.lng if hasattr(row, "lng") else _to_float(row.get("lng")),
         "rating": row.rating if hasattr(row, "rating") else _to_float(row.get("rating")),
         "review_count": row.review_count if hasattr(row, "review_count") else _to_int(row.get("review_count")),
         "services": _split_public_tags((row.services or row.categories) if hasattr(row, "services") else (row.get("services") or row.get("categories"))),
@@ -218,13 +216,8 @@ async def public_national_vendor_stats(db: AsyncSession = Depends(get_session)):
 async def public_national_vendors(
     q: str | None = Query(default=None, max_length=80),
     brand: str | None = Query(default=None, max_length=80),
-    city: str | None = Query(default=None, max_length=80),
     state: str | None = Query(default=None, min_length=2, max_length=2),
-    min_lat: float | None = Query(default=None, ge=-90, le=90),
-    max_lat: float | None = Query(default=None, ge=-90, le=90),
-    min_lng: float | None = Query(default=None, ge=-180, le=180),
-    max_lng: float | None = Query(default=None, ge=-180, le=180),
-    limit: int = Query(default=24, ge=1, le=5000),
+    limit: int = Query(default=24, ge=1, le=48),
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_session),
 ):
@@ -234,18 +227,8 @@ async def public_national_vendors(
         filters.append(or_(NationalVendor.brand_name.ilike(term), NationalVendor.location_name.ilike(term), NationalVendor.city.ilike(term), NationalVendor.services.ilike(term)))
     if brand:
         filters.append(NationalVendor.brand_name.ilike(_like(brand)))
-    if city:
-        filters.append(NationalVendor.city.ilike(_like(city)))
     if state:
         filters.append(NationalVendor.state == state.upper())
-    if min_lat is not None:
-        filters.append(NationalVendor.lat >= min_lat)
-    if max_lat is not None:
-        filters.append(NationalVendor.lat <= max_lat)
-    if min_lng is not None:
-        filters.append(NationalVendor.lng >= min_lng)
-    if max_lng is not None:
-        filters.append(NationalVendor.lng <= max_lng)
 
     count_query = select(func.count(NationalVendor.id))
     data_query = (
@@ -264,13 +247,8 @@ async def public_national_vendors(
         csv_rows = [
             row for row in _load_csv("national_vendors_us.csv")
             if _state_matches(row, state)
-            and (not city or city.lower() in (row.get("city") or "").lower())
             and (not brand or brand.lower() in (row.get("brand_name") or "").lower())
             and (not q or _contains(row, q, ("brand_name", "location_name", "city", "state", "services", "categories", "address", "phone")))
-            and (min_lat is None or ((_to_float(row.get("lat")) is not None) and _to_float(row.get("lat")) >= min_lat))
-            and (max_lat is None or ((_to_float(row.get("lat")) is not None) and _to_float(row.get("lat")) <= max_lat))
-            and (min_lng is None or ((_to_float(row.get("lng")) is not None) and _to_float(row.get("lng")) >= min_lng))
-            and (max_lng is None or ((_to_float(row.get("lng")) is not None) and _to_float(row.get("lng")) <= max_lng))
         ]
         return {
             "total": len(csv_rows),

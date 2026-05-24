@@ -374,7 +374,8 @@ class MechanicDataService:
             filters.append(Mechanic.base_lng <= max_lng)
 
         base_query = select(Mechanic).where(*filters)
-        candidate_query = base_query.order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc()).limit(1500)
+        candidate_limit = max(1500, min(page_size * page, 5000))
+        candidate_query = base_query.order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc()).limit(candidate_limit)
         result = await db.execute(candidate_query)
         mechanics = list(result.scalars().all())
 
