@@ -107,7 +107,7 @@ function MechanicCheckoutContent() {
           <h1 className="mt-8 text-4xl font-black tracking-tight">Start your Roadcall AI operating system.</h1>
           <p className="mt-4 text-slate-300">Start with 7 days free, complete your profile, then Roadcall activates the right AI service, Driver Pro, or Fleet Operations membership.</p>
           <div className="mt-8 space-y-3">
-            {["Secure billing activates your subscription", "Driver and fleet plans require authenticated premium access", "GHL Standard, Professional, and Advanced are started in GHL", "Your profile is completed after checkout"].map((item) => (
+            {["Secure billing activates your subscription", "Driver and fleet plans require authenticated premium access", "Standard, Professional, and Advanced start managed onboarding", "Your profile is completed after checkout"].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
             ))}
           </div>

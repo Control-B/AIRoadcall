@@ -143,7 +143,7 @@ export default function FleetPricingPage() {
           <div className="grid gap-3 sm:grid-cols-2">
             {[
               [Lock, "Locked analytics overlays"],
-              [ShieldCheck, "Stripe-validated premium access"],
+              [ShieldCheck, "Validated premium access"],
               [Route, "Route-aware provider intelligence"],
               [Activity, "Live dispatch and fleet event timelines"],
               [Truck, "Saved truck and fleet profiles"],

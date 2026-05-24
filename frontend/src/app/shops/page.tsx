@@ -34,7 +34,7 @@ const plans = [
     price: "$149.99",
     period: "/mo",
     setup: "$97.99 setup",
-    description: "AI widget plus AI phone answering for shops that do not need GHL.",
+    description: "AI widget plus AI phone answering for shops that do not need a full growth stack.",
     features: ["AI widget", "AI phone answering", "Lead capture", "Call summaries"],
     cta: "Start Widget + AI Telephony",
     highlighted: true,
@@ -55,7 +55,7 @@ const plans = [
     price: "$297",
     period: "/mo",
     setup: "$149 setup",
-    description: "GHL website, AI telephone, widget, CRM, and workflow foundation.",
+    description: "Website, AI telephone, widget, CRM, and workflow foundation.",
     features: ["Website", "AI telephone", "AI widget", "CRM workflows"],
     cta: "Start Standard",
     ghl: true,
@@ -67,7 +67,7 @@ const plans = [
     period: "/mo",
     setup: "$199 setup",
     description: "Everything in Standard plus mobile app access.",
-    features: ["Everything in Standard", "Mobile app", "Customer portal", "GHL SaaS Mode"],
+    features: ["Everything in Standard", "Mobile app", "Customer portal", "Managed CRM access"],
     cta: "Start Professional",
     ghl: true,
   },
@@ -78,7 +78,7 @@ const plans = [
     period: "/mo",
     setup: "$299 setup",
     description: "Everything in Professional plus social media marketing.",
-    features: ["Everything in Professional", "Social media marketing", "Content planning", "GHL SaaS Mode"],
+    features: ["Everything in Professional", "Social media marketing", "Content planning", "Managed CRM access"],
     cta: "Start Advanced",
     ghl: true,
   },
@@ -98,7 +98,7 @@ export default function ShopsPage() {
               AI phones, widgets, CRM, and roadside intelligence.
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-              Roadcall gives mechanic shops AI answering and GHL-powered growth plans, while Driver Pro gives owner operators premium roadside intelligence.
+              Roadcall gives mechanic shops AI answering and managed growth plans, while Driver Pro gives owner operators premium roadside intelligence.
             </p>
             <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <Link href="/shops/pricing">
@@ -117,7 +117,7 @@ export default function ShopsPage() {
 
         <section className="border-y border-white/10 bg-white/[0.03] px-4 py-5">
           <div className="mx-auto flex max-w-7xl flex-wrap justify-center gap-x-8 gap-y-3 text-sm text-slate-300">
-            {["AI phone answering", "Missed-call text-back", "GHL growth plans", "Driver Pro dispatch priority"].map((item) => (
+            {["AI phone answering", "Missed-call text-back", "Managed growth plans", "Driver Pro dispatch priority"].map((item) => (
               <span key={item} className="inline-flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</span>
             ))}
           </div>
@@ -129,7 +129,7 @@ export default function ShopsPage() {
               [Bot, "AI Intake", "Capture caller, vehicle, issue, location, and urgency before a human picks up."],
               [Phone, "AI Telephony", "Answer every call, summarize every conversation, and text back missed calls."],
               [Truck, "Driver Pro", "Unlock saved truck profiles, emergency mode, route intelligence, and live dispatch tracking."],
-              [ShieldCheck, "GHL Growth", "Standard, Professional, and Advanced run through GHL SaaS Mode and onboarding."],
+              [ShieldCheck, "Managed Growth", "Standard, Professional, and Advanced include managed CRM onboarding."],
             ].map(([Icon, title, copy]) => (
               <div key={title as string} className="rounded-2xl border border-white/10 bg-slate-950/70 p-6">
                 <Icon className="h-6 w-6 text-cyan-300" />
@@ -144,7 +144,7 @@ export default function ShopsPage() {
           <div className="mx-auto max-w-7xl">
             <div className="mb-8 text-center">
               <p className="text-sm font-bold uppercase tracking-[0.22em] text-cyan-200">Hybrid Pricing</p>
-              <h2 className="mt-3 text-4xl font-black">Simple Stripe plans plus GHL-powered growth.</h2>
+              <h2 className="mt-3 text-4xl font-black">Simple service plans plus managed growth.</h2>
             </div>
             <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
               {plans.map((plan) => (

@@ -296,7 +296,7 @@ export default function AiTelephonyPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Current calendar" value={form.current_calendar} onChange={(value) => setField("current_calendar", value)} placeholder="Google Calendar, Outlook, shop software..." />
+                  <Field label="Current calendar" value={form.current_calendar} onChange={(value) => setField("current_calendar", value)} placeholder="Calendar system, shop software..." />
                   <Field label="Calendar booking link" type="url" value={form.calcom_calendar_url} onChange={(value) => setField("calcom_calendar_url", value)} placeholder="https://your-booking-link.com/service" />
                   <Textarea label="Services offered" value={form.services_offered} onChange={(value) => setField("services_offered", value)} placeholder="Diagnostics, DOT inspection, tires, mobile repair..." />
                   <Textarea label="Business hours" value={form.business_hours} onChange={(value) => setField("business_hours", value)} placeholder="Mon–Fri 7am–6pm, after-hours emergency coverage..." />

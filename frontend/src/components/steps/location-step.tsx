@@ -133,7 +133,7 @@ export function LocationStep({ token, onSuccess }: LocationStepProps) {
     }
   }, [requestLocation, state]);
 
-  // Initialize Mapbox map when coordinates are available
+  // Initialize map when coordinates are available
   useEffect(() => {
     if (!coords || !mapContainerRef.current) return;
 

@@ -552,7 +552,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   }
 
   if (!configured) {
-    return <div className={`grid place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 px-6 text-center text-sm text-roadcall-muted ${className}`}>Map view needs a configured Mapbox public token.</div>;
+    return <div className={`grid place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 px-6 text-center text-sm text-roadcall-muted ${className}`}>Map view needs a configured public map token.</div>;
   }
 
   if (points.length === 0) {
@@ -857,7 +857,7 @@ function ClaimUpdateModal({ mechanic, onClose, onSubmitted }: { mechanic: Mechan
           <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Company name<input name="submitted_company_name" defaultValue={mechanic.company_name} required className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
           <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Company address<input name="submitted_company_address" defaultValue={mechanic.address || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
           <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Website<input name="submitted_website" defaultValue={mechanic.website || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
-          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Google Maps URL<input name="google_maps_url" defaultValue={mechanic.google_maps_url || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
+          <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Map listing URL<input name="google_maps_url" defaultValue={mechanic.google_maps_url || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
           <label className="space-y-1 text-sm font-semibold text-roadcall-silver">Public phone update<input name="phone" defaultValue={mechanic.phone || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
           <label className="space-y-1 text-sm font-semibold text-roadcall-silver">City<input name="city" defaultValue={mechanic.city || ""} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
           <label className="space-y-1 text-sm font-semibold text-roadcall-silver">State<input name="state" defaultValue={mechanic.state || ""} maxLength={2} className="w-full rounded-xl border border-roadcall-cyan/15 bg-roadcall-panel/70 px-3 py-2 text-white" /></label>
@@ -878,7 +878,7 @@ function PremiumMapModeControls({ mode, onModeChange }: { mode: PremiumMapMode; 
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-roadcall-cyan">Premium map modes</p>
-          <p className="mt-1 text-xs text-roadcall-muted">Mapbox views plus Roadcall provider intelligence.</p>
+          <p className="mt-1 text-xs text-roadcall-muted">Map views plus Roadcall provider intelligence.</p>
         </div>
         <Activity className="h-4 w-4 text-emerald-300" />
       </div>
@@ -941,7 +941,7 @@ function PremiumOperationsOverlay({ mechanics, mode }: { mechanics: (Mechanic & 
     : mode === "hotspots"
       ? "Roadcall provider signals highlight service gaps and high-priority clusters."
       : mode === "satellite"
-        ? "Mapbox satellite imagery is active for rural access, yards, and service roads."
+        ? "Satellite imagery is active for rural access, yards, and service roads."
         : "Roadcall provider readiness and dispatch-fit signals are active.";
   return (
     <div className="pointer-events-none absolute left-4 top-20 z-10 w-[min(360px,calc(100%-2rem))] space-y-3">
@@ -1203,7 +1203,7 @@ function SearchPageInner() {
               <span className="text-xs font-medium text-roadcall-silver/85 tracking-wide">35,000+ Verified Providers · All 50 States</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">AI Roadside Operations Center</h1>
-            <p className="text-roadcall-muted text-sm">Mapbox satellite views, provider coverage, and Roadcall operational signals are open while we continue tuning the experience.</p>
+            <p className="text-roadcall-muted text-sm">Satellite views, provider coverage, and Roadcall operational signals are open while we continue tuning the experience.</p>
           </div>
 
           {/* Main search bar + intake button */}

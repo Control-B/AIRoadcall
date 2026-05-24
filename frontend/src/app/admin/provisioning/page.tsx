@@ -103,7 +103,7 @@ const tabs: { id: AgentTab; label: string; icon: typeof Bot }[] = [
   { id: "conversation", label: "Conversation", icon: Bot },
   { id: "voice", label: "Voice", icon: Volume2 },
   { id: "phone", label: "Phone", icon: PhoneCall },
-  { id: "calendar", label: "Cal.com", icon: CalendarClock },
+  { id: "calendar", label: "Calendar", icon: CalendarClock },
   { id: "advanced", label: "Advanced", icon: Settings2 },
 ];
 
@@ -296,7 +296,7 @@ export default function ProvisioningPage() {
         }),
       });
       setSelectedTenantId(result.tenant.id);
-      setMessage(result.warnings?.length ? `Client account created. ${result.warnings.join(" ")}` : "Client account created. Review settings, then create the Retell agent.");
+      setMessage(result.warnings?.length ? `Client account created. ${result.warnings.join(" ")}` : "Client account created. Review settings, then create the voice agent.");
       await load();
     } catch (createError) {
       setError(createError instanceof Error ? createError.message : "Could not create client account");
@@ -307,7 +307,7 @@ export default function ProvisioningPage() {
 
   async function provisionRetellAgent() {
     if (!selectedTenant) {
-      setError("Create or select a client account before provisioning Retell.");
+      setError("Create or select a client account before provisioning the voice agent.");
       return;
     }
     setProvisioning(true);
@@ -323,10 +323,10 @@ export default function ProvisioningPage() {
           metadata: metadataPayload(),
         }),
       });
-      setMessage("Retell agent created or synced from Roadcall. This page remains the source of truth.");
+      setMessage("Voice agent created or synced from Roadcall. This page remains the source of truth.");
       await load();
     } catch (provisionError) {
-      setError(provisionError instanceof Error ? provisionError.message : "Could not provision Retell agent");
+      setError(provisionError instanceof Error ? provisionError.message : "Could not provision voice agent");
     } finally {
       setProvisioning(false);
     }
@@ -341,7 +341,7 @@ export default function ProvisioningPage() {
           </div>
           <h1 className="mt-4 text-3xl font-black text-white">Configure and launch client AI agents</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-400">
-            Build shop and fleet agents in Roadcall, including Retell voice settings, phone routing, Cal.com OSS scheduling, and subscriber context. Retell becomes the execution layer; Roadcall stays the control room.
+            Build shop and fleet agents in Roadcall, including voice settings, phone routing, appointment scheduling, and subscriber context. Roadcall stays the control room.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -456,7 +456,7 @@ export default function ProvisioningPage() {
                       <span><span className="block font-bold text-white">{option.label}</span><span className="mt-1 block text-xs text-slate-500">{option.voiceId || "Saved custom voice"}</span></span>
                     </button>
                   ))}
-                  <Field label="Retell voice ID"><input value={form.voice_id} onChange={(event) => setForm((current) => ({ ...current, voice_id: event.target.value }))} className={inputClass} /></Field>
+                  <Field label="Voice ID"><input value={form.voice_id} onChange={(event) => setForm((current) => ({ ...current, voice_id: event.target.value }))} className={inputClass} /></Field>
                 </div>
                 <VoiceCloneControls
                   enabled={form.voice === "clone"}
@@ -473,18 +473,18 @@ export default function ProvisioningPage() {
               <div className="grid gap-5 lg:grid-cols-2">
                 <Field label="Company number"><input value={form.company_number} onChange={(event) => setForm((current) => ({ ...current, company_number: event.target.value }))} className={inputClass} placeholder="+1" /></Field>
                 <Field label="Human handoff number"><input value={form.handoff_phone} onChange={(event) => setForm((current) => ({ ...current, handoff_phone: event.target.value }))} className={inputClass} placeholder="+1" /></Field>
-                <Field label="Retell conversation flow ID"><input value={form.retell_conversation_flow_id} onChange={(event) => setForm((current) => ({ ...current, retell_conversation_flow_id: event.target.value }))} className={inputClass} /></Field>
-                <Field label="Retell phone number ID"><input value={form.retell_phone_number_id} onChange={(event) => setForm((current) => ({ ...current, retell_phone_number_id: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Conversation flow ID"><input value={form.retell_conversation_flow_id} onChange={(event) => setForm((current) => ({ ...current, retell_conversation_flow_id: event.target.value }))} className={inputClass} /></Field>
+                <Field label="Phone number ID"><input value={form.retell_phone_number_id} onChange={(event) => setForm((current) => ({ ...current, retell_phone_number_id: event.target.value }))} className={inputClass} /></Field>
                 <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm font-semibold text-slate-200"><input type="checkbox" checked={form.outbound_enabled} onChange={(event) => setForm((current) => ({ ...current, outbound_enabled: event.target.checked }))} className="h-4 w-4 accent-roadcall-cyan" /> Enable outbound vendor / driver calls</label>
               </div>
             )}
 
             {activeTab === "calendar" && (
               <div className="grid gap-5 lg:grid-cols-2">
-                <label className="flex items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-semibold text-emerald-100 lg:col-span-2"><input type="checkbox" checked={form.calcom_enabled} onChange={(event) => setForm((current) => ({ ...current, calcom_enabled: event.target.checked }))} className="h-4 w-4 accent-emerald-400" /> Enable Cal.com OSS appointment scheduling</label>
-                <Field label="Cal.com base URL"><input value={form.calcom_base_url} onChange={(event) => setForm((current) => ({ ...current, calcom_base_url: event.target.value }))} className={inputClass} placeholder="https://cal.yourdomain.com" /></Field>
-                <Field label="Cal.com API key"><input type="password" value={form.calcom_api_key} onChange={(event) => setForm((current) => ({ ...current, calcom_api_key: event.target.value }))} className={inputClass} placeholder="Stored when backend secrets are connected" /></Field>
-                <Field label="Cal.com username"><input value={form.calcom_username} onChange={(event) => setForm((current) => ({ ...current, calcom_username: event.target.value }))} className={inputClass} /></Field>
+                <label className="flex items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-sm font-semibold text-emerald-100 lg:col-span-2"><input type="checkbox" checked={form.calcom_enabled} onChange={(event) => setForm((current) => ({ ...current, calcom_enabled: event.target.checked }))} className="h-4 w-4 accent-emerald-400" /> Enable appointment scheduling</label>
+                <Field label="Scheduling base URL"><input value={form.calcom_base_url} onChange={(event) => setForm((current) => ({ ...current, calcom_base_url: event.target.value }))} className={inputClass} placeholder="https://calendar.yourdomain.com" /></Field>
+                <Field label="Scheduling API key"><input type="password" value={form.calcom_api_key} onChange={(event) => setForm((current) => ({ ...current, calcom_api_key: event.target.value }))} className={inputClass} placeholder="Stored when backend secrets are connected" /></Field>
+                <Field label="Scheduling username"><input value={form.calcom_username} onChange={(event) => setForm((current) => ({ ...current, calcom_username: event.target.value }))} className={inputClass} /></Field>
                 <Field label="Event slug"><input value={form.calcom_event_slug} onChange={(event) => setForm((current) => ({ ...current, calcom_event_slug: event.target.value }))} className={inputClass} /></Field>
                 <Field label="Event type ID"><input value={form.calcom_event_type_id} onChange={(event) => setForm((current) => ({ ...current, calcom_event_type_id: event.target.value }))} className={inputClass} /></Field>
                 <Field label="Public booking URL"><input value={form.calcom_calendar_url} onChange={(event) => setForm((current) => ({ ...current, calcom_calendar_url: event.target.value }))} className={inputClass} /></Field>
@@ -516,7 +516,7 @@ export default function ProvisioningPage() {
               <PreviewRow label="Voice" value={form.voice === "clone" ? voiceClone?.cloneName || "Cloned voice" : form.voice === "male" ? "Male voice" : "Female voice"} />
               <PreviewRow label="Phone" value={form.company_number || "Not assigned"} />
               <PreviewRow label="Calendar" value={form.calcom_enabled ? form.calcom_event_slug || "Enabled" : "Off"} />
-              <PreviewRow label="Retell" value={selectedTenant?.retell_connection?.provisioning_status || "Not provisioned"} />
+              <PreviewRow label="Voice agent" value={selectedTenant?.retell_connection?.provisioning_status || "Not provisioned"} />
             </div>
             {selectedTenant?.retell_connection?.agent_id ? <p className="mt-3 break-all font-mono text-xs text-slate-500">{selectedTenant.retell_connection.agent_id}</p> : null}
             {selectedTenant?.retell_connection?.last_error ? <p className="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 p-2 text-xs text-red-200">{selectedTenant.retell_connection.last_error}</p> : null}
@@ -525,7 +525,7 @@ export default function ProvisioningPage() {
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save / create client
               </button>
               <button onClick={provisionRetellAgent} disabled={provisioning || !selectedTenant} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-4 py-3 text-sm font-bold text-white hover:brightness-110 disabled:opacity-50">
-                {provisioning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />} Create / sync Retell agent
+                {provisioning ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bot className="h-4 w-4" />} Create / sync voice agent
               </button>
             </div>
           </div>
@@ -534,8 +534,8 @@ export default function ProvisioningPage() {
             <div className="mb-4 flex items-center gap-2"><Database className="h-5 w-5 text-blue-300" /><h2 className="font-bold text-white">Roadcall source of truth</h2></div>
             {[
               "Client account and plan",
-              "Retell agent metadata",
-              "Cal.com OSS scheduling settings",
+              "Voice agent metadata",
+              "Appointment scheduling settings",
               "Voice clone sample metadata",
               "Phone routing and handoff rules",
             ].map((item) => <div key={item} className="mb-2 flex items-center gap-2 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" />{item}</div>)}

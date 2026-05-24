@@ -448,7 +448,7 @@ export default function AdminMechanicsPage() {
             </h1>
             <p className="mt-1 text-sm text-slate-400">
               {stats ? `${stats.total_mechanics.toLocaleString()} records across ${stats.state_count.toLocaleString()} states.` : "Loading dispatch network..."}
-              {" "}Google Maps records power dispatch; website-crawler enrichment fills email data.
+              {" "}Map listing records power dispatch; website-crawler enrichment fills email data.
             </p>
             {statsUpdatedAt && (
               <p className="mt-1 text-xs text-slate-500">

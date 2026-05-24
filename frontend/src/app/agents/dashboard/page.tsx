@@ -505,7 +505,7 @@ export default function AgentDashboard() {
 
                   {activeTab === "telephony" ? (
                     <div className="mt-6 grid gap-5 lg:grid-cols-2">
-                      <Field label="Company Number" helper="The subscriber's public business number. Twilio number purchase can replace this later.">
+                      <Field label="Company Number" helper="The subscriber's public business number. A dedicated number can replace this later.">
                         <input value={phone} onChange={(event) => setPhone(event.target.value)} className={inputClass} />
                       </Field>
                       <Field label="Forward Number" helper="Where the AI sends human handoffs, escalations, and missed-call follow-up.">
@@ -517,7 +517,7 @@ export default function AgentDashboard() {
                           <div>
                             <p className="font-bold text-white">Outbound calls</p>
                             <p className="mt-1 text-sm text-roadcall-muted">
-                              Fleet agents can place outbound Retell phone calls to vendors and dispatch contacts. Mechanic and roadside previews stay browser-based.
+                              Fleet agents can place outbound phone calls to vendors and dispatch contacts. Mechanic and roadside previews stay browser-based.
                             </p>
                           </div>
                           <button
@@ -550,7 +550,7 @@ export default function AgentDashboard() {
                         <div className="space-y-5 lg:col-span-2">
                           <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-                              <Field label="Your phone number" helper="Fleet preview will call this number through Retell for an outbound phone test." className="flex-1">
+                              <Field label="Your phone number" helper="Fleet preview will call this number for an outbound phone test." className="flex-1">
                                 <input value={testNumber} onChange={(event) => updateTestNumber(event.target.value)} className={inputClass} />
                               </Field>
                               <Button onClick={startTestCall} disabled={testing} className="h-12 rounded-xl bg-emerald-500 text-slate-950 hover:bg-emerald-400 disabled:opacity-70">

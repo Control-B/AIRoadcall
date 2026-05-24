@@ -47,7 +47,7 @@ const FEATURES = [
   {
     icon: Star,
     title: "Review Requests",
-    desc: "After a job is complete the system sends a polite review request, building your Google and Facebook rating automatically.",
+    desc: "After a job is complete the system sends a polite review request, building your public rating automatically.",
   },
   {
     icon: MapPin,

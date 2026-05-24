@@ -11,7 +11,7 @@ const plans = [
     setup: "$49.99 setup",
     target: "For mechanics that do not want a new website.",
     href: "/mechanic/checkout?plan=widget_only",
-    category: "Simple Stripe Plan",
+    category: "Simple Service Plan",
     features: ["AI widget", "FAQ assistant", "Appointment capture", "Lead capture", "No SaaS Mode provisioning"],
   },
   {
@@ -20,7 +20,7 @@ const plans = [
     setup: "$49.99 setup",
     target: "For shops that want AI phone answering without a website package.",
     href: "/mechanic/checkout?plan=ai_telephony",
-    category: "Simple Stripe Plan",
+    category: "Simple Service Plan",
     features: ["AI phone answering", "AI intake", "Missed-call text-back", "Call summaries", "No SaaS Mode provisioning"],
   },
   {
@@ -29,7 +29,7 @@ const plans = [
     setup: "$97.99 setup",
     target: "For shops that want both website widget capture and AI phone intake.",
     href: "/mechanic/checkout?plan=widget_voice",
-    category: "Simple Stripe Plan",
+    category: "Simple Service Plan",
     highlighted: true,
     features: ["AI widget", "AI phone answering", "Lead capture", "Call summaries", "No SaaS Mode provisioning"],
   },
@@ -46,10 +46,10 @@ const plans = [
     name: "Standard",
     price: "$297",
     setup: "$149 setup",
-    target: "Website, AI telephone, widget, CRM, and GHL workflow foundation.",
+    target: "Website, AI telephone, widget, CRM, and workflow foundation.",
     href: GHL_GET_STARTED_URL,
-    category: "GHL SaaS Plan",
-    features: ["Website", "AI telephone", "AI widget", "CRM workflows", "GHL SaaS Mode"],
+    category: "Managed Growth Plan",
+    features: ["Website", "AI telephone", "AI widget", "CRM workflows", "Managed CRM access"],
   },
   {
     name: "Professional",
@@ -57,8 +57,8 @@ const plans = [
     setup: "$199 setup",
     target: "Everything in Standard plus mobile app and customer portal access.",
     href: GHL_GET_STARTED_URL,
-    category: "GHL SaaS Plan",
-    features: ["Everything in Standard", "Mobile app", "Customer portal", "Team access", "GHL SaaS Mode"],
+    category: "Managed Growth Plan",
+    features: ["Everything in Standard", "Mobile app", "Customer portal", "Team access", "Managed CRM access"],
   },
   {
     name: "Advanced",
@@ -66,15 +66,15 @@ const plans = [
     setup: "$299 setup",
     target: "Everything in Professional plus social media marketing and campaigns.",
     href: GHL_GET_STARTED_URL,
-    category: "GHL SaaS Plan",
-    features: ["Everything in Professional", "Social media marketing", "Content planning", "Campaign automation", "GHL SaaS Mode"],
+    category: "Managed Growth Plan",
+    features: ["Everything in Professional", "Social media marketing", "Content planning", "Campaign automation", "Managed CRM access"],
   },
 ];
 
 const comparison = [
-  ["Simple Roadcall services", "Stripe", "Widget, AI telephony, and Driver Pro memberships."],
-  ["GHL growth plans", "GHL", "Standard, Professional, and Advanced checkout/onboarding."],
-  ["Fleet Operations", "Stripe", "Fleet plans live on the fleet pricing page."],
+  ["Simple Roadcall services", "Direct", "Widget, AI telephony, and Driver Pro memberships."],
+  ["Managed growth plans", "CRM", "Standard, Professional, and Advanced checkout/onboarding."],
+  ["Fleet Operations", "Fleet", "Fleet plans live on the fleet pricing page."],
 ];
 
 export default function ShopsPricingPage() {
@@ -85,10 +85,10 @@ export default function ShopsPricingPage() {
           <Sparkles className="h-4 w-4 text-roadcall-orange" /> Roadcall Shops Pricing
         </div>
         <h1 className="mx-auto mt-6 max-w-4xl text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
-          AI service plans for shops, drivers, and GHL-powered growth.
+          AI service plans for shops, drivers, and managed growth.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-          Use Stripe checkout for simple Roadcall services and Driver Pro. Use GHL for Standard, Professional, and Advanced.
+          Choose simple Roadcall services, Driver Pro, or managed growth plans for Standard, Professional, and Advanced.
         </p>
       </section>
 
@@ -116,7 +116,7 @@ export default function ShopsPricingPage() {
         {comparison.map(([title, owner, copy]) => (
           <div key={title} className="rounded-2xl border border-white/10 bg-slate-950/70 p-5">
             <div className="flex items-center gap-2 text-cyan-200">
-              {owner === "Stripe" ? <Phone className="h-5 w-5" /> : owner === "GHL" ? <Wrench className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
+              {owner === "Direct" ? <Phone className="h-5 w-5" /> : owner === "CRM" ? <Wrench className="h-5 w-5" /> : <Truck className="h-5 w-5" />}
               <span className="text-xs font-bold uppercase tracking-[0.2em]">{owner}</span>
             </div>
             <h2 className="mt-4 text-lg font-black">{title}</h2>

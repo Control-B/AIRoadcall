@@ -45,7 +45,7 @@ const AI_AGENT_ID_KEY = `ret${"ell"}_agent_id`;
 
 // Self-contained demo payload so /mechanic/dashboard?demo=1 renders a fully
 // populated, post-activation experience without hitting the API or burning
-// real voice-provider / Stripe records.
+// real voice-provider / billing records.
 const DEMO_DASHBOARD: Dashboard = {
   tenant_id: "demo-tenant",
   business_name: "Austin Diesel & Tire (Demo)",
@@ -109,7 +109,7 @@ const DEMO_DASHBOARD: Dashboard = {
       caller_name: "Sarah P.",
       call_status: "completed",
       lead_status: "captured",
-      summary: "Sarah requested pricing and availability for a trailer brake inspection next week. The AI texted the Cal.com booking link and captured trailer details for follow-up.",
+      summary: "Sarah requested pricing and availability for a trailer brake inspection next week. The AI texted the booking link and captured trailer details for follow-up.",
       key_points: ["Trailer brake inspection", "Asked for next-week availability", "Booking link texted", "Follow-up requested"],
       vehicle_intake: { trailer_type: "53 ft dry van", loaded_status: "empty" },
       triage: { symptom_category: "brakes_air", classification: "scheduled_service", safe_to_drive: true, emergency_flags: [] },
@@ -316,7 +316,7 @@ function MechanicDashboardContent() {
             <div className="mt-5 space-y-4">
               {(dashboard?.call_summaries || []).length === 0 ? (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 text-sm text-slate-300">
-                  No call summaries yet. Once Retell calls `save_call_summary`, each call appears here with caller metadata and key points.
+                  No call summaries yet. Once the voice agent saves a call summary, each call appears here with caller metadata and key points.
                 </div>
               ) : (
                 dashboard?.call_summaries.map((call) => (

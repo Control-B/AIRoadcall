@@ -77,7 +77,7 @@ const plans = [
       "AI Telephone",
       "AI Widget",
       "CRM",
-      "GHL SaaS Mode",
+      "Managed CRM access",
     ],
   },
   {
@@ -91,7 +91,7 @@ const plans = [
       "Everything in Standard",
       "Mobile App",
       "Customer Portal",
-      "GHL SaaS Mode",
+      "Managed CRM access",
     ],
   },
   {
