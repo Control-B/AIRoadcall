@@ -735,7 +735,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30 ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
-      <div className="absolute left-4 top-6 z-20 w-[min(360px,calc(100%-2rem))]">
+      <div className="absolute left-4 top-20 z-20 w-[min(360px,calc(100%-2rem))]">
         {!mapSearchOpen ? (
           <button
             type="button"
@@ -786,7 +786,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           </div>
         )}
       </div>
-      {workspaceControls ? <div className="absolute right-4 top-6 z-20 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
+      {workspaceControls ? <div className="absolute right-4 top-20 z-20 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
       {premiumModeEnabled ? <PremiumOperationsOverlay mechanics={points} mode={premiumMode} /> : null}
       {selectedProvider ? (
         <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
