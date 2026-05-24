@@ -566,6 +566,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         zoom: points.length === 1 ? 10 : 4,
         pitch: premiumModeEnabled ? 48 : 0,
         bearing: premiumModeEnabled ? -18 : 0,
+        attributionControl: false,
       });
       mapRef.current = map;
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-left");
@@ -574,7 +575,6 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         trackUserLocation: true,
         showUserHeading: true,
       }), "bottom-left");
-      map.addControl(new mapboxgl.AttributionControl({ compact: true }), "bottom-right");
 
       const updateVisibleBounds = () => {
         const bounds = map.getBounds();
@@ -794,7 +794,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       {workspaceControls ? <div className="absolute right-4 top-20 z-20 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
       <div className="absolute bottom-32 left-4 z-20 max-w-[calc(100%-2rem)] rounded-2xl border border-white/15 bg-[#06101f]/85 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
         <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-roadcall-cyan">Legend</p>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-3">
+        <div className="flex flex-col gap-1.5">
           {[
             { color: "#ef4444", label: "Towing / Recovery" },
             { color: "#f59e0b", label: "Tire Service" },
@@ -809,14 +809,14 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             </div>
           ))}
         </div>
-        <div className="mt-2 flex items-center gap-2 border-t border-white/10 pt-2 text-[10px] text-roadcall-muted">
-          <span>Clusters:</span>
-          <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#0891b2" }} />&lt;20</span>
-          <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#f97316" }} />20–74</span>
-          <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#ef4444" }} />75+</span>
+        <div className="mt-2 flex flex-col gap-1 border-t border-white/10 pt-2 text-[10px] text-roadcall-muted">
+          <span className="font-black uppercase tracking-wide text-roadcall-cyan">Clusters</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#0891b2" }} />&lt;20</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#f97316" }} />20–74</span>
+          <span className="flex items-center gap-1.5"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#ef4444" }} />75+</span>
         </div>
       </div>
-      {premiumModeEnabled ? <PremiumOperationsOverlay mechanics={points} mode={premiumMode} /> : null}
+      {/* AI Roadside Operations overlay removed for cleaner map */}
       {selectedProvider ? (
         <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
           <button type="button" onClick={() => setSelectedProvider(null)} className="absolute right-3 top-3 rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"><X className="h-4 w-4" /></button>
