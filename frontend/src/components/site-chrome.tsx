@@ -2,6 +2,7 @@
 
 import Script from "next/script";
 import { usePathname } from "next/navigation";
+import { useEffect } from "react";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
@@ -28,6 +29,7 @@ function useShowPublicChrome() {
 
 function useShowLeadConnectorChatWidget() {
   const pathname = usePathname();
+  if (!pathname) return false;
   return !CHAT_WIDGET_EXCLUDED_PATHS.some((path) => pathname === path || pathname?.startsWith(`${path}/`));
 }
 
@@ -48,7 +50,28 @@ export function SiteFooterChrome() {
 }
 
 export function LeadConnectorChatWidget() {
-  if (!useShowLeadConnectorChatWidget()) {
+  const showWidget = useShowLeadConnectorChatWidget();
+
+  useEffect(() => {
+    if (showWidget || typeof document === "undefined") {
+      return;
+    }
+
+    const selectors = [
+      "script[src*='widgets.leadconnectorhq.com/loader.js']",
+      "script[data-widget-id='6a0d59ed0732dc337617ecf6']",
+      "iframe[src*='widgets.leadconnectorhq.com']",
+      "iframe[src*='leadconnectorhq.com']",
+      "div[id*='lc_chat']",
+      "div[class*='lc-chat']",
+    ];
+
+    selectors.forEach((selector) => {
+      document.querySelectorAll(selector).forEach((element) => element.remove());
+    });
+  }, [showWidget]);
+
+  if (!showWidget) {
     return null;
   }
 
