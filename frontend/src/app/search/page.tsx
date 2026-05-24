@@ -792,6 +792,30 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         )}
       </div>
       {workspaceControls ? <div className="absolute right-4 top-20 z-20 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
+      <div className="absolute bottom-32 left-4 z-20 max-w-[calc(100%-2rem)] rounded-2xl border border-white/15 bg-[#06101f]/85 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
+        <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-roadcall-cyan">Legend</p>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 sm:grid-cols-3">
+          {[
+            { color: "#ef4444", label: "Towing / Recovery" },
+            { color: "#f59e0b", label: "Tire Service" },
+            { color: "#22c55e", label: "Truck Repair" },
+            { color: "#0ea5e9", label: "Mobile Roadside" },
+            { color: "#64748b", label: "Trucking / Freight" },
+            { color: "#06b6d4", label: "Other Provider" },
+          ].map(({ color, label }) => (
+            <div key={label} className="flex items-center gap-1.5">
+              <span className="inline-block h-2.5 w-2.5 rounded-full ring-2 ring-white/80" style={{ backgroundColor: color }} />
+              <span className="whitespace-nowrap">{label}</span>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex items-center gap-2 border-t border-white/10 pt-2 text-[10px] text-roadcall-muted">
+          <span>Clusters:</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#0891b2" }} />&lt;20</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#f97316" }} />20–74</span>
+          <span className="flex items-center gap-1"><span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "#ef4444" }} />75+</span>
+        </div>
+      </div>
       {premiumModeEnabled ? <PremiumOperationsOverlay mechanics={points} mode={premiumMode} /> : null}
       {selectedProvider ? (
         <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
