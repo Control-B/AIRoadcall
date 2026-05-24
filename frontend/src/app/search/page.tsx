@@ -4,7 +4,7 @@
 export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense, useMemo, useRef, type FormEvent, type ReactNode } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
   Search,
@@ -1205,6 +1205,8 @@ function FullscreenMapModeControls({ mode, onModeChange }: { mode: PremiumMapMod
 function ResultsToolbar({
   view,
   onViewChange,
+  viewOptions,
+  showViewToggle = true,
   scope,
   scopeCounts,
   onScopeChange,
@@ -1214,6 +1216,8 @@ function ResultsToolbar({
 }: {
   view: ProviderViewMode;
   onViewChange: (view: ProviderViewMode) => void;
+  viewOptions?: ProviderViewMode[];
+  showViewToggle?: boolean;
   scope: VendorScopeMode;
   scopeCounts: Record<VendorScopeMode, number>;
   onScopeChange: (scope: VendorScopeMode) => void;
@@ -1226,25 +1230,28 @@ function ResultsToolbar({
     { id: "cards", label: "Cards", Icon: LayoutGrid },
     { id: "list", label: "List", Icon: Rows3 },
   ];
+  const filteredViewButtons = viewButtons.filter((button) => !viewOptions || viewOptions.includes(button.id));
   const pad = compact ? "px-2.5 py-1" : "px-3 py-1.5";
   const text = compact ? "text-[11px]" : "text-xs";
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className ?? ""}`}>
-      <div className="inline-flex rounded-full border border-roadcall-cyan/20 bg-[#06101f]/90 p-1 shadow-xl shadow-black/30 backdrop-blur-md">
-        {viewButtons.map(({ id, label, Icon }) => {
-          const active = view === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => onViewChange(id)}
-              className={`inline-flex items-center gap-1.5 rounded-full ${pad} ${text} font-bold transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
-            >
-              <Icon className="h-3.5 w-3.5" /> {label}
-            </button>
-          );
-        })}
-      </div>
+      {showViewToggle ? (
+        <div className="inline-flex rounded-full border border-roadcall-cyan/20 bg-[#06101f]/90 p-1 shadow-xl shadow-black/30 backdrop-blur-md">
+          {filteredViewButtons.map(({ id, label, Icon }) => {
+            const active = view === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => onViewChange(id)}
+                className={`inline-flex items-center gap-1.5 rounded-full ${pad} ${text} font-bold transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
+              >
+                <Icon className="h-3.5 w-3.5" /> {label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
       <div className="inline-flex rounded-full border border-roadcall-cyan/20 bg-[#06101f]/90 p-1 shadow-xl shadow-black/30 backdrop-blur-md">
         {VENDOR_SCOPE_MODES.map((item) => {
           const Icon = item.icon;
@@ -1339,6 +1346,8 @@ function PremiumOperationsOverlay({ mechanics, mode }: { mechanics: (Mechanic & 
 function SearchPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const pathname = usePathname();
+  const isMapsPage = pathname?.startsWith("/maps") ?? false;
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [state, setState] = useState(searchParams.get("state") || "");
@@ -1357,7 +1366,7 @@ function SearchPageInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [view, setView] = useState<ProviderViewMode>("map");
+  const [view, setView] = useState<ProviderViewMode>(isMapsPage ? "map" : "cards");
   const [premiumMapMode, setPremiumMapMode] = useState<PremiumMapMode>("basic");
   const [vendorScopeMode, setVendorScopeMode] = useState<VendorScopeMode>("all");
   const [mapAreaSummary, setMapAreaSummary] = useState<string | null>(null);
@@ -1365,14 +1374,25 @@ function SearchPageInner() {
   const [claimTarget, setClaimTarget] = useState<Mechanic | null>(null);
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
   const [intakeOpen, setIntakeOpen] = useState(false);
-  useEffect(() => {
-    const storedView = window.localStorage.getItem(VIEW_STORAGE_KEY) as ProviderViewMode | null;
-    if (storedView === "map" || storedView === "cards" || storedView === "list") setView(storedView);
-  }, []);
 
   useEffect(() => {
+    if (isMapsPage) {
+      setView("map");
+    } else if (view === "map") {
+      setView("cards");
+    }
+  }, [isMapsPage, view]);
+
+  useEffect(() => {
+    if (isMapsPage) return;
+    const storedView = window.localStorage.getItem(VIEW_STORAGE_KEY) as ProviderViewMode | null;
+    if (storedView === "cards" || storedView === "list") setView(storedView);
+  }, [isMapsPage]);
+
+  useEffect(() => {
+    if (isMapsPage || view === "map") return;
     window.localStorage.setItem(VIEW_STORAGE_KEY, view);
-  }, [view]);
+  }, [isMapsPage, view]);
 
   const buildSearchParams = useCallback((options?: { bounds?: MapBounds; pageOverride?: number; pageSize?: number }) => {
     const params = new URLSearchParams();
@@ -1478,14 +1498,14 @@ function SearchPageInner() {
       setSourceTotals({ mechanics: data.total || 0, national: nationalVendorData.total, trucking: truckingCompanyData.total });
       setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
       setMapAreaSummary(`Showing ${(data.mechanics.length + nationalVendorData.items.length + truckingCompanyData.items.length).toLocaleString()} mapped providers in the visible map area`);
-      setView("map");
+      if (isMapsPage) setView("map");
     } catch {
       setError("Map area search unavailable — try zooming out or clearing filters.");
     } finally {
       setLoading(false);
       setSearchingArea(false);
     }
-  }, [buildSearchParams, fetchNationalVendors, fetchTruckingCompanies, verifiedOnly]);
+  }, [buildSearchParams, fetchNationalVendors, fetchTruckingCompanies, isMapsPage, verifiedOnly]);
 
   const searchNearMe = useCallback(() => {
     if (!navigator.geolocation) {
@@ -1513,8 +1533,8 @@ function SearchPageInner() {
     setCity(nextCity);
     setState(nextState.toUpperCase().slice(0, 2));
     setMapAreaSummary(nextCity || nextState ? `Showing providers near ${[nextCity, nextState.toUpperCase().slice(0, 2)].filter(Boolean).join(", ")}` : null);
-    setView("map");
-  }, []);
+    if (isMapsPage) setView("map");
+  }, [isMapsPage]);
 
   useEffect(() => {
     doSearch(true);
@@ -1533,9 +1553,15 @@ function SearchPageInner() {
   const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(combinedProviders, vendorScopeMode), [combinedProviders, vendorScopeMode]);
   const cityGroups = useMemo(() => groupMechanicsByCity(scopedMechanics), [scopedMechanics]);
   const handleViewMap = useCallback((mechanic: Mechanic) => {
-    setView("map");
-    if (mechanic.city || mechanic.state) setMapAreaSummary(`Showing map near ${[mechanic.city, mechanic.state].filter(Boolean).join(", ")}`);
-  }, []);
+    const mapParams = new URLSearchParams();
+    if (mechanic.city) mapParams.set("city", mechanic.city);
+    if (mechanic.state) mapParams.set("state", mechanic.state);
+    if (serviceType) mapParams.set("service", serviceType);
+    router.push(`/maps${mapParams.toString() ? `?${mapParams.toString()}` : ""}`);
+    if (isMapsPage && (mechanic.city || mechanic.state)) {
+      setMapAreaSummary(`Showing map near ${[mechanic.city, mechanic.state].filter(Boolean).join(", ")}`);
+    }
+  }, [isMapsPage, router, serviceType]);
   const mapShellClass = "fixed inset-0 z-[60] bg-[#040810] p-3";
   const mapGridClass = "grid gap-4";
   const mapHeightClass = "h-[calc(100vh-24px)] min-h-[420px]";
@@ -1742,6 +1768,8 @@ function SearchPageInner() {
               <ResultsToolbar
                 view={view}
                 onViewChange={setView}
+                viewOptions={isMapsPage ? ["map"] : ["cards", "list"]}
+                showViewToggle={!isMapsPage}
                 scope={vendorScopeMode}
                 scopeCounts={vendorScopeCounts}
                 onScopeChange={setVendorScopeMode}
@@ -1758,7 +1786,7 @@ function SearchPageInner() {
               <div key={i} className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 h-48 animate-pulse" />
             ))}
           </div>
-        ) : results && combinedProviders.length > 0 && view === "map" ? (
+        ) : results && combinedProviders.length > 0 && isMapsPage ? (
           <div className={mapShellClass}>
             <div className={mapGridClass}>
               <SearchResultsMap
@@ -1781,6 +1809,7 @@ function SearchPageInner() {
                 <ResultsToolbar
                   view={view}
                   onViewChange={setView}
+                  showViewToggle={false}
                   scope={vendorScopeMode}
                   scopeCounts={vendorScopeCounts}
                   onScopeChange={setVendorScopeMode}

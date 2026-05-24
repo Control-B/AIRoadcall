@@ -25,6 +25,10 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
+    label: "Maps",
+    href: "/maps",
+  },
+  {
     label: "AI Services",
     href: "/solutions",
     children: [
