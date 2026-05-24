@@ -538,7 +538,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
   const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<Mechanic | null>(null);
-  const [mapSearchOpen, setMapSearchOpen] = useState(false);
+  const [mapSearchOpen, setMapSearchOpen] = useState(true);
   const [mapCity, setMapCity] = useState(city);
   const [mapState, setMapState] = useState(state);
   const premiumModeEnabled = premiumMode !== "basic";
