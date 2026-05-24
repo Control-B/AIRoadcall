@@ -1569,7 +1569,8 @@ function SearchPageInner() {
   return (
     <PageLayout>
       <NoCopySurface>
-      {/* Hero search header */}
+      {/* Hero search header (directory page only) */}
+      {!isMapsPage ? (
       <section className="relative pt-10 pb-8 border-b border-roadcall-cyan/10 bg-gradient-to-b from-roadcall-panel/30 to-transparent">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="mb-6 text-center">
@@ -1751,6 +1752,7 @@ function SearchPageInner() {
           )}
         </div>
       </section>
+      ) : null}
 
       {/* Results area */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
