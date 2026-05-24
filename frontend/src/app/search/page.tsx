@@ -735,7 +735,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30 ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
-      <div className="absolute left-4 top-16 z-10 w-[min(360px,calc(100%-2rem))]">
+      <div className="absolute left-4 top-6 z-20 w-[min(360px,calc(100%-2rem))]">
         {!mapSearchOpen ? (
           <button
             type="button"
@@ -786,7 +786,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           </div>
         )}
       </div>
-      {workspaceControls ? <div className="absolute right-4 top-16 z-10 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
+      {workspaceControls ? <div className="absolute right-4 top-6 z-20 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
       {premiumModeEnabled ? <PremiumOperationsOverlay mechanics={points} mode={premiumMode} /> : null}
       {selectedProvider ? (
         <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
@@ -1281,7 +1281,7 @@ function PremiumOperationsOverlay({ mechanics, mode }: { mechanics: (Mechanic & 
         ? "Satellite imagery is active for rural access, yards, and service roads."
         : "Roadcall provider readiness and dispatch-fit signals are active.";
   return (
-    <div className="pointer-events-none absolute left-4 top-20 z-10 w-[min(360px,calc(100%-2rem))] space-y-3">
+    <div className="pointer-events-none absolute bottom-20 left-4 z-10 w-[min(320px,calc(100%-2rem))] space-y-3">
       <div className="rounded-2xl border border-roadcall-cyan/20 bg-[#02050c]/80 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl">
         <p className="text-[10px] font-black uppercase tracking-[0.22em] text-roadcall-cyan">AI roadside operations center</p>
         <p className="mt-2 text-sm font-bold text-white">{message}</p>
