@@ -338,6 +338,8 @@ type PremiumMapMode = "basic" | "operations" | "satellite" | "density" | "hotspo
 type VendorScopeMode = "all" | "national" | "local";
 
 const VIEW_STORAGE_KEY = "roadcall-provider-view";
+const DEFAULT_PROVIDER_PREVIEW_LIMIT = 500;
+const FOCUSED_PROVIDER_PREVIEW_LIMIT = 1500;
 
 type QuickFilter = {
   label: string;
@@ -526,13 +528,16 @@ function truckingCompanyToMechanic(company: PublicTruckingCompany, index: number
   };
 }
 
-function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode, city, state, onLocationSearch }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode; city: string; state: string; onLocationSearch: (city: string, state: string) => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
   const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
   const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<Mechanic | null>(null);
+  const [mapSearchOpen, setMapSearchOpen] = useState(false);
+  const [mapCity, setMapCity] = useState(city);
+  const [mapState, setMapState] = useState(state);
   const premiumModeEnabled = premiumMode !== "basic";
   const mapStyle = premiumMode === "satellite"
     ? "mapbox://styles/mapbox/satellite-streets-v12"
@@ -707,6 +712,11 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
     return () => window.clearTimeout(timeout);
   }, [layoutKey]);
 
+  useEffect(() => {
+    setMapCity(city);
+    setMapState(state);
+  }, [city, state]);
+
   if (loading) {
     return <div className={`grid place-items-center rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 text-sm text-roadcall-muted ${className}`}>Loading map…</div>;
   }
@@ -722,15 +732,56 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30 ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
-      <div className="absolute left-4 top-4 z-10 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={!visibleBounds || searchingArea}
-          onClick={() => visibleBounds && onSearchArea(visibleBounds)}
-          className="rounded-full border border-slate-900/10 bg-white px-4 py-2 text-xs font-black text-slate-950 shadow-xl transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-70"
-        >
-          {searchingArea ? "Searching map area..." : "Search this map area"}
-        </button>
+      <div className="absolute left-4 top-4 z-10 w-[min(360px,calc(100%-2rem))]">
+        {!mapSearchOpen ? (
+          <button
+            type="button"
+            onClick={() => setMapSearchOpen(true)}
+            className="rounded-full border border-slate-900/10 bg-white px-4 py-2 text-xs font-black text-slate-950 shadow-xl transition hover:bg-slate-100"
+          >
+            Search city / state
+          </button>
+        ) : (
+          <div className="rounded-2xl border border-white/20 bg-white/95 p-3 text-slate-950 shadow-2xl backdrop-blur">
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <p className="text-xs font-black uppercase tracking-wide text-slate-600">Map search</p>
+              <button type="button" onClick={() => setMapSearchOpen(false)} className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-950"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-[1fr_92px]">
+              <input
+                value={mapCity}
+                onChange={(event) => setMapCity(event.target.value)}
+                placeholder="City"
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-cyan-500"
+              />
+              <select
+                value={mapState}
+                onChange={(event) => setMapState(event.target.value)}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none focus:border-cyan-500"
+              >
+                <option value="">State</option>
+                {US_STATES.map((stateCode) => <option key={stateCode} value={stateCode}>{stateCode}</option>)}
+              </select>
+            </div>
+            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={() => onLocationSearch(mapCity.trim(), mapState.trim())}
+                className="rounded-xl bg-slate-950 px-3 py-2 text-xs font-black text-white hover:bg-slate-800"
+              >
+                Search location
+              </button>
+              <button
+                type="button"
+                disabled={!visibleBounds || searchingArea}
+                onClick={() => visibleBounds && onSearchArea(visibleBounds)}
+                className="rounded-xl border border-slate-200 px-3 py-2 text-xs font-black text-slate-800 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {searchingArea ? "Searching..." : "Search map area"}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       {workspaceControls ? <div className="absolute right-4 top-4 z-10 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
       {premiumModeEnabled ? <PremiumOperationsOverlay mechanics={points} mode={premiumMode} /> : null}
@@ -1185,7 +1236,8 @@ function SearchPageInner() {
       params.set("max_lng", String(options.bounds.max_lng));
     }
     params.set("page", String(options?.pageOverride ?? page));
-    params.set("page_size", String(options?.pageSize ?? 10000));
+    const focused = Boolean(options?.bounds || city || state || query || serviceType || only24_7 || onlyMobile || verifiedOnly);
+    params.set("page_size", String(options?.pageSize ?? (focused ? FOCUSED_PROVIDER_PREVIEW_LIMIT : DEFAULT_PROVIDER_PREVIEW_LIMIT)));
     return params;
   }, [city, only24_7, onlyMobile, page, query, serviceType, state, verifiedOnly]);
 
@@ -1200,9 +1252,10 @@ function SearchPageInner() {
       params.set("min_lng", String(options.bounds.min_lng));
       params.set("max_lng", String(options.bounds.max_lng));
     }
-    params.set("limit", "10000");
+    const focused = Boolean(options?.bounds || city || state || query || serviceType || only24_7 || onlyMobile || verifiedOnly);
+    params.set("limit", String(focused ? FOCUSED_PROVIDER_PREVIEW_LIMIT : DEFAULT_PROVIDER_PREVIEW_LIMIT));
     return params;
-  }, [city, query, state]);
+  }, [city, only24_7, onlyMobile, query, serviceType, state, verifiedOnly]);
 
   const fetchNationalVendors = useCallback(async (options?: { bounds?: MapBounds }) => {
     const params = buildDirectoryParams(options);
@@ -1257,7 +1310,7 @@ function SearchPageInner() {
     setLoading(true);
     setError(null);
     setPage(1);
-    const params = buildSearchParams({ bounds, pageOverride: 1, pageSize: 5000 });
+    const params = buildSearchParams({ bounds, pageOverride: 1, pageSize: FOCUSED_PROVIDER_PREVIEW_LIMIT });
 
     try {
       const [res, nationalVendorData, truckingCompanyData] = await Promise.all([
@@ -1302,6 +1355,13 @@ function SearchPageInner() {
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 },
     );
   }, [radiusMiles, searchMapArea]);
+
+  const searchMapLocation = useCallback((nextCity: string, nextState: string) => {
+    setCity(nextCity);
+    setState(nextState.toUpperCase().slice(0, 2));
+    setMapAreaSummary(nextCity || nextState ? `Showing providers near ${[nextCity, nextState.toUpperCase().slice(0, 2)].filter(Boolean).join(", ")}` : null);
+    setView("map");
+  }, []);
 
   useEffect(() => {
     doSearch(true);
@@ -1573,6 +1633,9 @@ function SearchPageInner() {
                 className={mapHeightClass}
                 layoutKey={`standard-${vendorScopeMode}`}
                 premiumMode={premiumMapMode}
+                city={city}
+                state={state}
+                onLocationSearch={searchMapLocation}
                 workspaceControls={isFullscreenMap ? <FullscreenMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} /> : undefined}
               />
             </div>
