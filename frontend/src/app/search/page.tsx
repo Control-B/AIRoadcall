@@ -296,6 +296,27 @@ type MapBounds = {
   max_lng: number;
 };
 
+type PublicNationalVendor = {
+  brand_name: string;
+  location_name: string;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  state: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  rating: number | null;
+  review_count: number | null;
+  services: string[];
+};
+
+type NationalVendorResponse = {
+  total: number;
+  limit: number;
+  offset: number;
+  items: PublicNationalVendor[];
+};
+
 type MapWorkspaceMode = "split" | "wide" | "fullscreen";
 type ProviderViewMode = "map" | "cards" | "list";
 type PremiumMapMode = "basic" | "operations" | "satellite" | "density" | "hotspots";
@@ -429,6 +450,35 @@ function isNationalVendor(mechanic: Mechanic) {
 function filterMechanicsByVendorScope(mechanics: Mechanic[], scope: VendorScopeMode) {
   if (scope === "all") return mechanics;
   return mechanics.filter((mechanic) => isNationalVendor(mechanic) === (scope === "national"));
+}
+
+function nationalVendorToMechanic(vendor: PublicNationalVendor, index: number): Mechanic {
+  const serviceTypes = vendor.services || [];
+  return {
+    id: `national-${vendor.brand_name}-${vendor.location_name}-${vendor.address || index}`,
+    company_name: vendor.location_name && vendor.location_name !== vendor.brand_name ? `${vendor.brand_name} - ${vendor.location_name}` : vendor.brand_name,
+    vendor_scope: "national",
+    business_category: "National Vendor",
+    address: vendor.address,
+    city: vendor.city,
+    state: vendor.state,
+    lat: vendor.lat,
+    lng: vendor.lng,
+    phone: vendor.phone,
+    rating: vendor.rating,
+    review_count: vendor.review_count,
+    accepts_mobile_roadside: serviceTypes.some((service) => /roadside|mobile/i.test(service)),
+    emergency_service: serviceTypes.some((service) => /roadside|emergency|truck_service/i.test(service)),
+    is_emergency_24_7: false,
+    service_types: serviceTypes,
+    priority_score: 0.82,
+    verification_status: "verified",
+    claim_status: "claimed",
+    contact_protected: false,
+    export_status: "ready",
+    badges: ["National vendor"],
+    reasons: ["National vendor database"],
+  };
 }
 
 function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode }) {
@@ -1126,6 +1176,7 @@ function SearchPageInner() {
   const [page, setPage] = useState(1);
 
   const [results, setResults] = useState<SearchResult | null>(null);
+  const [nationalVendors, setNationalVendors] = useState<Mechanic[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -1168,6 +1219,24 @@ function SearchPageInner() {
     return params;
   }, [city, only24_7, onlyMobile, page, query, serviceType, state, verifiedOnly]);
 
+  const fetchNationalVendors = useCallback(async (options?: { bounds?: MapBounds }) => {
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (state) params.set("state", state);
+    if (city && !options?.bounds) params.set("city", city);
+    if (options?.bounds) {
+      params.set("min_lat", String(options.bounds.min_lat));
+      params.set("max_lat", String(options.bounds.max_lat));
+      params.set("min_lng", String(options.bounds.min_lng));
+      params.set("max_lng", String(options.bounds.max_lng));
+    }
+    params.set("limit", "5000");
+    const response = await fetch(`${API_URL}/directories/national-vendors?${params}`);
+    if (!response.ok) throw new Error("National vendor search failed");
+    const data = await response.json() as NationalVendorResponse;
+    return data.items.map(nationalVendorToMechanic).filter(hasCoordinates);
+  }, [city, query, state]);
+
   const doSearch = useCallback(async (resetPage = false, pageOverride?: number) => {
     const currentPage = resetPage ? 1 : pageOverride ?? page;
     if (resetPage || pageOverride) setPage(currentPage);
@@ -1177,18 +1246,23 @@ function SearchPageInner() {
     const params = buildSearchParams({ pageOverride: currentPage });
 
     try {
-      const res = await fetch(`${API_URL}/mechanics/search?${params}`);
+      const [res, nationalVendorRows] = await Promise.all([
+        fetch(`${API_URL}/mechanics/search?${params}`),
+        fetchNationalVendors().catch(() => [] as Mechanic[]),
+      ]);
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
+      setNationalVendors(nationalVendorRows);
       setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
     } catch {
       // Fall back to a public-friendly empty state
       setResults({ mechanics: [], total: 0, page: 1, page_size: 24 });
+      setNationalVendors([]);
       setError("Search unavailable — try the AI dispatcher for instant help.");
     } finally {
       setLoading(false);
     }
-  }, [buildSearchParams, page, verifiedOnly]);
+  }, [buildSearchParams, fetchNationalVendors, page, verifiedOnly]);
 
   const searchMapArea = useCallback(async (bounds: MapBounds) => {
     setSearchingArea(true);
@@ -1198,11 +1272,15 @@ function SearchPageInner() {
     const params = buildSearchParams({ bounds, pageOverride: 1, pageSize: 5000 });
 
     try {
-      const res = await fetch(`${API_URL}/mechanics/search?${params}`);
+      const [res, nationalVendorRows] = await Promise.all([
+        fetch(`${API_URL}/mechanics/search?${params}`),
+        fetchNationalVendors({ bounds }).catch(() => [] as Mechanic[]),
+      ]);
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
+      setNationalVendors(nationalVendorRows);
       setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
-      setMapAreaSummary(`Showing ${data.mechanics.length.toLocaleString()} mapped providers in the visible map area`);
+      setMapAreaSummary(`Showing ${(data.mechanics.length + nationalVendorRows.length).toLocaleString()} mapped providers in the visible map area`);
       setView("map");
     } catch {
       setError("Map area search unavailable — try zooming out or clearing filters.");
@@ -1210,7 +1288,7 @@ function SearchPageInner() {
       setLoading(false);
       setSearchingArea(false);
     }
-  }, [buildSearchParams, verifiedOnly]);
+  }, [buildSearchParams, fetchNationalVendors, verifiedOnly]);
 
   const searchNearMe = useCallback(() => {
     if (!navigator.geolocation) {
@@ -1241,13 +1319,13 @@ function SearchPageInner() {
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const mechanics = results?.mechanics || [];
-  const mapMechanics = mechanics;
-  const allProviderCount = results?.total || 0;
+  const combinedProviders = useMemo(() => [...nationalVendors, ...mechanics.map((mechanic) => ({ ...mechanic, vendor_scope: "local" as const }))], [mechanics, nationalVendors]);
+  const allProviderCount = (results?.total || 0) + nationalVendors.length;
   const vendorScopeCounts = useMemo(() => {
-    const national = mapMechanics.filter(isNationalVendor).length;
-    return { all: mapMechanics.length, national, local: mapMechanics.length - national };
-  }, [mapMechanics]);
-  const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(mapMechanics, vendorScopeMode), [mapMechanics, vendorScopeMode]);
+    const national = combinedProviders.filter(isNationalVendor).length;
+    return { all: combinedProviders.length, national, local: combinedProviders.length - national };
+  }, [combinedProviders]);
+  const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(combinedProviders, vendorScopeMode), [combinedProviders, vendorScopeMode]);
   const cityGroups = useMemo(() => groupMechanicsByCity(scopedMechanics), [scopedMechanics]);
   const handleViewMap = useCallback((mechanic: Mechanic) => {
     setView("map");
@@ -1494,31 +1572,34 @@ function SearchPageInner() {
               </div>
             ) : null}
           </div>
-          <div className="flex items-center gap-2">
-            {results && mapMechanics.length > 0 && (
-              <div className="inline-flex rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/50 p-1">
-                <button
-                  type="button"
-                  onClick={() => setView("map")}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "map" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
-                >
-                  <MapIcon className="h-3.5 w-3.5" /> Map View
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setView("cards")}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "cards" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
-                >
-                  <LayoutGrid className="h-3.5 w-3.5" /> Card View
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setView("list")}
-                  className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "list" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
-                >
-                  <Rows3 className="h-3.5 w-3.5" /> List View
-                </button>
-              </div>
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            {results && combinedProviders.length > 0 && (
+              <>
+                <VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />
+                <div className="inline-flex rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/50 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setView("map")}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "map" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
+                  >
+                    <MapIcon className="h-3.5 w-3.5" /> Map View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setView("cards")}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "cards" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" /> Card View
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setView("list")}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "list" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
+                  >
+                    <Rows3 className="h-3.5 w-3.5" /> List View
+                  </button>
+                </div>
+              </>
             )}
             <a
               href={telHref(HELP_PHONE)}
@@ -1536,7 +1617,7 @@ function SearchPageInner() {
               <div key={i} className="rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 h-48 animate-pulse" />
             ))}
           </div>
-        ) : results && mapMechanics.length > 0 && view === "map" ? (
+        ) : results && combinedProviders.length > 0 && view === "map" ? (
           <div className={mapShellClass}>
             {!isFullscreenMap ? <div className="mb-3">
               <div>
@@ -1544,18 +1625,6 @@ function SearchPageInner() {
                 <p className="mt-1 text-sm text-roadcall-muted">
                   Advanced map modes are open for this session. Use the controls to focus, expand, or hide panels.
                 </p>
-              </div>
-              <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_auto] xl:items-start">
-                <div className="space-y-3">
-                  <PremiumMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setIntakeOpen(true)}
-                  className="inline-flex items-center justify-center rounded-2xl border border-red-400/35 bg-red-400/15 px-5 py-4 text-sm font-black text-red-100 shadow-xl shadow-red-950/20 hover:bg-red-400/20"
-                >
-                  <Zap className="mr-2 h-4 w-4" /> Emergency Breakdown
-                </button>
               </div>
             </div> : null}
             <div className={mapGridClass}>
@@ -1600,12 +1669,24 @@ function SearchPageInner() {
                 </div>
               ) : null}
             </div>
+            {!isFullscreenMap ? (
+              <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_auto] xl:items-start">
+                <PremiumMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} />
+                <button
+                  type="button"
+                  onClick={() => setIntakeOpen(true)}
+                  className="inline-flex items-center justify-center rounded-2xl border border-red-400/35 bg-red-400/15 px-5 py-4 text-sm font-black text-red-100 shadow-xl shadow-red-950/20 hover:bg-red-400/20"
+                >
+                  <Zap className="mr-2 h-4 w-4" /> Emergency Breakdown
+                </button>
+              </div>
+            ) : null}
           </div>
-        ) : results && results.mechanics.length > 0 && view === "list" ? (
-          <MechanicListView mechanics={results.mechanics} onClaim={setClaimTarget} onViewMap={handleViewMap} />
-        ) : results && results.mechanics.length > 0 ? (
+        ) : results && scopedMechanics.length > 0 && view === "list" ? (
+          <MechanicListView mechanics={scopedMechanics} onClaim={setClaimTarget} onViewMap={handleViewMap} />
+        ) : results && scopedMechanics.length > 0 ? (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {results.mechanics.map((m) => <MechanicCard key={m.id} m={m} onClaim={setClaimTarget} onViewMap={handleViewMap} />)}
+            {scopedMechanics.map((m) => <MechanicCard key={m.id} m={m} onClaim={setClaimTarget} onViewMap={handleViewMap} />)}
           </div>
         ) : !loading && (
           <div className="text-center py-20">
