@@ -17,6 +17,27 @@ const CHAT_WIDGET_EXCLUDED_PATHS = [
   "/template",
 ];
 
+const LEADCONNECTOR_WIDGET_SELECTORS = [
+  "script[src*='widgets.leadconnectorhq.com/loader.js']",
+  "script[src*='leadconnectorhq.com/chat-widget/loader.js']",
+  "script[data-widget-id='6a0d59ed0732dc337617ecf6']",
+  "iframe[src*='widgets.leadconnectorhq.com']",
+  "iframe[src*='leadconnectorhq.com']",
+  "iframe[src*='msgsndr.com']",
+  "div[id*='lc_chat']",
+  "div[id*='chat-widget']",
+  "div[class*='lc-chat']",
+  "div[class*='chat-widget']",
+  "div[class*='hl-app']",
+];
+
+function purgeLeadConnectorWidgetArtifacts() {
+  if (typeof document === "undefined") return;
+  LEADCONNECTOR_WIDGET_SELECTORS.forEach((selector) => {
+    document.querySelectorAll(selector).forEach((element) => element.remove());
+  });
+}
+
 /**
  * Public website chrome.
  * Admin routes have their own dashboard shell and must not inherit the public
@@ -57,18 +78,23 @@ export function LeadConnectorChatWidget() {
       return;
     }
 
-    const selectors = [
-      "script[src*='widgets.leadconnectorhq.com/loader.js']",
-      "script[data-widget-id='6a0d59ed0732dc337617ecf6']",
-      "iframe[src*='widgets.leadconnectorhq.com']",
-      "iframe[src*='leadconnectorhq.com']",
-      "div[id*='lc_chat']",
-      "div[class*='lc-chat']",
-    ];
+    // Remove immediately, then keep pruning in case the third-party loader
+    // re-injects after route changes.
+    purgeLeadConnectorWidgetArtifacts();
 
-    selectors.forEach((selector) => {
-      document.querySelectorAll(selector).forEach((element) => element.remove());
+    const observer = new MutationObserver(() => {
+      purgeLeadConnectorWidgetArtifacts();
     });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    const interval = window.setInterval(() => {
+      purgeLeadConnectorWidgetArtifacts();
+    }, 1200);
+
+    return () => {
+      observer.disconnect();
+      window.clearInterval(interval);
+    };
   }, [showWidget]);
 
   if (!showWidget) {
