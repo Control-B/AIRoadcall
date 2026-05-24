@@ -30,7 +30,6 @@ import {
   RectangleHorizontal,
   Rows3,
   Loader2,
-  Lock,
   Activity,
   RadioTower,
   Layers3,
@@ -328,10 +327,6 @@ const PREMIUM_MAP_MODES: { id: PremiumMapMode; label: string; description: strin
   { id: "hotspots", label: "Hotspots", description: "Coverage gaps and high-priority service clusters from Roadcall provider signals.", icon: Zap, fleetOnly: true },
 ];
 
-function modeIsAvailable(mode: PremiumMapMode, hasPremiumAccess: boolean) {
-  return mode === "basic" || mode === "satellite" || hasPremiumAccess;
-}
-
 function safeExternalUrl(value?: string | null) {
   if (!value) return null;
   try {
@@ -371,14 +366,14 @@ function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: numbe
   return typeof mechanic.lat === "number" && Number.isFinite(mechanic.lat) && typeof mechanic.lng === "number" && Number.isFinite(mechanic.lng);
 }
 
-function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode, hasPremiumAccess }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode; hasPremiumAccess: boolean }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
   const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
   const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<Mechanic | null>(null);
-  const premiumModeEnabled = hasPremiumAccess && premiumMode !== "basic";
+  const premiumModeEnabled = premiumMode !== "basic";
   const mapStyle = premiumMode === "satellite"
     ? "mapbox://styles/mapbox/satellite-streets-v12"
     : premiumModeEnabled
@@ -545,7 +540,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       if (map) map.remove();
       mapRef.current = null;
     };
-  }, [configured, hasPremiumAccess, mapStyle, points, premiumMode, premiumModeEnabled, token]);
+  }, [configured, mapStyle, points, premiumMode, premiumModeEnabled, token]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => mapRef.current?.resize(), 120);
@@ -579,7 +574,6 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       </div>
       {workspaceControls ? <div className="absolute right-4 top-4 z-10 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
       {premiumModeEnabled ? <PremiumOperationsOverlay mechanics={points} mode={premiumMode} /> : null}
-      {!hasPremiumAccess && premiumMode !== "basic" ? <LockedPremiumMapOverlay mode={premiumMode} /> : null}
       {selectedProvider ? (
         <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
           <button type="button" onClick={() => setSelectedProvider(null)} className="absolute right-3 top-3 rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"><X className="h-4 w-4" /></button>
@@ -878,7 +872,7 @@ function ClaimUpdateModal({ mechanic, onClose, onSubmitted }: { mechanic: Mechan
   );
 }
 
-function PremiumMapModeControls({ mode, hasPremiumAccess, onModeChange }: { mode: PremiumMapMode; hasPremiumAccess: boolean; onModeChange: (mode: PremiumMapMode) => void }) {
+function PremiumMapModeControls({ mode, onModeChange }: { mode: PremiumMapMode; onModeChange: (mode: PremiumMapMode) => void }) {
   return (
     <div className="rounded-2xl border border-roadcall-cyan/15 bg-[#06101f]/90 p-3 shadow-2xl shadow-black/40 backdrop-blur-xl">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -886,24 +880,21 @@ function PremiumMapModeControls({ mode, hasPremiumAccess, onModeChange }: { mode
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-roadcall-cyan">Premium map modes</p>
           <p className="mt-1 text-xs text-roadcall-muted">Mapbox views plus Roadcall provider intelligence.</p>
         </div>
-        {!hasPremiumAccess ? <Lock className="h-4 w-4 text-roadcall-orange" /> : <Activity className="h-4 w-4 text-emerald-300" />}
+        <Activity className="h-4 w-4 text-emerald-300" />
       </div>
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {PREMIUM_MAP_MODES.map((item) => {
           const Icon = item.icon;
-          const locked = !modeIsAvailable(item.id, hasPremiumAccess);
           const active = mode === item.id;
           return (
             <button
               key={item.id}
               type="button"
-              disabled={locked}
               onClick={() => onModeChange(item.id)}
-              className={`rounded-xl border p-3 text-left transition ${active ? "border-roadcall-cyan bg-roadcall-cyan/15" : "border-white/10 bg-white/[0.035] hover:border-roadcall-cyan/30"} ${locked ? "cursor-not-allowed opacity-70" : ""}`}
+              className={`rounded-xl border p-3 text-left transition ${active ? "border-roadcall-cyan bg-roadcall-cyan/15" : "border-white/10 bg-white/[0.035] hover:border-roadcall-cyan/30"}`}
             >
               <div className="flex items-center justify-between gap-2">
                 <Icon className={active ? "h-4 w-4 text-roadcall-cyan" : "h-4 w-4 text-roadcall-silver"} />
-                {locked ? <Lock className="h-3.5 w-3.5 text-roadcall-orange" /> : null}
               </div>
               <p className="mt-2 text-xs font-black text-white">{item.label}</p>
               <p className="mt-1 line-clamp-2 text-[11px] leading-4 text-roadcall-muted">{item.description}</p>
@@ -916,50 +907,25 @@ function PremiumMapModeControls({ mode, hasPremiumAccess, onModeChange }: { mode
   );
 }
 
-function FullscreenMapModeControls({ mode, hasPremiumAccess, onModeChange }: { mode: PremiumMapMode; hasPremiumAccess: boolean; onModeChange: (mode: PremiumMapMode) => void }) {
+function FullscreenMapModeControls({ mode, onModeChange }: { mode: PremiumMapMode; onModeChange: (mode: PremiumMapMode) => void }) {
   return (
     <div className="flex max-w-[min(72vw,760px)] items-center gap-1 overflow-x-auto rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/85 p-1 shadow-2xl shadow-black/30 backdrop-blur-md">
       {PREMIUM_MAP_MODES.map((item) => {
         const Icon = item.icon;
         const active = mode === item.id;
-        const locked = !modeIsAvailable(item.id, hasPremiumAccess);
         return (
           <button
             key={item.id}
             type="button"
-            disabled={locked}
             onClick={() => onModeChange(item.id)}
-            title={locked ? `${item.label} requires Driver Pro or Fleet Operations` : item.description}
-            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-black transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"} ${locked ? "cursor-not-allowed opacity-70" : ""}`}
+            title={item.description}
+            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-black transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
           >
             <Icon className="h-3.5 w-3.5" />
             <span>{item.label}</span>
-            {locked ? <Lock className="h-3 w-3 text-roadcall-orange" /> : null}
           </button>
         );
       })}
-    </div>
-  );
-}
-
-function LockedPremiumMapOverlay({ mode }: { mode: PremiumMapMode }) {
-  const selected = PREMIUM_MAP_MODES.find((item) => item.id === mode);
-  return (
-    <div className="absolute inset-x-4 bottom-4 z-20 rounded-2xl border border-roadcall-orange/25 bg-[#02050c]/85 p-4 shadow-2xl shadow-black/50 backdrop-blur-xl">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl border border-roadcall-orange/30 bg-roadcall-orange/15">
-            <Lock className="h-5 w-5 text-roadcall-orange" />
-          </div>
-          <div>
-            <p className="text-sm font-black text-white">Unlock {selected?.label || "premium"} intelligence</p>
-            <p className="mt-1 text-xs leading-5 text-roadcall-muted">Advanced overlays require Driver Pro or Fleet Operations. Start a 7-day trial to unlock provider coverage, readiness signals, and service-density views.</p>
-          </div>
-        </div>
-        <Link href="/fleet/pricing" className="inline-flex shrink-0 items-center justify-center rounded-xl bg-roadcall-cyan px-4 py-2 text-xs font-black text-slate-950 hover:brightness-110">
-          Start 7-day trial <ArrowRight className="ml-2 h-3.5 w-3.5" />
-        </Link>
-      </div>
     </div>
   );
 }
@@ -1083,8 +1049,6 @@ function SearchPageInner() {
   const [claimTarget, setClaimTarget] = useState<Mechanic | null>(null);
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
   const [intakeOpen, setIntakeOpen] = useState(false);
-  const hasPremiumMapAccess = searchParams.get("premium") === "1" || searchParams.get("plan") === "driver_pro" || searchParams.get("plan")?.startsWith("fleet_") === true;
-
   useEffect(() => {
     const storedView = window.localStorage.getItem(VIEW_STORAGE_KEY) as ProviderViewMode | null;
     if (storedView === "map" || storedView === "cards" || storedView === "list") setView(storedView);
@@ -1239,7 +1203,7 @@ function SearchPageInner() {
               <span className="text-xs font-medium text-roadcall-silver/85 tracking-wide">35,000+ Verified Providers · All 50 States</span>
             </div>
             <h1 className="text-3xl sm:text-4xl font-black text-white mb-2">AI Roadside Operations Center</h1>
-            <p className="text-roadcall-muted text-sm">Free users get basic search and pins. Paid members unlock Mapbox satellite views, provider coverage, and Roadcall operational signals.</p>
+            <p className="text-roadcall-muted text-sm">Mapbox satellite views, provider coverage, and Roadcall operational signals are open while we continue tuning the experience.</p>
           </div>
 
           {/* Main search bar + intake button */}
@@ -1480,14 +1444,14 @@ function SearchPageInner() {
               <div>
                 <p className="text-xs font-black uppercase tracking-[0.18em] text-roadcall-cyan">{premiumModeLabel} map workspace</p>
                 <p className="mt-1 text-sm text-roadcall-muted">
-                  {hasPremiumMapAccess ? "Premium overlays are active for this session." : "Advanced map modes are locked behind Driver Pro and Fleet Operations memberships."} Use the controls to focus, expand, or hide panels.
+                  Advanced map modes are open for this session. Use the controls to focus, expand, or hide panels.
                 </p>
               </div>
               <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
-                <PremiumMapModeControls mode={premiumMapMode} hasPremiumAccess={hasPremiumMapAccess} onModeChange={setPremiumMapMode} />
+                <PremiumMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} />
                 <button
                   type="button"
-                  onClick={() => hasPremiumMapAccess ? setIntakeOpen(true) : setPremiumMapMode("operations")}
+                  onClick={() => setIntakeOpen(true)}
                   className="inline-flex items-center justify-center rounded-2xl border border-red-400/35 bg-red-400/15 px-5 py-4 text-sm font-black text-red-100 shadow-xl shadow-red-950/20 hover:bg-red-400/20"
                 >
                   <Zap className="mr-2 h-4 w-4" /> Emergency Breakdown
@@ -1502,10 +1466,9 @@ function SearchPageInner() {
                 className={mapHeightClass}
                 layoutKey={`${mapWorkspaceMode}-${mapSidePanelOpen}`}
                 premiumMode={premiumMapMode}
-                hasPremiumAccess={hasPremiumMapAccess}
                 workspaceControls={(
                   <div className="flex items-center gap-2">
-                    {isFullscreenMap ? <FullscreenMapModeControls mode={premiumMapMode} hasPremiumAccess={hasPremiumMapAccess} onModeChange={setPremiumMapMode} /> : null}
+                    {isFullscreenMap ? <FullscreenMapModeControls mode={premiumMapMode} onModeChange={setPremiumMapMode} /> : null}
                     <MapWorkspaceControls
                       mode={mapWorkspaceMode}
                       sidePanelOpen={mapSidePanelOpen}
