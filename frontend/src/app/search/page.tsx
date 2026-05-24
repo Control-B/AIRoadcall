@@ -735,7 +735,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30 ${className}`}>
       <div ref={containerRef} className="h-full w-full" />
-      <div className="absolute left-4 top-4 z-10 w-[min(360px,calc(100%-2rem))]">
+      <div className="absolute left-4 top-16 z-10 w-[min(360px,calc(100%-2rem))]">
         {!mapSearchOpen ? (
           <button
             type="button"
@@ -786,7 +786,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           </div>
         )}
       </div>
-      {workspaceControls ? <div className="absolute right-4 top-4 z-10 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
+      {workspaceControls ? <div className="absolute right-4 top-16 z-10 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
       {premiumModeEnabled ? <PremiumOperationsOverlay mechanics={points} mode={premiumMode} /> : null}
       {selectedProvider ? (
         <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
@@ -1160,6 +1160,85 @@ function FullscreenMapModeControls({ mode, onModeChange }: { mode: PremiumMapMod
           </button>
         );
       })}
+    </div>
+  );
+}
+
+function ResultsToolbar({
+  view,
+  onViewChange,
+  scope,
+  scopeCounts,
+  onScopeChange,
+  sourceTotals,
+  compact,
+  className,
+}: {
+  view: ProviderViewMode;
+  onViewChange: (view: ProviderViewMode) => void;
+  scope: VendorScopeMode;
+  scopeCounts: Record<VendorScopeMode, number>;
+  onScopeChange: (scope: VendorScopeMode) => void;
+  sourceTotals: { mechanics: number; national: number; trucking: number };
+  compact?: boolean;
+  className?: string;
+}) {
+  const viewButtons: { id: ProviderViewMode; label: string; Icon: typeof MapIcon }[] = [
+    { id: "map", label: "Map", Icon: MapIcon },
+    { id: "cards", label: "Cards", Icon: LayoutGrid },
+    { id: "list", label: "List", Icon: Rows3 },
+  ];
+  const pad = compact ? "px-2.5 py-1" : "px-3 py-1.5";
+  const text = compact ? "text-[11px]" : "text-xs";
+  return (
+    <div className={`flex flex-wrap items-center gap-2 ${className ?? ""}`}>
+      <div className="inline-flex rounded-full border border-roadcall-cyan/20 bg-[#06101f]/90 p-1 shadow-xl shadow-black/30 backdrop-blur-md">
+        {viewButtons.map(({ id, label, Icon }) => {
+          const active = view === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => onViewChange(id)}
+              className={`inline-flex items-center gap-1.5 rounded-full ${pad} ${text} font-bold transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
+            >
+              <Icon className="h-3.5 w-3.5" /> {label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="inline-flex rounded-full border border-roadcall-cyan/20 bg-[#06101f]/90 p-1 shadow-xl shadow-black/30 backdrop-blur-md">
+        {VENDOR_SCOPE_MODES.map((item) => {
+          const Icon = item.icon;
+          const active = scope === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onScopeChange(item.id)}
+              title={item.description}
+              className={`inline-flex items-center gap-1.5 rounded-full ${pad} ${text} font-bold transition ${active ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:bg-white/10 hover:text-white"}`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              <span>{item.label}</span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[10px] ${active ? "bg-slate-950/15 text-slate-950" : "bg-white/10 text-roadcall-muted"}`}>{scopeCounts[item.id].toLocaleString()}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div className={`inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-[#06101f]/80 ${pad} ${text} font-bold text-roadcall-silver shadow-xl shadow-black/30 backdrop-blur-md`}>
+        <Wrench className="h-3.5 w-3.5 text-roadcall-cyan" />
+        <span>Mechanics</span>
+        <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white">{sourceTotals.mechanics.toLocaleString()}</span>
+        <span className="mx-1 text-roadcall-muted/60">·</span>
+        <Truck className="h-3.5 w-3.5 text-roadcall-orange" />
+        <span>National</span>
+        <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white">{sourceTotals.national.toLocaleString()}</span>
+        <span className="mx-1 text-roadcall-muted/60">·</span>
+        <Truck className="h-3.5 w-3.5 text-emerald-300" />
+        <span>Trucking</span>
+        <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white">{sourceTotals.trucking.toLocaleString()}</span>
+      </div>
     </div>
   );
 }
@@ -1625,31 +1704,14 @@ function SearchPageInner() {
           </div>
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             {results && combinedProviders.length > 0 && (
-              <>
-                <div className="inline-flex rounded-full border border-roadcall-cyan/15 bg-roadcall-panel/50 p-1">
-                  <button
-                    type="button"
-                    onClick={() => setView("map")}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "map" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
-                  >
-                    <MapIcon className="h-3.5 w-3.5" /> Map View
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setView("cards")}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "cards" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
-                  >
-                    <LayoutGrid className="h-3.5 w-3.5" /> Card View
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setView("list")}
-                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition ${view === "list" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver hover:text-white"}`}
-                  >
-                    <Rows3 className="h-3.5 w-3.5" /> List View
-                  </button>
-                </div>
-              </>
+              <ResultsToolbar
+                view={view}
+                onViewChange={setView}
+                scope={vendorScopeMode}
+                scopeCounts={vendorScopeCounts}
+                onScopeChange={setVendorScopeMode}
+                sourceTotals={sourceTotals}
+              />
             )}
           </div>
         </div>
@@ -1677,6 +1739,21 @@ function SearchPageInner() {
                 workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} isFullscreen={isFullscreenMap} onToggleFullscreen={toggleFullscreenMap} />}
               />
             </div>
+            {isFullscreenMap ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[70] flex justify-center px-3">
+                <div className="pointer-events-auto">
+                  <ResultsToolbar
+                    view={view}
+                    onViewChange={setView}
+                    scope={vendorScopeMode}
+                    scopeCounts={vendorScopeCounts}
+                    onScopeChange={setVendorScopeMode}
+                    sourceTotals={sourceTotals}
+                    compact
+                  />
+                </div>
+              </div>
+            ) : null}
             {!isFullscreenMap ? (
               <div className="mt-4 space-y-4">
                 <div className="flex flex-col gap-3 rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/30 p-4 sm:flex-row sm:items-center sm:justify-between">
