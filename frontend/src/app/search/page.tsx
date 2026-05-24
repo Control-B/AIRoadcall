@@ -29,6 +29,8 @@ import {
   RadioTower,
   Layers3,
   Satellite,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
@@ -1070,7 +1072,7 @@ function ClaimUpdateModal({ mechanic, onClose, onSubmitted }: { mechanic: Mechan
   );
 }
 
-function MapModeToolbar({ mode, onModeChange }: { mode: PremiumMapMode; onModeChange: (mode: PremiumMapMode) => void }) {
+function MapModeToolbar({ mode, onModeChange, isFullscreen, onToggleFullscreen }: { mode: PremiumMapMode; onModeChange: (mode: PremiumMapMode) => void; isFullscreen?: boolean; onToggleFullscreen?: () => void }) {
   return (
     <div className="inline-flex items-center gap-1 rounded-full border border-white/15 bg-[#06101f]/90 p-1 shadow-2xl shadow-black/50 backdrop-blur-xl">
       {PREMIUM_MAP_MODES.map((item) => {
@@ -1089,6 +1091,17 @@ function MapModeToolbar({ mode, onModeChange }: { mode: PremiumMapMode; onModeCh
           </button>
         );
       })}
+      {onToggleFullscreen ? (
+        <button
+          type="button"
+          onClick={onToggleFullscreen}
+          title={isFullscreen ? "Exit fullscreen map" : "Expand map to fullscreen"}
+          className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-full bg-white/10 px-2.5 text-[11px] font-black uppercase tracking-wide text-white transition hover:bg-white/20"
+        >
+          {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+          <span className="hidden sm:inline">{isFullscreen ? "Exit" : "Fullscreen"}</span>
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -1407,10 +1420,11 @@ function SearchPageInner() {
     setView("map");
     if (mechanic.city || mechanic.state) setMapAreaSummary(`Showing map near ${[mechanic.city, mechanic.state].filter(Boolean).join(", ")}`);
   }, []);
-  const isFullscreenMap = false;
-  const mapShellClass = "";
+  const [isFullscreenMap, setIsFullscreenMap] = useState(true);
+  const toggleFullscreenMap = useCallback(() => setIsFullscreenMap((value) => !value), []);
+  const mapShellClass = isFullscreenMap ? "fixed inset-0 z-[60] bg-[#040810] p-3" : "";
   const mapGridClass = "grid gap-4";
-  const mapHeightClass = "h-[520px] min-h-[420px]";
+  const mapHeightClass = isFullscreenMap ? "h-[calc(100vh-24px)] min-h-[420px]" : "h-[520px] min-h-[420px]";
 
   return (
     <PageLayout>
@@ -1660,7 +1674,7 @@ function SearchPageInner() {
                 city={city}
                 state={state}
                 onLocationSearch={searchMapLocation}
-                workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} />}
+                workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} isFullscreen={isFullscreenMap} onToggleFullscreen={toggleFullscreenMap} />}
               />
             </div>
             {!isFullscreenMap ? (
