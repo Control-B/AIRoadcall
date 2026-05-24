@@ -535,7 +535,7 @@ function truckingCompanyToMechanic(company: PublicTruckingCompany, index: number
   };
 }
 
-function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, premiumMode, city, state, serviceType, onLocationSearch, onServiceTypeChange }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; premiumMode: PremiumMapMode; city: string; state: string; serviceType: string; onLocationSearch: (city: string, state: string) => void; onServiceTypeChange: (serviceType: string) => void }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, vendorControls, premiumMode, city, state, serviceType, onLocationSearch, onServiceTypeChange }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; vendorControls?: ReactNode; premiumMode: PremiumMapMode; city: string; state: string; serviceType: string; onLocationSearch: (city: string, state: string) => void; onServiceTypeChange: (serviceType: string) => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
@@ -556,7 +556,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       : "mapbox://styles/mapbox/streets-v12";
 
   useEffect(() => {
-    const media = window.matchMedia("(max-width: 640px)");
+    const media = window.matchMedia("(max-width: 1023px)");
     const update = () => setIsMobile(media.matches);
     update();
     media.addEventListener("change", update);
@@ -762,14 +762,81 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         <>
           <button
             type="button"
-            onClick={() => setMobileMenuOpen((value) => !value)}
-            className="absolute right-3 top-3 z-20 inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-[#06101f]/90 text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md"
+            onClick={() => { setMapSearchOpen((value) => !value); setMobileMenuOpen(false); }}
+            className="absolute left-3 top-3 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#06101f]/95 text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
+            aria-label="Open map search"
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMobileMenuOpen((value) => !value); setMapSearchOpen(false); }}
+            className="absolute right-3 top-3 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#06101f]/95 text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
             aria-label="Open map controls"
           >
             <Menu className="h-5 w-5" />
           </button>
+          {mapSearchOpen ? (
+            <div className="absolute left-3 top-16 z-[80] w-[min(340px,calc(100%-1.5rem))] rounded-2xl border border-white/15 bg-[#06101f]/95 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-roadcall-cyan">Search</p>
+                <button
+                  type="button"
+                  onClick={() => setMapSearchOpen(false)}
+                  className="rounded-full p-1 text-roadcall-muted hover:bg-white/10 hover:text-white"
+                  aria-label="Close search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="grid gap-2">
+                <input
+                  value={mapCity}
+                  onChange={(event) => setMapCity(event.target.value)}
+                  placeholder="City"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-950 outline-none focus:border-cyan-500"
+                />
+                <select
+                  value={mapState}
+                  onChange={(event) => setMapState(event.target.value)}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-950 outline-none focus:border-cyan-500"
+                >
+                  <option value="">State</option>
+                  {US_STATES.map((stateCode) => <option key={stateCode} value={stateCode}>{stateCode}</option>)}
+                </select>
+                <select
+                  value={mapServiceType}
+                  onChange={(event) => {
+                    const nextServiceType = event.target.value;
+                    setMapServiceType(nextServiceType);
+                    onServiceTypeChange(nextServiceType);
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-950 outline-none focus:border-cyan-500"
+                >
+                  {SERVICE_TYPES.map(([value, label]) => (
+                    <option key={value || "all_services"} value={value}>{label}</option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => { onLocationSearch(mapCity.trim(), mapState.trim()); setMapSearchOpen(false); }}
+                  className="rounded-xl bg-slate-950 px-3 py-2 text-[11px] font-black text-white hover:bg-slate-800"
+                >
+                  Search location
+                </button>
+                <button
+                  type="button"
+                  disabled={!visibleBounds || searchingArea}
+                  onClick={() => visibleBounds && onSearchArea(visibleBounds)}
+                  className="rounded-xl border border-slate-200 px-3 py-2 text-[11px] font-black text-slate-800 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {searchingArea ? "Searching..." : "Search map area"}
+                </button>
+              </div>
+            </div>
+          ) : null}
           {mobileMenuOpen ? (
-            <div className="absolute right-3 top-16 z-20 w-[min(340px,calc(100%-1.5rem))] rounded-2xl border border-white/15 bg-[#06101f]/95 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
+            <div className="absolute right-3 top-16 z-[80] w-[min(340px,calc(100%-1.5rem))] rounded-2xl border border-white/15 bg-[#06101f]/95 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-roadcall-cyan">Map controls</p>
                 <button
@@ -781,53 +848,18 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                   <X className="h-4 w-4" />
                 </button>
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-                <div className="grid gap-2">
-                  <input
-                    value={mapCity}
-                    onChange={(event) => setMapCity(event.target.value)}
-                    placeholder="City"
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-950 outline-none focus:border-cyan-500"
-                  />
-                  <select
-                    value={mapState}
-                    onChange={(event) => setMapState(event.target.value)}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-950 outline-none focus:border-cyan-500"
-                  >
-                    <option value="">State</option>
-                    {US_STATES.map((stateCode) => <option key={stateCode} value={stateCode}>{stateCode}</option>)}
-                  </select>
-                  <select
-                    value={mapServiceType}
-                    onChange={(event) => {
-                      const nextServiceType = event.target.value;
-                      setMapServiceType(nextServiceType);
-                      onServiceTypeChange(nextServiceType);
-                    }}
-                    className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-950 outline-none focus:border-cyan-500"
-                  >
-                    {SERVICE_TYPES.map(([value, label]) => (
-                      <option key={value || "all_services"} value={value}>{label}</option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    onClick={() => onLocationSearch(mapCity.trim(), mapState.trim())}
-                    className="rounded-xl bg-slate-950 px-3 py-2 text-[11px] font-black text-white hover:bg-slate-800"
-                  >
-                    Search location
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!visibleBounds || searchingArea}
-                    onClick={() => visibleBounds && onSearchArea(visibleBounds)}
-                    className="rounded-xl border border-slate-200 px-3 py-2 text-[11px] font-black text-slate-800 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {searchingArea ? "Searching..." : "Search map area"}
-                  </button>
+              {workspaceControls ? (
+                <div className="mb-3">
+                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-roadcall-muted">Map type</p>
+                  <div className="overflow-x-auto">{workspaceControls}</div>
                 </div>
-              </div>
-              {workspaceControls ? <div className="mt-3 overflow-x-auto">{workspaceControls}</div> : null}
+              ) : null}
+              {vendorControls ? (
+                <div>
+                  <p className="mb-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-roadcall-muted">Vendors</p>
+                  <div className="overflow-x-auto">{vendorControls}</div>
+                </div>
+              ) : null}
             </div>
           ) : null}
         </>
@@ -1845,7 +1877,7 @@ function SearchPageInner() {
               <span className="flex items-center gap-1.5 text-sm text-amber-400"><AlertCircle className="h-4 w-4" />{error}</span>
             ) : null}
           </div>
-          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <div className={`flex-wrap items-center gap-2 sm:justify-end ${isMapsPage ? "hidden lg:flex" : "flex"}`}>
             {results && combinedProviders.length > 0 && (
               <ResultsToolbar
                 view={view}
@@ -1884,9 +1916,10 @@ function SearchPageInner() {
                 onLocationSearch={searchMapLocation}
                 onServiceTypeChange={setServiceType}
                 workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} />}
+                vendorControls={<VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />}
               />
             </div>
-            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[70] flex justify-center px-3">
+            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[70] hidden justify-center px-3 lg:flex">
               <div className="pointer-events-auto">
                 <ResultsToolbar
                   view={view}
