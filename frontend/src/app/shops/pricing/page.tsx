@@ -6,8 +6,8 @@ import { ArrowRight, CheckCircle2, Phone, Sparkles, Truck, Wrench } from "lucide
 const plans = [
   {
     name: "Standard",
-    price: "$197.99",
-    setup: "+ $99.99 setup fee",
+    price: "$197",
+    setup: "+ $99 setup fee",
     target: "Core 24/7 AI Service Operations System for mechanics.",
     href: "https://buy.stripe.com/aFa8wR3JS1d4ezwaUu1sQ0o",
     category: "MVP Plan",
@@ -15,8 +15,8 @@ const plans = [
   },
   {
     name: "Professional",
-    price: "$297.99",
-    setup: "+ $149.99 setup fee",
+    price: "$297",
+    setup: "+ $149 setup fee",
     target: "Everything in Standard plus conversion and reputation upgrades.",
     href: "https://buy.stripe.com/14A6oJbckg7Ycro0fQ1sQ0p",
     category: "MVP Plan",
@@ -25,8 +25,8 @@ const plans = [
   },
   {
     name: "Advanced",
-    price: "$397.99",
-    setup: "+ $249.99 setup fee",
+    price: "$397",
+    setup: "+ $249 setup fee",
     target: "Everything in Professional with a Smart Website built for booking.",
     href: "https://buy.stripe.com/7sYfZjfsA090gHEe6G1sQ0q",
     category: "MVP Plan",
