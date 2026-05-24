@@ -33,7 +33,7 @@ const benefits = [
   {
     icon: Zap,
     title: "AI-Dispatched Leads",
-    description: "Our AI dispatcher routes qualified leads directly to you based on service type, location, availability, and rating — no cold calls.",
+    description: "Our AI dispatcher routes qualified leads directly to you based on service type, location, availability, and verified readiness — no cold calls.",
     accent: "text-cyan-400",
   },
   {
@@ -44,8 +44,8 @@ const benefits = [
   },
   {
     icon: Star,
-    title: "Verified Reviews",
-    description: "Build your reputation with verified post-job reviews collected automatically via SMS after each incident close.",
+    title: "Verified Readiness",
+    description: "Build trust with accurate service areas, specialties, contact details, and operational status after each incident close.",
     accent: "text-amber-400",
   },
   {

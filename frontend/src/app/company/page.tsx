@@ -185,7 +185,7 @@ export default function CompanyPage() {
                     <span className="text-white font-medium">
                       35,000+ mechanics across all 50 states
                     </span>
-                    , scored by distance, specialty, rating, and
+                    , scored by distance, specialty, availability, and
                     availability.
                   </p>
                 </div>

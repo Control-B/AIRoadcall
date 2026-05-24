@@ -29,7 +29,7 @@ import { mediaUrl } from "@/lib/media";
 const features = [
   { icon: Phone, title: "AI Roadside Intake", description: "Driver calls from the side of the road. Sandy collects incident type, vehicle, location description, and driver info in under 90 seconds." },
   { icon: MapPin, title: "GPS Location Capture", description: "A one-time signed link is texted to the driver. One tap shares exact GPS coordinates — no app, no account needed." },
-  { icon: Wrench, title: "Mechanic Matching Engine", description: "Scores 35,000+ vendors by distance, service type, vehicle class, rating, and availability. Best match dispatched automatically." },
+  { icon: Wrench, title: "Mechanic Matching Engine", description: "Scores 35,000+ vendors by distance, service type, vehicle class, availability, and response readiness. Best match dispatched automatically." },
   { icon: AlertTriangle, title: "Incident Management", description: "Every breakdown becomes a tracked incident with full timeline: intake, location, dispatch, ETA, resolution, and audit trail." },
   { icon: Radio, title: "Dispatch Status Board", description: "Your team sees every active incident in real time — driver GPS, mechanic ETA, status updates, and escalations." },
   { icon: Users, title: "Driver & Vehicle Database", description: "Maintain a database of your drivers, vehicles, VINs, and unit numbers. Sandy can look up vehicle info during the call." },

@@ -12,10 +12,8 @@ import {
   MapPin,
   Plus,
   Radar,
-  Send,
   ShieldCheck,
   Sparkles,
-  Star,
   Truck,
   Wrench,
   X,
@@ -93,7 +91,6 @@ export default function MarketplacePage() {
   const [data, setData] = useState<MarketplaceResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [rateTarget, setRateTarget] = useState<Provider | null>(null);
   const [claimTarget, setClaimTarget] = useState<Provider | null>(null);
   const [submitOpen, setSubmitOpen] = useState(false);
 
@@ -214,7 +211,7 @@ export default function MarketplacePage() {
             </p>
           </div>
           <div className="rounded-full border border-roadcall-cyan/10 px-3 py-1 text-xs text-roadcall-silver/85">
-            Scores combine distance, roadside fit, service match, reliability, availability, reviews, response speed, and fleet fit.
+            Scores combine distance, roadside fit, service match, reliability, availability, response speed, and fleet fit.
           </div>
         </div>
 
@@ -229,7 +226,6 @@ export default function MarketplacePage() {
                 key={provider.id}
                 provider={provider}
                 rank={index + 1}
-                onRate={() => setRateTarget(provider)}
                 onClaim={() => setClaimTarget(provider)}
               />
             ))}
@@ -254,9 +250,6 @@ export default function MarketplacePage() {
         </div>
       </section>
 
-      {rateTarget && (
-        <RateModal provider={rateTarget} onClose={() => setRateTarget(null)} onSaved={() => { setRateTarget(null); search(); }} />
-      )}
       {claimTarget && (
         <ClaimModal provider={claimTarget} onClose={() => setClaimTarget(null)} onSaved={() => { setClaimTarget(null); search(); }} />
       )}
@@ -290,7 +283,7 @@ function IntelCard({ icon: Icon, label, value }: { icon: React.ElementType; labe
   );
 }
 
-function ProviderCard({ provider, rank, onRate, onClaim }: { provider: Provider; rank: number; onRate: () => void; onClaim: () => void }) {
+function ProviderCard({ provider, rank, onClaim }: { provider: Provider; rank: number; onClaim: () => void }) {
   const scorePercent = Math.round(provider.marketplace_score * 100);
   return (
     <article className="rounded-3xl border border-roadcall-cyan/10 bg-roadcall-panel/50 p-5 shadow-xl transition hover:border-blue-300/40 hover:bg-roadcall-panel/70">
@@ -333,18 +326,14 @@ function ProviderCard({ provider, rank, onRate, onClaim }: { provider: Provider;
       </div>
 
       <div className="mt-5 grid grid-cols-2 gap-3 border-t border-roadcall-cyan/10 pt-4 text-sm text-roadcall-silver/85">
-        <div className="flex items-center gap-2"><Star className="h-4 w-4 text-roadcall-orange" /> {provider.rating ? `${provider.rating.toFixed(1)} (${provider.review_count || 0})` : "Rating pending"}</div>
         <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-cyan-300" /> {provider.estimated_response_minutes ? `${provider.estimated_response_minutes} min` : "ETA unknown"}</div>
         <div className="flex items-center gap-2"><Wrench className="h-4 w-4 text-blue-300" /> {provider.service_radius_miles} mi radius</div>
         <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-300" /> {provider.trust_level.replace("_", " ")}</div>
       </div>
 
-      <div className="mt-4 flex gap-2">
-        <button onClick={onRate} className="flex-1 rounded-xl border border-amber-300/40 bg-amber-300/10 px-3 py-2 text-xs font-semibold text-amber-100 transition hover:bg-amber-300/20">
-          ⭐ Rate provider
-        </button>
-        <button onClick={onClaim} className="flex-1 rounded-xl border border-blue-300/40 bg-blue-300/10 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-blue-300/20">
-          🔒 Claim listing
+      <div className="mt-4">
+        <button onClick={onClaim} className="w-full rounded-xl border border-blue-300/40 bg-blue-300/10 px-3 py-2 text-xs font-semibold text-blue-100 transition hover:bg-blue-300/20">
+          Claim listing
         </button>
       </div>
     </article>
@@ -379,57 +368,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const INPUT_CLS = "w-full rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel/60 px-3 py-2 text-white outline-none placeholder:text-roadcall-muted/70 focus:border-blue-300";
-
-function RateModal({ provider, onClose, onSaved }: { provider: Provider; onClose: () => void; onSaved: () => void }) {
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
-  const [ok, setOk] = useState("");
-
-  async function submit() {
-    setBusy(true); setErr(""); setOk("");
-    try {
-      const res = await fetch(`${API_URL}/marketplace/${provider.id}/review`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rating, comment: comment || undefined, reviewer_name: name || undefined, reviewer_phone: phone || undefined }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Could not submit review");
-      setOk(`Thanks! New average: ${data.new_average.toFixed(1)} (${data.new_review_count})`);
-      setTimeout(onSaved, 1200);
-    } catch (e) { setErr(e instanceof Error ? e.message : "Error"); }
-    finally { setBusy(false); }
-  }
-
-  return (
-    <Modal title={`Rate ${provider.company_name}`} onClose={onClose}>
-      <div className="space-y-4">
-        <Field label="Rating">
-          <div className="flex gap-2">
-            {[1,2,3,4,5].map((n) => (
-              <button key={n} onClick={() => setRating(n)} className={`text-3xl ${n <= rating ? "text-roadcall-orange" : "text-roadcall-muted/55"}`}>★</button>
-            ))}
-          </div>
-        </Field>
-        <Field label="Comment (optional)">
-          <textarea value={comment} onChange={(e) => setComment(e.target.value)} rows={3} className={INPUT_CLS} maxLength={2000} />
-        </Field>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Your name"><input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} /></Field>
-          <Field label="Your phone (helps prevent spam)"><input value={phone} onChange={(e) => setPhone(e.target.value)} className={INPUT_CLS} /></Field>
-        </div>
-        {err && <p className="text-sm text-red-300">{err}</p>}
-        {ok && <p className="text-sm text-emerald-300">{ok}</p>}
-        <button disabled={busy} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-400 px-4 py-3 font-semibold text-slate-900 hover:bg-amber-300 disabled:opacity-60">
-          <Send className="h-4 w-4" /> Submit rating
-        </button>
-      </div>
-    </Modal>
-  );
-}
 
 function ClaimModal({ provider, onClose, onSaved }: { provider: Provider; onClose: () => void; onSaved: () => void }) {
   const [name, setName] = useState("");

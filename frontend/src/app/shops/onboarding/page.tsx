@@ -211,7 +211,7 @@ export default function ShopsOnboardingPage() {
               {([
                 { field: "wants_ai_answering" as keyof ShopsFormData, label: "AI call answering (answer every call automatically)" },
                 { field: "wants_booking" as keyof ShopsFormData, label: "Appointment booking via AI" },
-                { field: "wants_reviews" as keyof ShopsFormData, label: "Automated review requests after completed jobs" },
+                { field: "wants_reviews" as keyof ShopsFormData, label: "Post-job customer follow-up after completed jobs" },
               ] as { field: keyof ShopsFormData; label: string }[]).map(({ field, label }) => (
                 <label key={field} className="flex items-center gap-3 cursor-pointer rounded-lg border border-roadcall-cyan/10 bg-roadcall-ink/35 p-3">
                   <input

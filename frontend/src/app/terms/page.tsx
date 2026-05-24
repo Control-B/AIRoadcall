@@ -20,7 +20,7 @@ const sections = [
     title: "3. No Guarantee of Availability or Outcomes",
     body: [
       "Roadcall.ai does not guarantee that a mechanic or service provider will be available, will accept a dispatch, will arrive within a specific timeframe, or will resolve a vehicle issue successfully.",
-      "Estimated arrival times, ranking results, provider availability, ratings, and suggested matches are informational estimates only. Actual availability, pricing, qualifications, travel time, and service quality may vary.",
+      "Estimated arrival times, ranking results, provider availability, and suggested matches are informational estimates only. Actual availability, pricing, qualifications, travel time, and service quality may vary.",
     ],
   },
   {

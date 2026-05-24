@@ -70,9 +70,9 @@ const deepFeatures = [
     eyebrow: "Smart Matching",
     title: "The right mechanic, every time",
     description:
-      "Our scoring algorithm evaluates 35,000+ mechanics across multiple dimensions to find the optimal match. Distance, specialty, vehicle type expertise, customer rating, response time, and mobile capability — all weighted and ranked in milliseconds.",
+      "Our scoring algorithm evaluates 35,000+ mechanics across multiple dimensions to find the optimal match. Distance, specialty, vehicle type expertise, response time, availability, and mobile capability — all weighted and ranked in milliseconds.",
     bullets: [
-      "Multi-factor scoring: distance, specialty, rating, availability",
+      "Multi-factor scoring: distance, specialty, availability, response confidence",
       "Vehicle-type matching: cars, trucks, Class 7-8, diesel, electric",
       "Issue-type matching: flat tires, engine, electrical, lockout",
       "Mobile service detection — prioritizes mechanics who come to you",

@@ -40,7 +40,7 @@ const shopsFeatures = [
   { icon: Phone,        title: "AI Call Answering",      description: "Sandy answers every call instantly — day or night — and captures lead details." },
   { icon: MessageSquare,title: "Missed-Call Text-Back",  description: "Texts back missed callers within seconds so they don't dial a competitor." },
   { icon: Building2,    title: "Appointment Booking",    description: "Books directly into your calendar during the call. Zero back-and-forth." },
-  { icon: TrendingUp,   title: "CRM & Follow-Up",        description: "Full pipeline automation with follow-ups and review requests inside Roadcall." },
+  { icon: TrendingUp,   title: "CRM & Follow-Up",        description: "Full pipeline automation with status updates and customer follow-ups inside Roadcall." },
 ];
 
 const fleetFeatures = [
@@ -390,7 +390,7 @@ export default function HomePage() {
                 Your AI receptionist answers every call, captures the details, and books more jobs — while you focus on what you do best: fixing trucks.
               </p>
               <ul className="space-y-3 mb-10">
-                {["AI answers instantly, 24/7","Missed-call text-back in seconds","Appointment booking to your calendar","CRM pipeline with automated follow-up","Review request automation after jobs"].map((item) => (
+                {["AI answers instantly, 24/7","Missed-call text-back in seconds","Appointment booking to your calendar","CRM pipeline with automated follow-up","Post-job customer follow-up"].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-roadcall-silver/85">
                     <CheckCircle2 className="h-4 w-4 text-roadcall-orange shrink-0" /> {item}
                   </li>

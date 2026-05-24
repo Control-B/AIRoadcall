@@ -39,7 +39,7 @@ const steps = [
     icon: Wrench,
     step: "03",
     title: "Get Matched",
-    description: "Our AI scores 35,000+ nearby mechanics by distance, rating, service type, and availability. Best match dispatched automatically.",
+    description: "Our AI scores 35,000+ nearby mechanics by distance, service type, availability, and response readiness. Best match dispatched automatically.",
     accent: "from-emerald-500 to-green-400",
   },
   {
@@ -73,7 +73,7 @@ const faqs = [
   },
   {
     q: "How are mechanics selected?",
-    a: "Our AI scores nearby providers on distance, service type match, rating, mobile capability, and 24/7 availability. You get the best available option, not just the nearest listing.",
+    a: "Our AI scores nearby providers on distance, service type match, mobile capability, response readiness, and 24/7 availability. You get the best available option, not just the nearest listing.",
   },
   {
     q: "Is this service free for drivers?",
@@ -177,7 +177,7 @@ export default function DriverPage() {
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid sm:grid-cols-3 gap-6 text-center">
             {[
-              { icon: Shield, label: "Verified Network", sub: "All providers phone-verified. Ratings tracked per job." },
+              { icon: Shield, label: "Verified Network", sub: "Providers can be phone-verified and operationally checked." },
               { icon: Clock, label: "24/7 Coverage", sub: "AI dispatcher never sleeps. Help available every hour of every day." },
               { icon: MessageSquare, label: "SMS Updates", sub: "Real-time status texts from intake through resolution." },
             ].map((t) => (

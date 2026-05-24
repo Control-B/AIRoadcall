@@ -46,8 +46,8 @@ const FEATURES = [
   },
   {
     icon: Star,
-    title: "Review Requests",
-    desc: "After a job is complete the system sends a polite review request, building your public rating automatically.",
+    title: "Customer Follow-Up",
+    desc: "After a job is complete the system can follow up with customers and keep your service history organized.",
   },
   {
     icon: MapPin,
@@ -66,7 +66,7 @@ const STEPS = [
   { title: "AI Qualifies the Call", desc: "The AI collects name, vehicle type, issue, and preferred service time in a natural conversation." },
   { title: "Lead is Captured", desc: "Contact info, vehicle details, and call summary are pushed into the CRM automatically." },
   { title: "Job or Appointment Created", desc: "If ready to book, an appointment is created. If not, the lead sits in the pipeline for follow-up." },
-  { title: "Automation Takes Over", desc: "Follow-up texts, reminders, status updates, and review requests run on autopilot from there." },
+  { title: "Automation Takes Over", desc: "Follow-up texts, reminders, status updates, and customer messages run on autopilot from there." },
 ];
 
 export default function ShopsFeaturesPage() {
@@ -173,7 +173,7 @@ export default function ShopsFeaturesPage() {
             {[
               { icon: TrendingUp, title: "For the Industry", body: "Truck mechanics are often one- or two-person shops running on a single cell number. Roadcall gives them the phone infrastructure franchise shops pay tens of thousands for." },
               { icon: Zap, title: "For the Shop Owner", body: "One missed call on a $3,000 engine job pays for a year of Roadcall Shops. No front-desk hire needed." },
-              { icon: CheckCircle2, title: "The Outcome", body: "Fewer missed calls, more booked repairs, a CRM that fills itself, and review ratings that grow without asking manually." },
+              { icon: CheckCircle2, title: "The Outcome", body: "Fewer missed calls, more booked repairs, and a CRM that stays current without manual busywork." },
             ].map((v) => {
               const Icon = v.icon;
               return (

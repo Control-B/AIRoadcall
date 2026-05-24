@@ -11,7 +11,6 @@ import {
   MapPin,
   Filter,
   Phone,
-  Star,
   CheckCircle2,
   Clock,
   Zap,
@@ -716,17 +715,6 @@ type SearchResult = {
   page_size: number;
 };
 
-function StarRating({ rating, count }: { rating: number | null; count: number | null }) {
-  if (!rating) return <span className="text-xs text-roadcall-muted">No rating</span>;
-  return (
-    <span className="flex items-center gap-1">
-      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-      <span className="text-sm font-semibold text-white">{rating.toFixed(1)}</span>
-      {count && <span className="text-xs text-roadcall-muted">({count})</span>}
-    </span>
-  );
-}
-
 function MechanicCard({ m, onClaim, onViewMap }: { m: Mechanic; onClaim: (mechanic: Mechanic) => void; onViewMap: (mechanic: Mechanic) => void }) {
   const topReason = m.reasons?.[0];
   const trustLabel = m.trust_level ? m.trust_level.replace(/_/g, " ") : null;
@@ -751,7 +739,6 @@ function MechanicCard({ m, onClaim, onViewMap }: { m: Mechanic; onClaim: (mechan
               {m.business_category || "Roadside Provider"}
             </p>
           </div>
-          <StarRating rating={m.rating} count={m.review_count} />
         </div>
 
         <div className="mb-3 space-y-1.5 text-xs text-roadcall-muted">
@@ -874,7 +861,6 @@ function MechanicListView({ mechanics, onClaim, onViewMap }: { mechanics: Mechan
               <th className="px-4 py-3">Category</th>
               <th className="px-4 py-3">Phone</th>
               <th className="px-4 py-3">Website</th>
-              <th className="px-4 py-3">Rating</th>
               <th className="px-4 py-3">Status</th>
               <th className="px-4 py-3">Actions</th>
             </tr>
@@ -892,7 +878,6 @@ function MechanicListView({ mechanics, onClaim, onViewMap }: { mechanics: Mechan
                   <td className="px-4 py-3">{mechanic.business_category || "Roadside Provider"}</td>
                   <td className="px-4 py-3">{mechanic.phone || "Protected"}</td>
                   <td className="px-4 py-3">{websiteUrl ? <a href={websiteUrl} target="_blank" rel="noreferrer" className="text-roadcall-cyan hover:text-white">Open</a> : "Unavailable"}</td>
-                  <td className="px-4 py-3">{mechanic.rating ? `${mechanic.rating.toFixed(1)} (${mechanic.review_count || 0})` : "-"}</td>
                   <td className="px-4 py-3">{verificationLabel(mechanic.verification_status)}</td>
                   <td className="px-4 py-3">
                     <div className="flex flex-wrap gap-2">

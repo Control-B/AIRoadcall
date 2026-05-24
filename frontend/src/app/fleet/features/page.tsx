@@ -41,7 +41,7 @@ const features = [
     icon: Wrench,
     title: "Mechanic Matching Engine",
     description:
-      "Scores 35,000+ roadside vendors in real time by distance, vehicle class (Class 8, reefer, trailer), service specialty, rating, and live availability. Best match auto-dispatched with ETA confirmation.",
+      "Scores 35,000+ roadside vendors in real time by distance, vehicle class (Class 8, reefer, trailer), service specialty, live availability, and response readiness. Best match auto-dispatched with ETA confirmation.",
     accent: "from-teal-500 to-green-500",
   },
   {

@@ -35,14 +35,14 @@ const workflows = [
   {
     icon: Megaphone,
     title: "AI customer acquisition",
-    detail: "Turn reviews, specialties, service areas, and photos into SEO pages, social posts, and follow-up campaigns.",
+    detail: "Turn specialties, service areas, photos, and customer updates into SEO pages, social posts, and follow-up campaigns.",
     status: "Growth engine",
   },
   {
     icon: Star,
-    title: "Reputation intelligence",
-    detail: "Spot review gaps, generate review requests, and surface trust indicators that improve marketplace ranking.",
-    status: "Trust score",
+    title: "Trust intelligence",
+    detail: "Spot profile gaps, verify service details, and surface operational indicators that improve marketplace readiness.",
+    status: "Readiness score",
   },
 ];
 
@@ -151,7 +151,7 @@ export default function ShopOperationsPage() {
               <LoopItem icon={ClipboardList} label="Dispatch analytics" detail="Acceptance, completion, ETA accuracy, repeat jobs." />
               <LoopItem icon={Video} label="AI marketing" detail="Social posts, service pages, and short video scripts." />
               <LoopItem icon={ShieldCheck} label="Trust indicators" detail="Verified, enriched, review depth, response confidence." />
-              <LoopItem icon={CalendarClock} label="Follow-up automation" detail="Review requests, reactivation, fleet touchpoints." />
+              <LoopItem icon={CalendarClock} label="Follow-up automation" detail="Customer updates, reactivation, fleet touchpoints." />
             </div>
           </div>
         </div>

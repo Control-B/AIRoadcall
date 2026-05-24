@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Building2, MapPin, Phone, Search, ShieldCheck, Star, Truck } from "lucide-react";
+import { Building2, MapPin, Phone, Search, ShieldCheck, Truck } from "lucide-react";
 import Link from "next/link";
 import { PageLayout } from "@/components/page-layout";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
@@ -32,17 +32,6 @@ interface DirectoryResponse {
 interface StatsResponse {
   total: number;
   top_states: { state: string; count: number }[];
-}
-
-function Rating({ rating, count }: { rating: number | null; count: number | null }) {
-  if (!rating) return <span className="text-xs text-roadcall-muted">Public rating pending</span>;
-  return (
-    <span className="inline-flex items-center gap-1 text-xs text-roadcall-silver">
-      <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-      <strong className="text-white">{rating.toFixed(1)}</strong>
-      {count ? <span className="text-roadcall-muted">({count.toLocaleString()})</span> : null}
-    </span>
-  );
 }
 
 function filterFallbackRows(rows: PublicTruckingCompany[], query: string, state: string) {
@@ -103,8 +92,7 @@ function CompanyCard({ company }: { company: PublicTruckingCompany }) {
           </div>
         ) : null}
       </div>
-      <div className="flex items-center justify-between border-t border-roadcall-cyan/10 pt-3">
-        <Rating rating={company.rating} count={company.review_count} />
+      <div className="flex items-center justify-end border-t border-roadcall-cyan/10 pt-3">
         <span className="inline-flex items-center gap-1 text-[11px] text-roadcall-muted">No export/download</span>
       </div>
     </article>
