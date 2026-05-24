@@ -2,79 +2,42 @@
 
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Phone, Sparkles, Truck, Wrench } from "lucide-react";
-import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
 
 const plans = [
   {
-    name: "Widget Only",
-    price: "$99.99",
-    setup: "$49.99 setup",
-    target: "For mechanics that do not want a new website.",
-    href: "/mechanic/checkout?plan=widget_only",
-    category: "Simple Service Plan",
-    features: ["AI widget", "FAQ assistant", "Appointment capture", "Lead capture", "No SaaS Mode provisioning"],
-  },
-  {
-    name: "AI Telephony Only",
-    price: "$99.99",
-    setup: "$49.99 setup",
-    target: "For shops that want AI phone answering without a website package.",
-    href: "/mechanic/checkout?plan=ai_telephony",
-    category: "Simple Service Plan",
-    features: ["AI phone answering", "AI intake", "Missed-call text-back", "Call summaries", "No SaaS Mode provisioning"],
-  },
-  {
-    name: "Widget + AI Telephony",
-    price: "$149.99",
-    setup: "$97.99 setup",
-    target: "For shops that want both website widget capture and AI phone intake.",
-    href: "/mechanic/checkout?plan=widget_voice",
-    category: "Simple Service Plan",
-    highlighted: true,
-    features: ["AI widget", "AI phone answering", "Lead capture", "Call summaries", "No SaaS Mode provisioning"],
-  },
-  {
-    name: "Driver Pro",
-    price: "$9.99",
-    setup: "No setup fee",
-    target: "For owner operators and independent drivers that need AI roadside intelligence.",
-    href: "/mechanic/checkout?plan=driver_pro",
-    category: "Driver Membership",
-    features: ["AI dispatch priority", "Saved truck profile", "Emergency roadside mode", "Live dispatch tracking", "Route-aware intelligence"],
-  },
-  {
     name: "Standard",
-    price: "$297",
-    setup: "$149 setup",
-    target: "Website, AI telephone, widget, CRM, and workflow foundation.",
-    href: GHL_GET_STARTED_URL,
-    category: "Managed Growth Plan",
-    features: ["Website", "AI telephone", "AI widget", "CRM workflows", "Managed CRM access"],
+    price: "$197.99",
+    setup: "+ $99.99 setup fee",
+    target: "Core 24/7 AI Service Operations System for mechanics.",
+    href: "https://buy.stripe.com/aFa8wR3JS1d4ezwaUu1sQ0o",
+    category: "MVP Plan",
+    features: ["AI phone answering", "AI intake", "Call summaries", "FAQ assistant", "Appointment capture", "Lead capture"],
   },
   {
     name: "Professional",
-    price: "$497",
-    setup: "$199 setup",
-    target: "Everything in Standard plus mobile app and customer portal access.",
-    href: GHL_GET_STARTED_URL,
-    category: "Managed Growth Plan",
-    features: ["Everything in Standard", "Mobile app", "Customer portal", "Team access", "Managed CRM access"],
+    price: "$297.99",
+    setup: "+ $149.99 setup fee",
+    target: "Everything in Standard plus conversion and reputation upgrades.",
+    href: "https://buy.stripe.com/14A6oJbckg7Ycro0fQ1sQ0p",
+    category: "MVP Plan",
+    highlighted: true,
+    features: ["Everything in Standard", "AI Widget", "Reviews"],
   },
   {
     name: "Advanced",
-    price: "$997",
-    setup: "$299 setup",
-    target: "Everything in Professional plus social media marketing and campaigns.",
-    href: GHL_GET_STARTED_URL,
-    category: "Managed Growth Plan",
-    features: ["Everything in Professional", "Social media marketing", "Content planning", "Campaign automation", "Managed CRM access"],
+    price: "$397.99",
+    setup: "+ $249.99 setup fee",
+    target: "Everything in Professional with a Smart Website built for booking.",
+    href: "https://buy.stripe.com/7sYfZjfsA090gHEe6G1sQ0q",
+    category: "MVP Plan",
+    features: ["Everything in Professional", "Smart Website"],
   },
 ];
 
 const comparison = [
-  ["Simple Roadcall services", "Direct", "Widget, AI telephony, and Driver Pro memberships."],
-  ["Managed growth plans", "CRM", "Standard, Professional, and Advanced checkout/onboarding."],
-  ["Fleet Operations", "Fleet", "Fleet plans live on the fleet pricing page."],
+  ["24/7 AI Telephony", "Direct", "Voice AI answers every call, handles intake, and logs summaries."],
+  ["Conversion Engine", "CRM", "Smart AI widget, appointment capture, text-back flows, and reviews."],
+  ["Website Upgrade", "Fleet", "Advanced includes a Smart Website tuned for service bookings."],
 ];
 
 export default function ShopsPricingPage() {
@@ -85,14 +48,14 @@ export default function ShopsPricingPage() {
           <Sparkles className="h-4 w-4 text-roadcall-orange" /> Roadcall Shops Pricing
         </div>
         <h1 className="mx-auto mt-6 max-w-4xl text-5xl font-black leading-[0.95] tracking-tight md:text-7xl">
-          AI service plans for shops, drivers, and managed growth.
+          24/7 AI Service Operations System for Mechanics.
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-          Choose simple Roadcall services, Driver Pro, or managed growth plans for Standard, Professional, and Advanced.
+          Start with Standard, grow with Professional, and scale with Advanced.
         </p>
       </section>
 
-      <section className="mx-auto mt-14 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-4">
+      <section className="mx-auto mt-14 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-3">
         {plans.map((plan) => (
           <article key={plan.name} className={`flex flex-col rounded-[1.5rem] border p-6 ${plan.highlighted ? "border-orange-300/50 bg-orange-300/10" : "border-white/10 bg-white/[0.035]"}`}>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">{plan.category}</p>
@@ -105,7 +68,7 @@ export default function ShopsPricingPage() {
                 <li key={feature} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" /> {feature}</li>
               ))}
             </ul>
-            <Link href={plan.href} className="mt-7 inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-black text-slate-950 hover:bg-cyan-50">
+            <Link href={plan.href} target="_blank" rel="noreferrer" className="mt-7 inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-black text-slate-950 hover:bg-cyan-50">
               Start {plan.name} <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </article>
