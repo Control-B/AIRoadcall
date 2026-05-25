@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Loader2, Phone, X, AlertCircle, CheckCircle2 } from "lucide-react";
 
 import { getApiBase } from "@/lib/api-client";
@@ -26,7 +26,6 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
   const [status, setStatus] = useState<Status>("idle");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const callLinkRef = useRef<HTMLAnchorElement | null>(null);
 
   useEffect(() => {
     try {
@@ -49,7 +48,7 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
 
     if (!navigator.geolocation) {
       setStatus("ready");
-      setMessage("Calling now — Sandy will ask for your location.");
+      setMessage("Sandy will ask for your location on the call.");
       return false;
     }
 
@@ -72,17 +71,17 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
             });
             if (!response.ok) throw new Error("Location share failed");
             setStatus("ready");
-            setMessage("Location shared — calling Sandy now.");
+            setMessage("Location shared. Tap the phone button to call Sandy now.");
             resolve(true);
           } catch {
             setStatus("ready");
-            setMessage("Couldn't share GPS — Sandy will ask for your location on the call.");
+            setMessage("Couldn't share GPS. Tap the phone button to call Sandy now.");
             resolve(false);
           }
         },
         () => {
           setStatus("ready");
-          setMessage("Couldn't read GPS — Sandy will ask for your location on the call.");
+          setMessage("Couldn't read GPS. Tap the phone button to call Sandy now.");
           resolve(false);
         },
         { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
@@ -100,20 +99,21 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
 
     setPhone(digits);
     await shareLocation(digits);
-    callLinkRef.current?.click();
   }, [shareLocation]);
 
   const hasPhone = digitsOnly(phone).length >= 10;
 
   const handleFabClick = useCallback((event?: { preventDefault: () => void }) => {
-    event?.preventDefault();
     if (!hasPhone) {
+      event?.preventDefault();
       setStatus("needPhone");
       setMessage(null);
       return;
     }
+    if (status === "ready") return;
+    event?.preventDefault();
     void shareAndCall(phone);
-  }, [hasPhone, phone, shareAndCall]);
+  }, [hasPhone, phone, shareAndCall, status]);
 
   const close = useCallback(() => {
     setStatus("idle");
@@ -122,10 +122,6 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
 
   return (
     <>
-      <a ref={callLinkRef} href={telHref(HELP_PHONE)} className="hidden" aria-hidden="true">
-        call
-      </a>
-
       {hasPhone ? (
         <a
           href={telHref(HELP_PHONE)}
@@ -204,10 +200,19 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
           ) : null}
 
           {status === "ready" ? (
-            <p className="flex items-start gap-2 text-sm text-emerald-300">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-              {message || "Calling Sandy now…"}
-            </p>
+            <div className="space-y-3">
+              <p className="flex items-start gap-2 text-sm text-emerald-300">
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                {message || "Ready to call Sandy."}
+              </p>
+              <a
+                href={telHref(HELP_PHONE)}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-400 px-3 py-2.5 text-sm font-bold text-slate-950 hover:brightness-110"
+              >
+                <Phone className="h-4 w-4" />
+                Call Sandy {HELP_PHONE}
+              </a>
+            </div>
           ) : null}
         </div>
       ) : null}
