@@ -86,22 +86,38 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
   const isBusy = state === "locating" || state === "connecting";
   const isConnected = state === "connected";
 
+  const label = statusLabel(state, error);
+  // Compact label: shorten long states for the small button
+  const shortLabel =
+    state === "locating" ? "GPS…" :
+    state === "connecting" ? "Calling…" :
+    state === "connected" ? "Live" :
+    state === "error" ? "Retry" :
+    "Sandy";
+
   return (
     <button
       type="button"
       onClick={startCall}
       disabled={isBusy}
-      aria-label={isConnected ? "End Sandy call" : "Share GPS and call Sandy"}
-      className={`fixed bottom-6 left-1/2 z-[90] flex h-12 min-w-12 -translate-x-1/2 items-center justify-center gap-2 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 px-4 text-sm font-semibold text-slate-950 shadow-2xl ring-2 ring-emerald-400/30 transition hover:scale-105 active:scale-95 disabled:cursor-wait disabled:opacity-80 sm:h-14 sm:min-w-14 ${className}`}
+      aria-label={isConnected ? "End Sandy call" : label}
+      style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+      className={`fixed right-[60px] z-[90] inline-flex h-11 items-center gap-1.5 rounded-full border px-3 text-[11px] font-black uppercase tracking-wide shadow-2xl shadow-black/50 backdrop-blur-md transition active:scale-95 disabled:cursor-wait disabled:opacity-70 ${
+        isConnected
+          ? "border-red-500/40 bg-[#06101f]/95 text-red-400 hover:bg-red-950/80"
+          : state === "error"
+          ? "border-yellow-500/40 bg-[#06101f]/95 text-yellow-400 hover:bg-yellow-950/80"
+          : "border-emerald-500/30 bg-[#06101f]/95 text-emerald-400 hover:bg-emerald-950/60"
+      } ${className}`}
     >
       {isConnected ? (
-        <PhoneOff className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" />
+        <PhoneOff className="h-4 w-4 shrink-0" fill="currentColor" />
       ) : isBusy ? (
-        <Mic className="h-5 w-5 animate-pulse sm:h-6 sm:w-6" />
+        <Mic className="h-4 w-4 shrink-0 animate-pulse" />
       ) : (
-        <Phone className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" />
+        <Phone className="h-4 w-4 shrink-0" fill="currentColor" />
       )}
-      <span className="max-w-[10rem] truncate sm:max-w-none">{statusLabel(state, error)}</span>
+      <span>{shortLabel}</span>
     </button>
   );
 }
