@@ -148,6 +148,47 @@ async def test_session_status_returns_ai_safe_summary(monkeypatch):
     assert body["say"].startswith("I found Verified Truck Repair")
 
 
+@pytest.mark.asyncio
+async def test_session_status_runs_match_when_shared_gps_and_intake_ready(monkeypatch):
+    session = DispatchSession(public_code="RC-1234", status=DispatchSessionStatus.matching.value)
+    session.id = uuid.uuid4()
+    session.lat = 28.0395
+    session.lng = -81.9498
+    session.city = "Lakeland"
+    session.state = "FL"
+    session.problem_type = "flat_tire"
+    session.vehicle_type = "semi"
+    session.payment_status = "not_required"
+    session.location_captured_at = datetime.now(timezone.utc)
+
+    calls = {}
+
+    async def fake_latest_match(db, session_id):
+        return None
+
+    async def fake_run_match(db, matched_session):
+        calls["request"] = DispatchSessionService._match_request(matched_session)
+        return RoadsideMatchResponse(
+            status="matched",
+            searchLevel="radius_25_miles",
+            matches=[],
+            needsMoreInfo=False,
+            missingFields=[],
+            callerContext=RoadsideCallerContext(city="Lakeland", state="FL"),
+            message="matched",
+        )
+
+    monkeypatch.setattr(DispatchSessionService, "_latest_match", fake_latest_match)
+    monkeypatch.setattr(DispatchSessionService, "_run_match_if_ready", fake_run_match)
+
+    response = await DispatchSessionService.status_response(None, session)
+
+    assert calls["request"].latitude == 28.0395
+    assert calls["request"].longitude == -81.9498
+    assert response.location_captured is True
+    assert response.status == DispatchSessionStatus.matched.value
+
+
 def test_pre_shared_location_marks_dispatch_session_ready_for_matching():
     session = DispatchSession(public_code="RC-1234", status=DispatchSessionStatus.awaiting_location.value)
 

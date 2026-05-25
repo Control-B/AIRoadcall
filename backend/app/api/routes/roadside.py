@@ -17,6 +17,7 @@ from app.models.location_capture_session import LocationCaptureSession, Location
 from app.models.roadside_incident import IncidentStatus, RoadsideIncident
 from app.models.tenant_provisioning import Tenant
 from app.schemas.roadside_match import RoadsideMatchRequest, RoadsideMatchResponse
+from app.services.dispatch_session_service import DispatchSessionService
 from app.schemas.provisioning import RoadsideSessionView
 from app.services.provisioning_service import ProvisioningService
 from app.services.roadside_matching_service import RoadsideMatchingService
@@ -78,6 +79,48 @@ def _generate_location_token() -> str:
     return secrets.token_urlsafe(32)
 
 
+def _caller_requested_location_override(request: RoadsideMatchRequest) -> bool:
+    text = " ".join(part for part in [request.message, request.transcript] if part).lower()
+    if not text:
+        return False
+    override_phrases = (
+        "use city",
+        "use the city",
+        "search in",
+        "look in",
+        "find mechanic in",
+        "mechanic in",
+        "instead of my location",
+        "not my gps",
+        "use this city",
+        "use that city",
+    )
+    return any(phrase in text for phrase in override_phrases)
+
+
+async def _prefer_shared_gps_if_available(db: AsyncSession, request: RoadsideMatchRequest) -> RoadsideMatchRequest:
+    if request.latitude is not None and request.longitude is not None:
+        return request
+    if _caller_requested_location_override(request):
+        return request
+
+    caller_phone = request.callerPhone or request.callbackNumber
+    if not caller_phone:
+        return request
+    session = await DispatchSessionService.latest_by_phone(db, caller_phone)
+    if not session or session.lat is None or session.lng is None:
+        return request
+
+    return request.model_copy(update={
+        "latitude": session.lat,
+        "longitude": session.lng,
+        "city": session.city or request.city,
+        "state": session.state or request.state,
+        "callerPhone": request.callerPhone or session.caller_phone_encrypted,
+        "callbackNumber": request.callbackNumber or session.caller_phone_encrypted,
+    })
+
+
 async def require_roadside_match_access(
     authorization: str | None = Header(default=None),
     x_admin_key: str | None = Header(default=None),
@@ -113,6 +156,7 @@ async def match_mechanic(
     app.main unwraps that envelope so this handler always sees the flat args.
     """
     try:
+        request = await _prefer_shared_gps_if_available(db, request)
         return await RoadsideMatchingService.match_mechanic(db, request)
     except Exception as exc:
         logger.exception("roadside_match_api_error fallback_to_manual_dispatch error=%s", exc)

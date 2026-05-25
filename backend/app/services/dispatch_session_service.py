@@ -201,6 +201,16 @@ class DispatchSessionService:
         else:
             context = RoadsideMatchingService.build_context(DispatchSessionService._match_request(session))
             missing_fields = RoadsideMatchingService.missing_fields(context)
+            if not missing_fields:
+                match_response = await DispatchSessionService._run_match_if_ready(db, session)
+                if match_response:
+                    session.status = DispatchSessionStatus.matched.value if match_response.status == "matched" else DispatchSessionStatus.manual_review.value
+                    latest_match = await DispatchSessionService._latest_match(db, session.id)
+                    if latest_match:
+                        match_status = latest_match.status
+                        candidates = latest_match.candidates or []
+                        best_match = DispatchSessionService._ai_safe_best_match(candidates[0]) if candidates else None
+                    missing_fields = []
 
         return DispatchSessionStatusResponse(
             dispatch_session_id=session.id,

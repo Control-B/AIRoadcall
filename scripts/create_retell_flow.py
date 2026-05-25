@@ -78,7 +78,7 @@ FLOW = {
         "BEFORE EVERY QUESTION: Check the ledger and transcript. If the answer appears anywhere earlier in the call, update the ledger and move forward instead of asking. If you need to verify a possibly misheard fact, confirm it briefly: 'I have [fact] - is that right?' Do not use the original open-ended question again.",
         "Normalize common answers without asking again: flat, blowout, spare, tire off rim, and low air mean problem_type=tire; won't start, dead battery, no crank, and crank no start mean problem_type=no_start or battery as stated; semi, tractor, eighteen-wheeler, rig, box truck, pickup, car, trailer, RV, and fleet vehicle are valid vehicle_type answers.",
         "LOCATION RULE: The caller's phone number and GPS are captured before the call when the driver taps the green phone button on the Roadcall map. Never direct the caller to a website, browser page, link, text message, code, or alternate location-sharing flow.",
-        "As soon as you have city + state + problem type + vehicle type, STOP asking search questions and let the flow run the mechanic search. The function node will fire match_mechanic automatically. If GPS is submitted first, use get_dispatch_session_status because the backend may already match from the dispatch session.",
+        "As soon as you have problem type and vehicle type, call get_dispatch_session_status if dispatch_session_id is known. If location_captured is true, use that backend GPS for matching. Only use a caller-stated city instead when the caller explicitly says to search that city instead of their shared GPS.",
         "'Mechanic in Lakeland' means search Lakeland — do not ask which part of Lakeland before the first search. The tool can return nearby options automatically.",
         "At the start of the call only, say exactly: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?' Then allow the caller to answer. Next ask exactly: 'What can I help you with today?' Never repeat the welcome after the caller answers.",
         "If city is missing: 'What city and state are you in?' If state is missing: 'What state is that in?' If problem is missing: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?' If vehicle type is missing: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?' Ask only ONE of these per turn, and only if truly missing.",
@@ -174,7 +174,7 @@ FLOW = {
             "type": "custom",
             "tool_id": "tool-roadcall-match-mechanic",
             "name": "match_mechanic",
-            "description": "Search and rank Roadcall mechanics by city, state, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Call immediately once city, state, problem type, and vehicle type are known. Always pass every known ledger value, including city, state, problemType, vehicleType, callerPhone, and a concise transcript summary. Do not invent results outside this tool response.",
+            "description": "Search and rank Roadcall mechanics by GPS/city, problem type, vehicle type, mobile service, 24/7 availability, service radius, and priority score. Always pass callerPhone from Retell metadata. If the backend has map-shared GPS for that phone, it will use GPS even if city/state args are also present. Only search a caller-stated city instead when the caller explicitly asks to use that city instead of shared GPS. Do not invent results outside this tool response.",
             "url": f"{BACKEND_URL}/api/roadside/match-mechanic",
             "method": "POST",
             "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
@@ -388,7 +388,7 @@ FLOW = {
                     "If state is truly missing, ask: 'What state is that in?'\n"
                     "If problemType is truly missing, ask: 'What problem are you having — tire, engine, battery, fuel, towing, or something else?'\n"
                     "If vehicleType is truly missing, ask: 'What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?'\n"
-                    "After the caller answers, store the answer in the ledger and call match_mechanic again with all known values."
+                    "After the caller answers, store the answer in the ledger and call match_mechanic again with all known values. Always include callerPhone so the backend can use map-shared GPS when available."
                 )
             },
             "edges": [
@@ -412,9 +412,9 @@ FLOW = {
                     "Use the latest match_mechanic tool response only. Prefer speaking match_mechanic.message verbatim when it is present, because the backend already decides whether this is a city-level options list or an exact/radius match.\n"
                     "If the response includes several matches, mention up to three returned businessName values exactly; do not invent names and do not force matches[0].\n"
                     "Do NOT read phone numbers for every option. Read a phone number only if the caller asks for a number or chooses a specific mechanic.\n"
-                    "After listing options, ask exactly one short next-step question: 'I can send your secure GPS link, get your exact road or exit, or start with one of these options. Which would you prefer?'\n"
-                    "If the caller gives an exact road, exit, landmark, or GPS details, go back to match intake and call match_mechanic again with the more precise location.\n"
-                    "If the caller wants a GPS text or wants Roadcall to continue dispatch, move to post-match dispatch intake.\n"
+                    "After listing options, ask exactly one short next-step question: 'Do you want me to start with one of these options or keep searching from your shared location?'\n"
+                    "If the caller gives a different city and explicitly asks to use it instead of their shared GPS, go back to match intake and call match_mechanic again with that city.\n"
+                    "If the caller wants Roadcall to continue dispatch, move to post-match dispatch intake.\n"
                     "If the caller chooses a mechanic by name or option number, use that match context and move to post-match dispatch intake.\n"
                     "FORBIDDEN: inventing or guessing a mechanic name, phone, address, or ETA. Only speak businessName, phone, city, address values that appeared verbatim in the latest match_mechanic response.\n"
                     "Never claim a mechanic is dispatched, confirmed, nearby, or en route unless backend dispatch status explicitly says so."
@@ -449,7 +449,7 @@ FLOW = {
                 "text": (
                     "Read the phone for the mechanic the caller chose. If they did not choose one, ask which option they want first.\n"
                     "Use only businessName and phone values from the latest match_mechanic response; do not invent or guess.\n"
-                    "Then ask: 'Do you want me to also create a Roadcall dispatch request and send your secure GPS location link?'\n"
+                    "Then ask: 'Do you want me to also create a Roadcall dispatch request using your shared location?'\n"
                     "Do not end unless the caller explicitly says they are all set or no longer need help."
                 )
             },
@@ -835,7 +835,7 @@ agent_body = {
     "boosted_keywords": [
         "roadside", "mechanic", "towing", "tractor", "trailer",
         "tire", "coolant", "no-start", "derate", "air leak",
-        "roadcall", "roadcall.ai", "roadcall dot a-i", "slash g-o", "submit",
+        "roadcall", "dispatch", "shared location", "GPS", "nearest mechanic",
     ],
     "normalize_for_speech": True,
 }
