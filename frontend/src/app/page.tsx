@@ -258,7 +258,7 @@ export default function HomePage() {
         <div className="relative z-30 mx-auto flex w-full max-w-7xl flex-col items-end gap-2 px-4 pb-4 pt-4 sm:absolute sm:right-6 sm:top-20 sm:mx-0 sm:w-auto sm:px-0 sm:pb-0 sm:pt-0">
           {/* Hero CTAs — above the sound button */}
           <Link
-            href="/search"
+            href="/maps"
             aria-label="I need roadside help now"
             className="flex items-center justify-center gap-2 rounded-xl border border-orange-300/60 bg-orange-500 px-5 py-2.5 text-sm font-bold text-slate-950 shadow-2xl ring-2 ring-orange-300/30 transition hover:bg-orange-400 hover:scale-[1.02] backdrop-blur-md"
           >
