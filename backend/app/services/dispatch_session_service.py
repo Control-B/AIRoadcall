@@ -628,13 +628,15 @@ class DispatchSessionService:
         location_label = DispatchSessionService._location_label(session)
         if missing_fields:
             if session.location_captured_at and "problemType" in missing_fields:
-                return f"I see your shared location near {location_label}. Is that correct?"
+                if location_label:
+                    return f"I see your shared location near {location_label}. Is that correct?"
+                return "I received your shared GPS, but I could not translate it into a city and state. What city and state are you in, and what nearest major road or highway are you by?"
             if "location" in missing_fields or "state" in missing_fields:
-                return "I cannot see your shared location yet. Please keep the map page open and share your location again, or tell me your city and nearest highway or exit."
+                return "I cannot see your shared location yet. Please tell me your city, state, and nearest major road or highway."
             if "problemType" in missing_fields:
                 return "What problem are you having — tire, engine, battery, fuel, towing, or something else?"
             if "vehicleType" in missing_fields:
-                return "What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?"
+                return "What type of vehicle do you need assistance for?"
         if best_match:
             location = ", ".join(item for item in [best_match.get("city"), best_match.get("state")] if item)
             return f"I found {best_match['company_name']} near {location or 'your area'}. I’m confirming availability now."
@@ -643,11 +645,11 @@ class DispatchSessionService:
         return "I still need your location. Please tell me the highway or interstate, nearest exit, city, state, and a nearby truck stop or landmark."
 
     @staticmethod
-    def _location_label(session: DispatchSession) -> str:
+    def _location_label(session: DispatchSession) -> str | None:
         if session.address:
             return session.address
         city_state = ", ".join(item for item in [session.city, session.state] if item)
-        return city_state or "your shared GPS pin"
+        return city_state or None
 
     @staticmethod
     def _active_call_context(session: DispatchSession) -> ActiveCallContext:
@@ -673,7 +675,9 @@ class DispatchSessionService:
     def _active_call_context_say(context: ActiveCallContext) -> str:
         location = context.shared_location
         if not location:
-            return "I cannot see your shared location yet. Please keep the map page open and share your location again, or tell me your city and nearest highway or exit."
+            return "I cannot see your shared location yet. Please tell me your city, state, and nearest major road or highway."
+        if not (location.address or location.city):
+            return "I received your shared GPS, but I could not translate it into a city and state. What city and state are you in, and what nearest major road or highway are you by?"
         parts = [location.address, location.city, location.state]
-        label = ", ".join(part for part in parts if part) or "your shared GPS pin"
+        label = ", ".join(part for part in parts if part)
         return f"I see your shared location near {label}. Is that where you need roadside help?"

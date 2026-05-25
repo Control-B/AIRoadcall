@@ -546,7 +546,7 @@ class RoadsideMatchingService:
         if "problemType" in missing_fields:
             return "Is it tire, engine, battery, fuel, towing, or something else?"
         if "vehicleType" in missing_fields:
-            return "What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?"
+            return "What type of vehicle do you need assistance for?"
         return "Got it. I’m checking nearby mechanics."
 
     @staticmethod

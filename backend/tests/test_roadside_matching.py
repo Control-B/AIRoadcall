@@ -86,7 +86,7 @@ def test_city_problem_without_vehicle_type_asks_vehicle_before_search():
     assert context.state == "FL"
     assert context.problemType == "tow_needed"
     assert RoadsideMatchingService.missing_fields(context) == ["vehicleType"]
-    assert RoadsideMatchingService.next_question(["vehicleType"]) == "What type of vehicle is it — car, pickup, box truck, semi, trailer, RV, or fleet vehicle?"
+    assert RoadsideMatchingService.next_question(["vehicleType"]) == "What type of vehicle do you need assistance for?"
 
 
 def test_vehicle_type_is_parsed_from_caller_message():

@@ -221,6 +221,26 @@ async def test_active_call_context_uses_recent_map_location(monkeypatch):
     assert response.say == "I see your shared location near Park Street North and 48th Avenue North, St. Petersburg, FL. Is that where you need roadside help?"
 
 
+def test_active_call_context_asks_city_state_when_gps_has_no_readable_location():
+    session_id = uuid.uuid4()
+    context = ActiveCallContext(
+        caller_phone="+18135551212",
+        session_id=session_id,
+        location_confirmed=False,
+        shared_location=SharedLocationContext(
+            lat=27.8156,
+            lng=-82.7023,
+            accuracy=12,
+        ),
+        instruction="Before doing anything else, confirm this shared location with the caller.",
+    )
+
+    say = DispatchSessionService._active_call_context_say(context)
+
+    assert say == "I received your shared GPS, but I could not translate it into a city and state. What city and state are you in, and what nearest major road or highway are you by?"
+    assert "pin" not in say.lower()
+
+
 @pytest.mark.asyncio
 async def test_retell_session_reuses_recent_map_session_when_phone_join_missing(monkeypatch):
     map_session_id = uuid.uuid4()
