@@ -181,8 +181,8 @@ export function ShareLocationCallButton({
         onClick={startCall}
         disabled={isBusy}
         aria-label={isConnected ? "End Sandy call" : label}
-        style={{ top: "calc(env(safe-area-inset-top, 0px) + 4.75rem)" }}
-        className={`fixed right-3 z-[90] inline-flex h-11 items-center gap-1.5 rounded-full border px-3 text-[11px] font-black uppercase tracking-wide shadow-2xl shadow-black/50 backdrop-blur-md transition active:scale-95 disabled:cursor-wait disabled:opacity-70 ${
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 5.25rem)" }}
+        className={`fixed right-3 z-[90] inline-flex h-9 items-center gap-1 rounded-full border px-2.5 text-[10px] font-black uppercase tracking-wide shadow-2xl shadow-black/50 backdrop-blur-md transition active:scale-95 disabled:cursor-wait disabled:opacity-70 sm:h-10 sm:gap-1.5 sm:px-3 sm:text-[11px] ${
           isConnected
             ? "border-red-500/40 bg-[#06101f]/95 text-red-400 hover:bg-red-950/80"
             : state === "error"
@@ -191,11 +191,11 @@ export function ShareLocationCallButton({
         } ${className}`}
       >
         {isConnected ? (
-          <PhoneOff className="h-4 w-4 shrink-0" fill="currentColor" />
+          <PhoneOff className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" fill="currentColor" />
         ) : isBusy ? (
-          <Mic className="h-4 w-4 shrink-0 animate-pulse" />
+          <Mic className="h-3.5 w-3.5 shrink-0 animate-pulse sm:h-4 sm:w-4" />
         ) : (
-          <Phone className="h-4 w-4 shrink-0" fill="currentColor" />
+          <Phone className="h-3.5 w-3.5 shrink-0 sm:h-4 sm:w-4" fill="currentColor" />
         )}
         <span>{shortLabel}</span>
       </button>

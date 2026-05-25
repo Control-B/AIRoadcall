@@ -794,10 +794,10 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
               type="button"
               onClick={() => { setMapSearchOpen(true); setMobileMenuOpen(false); }}
               style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
-              className="absolute left-3 z-[80] inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#06101f]/95 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
+              className="absolute left-3 z-[80] inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-[#06101f]/95 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-wide text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
               aria-label="Open map search"
             >
-              <Search className="h-4 w-4" />
+              <Search className="h-3.5 w-3.5" />
               Search
             </button>
           ) : null}
@@ -805,10 +805,10 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             type="button"
             onClick={() => { setMobileMenuOpen((value) => !value); setMapSearchOpen(false); }}
             style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
-            className="absolute left-1/2 -translate-x-1/2 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#06101f]/95 text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
+            className="absolute left-1/2 -translate-x-1/2 z-[80] inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-[#06101f]/95 text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
             aria-label="Open map controls"
           >
-            <Menu className="h-5 w-5" />
+            <Menu className="h-4 w-4" />
           </button>
           {mapSearchOpen ? (
             <div className="absolute left-3 top-16 z-[80] w-[min(340px,calc(100%-1.5rem))] rounded-2xl border border-white/15 bg-[#06101f]/95 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
@@ -817,11 +817,11 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                 <button
                   type="button"
                   onClick={() => setMapSearchOpen(false)}
-                  className="rounded-full p-1 text-roadcall-muted hover:bg-white/10 hover:text-white"
+                  className="rounded-full p-0.5 text-roadcall-muted hover:bg-white/10 hover:text-white"
                   aria-label="Minimize search"
                   title="Minimize"
                 >
-                  <Minus className="h-4 w-4" />
+                  <Minus className="h-3.5 w-3.5" />
                 </button>
               </div>
               <div className="grid gap-2">
@@ -855,7 +855,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                 <button
                   type="button"
                   onClick={() => { onLocationSearch(mapCity.trim(), mapState.trim()); setMapSearchOpen(false); }}
-                  className="rounded-xl bg-slate-950 px-3 py-2 text-[11px] font-black text-white hover:bg-slate-800"
+                  className="rounded-xl bg-slate-950 px-2.5 py-1.5 text-[10px] font-black text-white hover:bg-slate-800"
                 >
                   Search location
                 </button>
@@ -863,7 +863,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                   type="button"
                   disabled={!visibleBounds || searchingArea}
                   onClick={() => visibleBounds && onSearchArea(visibleBounds)}
-                  className="rounded-xl border border-slate-200 px-3 py-2 text-[11px] font-black text-slate-800 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="rounded-xl border border-slate-200 px-2.5 py-1.5 text-[10px] font-black text-slate-800 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {searchingArea ? "Searching..." : "Search map area"}
                 </button>
@@ -877,10 +877,10 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="rounded-full p-1 text-roadcall-muted hover:bg-white/10 hover:text-white"
+                  className="rounded-full p-0.5 text-roadcall-muted hover:bg-white/10 hover:text-white"
                   aria-label="Close map controls"
                 >
-                  <X className="h-4 w-4" />
+                  <X className="h-3.5 w-3.5" />
                 </button>
               </div>
               {workspaceControls ? (
