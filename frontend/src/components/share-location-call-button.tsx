@@ -181,8 +181,7 @@ export function ShareLocationCallButton({
         onClick={startCall}
         disabled={isBusy}
         aria-label={isConnected ? "End Sandy call" : label}
-        style={{ top: "calc(env(safe-area-inset-top, 0px) + 5.25rem)" }}
-        className={`fixed right-3 z-[90] inline-flex h-9 items-center gap-1 rounded-full border px-2.5 text-[10px] font-black uppercase tracking-wide shadow-2xl shadow-black/50 backdrop-blur-md transition active:scale-95 disabled:cursor-wait disabled:opacity-70 sm:h-10 sm:gap-1.5 sm:px-3 sm:text-[11px] ${
+        className={`fixed right-3 top-[calc(env(safe-area-inset-top,0px)+5.25rem)] z-[90] inline-flex h-9 items-center gap-1 rounded-full border px-2.5 text-[10px] font-black uppercase tracking-wide shadow-2xl shadow-black/50 backdrop-blur-md transition active:scale-95 disabled:cursor-wait disabled:opacity-70 sm:top-[calc(env(safe-area-inset-top,0px)+6.25rem)] sm:h-10 sm:gap-1.5 sm:px-3 sm:text-[11px] ${
           isConnected
             ? "border-red-500/40 bg-[#06101f]/95 text-red-400 hover:bg-red-950/80"
             : state === "error"
