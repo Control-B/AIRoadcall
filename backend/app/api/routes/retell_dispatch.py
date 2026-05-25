@@ -535,7 +535,7 @@ async def request_location(
             secure_location_token=job.magic_link_token,
             location_url=location_url,
             expires_at=job.magic_link_expires_at.isoformat() if job.magic_link_expires_at else None,
-            driver_message="Could not send SMS. Keep the caller on the line and have them open roadcall.ai/go with their case code, or collect road/exit manually.",
+            driver_message="Could not send SMS. Ask the caller to share their location from roadcall.ai on their phone, or collect road/exit manually.",
         )
 
     logger.info("request_location: SMS sent to %s for job %s", payload.callback_number, job.public_job_id)
@@ -610,7 +610,7 @@ async def vehicle_tracker_lookup(
             lookup_status="company_not_found",
             company_found=False,
             driver_message=(
-                "I do not have that fleet tracker connected yet. Keep the caller on the line and use roadcall.ai/go, GPS, or a manual road/exit location."
+                "I do not have that fleet tracker connected yet. Ask the caller for their GPS, road/exit, or have them share location from roadcall.ai."
             ),
         )
 
@@ -649,7 +649,7 @@ async def vehicle_tracker_lookup(
             vehicle_unit_number=vehicle.unit_number,
             vehicle_type=vehicle.vehicle_type,
             driver_message=(
-                "Fleet and unit found, but live tracker pull is not connected in this MVP build. Keep the caller on the line and use roadcall.ai/go or manual location."
+                "Fleet and unit found, but live tracker pull is not connected in this MVP build. Ask the caller to share location from roadcall.ai or provide a manual road/exit."
             ),
         )
 
@@ -662,7 +662,7 @@ async def vehicle_tracker_lookup(
             vehicle_found=False,
             tracker_available=True,
             tracker_provider=tracker_provider,
-            driver_message="Fleet tracker exists, but I could not find that unit number. Ask for the exact truck or trailer number, or use roadcall.ai/go.",
+            driver_message="Fleet tracker exists, but I could not find that unit number. Ask for the exact truck or trailer number, or have the caller share location from roadcall.ai.",
         )
 
     return VehicleLocationLookupOut(
@@ -673,7 +673,7 @@ async def vehicle_tracker_lookup(
         tracker_available=False,
         vehicle_unit_number=vehicle.unit_number if vehicle else None,
         vehicle_type=vehicle.vehicle_type if vehicle else None,
-        driver_message="This fleet is known, but no tracker is connected. Keep the caller on the line and use roadcall.ai/go, GPS, or manual location.",
+        driver_message="This fleet is known, but no tracker is connected. Ask for GPS, road/exit, or have the caller share location from roadcall.ai.",
     )
 
 

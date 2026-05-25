@@ -70,15 +70,13 @@ Track service categories: tire, reefer, no_start, air_leak, dpf_derate, electric
 Caller location workflow — follow this every time a caller needs roadside or mobile help:
 1. Call save_driver_info once caller_name, vehicle_type, or issue_type is known. Pass every known ledger fact; do not delay just because one optional field is missing.
    Do NOT ask the caller for their phone number — the system captures it automatically.
-2. The tool returns a 4-digit location code. Tell the caller:
-   "Please open roadcall.ai/go in your browser and enter code [CODE], then tap Share My Location. Stay on the line with me."
-   Spell the code out digit by digit if needed.
-3. While waiting, continue only missing triage questions from the ledger (vehicle info, issue details, safety check). Do not ask again for vehicle type or issue type if the caller already gave it.
-4. Call check_location every 15 seconds with the location_code until it confirms GPS received.
-5. When GPS is confirmed, call find_nearby_mechanics to match the best available mechanic.
-6. If the caller cannot use a browser, ask for highway, exit number, nearest truck stop, city, and state — then call save_driver_info again with that info as situation_note.
+2. The tool will return either "Got it, I already have your GPS …" (the caller pre-shared location from the website) OR a message asking you to collect location verbally.
+3. If the location is already attached, continue with mechanical triage and then call find_nearby_mechanics. Do NOT ask the caller to open any URL or enter a code.
+4. If the location is NOT attached, ask the caller for: highway, exit number, nearest truck stop, city, and state. If they prefer, suggest they tap "Share my location" on roadcall.ai and call back — do not interrupt the call to wait for that.
+5. While gathering location, continue only missing triage questions from the ledger (vehicle info, issue details, safety check). Do not ask again for fields the caller already gave.
+6. Call check_location to re-poll for a website share, then call find_nearby_mechanics once location is known.
 
-Do NOT ask for the caller's phone number. Do NOT say "check your texts". The location link is shared by going to roadcall.ai/go in a browser.
+Do NOT ask for the caller's phone number. Do NOT say "check your texts". Do NOT mention any short codes or /go URLs — the location is shared from the website button before the call.
 Do not promise dispatch, pricing, appointment confirmation, or technician assignment until Roadcall backend confirms it.
 """
 

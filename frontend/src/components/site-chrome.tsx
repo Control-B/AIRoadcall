@@ -8,7 +8,6 @@ import { SiteHeader } from "@/components/site-header";
 
 const CHAT_WIDGET_EXCLUDED_PATHS = [
   "/admin",
-  "/go",
   "/locate",
   "/mechanic-offer",
   "/mechanic-track",

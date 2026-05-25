@@ -80,13 +80,16 @@ def _body_args(body: dict) -> dict:
 
 @router.post("/save-driver-info")
 async def save_driver_info(request: Request, db: AsyncSession = Depends(get_session)):
-    """Create an active location session and return a short code for the agent to speak.
+    """Create an active location session and attach the caller's pre-shared GPS.
 
     Expected args: driver_name, vehicle_type, issue_type, situation_note
-    Phone is resolved from Retell call metadata when available but is optional.
-    Location is captured via roadcall.ai/go — no SMS required.
+    Phone is resolved from Retell call metadata. If the caller already shared
+    their location from the website (POST /api/caller/share-location) within
+    the TTL window, we hydrate the session immediately and the agent can skip
+    location collection entirely.
     """
     from app.services.caller_location_service import CallerLocationService
+    from app.services.shared_caller_location_service import SharedCallerLocationService
 
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
@@ -137,15 +140,38 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
             caller_phone=driver_phone or None,
             call_provider="retell",
         )
+
+        # Look up location the caller pre-shared from the website.
+        shared = await SharedCallerLocationService.consume(driver_phone) if driver_phone else None
+        if shared and shared.get("latitude") is not None and shared.get("longitude") is not None:
+            session.latitude = shared["latitude"]
+            session.longitude = shared["longitude"]
+            session.accuracy = shared.get("accuracy")
+            session.address = shared.get("address") or session.address
+            session.city = shared.get("city") or session.city
+            session.state = shared.get("state") or session.state
+            session.status = "location_received"
+            await db.commit()
+            where = (
+                f"near {session.city}, {session.state}"
+                if session.city and session.state
+                else f"at {session.latitude:.4f}, {session.longitude:.4f}"
+            )
+            logger.info(
+                "save_driver_info: hydrated location from website share phone=%s call_id=%s",
+                driver_phone, call_id,
+            )
+            return _retell_result(
+                f"Got it. I already have your GPS from the website {where}. "
+                "Now call find_nearby_mechanics to match the closest help."
+            )
+
         await db.commit()
-        code = session.location_code
-        url = CallerLocationService.public_location_url(code)
-        logger.info("save_driver_info: session created code=%s call_id=%s", code, call_id)
+        logger.info("save_driver_info: no pre-shared location for phone=%s call_id=%s", driver_phone, call_id)
         return _retell_result(
-            f"Location code {code} is ready. "
-            f"Tell the caller: Please open roadcall.ai/go in your browser, enter code {code}, "
-            f"then tap Share My Location. Stay on the line. "
-            f"Once they share it, call check_location with location_code {code}."
+            f"Thanks {driver_name or 'driver'}. I don't see a shared location for this number yet. "
+            "Please tell me the highway, exit number, nearest truck stop, city, and state — "
+            "or tap 'Share my location' on roadcall.ai and call back."
         )
     except Exception as exc:
         logger.error("save_driver_info error: %s", exc, exc_info=True)
@@ -158,30 +184,49 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
 
 @router.post("/check-location")
 async def check_driver_location(request: Request, db: AsyncSession = Depends(get_session)):
-    """Check whether the caller has opened roadcall.ai/go and shared GPS.
+    """Re-check whether the caller has shared their location.
 
-    Expected args: location_code (4-digit short code from save_driver_info)
-    Also accepts call_id from Retell call context as a fallback lookup.
+    First tries the website pre-share cache (by inbound caller phone), then
+    falls back to the active call session record.
+    Expected args: call_id from Retell call context (auto-injected).
     """
     from app.services.caller_location_service import CallerLocationService
+    from app.services.shared_caller_location_service import SharedCallerLocationService
 
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
     call_id: str = body.get("call_id") or body.get("call", {}).get("call_id") or ""
-
-    # Accept location_code (new) or job_code/job_id (legacy — ignored now)
-    location_code: str = (args.get("location_code") or "").strip().upper()
+    caller_phone: str = (
+        args.get("caller_phone")
+        or args.get("callerPhone")
+        or body.get("from_number")
+        or ""
+    ).strip()
 
     try:
         session = None
-        if location_code:
-            session = await CallerLocationService.session_by_code(db, location_code)
-        if session is None and call_id:
-            session = await CallerLocationService.session_by_provider_call_id(db, call_id)
+        if call_id:
+            try:
+                session = await CallerLocationService.session_by_provider_call_id(db, call_id)
+            except LookupError:
+                session = None
+
+        # Caller may have shared location AFTER we created the session — re-check Redis.
+        if session is not None and session.latitude is None and (caller_phone or session.caller_phone):
+            shared = await SharedCallerLocationService.consume(caller_phone or session.caller_phone)
+            if shared and shared.get("latitude") is not None:
+                session.latitude = shared["latitude"]
+                session.longitude = shared["longitude"]
+                session.accuracy = shared.get("accuracy")
+                session.address = shared.get("address") or session.address
+                session.city = shared.get("city") or session.city
+                session.state = shared.get("state") or session.state
+                session.status = "location_received"
+                await db.commit()
 
         if session is None:
             return _retell_result(
-                "No active location session found. Please call save_driver_info first to get a location code."
+                "No active call session. Please call save_driver_info first."
             )
 
         if session.latitude is not None and session.longitude is not None:
@@ -202,9 +247,9 @@ async def check_driver_location(request: Request, db: AsyncSession = Depends(get
             )
 
         return _retell_result(
-            "The caller hasn't shared their location yet. "
-            f"Remind them to open roadcall.ai/go, enter code {session.location_code}, "
-            "and tap Share My Location. Try again in about 15 seconds."
+            "I still don't have a location for this caller. "
+            "Ask for highway, exit number, nearest truck stop, city, and state — "
+            "or have them tap 'Share my location' on roadcall.ai."
         )
     except Exception as exc:
         logger.error("check_location error: %s", exc, exc_info=True)

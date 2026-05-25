@@ -35,6 +35,7 @@ import {
 import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
+import { ShareLocationCallButton } from "@/components/share-location-call-button";
 import { getApiBase } from "@/lib/api-client";
 import { useMapboxToken } from "@/lib/mapbox-token";
 // ...existing code...
@@ -1758,6 +1759,9 @@ function SearchPageInner() {
             >
               Request Service
             </button>
+          </div>
+          <div className="mb-4 flex justify-center">
+            <ShareLocationCallButton />
           </div>
   {intakeOpen && <IntakeModal onClose={() => setIntakeOpen(false)} />}
 
