@@ -313,22 +313,22 @@ export function SiteHeader() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden overflow-hidden border-t border-white/50 bg-white/92 text-slate-950 shadow-2xl shadow-black/25 backdrop-blur-xl"
+            className="lg:hidden overflow-hidden border-t border-slate-200/80 bg-slate-50/95 text-slate-950 shadow-2xl shadow-black/35 backdrop-blur-xl"
           >
             <div className="px-4 py-4 space-y-1 max-h-[80vh] overflow-y-auto">
               {navItems.map((item) => (
                 <div key={item.label}>
                   <Link
                     href={item.href}
-                    className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg ${
+                    className={`flex items-center justify-between px-4 py-3 text-sm font-extrabold rounded-lg ${
                       pathname === item.href
                         ? "bg-slate-950 text-white shadow-sm"
-                        : "text-slate-900 hover:bg-slate-950/5 hover:text-slate-950"
+                        : "text-slate-950 hover:bg-slate-950/10 hover:text-black"
                     }`}
                   >
                     {item.label}
                     {item.children && (
-                      <ArrowRight className={`h-4 w-4 ${pathname === item.href ? "text-white/75" : "text-slate-500"}`} />
+                      <ArrowRight className={`h-4 w-4 ${pathname === item.href ? "text-white/80" : "text-slate-600"}`} />
                     )}
                   </Link>
                   {item.children && (
@@ -337,7 +337,7 @@ export function SiteHeader() {
                         <Link
                           key={child.label}
                           href={child.href}
-                          className="block px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-950/5 hover:text-slate-950 rounded-lg"
+                          className="block px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-950/10 hover:text-black rounded-lg"
                         >
                           {child.label}
                         </Link>
