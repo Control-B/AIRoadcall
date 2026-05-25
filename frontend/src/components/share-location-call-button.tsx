@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Mic, Phone, PhoneOff } from "lucide-react";
-import { Room, RoomEvent, createLocalAudioTrack } from "livekit-client";
+import { Room, RoomEvent, Track, createLocalAudioTrack } from "livekit-client";
 
 import { createRoadsideLiveKitSession } from "@/lib/api-client";
 
@@ -21,15 +21,25 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
   const [error, setError] = useState<string | null>(null);
   const roomRef = useRef<Room | null>(null);
 
+  function detachSandyAudio() {
+    document.querySelectorAll<HTMLAudioElement>("audio[data-lk-sandy]").forEach((el) => {
+      el.pause();
+      el.srcObject = null;
+      el.remove();
+    });
+  }
+
   useEffect(() => {
     return () => {
       roomRef.current?.disconnect();
+      detachSandyAudio();
     };
   }, []);
 
   async function endCall() {
     roomRef.current?.disconnect();
     roomRef.current = null;
+    detachSandyAudio();
     setState("idle");
     setError(null);
   }
@@ -66,10 +76,25 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
       });
 
       const room = new Room({ adaptiveStream: true, dynacast: true });
+
+      // Play Sandy's audio when she joins and starts speaking
+      room.on(RoomEvent.TrackSubscribed, (track) => {
+        if (track.kind === Track.Kind.Audio) {
+          const el = track.attach() as HTMLAudioElement;
+          el.dataset.lkSandy = "true";
+          el.autoplay = true;
+          document.body.appendChild(el);
+        }
+      });
+      room.on(RoomEvent.TrackUnsubscribed, (track) => {
+        track.detach();
+      });
       room.on(RoomEvent.Disconnected, () => {
+        detachSandyAudio();
         roomRef.current = null;
         setState("idle");
       });
+
       await room.connect(session.livekit_url, session.participant_token);
       const audioTrack = await createLocalAudioTrack({ echoCancellation: true, noiseSuppression: true });
       await room.localParticipant.publishTrack(audioTrack);
@@ -78,6 +103,7 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
     } catch (err) {
       roomRef.current?.disconnect();
       roomRef.current = null;
+      detachSandyAudio();
       setError(err instanceof Error ? err.message : "Unable to call Sandy");
       setState("error");
     }
