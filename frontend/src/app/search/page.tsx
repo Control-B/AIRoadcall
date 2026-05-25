@@ -1755,7 +1755,6 @@ function SearchPageInner() {
           latitude={userCoords?.latitude ?? null}
           longitude={userCoords?.longitude ?? null}
           accuracyM={userCoords?.accuracyM ?? null}
-          requireSharedLocation
         />
       )}
       {isMapsPage && <ConnectSandyLocationPanel onShared={setUserCoords} />}

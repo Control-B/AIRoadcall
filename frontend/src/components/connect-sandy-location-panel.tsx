@@ -87,21 +87,21 @@ export function ConnectSandyLocationPanel({ onShared }: { onShared?: (coords: Sh
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed right-3 top-[calc(env(safe-area-inset-top,0px)+8.75rem)] z-[88] inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-950/10 bg-white/95 px-2.5 text-[10px] font-black uppercase tracking-wide text-slate-950 shadow-2xl shadow-black/20 backdrop-blur-md transition hover:bg-white sm:top-[calc(env(safe-area-inset-top,0px)+9.75rem)] sm:h-10 sm:px-3 sm:text-[11px]"
-        aria-label="Connect website location to Sandy call"
+        className="fixed left-3 bottom-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] z-[88] inline-flex h-9 items-center gap-1.5 rounded-full border border-slate-950/10 bg-white/95 px-2.5 text-[10px] font-black uppercase tracking-wide text-slate-700 shadow-2xl shadow-black/20 backdrop-blur-md transition hover:bg-white hover:text-slate-950 sm:h-10 sm:px-3 sm:text-[11px]"
+        aria-label="Share location with an existing Sandy phone call"
       >
         <Satellite className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-        Code
+        On phone call?
       </button>
     );
   }
 
   return (
-    <div className="fixed right-3 top-[calc(env(safe-area-inset-top,0px)+8.75rem)] z-[88] w-[min(18rem,calc(100vw-1.5rem))] rounded-2xl border border-slate-950/10 bg-white/95 p-3 text-slate-950 shadow-2xl shadow-black/25 backdrop-blur-md sm:top-[calc(env(safe-area-inset-top,0px)+9.75rem)]">
+    <div className="fixed left-3 bottom-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] z-[88] w-[min(20rem,calc(100vw-1.5rem))] rounded-2xl border border-slate-950/10 bg-white/95 p-3 text-slate-950 shadow-2xl shadow-black/25 backdrop-blur-md">
       <div className="mb-2 flex items-start justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-700">Connect to Sandy</p>
-          <p className="mt-1 text-xs font-semibold leading-snug text-slate-600">Enter the call code Sandy gives you, then share this device&apos;s GPS.</p>
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-cyan-700">Already talking to Sandy?</p>
+          <p className="mt-1 text-xs font-semibold leading-snug text-slate-600">Only use this if Sandy gave you a code on a regular phone call. For the map call, just tap Sandy.</p>
         </div>
         <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-950" aria-label="Close Sandy code panel">
           <X className="h-4 w-4" />
@@ -109,7 +109,7 @@ export function ConnectSandyLocationPanel({ onShared }: { onShared?: (coords: Sh
       </div>
 
       <label className="block text-[11px] font-black uppercase tracking-wide text-slate-600">
-        Call code
+        Sandy code
         <input
           value={token}
           onChange={(event) => setToken(event.target.value.toUpperCase())}

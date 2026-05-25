@@ -109,10 +109,9 @@ async def create_roadside_web_call(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Retell is not configured for this environment.",
         )
-    # Prefer the main Sandy phone agent because it is the canonical agent tied
-    # to the GPS-aware conversation flow. A separate web agent can drift stale
-    # in Retell and ignore the map call's pre-shared location.
-    agent_id = (settings.RETELL_AGENT_ID or settings.RETELL_ROADSIDE_WEB_AGENT_ID or "").strip()
+    # Browser WebRTC calls need the Retell web-call agent. The phone-call
+    # pairing flow uses RETELL_AGENT_ID separately through location codes.
+    agent_id = (settings.RETELL_ROADSIDE_WEB_AGENT_ID or settings.RETELL_AGENT_ID or "").strip()
     if not agent_id:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
