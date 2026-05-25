@@ -7,7 +7,6 @@ import {
   Bot,
   CheckCircle2,
   PlayCircle,
-  Sparkles,
   Truck,
   Wrench,
 } from "lucide-react";
@@ -73,10 +72,7 @@ export default function GetStartedPage() {
       <section className="min-h-[85vh] px-4 py-16">
         <div className="mx-auto max-w-6xl">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 rounded-full border border-roadcall-orange/25 bg-roadcall-orange/10 px-4 py-1.5 mb-6">
-              <Sparkles className="h-4 w-4 text-roadcall-orange" />
-              <span className="text-sm font-medium text-orange-100">Get Started</span>
-            </div>
+            <AgentsLink className="mb-6" />
             <h1 className="text-4xl md:text-5xl font-black text-white mb-4">
               Activate your AI agent in minutes
             </h1>
@@ -118,7 +114,6 @@ export default function GetStartedPage() {
           </div>
         </div>
       </section>
-      <AgentsLink />
     </PageLayout>
   );
 }
