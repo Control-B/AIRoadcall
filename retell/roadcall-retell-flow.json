@@ -646,7 +646,7 @@
       },
       "instruction": {
         "type": "prompt",
-        "text": "Location check for this call:\n1. If get_dispatch_session_status has not been called yet and dispatch_session_id is known, call it now.\n2. If the backend confirms GPS, say: 'Got it, I have your location.' Then move straight to mechanic search.\n3. If no GPS is on file or the GPS cannot be translated into a city/state, ask verbally for city, state, and nearest major road or highway. Ask one short question at a time and continue with whatever the caller can provide.\nDo not mention websites, browser pages, links, text messages, codes, or any alternate location-sharing flow. Do not ask for the caller's phone number. Once you have a usable location from the backend or from what the caller says, move to dispatch search."
+        "text": "Location check for this call:\n1. If get_dispatch_session_status has not been called yet and dispatch_session_id is known, call it now.\n2. If city or state is missing, ask: 'What city and state are you in?'\n3. If nearest road or highway is missing and needed for dispatch confidence, ask: 'What nearest major road or highway are you by?' Ask one short question at a time and continue with whatever the caller can provide.\nDo not mention websites, browser pages, links, text messages, codes, or any alternate location-sharing flow. Do not ask for the caller's phone number. Once you have a usable location from the backend or from what the caller says, move to dispatch search."
       },
       "edges": [
         {
