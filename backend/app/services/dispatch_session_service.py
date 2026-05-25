@@ -420,13 +420,13 @@ class DispatchSessionService:
                 DispatchSession.lng.is_not(None),
                 DispatchSession.location_captured_at.is_not(None),
                 DispatchSession.retell_call_id.is_(None),
-                DispatchSession.created_at >= since,
+                or_(DispatchSession.location_captured_at >= since, DispatchSession.updated_at >= since),
                 DispatchSession.status.notin_([
                     DispatchSessionStatus.completed.value,
                     DispatchSessionStatus.cancelled.value,
                 ]),
             )
-            .order_by(desc(DispatchSession.created_at))
+            .order_by(desc(DispatchSession.location_captured_at), desc(DispatchSession.updated_at))
             .limit(1)
         )
         return result.scalar_one_or_none()
@@ -463,7 +463,10 @@ class DispatchSessionService:
         session.location_source = payload.location_source or session.location_source
         session.metadata_json = {**(session.metadata_json or {}), **payload.metadata}
         if session.lat is not None and session.lng is not None:
-            session.location_captured_at = session.location_captured_at or datetime.now(timezone.utc)
+            if payload.latitude is not None and payload.longitude is not None:
+                session.location_captured_at = datetime.now(timezone.utc)
+            else:
+                session.location_captured_at = session.location_captured_at or datetime.now(timezone.utc)
             if session.status in {DispatchSessionStatus.created.value, DispatchSessionStatus.awaiting_location.value}:
                 session.status = DispatchSessionStatus.matching.value
 

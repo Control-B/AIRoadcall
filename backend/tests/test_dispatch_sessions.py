@@ -325,6 +325,32 @@ def test_pre_shared_location_marks_dispatch_session_ready_for_matching():
     assert session.metadata_json["pre_shared_location"] is True
 
 
+def test_repeat_map_share_refreshes_location_captured_at():
+    session = DispatchSession(public_code="RC-1234", source="map_phone_button", status=DispatchSessionStatus.matching.value)
+    original_captured_at = datetime.now(timezone.utc) - timedelta(minutes=30)
+    session.lat = 27.1
+    session.lng = -82.1
+    session.location_captured_at = original_captured_at
+
+    DispatchSessionService._apply_intake(
+        session,
+        DispatchCreateSessionRequest(
+            source="map_phone_button",
+            caller_phone="813-555-8156",
+            latitude=27.8154,
+            longitude=-82.7529,
+            accuracy_m=8,
+            location_source="browser_gps",
+        ),
+    )
+
+    assert session.lat == 27.8154
+    assert session.lng == -82.7529
+    assert session.location_accuracy_m == 8
+    assert session.location_captured_at is not None
+    assert session.location_captured_at > original_captured_at
+
+
 def test_status_say_confirms_shared_location_before_problem_intake(monkeypatch):
     session = DispatchSession(public_code="RC-1234", status=DispatchSessionStatus.matching.value)
     session.id = uuid.uuid4()
