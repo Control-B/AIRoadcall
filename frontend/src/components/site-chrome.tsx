@@ -20,13 +20,23 @@ const LEADCONNECTOR_WIDGET_SELECTORS = [
   "script[src*='widgets.leadconnectorhq.com/loader.js']",
   "script[src*='leadconnectorhq.com/chat-widget/loader.js']",
   "script[data-widget-id='6a0d59ed0732dc337617ecf6']",
+  "script[data-resources-url*='leadconnectorhq.com']",
+  "[data-widget-id='6a0d59ed0732dc337617ecf6']",
   "iframe[src*='widgets.leadconnectorhq.com']",
   "iframe[src*='leadconnectorhq.com']",
   "iframe[src*='msgsndr.com']",
+  "iframe[title*='chat']",
+  "iframe[name*='chat']",
   "div[id*='lc_chat']",
   "div[id*='chat-widget']",
+  "div[id*='leadconnector']",
+  "div[id*='LeadConnector']",
+  "div[id*='msgsndr']",
   "div[class*='lc-chat']",
   "div[class*='chat-widget']",
+  "div[class*='leadconnector']",
+  "div[class*='LeadConnector']",
+  "div[class*='msgsndr']",
   "div[class*='hl-app']",
 ];
 
@@ -73,9 +83,16 @@ export function LeadConnectorChatWidget() {
   const showWidget = useShowLeadConnectorChatWidget();
 
   useEffect(() => {
-    if (showWidget || typeof document === "undefined") {
+    if (typeof document === "undefined") {
       return;
     }
+
+    if (showWidget) {
+      document.body.classList.remove("hide-leadconnector-widget");
+      return;
+    }
+
+    document.body.classList.add("hide-leadconnector-widget");
 
     // Remove immediately, then keep pruning in case the third-party loader
     // re-injects after route changes.
@@ -93,6 +110,7 @@ export function LeadConnectorChatWidget() {
     return () => {
       observer.disconnect();
       window.clearInterval(interval);
+      document.body.classList.remove("hide-leadconnector-widget");
     };
   }, [showWidget]);
 

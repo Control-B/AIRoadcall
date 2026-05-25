@@ -126,3 +126,26 @@
 .mapboxgl-ctrl-attrib {
   display: none !important;
 }
+
+body.hide-leadconnector-widget script[src*="leadconnectorhq.com"],
+body.hide-leadconnector-widget iframe[src*="leadconnectorhq.com"],
+body.hide-leadconnector-widget iframe[src*="msgsndr.com"],
+body.hide-leadconnector-widget iframe[title*="chat"],
+body.hide-leadconnector-widget iframe[name*="chat"],
+body.hide-leadconnector-widget [data-widget-id="6a0d59ed0732dc337617ecf6"],
+body.hide-leadconnector-widget div[id*="lc_chat"],
+body.hide-leadconnector-widget div[id*="chat-widget"],
+body.hide-leadconnector-widget div[id*="leadconnector"],
+body.hide-leadconnector-widget div[id*="LeadConnector"],
+body.hide-leadconnector-widget div[id*="msgsndr"],
+body.hide-leadconnector-widget div[class*="lc-chat"],
+body.hide-leadconnector-widget div[class*="chat-widget"],
+body.hide-leadconnector-widget div[class*="leadconnector"],
+body.hide-leadconnector-widget div[class*="LeadConnector"],
+body.hide-leadconnector-widget div[class*="msgsndr"],
+body.hide-leadconnector-widget div[class*="hl-app"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
