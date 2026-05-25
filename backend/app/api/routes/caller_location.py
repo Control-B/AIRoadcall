@@ -83,6 +83,45 @@ class SubmitLocationOut(BaseModel):
     confidence: float | None = None
 
 
+class CreateLocationSessionIn(BaseModel):
+    retell_call_id: str = Field(min_length=2, max_length=255)
+    caller_id: str | None = Field(default=None, max_length=30)
+
+
+class CreateLocationSessionOut(BaseModel):
+    success: bool = True
+    token: str
+    location_code: str
+    location_url: str
+    status: str
+    expires_at: str
+
+
+class ShareLocationSessionIn(BaseModel):
+    token: str = Field(min_length=4, max_length=12)
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    accuracy: float | None = Field(default=None, ge=0)
+
+
+class ShareLocationSessionOut(BaseModel):
+    success: bool = True
+    message: str
+    token: str
+    status: str
+    lat: float
+    lng: float
+    accuracy: float | None = None
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
+
+
+class CheckLocationSessionIn(BaseModel):
+    retell_call_id: str | None = Field(default=None, max_length=255)
+    token: str | None = Field(default=None, max_length=12)
+
+
 def _require_agent_auth(authorization: str | None) -> None:
     token = settings.RETELL_BACKEND_WEBHOOK_TOKEN.strip()
     if token and authorization == f"Bearer {token}":
@@ -113,6 +152,80 @@ async def start_call_session(
         status=session.status,
         expires_at=session.expires_at.isoformat(),
     )
+
+
+@router.post("/location/session/create", response_model=CreateLocationSessionOut)
+async def create_location_session(
+    payload: CreateLocationSessionIn,
+    authorization: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+):
+    _require_agent_auth(authorization)
+    session = await CallerLocationService.create_or_refresh_session(
+        db,
+        provider_call_id=payload.retell_call_id,
+        caller_phone=payload.caller_id,
+        call_provider="retell",
+    )
+    await db.commit()
+    return CreateLocationSessionOut(
+        token=session.location_code,
+        location_code=session.location_code,
+        location_url=CallerLocationService.public_location_url(session.location_code),
+        status=session.status,
+        expires_at=session.expires_at.isoformat(),
+    )
+
+
+@router.post("/location/session/share", response_model=ShareLocationSessionOut)
+async def share_location_session(payload: ShareLocationSessionIn, db: AsyncSession = Depends(get_db)):
+    try:
+        session = await CallerLocationService.submit_gps_location(
+            db,
+            location_code=payload.token,
+            phone_last4=None,
+            latitude=payload.lat,
+            longitude=payload.lng,
+            accuracy=payload.accuracy,
+        )
+        await db.commit()
+        return ShareLocationSessionOut(
+            message="Location shared with Sandy.",
+            token=session.location_code,
+            status=session.status,
+            lat=session.latitude or payload.lat,
+            lng=session.longitude or payload.lng,
+            accuracy=session.accuracy,
+            address=session.address,
+            city=session.city,
+            state=session.state,
+        )
+    except LookupError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except TimeoutError as exc:
+        await db.rollback()
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
+
+
+@router.post("/retell/tools/check-location-session")
+async def check_location_session(
+    payload: CheckLocationSessionIn,
+    authorization: str | None = Header(default=None),
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    _require_agent_auth(authorization)
+    try:
+        session = await (
+            CallerLocationService.session_by_code(db, payload.token)
+            if payload.token
+            else CallerLocationService.session_by_provider_call_id(db, payload.retell_call_id)
+        )
+        await db.commit()
+        return CallerLocationService.location_status(session)
+    except LookupError:
+        await db.rollback()
+        return {"found": False, "status": "not_found", "message": "No active location session found."}
 
 
 @router.post("/location/submit", response_model=SubmitLocationOut)

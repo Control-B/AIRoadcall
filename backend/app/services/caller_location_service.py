@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import math
-import random
 import re
+import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -21,7 +21,8 @@ _PHONE_DIGITS = re.compile(r"\D")
 
 
 class CallerLocationService:
-    SESSION_TTL_MINUTES = 30
+    SESSION_TTL_MINUTES = 15
+    CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 
     @staticmethod
     def public_location_url(location_code: str) -> str:
@@ -80,11 +81,20 @@ class CallerLocationService:
     @classmethod
     async def _unique_location_code(cls, db: AsyncSession) -> str:
         for _ in range(30):
-            code = f"{random.randint(0, 9999):04d}"
+            code = "RC-" + "".join(secrets.choice(cls.CODE_ALPHABET) for _ in range(5))
             existing = await db.execute(select(ActiveCallSession.id).where(ActiveCallSession.location_code == code))
             if existing.scalar_one_or_none() is None:
                 return code
-        return uuid.uuid4().hex[:8].upper()
+        return "RC-" + uuid.uuid4().hex[:5].upper()
+
+    @staticmethod
+    def normalize_location_code(value: str | None) -> str:
+        code = (value or "").strip().upper().replace(" ", "")
+        if code.startswith("ROAD-"):
+            code = "RC-" + code[5:]
+        if code.startswith("RC") and not code.startswith("RC-"):
+            code = "RC-" + code[2:]
+        return code
 
     @classmethod
     async def submit_gps_location(
@@ -144,7 +154,7 @@ class CallerLocationService:
 
     @classmethod
     async def session_by_code(cls, db: AsyncSession, location_code: str | None) -> ActiveCallSession:
-        code = (location_code or "").strip().upper()
+        code = cls.normalize_location_code(location_code)
         if not code:
             raise LookupError("location_code is required")
         result = await db.execute(select(ActiveCallSession).where(ActiveCallSession.location_code == code))
@@ -253,16 +263,36 @@ class CallerLocationService:
 
     @staticmethod
     def location_status(session: ActiveCallSession) -> dict[str, Any]:
+        found = session.status == "location_received" and session.latitude is not None and session.longitude is not None
+        public_status = "pending_location" if session.status == "waiting_for_location" else session.status
+        if session.address and session.city and session.state:
+            location_phrase = f"near {session.address} in {session.city}, {session.state}"
+        elif session.city and session.state:
+            location_phrase = f"near {session.city}, {session.state}"
+        elif session.address:
+            location_phrase = f"near {session.address}"
+        elif found:
+            location_phrase = f"at GPS coordinates {session.latitude:.4f}, {session.longitude:.4f}"
+        else:
+            location_phrase = None
         return {
-            "status": session.status,
+            "found": found,
+            "status": public_status,
+            "session_status": session.status,
+            "message": "Caller location received." if found else "Waiting for caller to share location.",
             "latitude": session.latitude,
             "longitude": session.longitude,
+            "lat": session.latitude,
+            "lng": session.longitude,
             "address": session.address,
             "city": session.city,
             "state": session.state,
             "highway_or_exit": session.highway_or_exit,
             "accuracy": session.accuracy,
+            "accuracy_meters": session.accuracy,
+            "location_phrase": location_phrase,
             "location_code": session.location_code,
+            "token": session.location_code,
             "location_url": CallerLocationService.public_location_url(session.location_code),
             "expires_at": session.expires_at.isoformat(),
         }

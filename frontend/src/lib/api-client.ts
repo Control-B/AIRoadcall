@@ -275,6 +275,31 @@ export async function createRoadsideRetellWebCall(body: {
   });
 }
 
+export interface ShareLocationSessionResponse {
+  success: boolean;
+  message: string;
+  token: string;
+  status: string;
+  lat: number;
+  lng: number;
+  accuracy?: number | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+}
+
+export async function shareLocationWithSandyCall(body: {
+  token: string;
+  lat: number;
+  lng: number;
+  accuracy?: number | null;
+}): Promise<ShareLocationSessionResponse> {
+  return request<ShareLocationSessionResponse>("/location/session/share", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function getJobByToken(token: string): Promise<JobDriverView> {
   return request<JobDriverView>(`/jobs/${token}`);
 }

@@ -89,7 +89,8 @@ FLOW = {
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
         "DURABLE SESSION RULE: As soon as caller_name and location details are known, call create_dispatch_session with source='retell', retell_call_id when available, caller_phone when available, caller_name, city, and state. Later, call create_dispatch_session again with the same dispatch facts when problem_type or vehicle_type becomes known; the backend will reuse the same session.",
         "CALL METADATA RULE: Pass caller_phone from Retell call metadata into create_dispatch_session whenever it is available. Never ask the caller for their phone number.",
-        "LOCATION FALLBACK RULE: Ask verbally for city, state, and nearest major road or highway. Use the caller-stated location unless the caller corrects it.",
+        "PHONE CALL LIVE GPS PAIRING: For standard phone calls, use create_location_session to generate a short call code after you know the caller needs roadside help. Say: 'To use your exact roadside location, open Roadcall.ai, tap Connect to Sandy, and enter code [location_code]. Then tap Share current location.' Do not say you received GPS until check_location_session returns found=true. Poll check_location_session every 8 to 10 seconds while waiting. Once found=true, treat latitude, longitude, city, state, address, and location_phrase as verified browser GPS facts and do not ask for city, state, address, nearest road, a website, browser page, link, or text message unless the caller corrects it.",
+        "LOCATION FALLBACK RULE: Prefer confirmed browser GPS from check_location_session. If GPS is not available yet, ask verbally for city, state, and nearest major road or highway. Use the caller-stated location unless the caller corrects it.",
         "SESSION STATUS POLLING: If you have dispatch_session_id, poll get_dispatch_session_status every 8 to 10 seconds. Speak only the returned say field and verified best_match fields.",
         "WEB CALL FROM ROADCALL MAP — GPS PRE-SHARED: If the dynamic variable has_shared_gps equals 'true', the caller reached you through the Roadcall website map and the browser has ALREADY shared their GPS location. Follow {{web_call_opening_instruction}} exactly for the first turn. The following dynamic variables are pre-populated and MUST be treated as locked, verified caller facts for the rest of the call: caller_location_phrase={{caller_location_phrase}}, caller_address={{caller_address}}, caller_city={{caller_city}}, caller_state={{caller_state}}, gps_latitude={{gps_latitude}}, gps_longitude={{gps_longitude}}, dispatch_session_id={{dispatch_session_id}}. Lock these into the call facts ledger immediately. Do NOT ask the caller for city, state, address, nearest road, a website, a browser page, a link, or a text message — you already have GPS. After acknowledging the location once, move directly to collecting caller_name, problem, and vehicle_type.",
         "WEB CALL DISPATCH SESSION REUSE: On web map calls (has_shared_gps == 'true'), dispatch_session_id is already known. Do NOT call create_dispatch_session — pass the existing dispatch_session_id directly into get_dispatch_session_status and match_mechanic. Also pass gps_latitude and gps_longitude into match_mechanic for the most accurate search.",
@@ -127,6 +128,39 @@ FLOW = {
                     "state": {"type": "string", "description": "State if already known"}
                 },
                 "required": ["source"]
+            }
+        },
+        {
+            "type": "custom",
+            "tool_id": "tool-roadcall-create-location-session",
+            "name": "create_location_session",
+            "description": "Create or refresh a short Roadcall location code for this live Retell phone call. Use this when a caller needs to share exact GPS from Roadcall.ai without entering a phone number. After this returns, speak the location_code clearly and tell the caller to enter it on the map's Connect to Sandy panel.",
+            "url": f"{BACKEND_URL}/api/location/session/create",
+            "method": "POST",
+            "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "retell_call_id": {"type": "string", "description": "Retell call ID from call metadata."},
+                    "caller_id": {"type": "string", "description": "Caller phone or caller ID from call metadata when available."}
+                },
+                "required": ["retell_call_id"]
+            }
+        },
+        {
+            "type": "custom",
+            "tool_id": "tool-roadcall-check-location-session",
+            "name": "check_location_session",
+            "description": "Poll whether the caller entered the short code on Roadcall.ai and shared browser GPS. Only use GPS after this returns found=true. If found=false, keep waiting or collect verbal location as fallback.",
+            "url": f"{BACKEND_URL}/api/retell/tools/check-location-session",
+            "method": "POST",
+            "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "retell_call_id": {"type": "string", "description": "Retell call ID from call metadata."},
+                    "token": {"type": "string", "description": "Short location_code/token returned by create_location_session, if known."}
+                }
             }
         },
         {
@@ -302,12 +336,40 @@ FLOW = {
                 {
                     "id": "edge-name-collected",
                     "transition_condition": {"type": "prompt", "prompt": "Caller provided their name, or declined to provide a name but still needs roadside help"},
-                    "destination_node_id": "node-intake"
+                    "destination_node_id": "node-create-location-session"
                 },
                 {
                     "id": "edge-emergency",
                     "transition_condition": {"type": "prompt", "prompt": "Driver mentions injuries, fire, danger, or needs 911 / emergency services"},
                     "destination_node_id": "node-end-emergency"
+                }
+            ]
+        },
+
+        # ── 1a. Create phone-call location pairing code ───
+        {
+            "id": "node-create-location-session",
+            "type": "function",
+            "name": "Create Location Code",
+            "display_position": {"x": 280, "y": 180},
+            "tool_id": "tool-roadcall-create-location-session",
+            "tool_type": "local",
+            "wait_for_result": True,
+            "speak_during_execution": False,
+            "instruction": {
+                "type": "prompt",
+                "text": "Create a live location code for this Retell call. If has_shared_gps is 'true', this function result can be ignored because browser GPS was already pre-shared."
+            },
+            "edges": [
+                {
+                    "id": "edge-location-code-created",
+                    "transition_condition": {"type": "prompt", "prompt": "create_location_session returned a location_code or token, or has_shared_gps is true"},
+                    "destination_node_id": "node-intake"
+                },
+                {
+                    "id": "edge-location-code-failed",
+                    "transition_condition": {"type": "prompt", "prompt": "create_location_session failed or no retell_call_id is available"},
+                    "destination_node_id": "node-intake"
                 }
             ]
         },
@@ -350,6 +412,7 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "Do not repeat the welcome message. Maintain the call facts ledger. Do not mention browser pages, links, or text messages.\n"
+                    "If create_location_session returned location_code/token and has_shared_gps is not 'true', speak the code once: 'To use your exact roadside location, open Roadcall.ai, tap Connect to Sandy, enter code [location_code], then tap Share current location.' Then call check_location_session every 8 to 10 seconds while continuing intake. Do not claim GPS is received until check_location_session returns found=true. If found=true, acknowledge location_phrase once and skip city/state/nearest-road questions.\n"
                     "Collect ONLY the missing search fact, one question at a time. Before asking, scan the full transcript and ledger; if the caller already gave the answer, use it and move to the next missing fact:\n"
                     "- If caller name missing: 'Who am I speaking with?'\n"
                     "- If city/state missing: 'What city and state are you in?'\n"

@@ -36,6 +36,7 @@ import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
 import { ShareLocationCallButton } from "@/components/share-location-call-button";
+import { ConnectSandyLocationPanel } from "@/components/connect-sandy-location-panel";
 import { getApiBase } from "@/lib/api-client";
 import { useMapboxToken } from "@/lib/mapbox-token";
 // ...existing code...
@@ -1757,6 +1758,7 @@ function SearchPageInner() {
           requireSharedLocation
         />
       )}
+      {isMapsPage && <ConnectSandyLocationPanel onShared={setUserCoords} />}
       {/* Hero search header (directory page only) */}
       {!isMapsPage ? (
       <section className="relative pt-10 pb-8 border-b border-roadcall-cyan/10 bg-gradient-to-b from-roadcall-panel/30 to-transparent">
