@@ -537,7 +537,7 @@ function truckingCompanyToMechanic(company: PublicTruckingCompany, index: number
   };
 }
 
-function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, vendorControls, premiumMode, onPremiumModeChange, city, state, serviceType, onLocationSearch, onServiceTypeChange }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; vendorControls?: ReactNode; premiumMode: PremiumMapMode; onPremiumModeChange?: (mode: PremiumMapMode) => void; city: string; state: string; serviceType: string; onLocationSearch: (city: string, state: string) => void; onServiceTypeChange: (serviceType: string) => void }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, vendorControls, premiumMode, onPremiumModeChange, city, state, serviceType, onLocationSearch, onServiceTypeChange, onUserLocate }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; vendorControls?: ReactNode; premiumMode: PremiumMapMode; onPremiumModeChange?: (mode: PremiumMapMode) => void; city: string; state: string; serviceType: string; onLocationSearch: (city: string, state: string) => void; onServiceTypeChange: (serviceType: string) => void; onUserLocate?: (coords: { latitude: number; longitude: number; accuracyM: number | null }) => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
@@ -599,6 +599,18 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       map.on("load", () => {
         try { geolocate.trigger(); } catch { /* user gesture may be required */ }
       });
+      if (onUserLocate) {
+        geolocate.on("geolocate", (evt: any) => {
+          const c = evt?.coords;
+          if (c && Number.isFinite(c.latitude) && Number.isFinite(c.longitude)) {
+            onUserLocate({
+              latitude: c.latitude,
+              longitude: c.longitude,
+              accuracyM: typeof c.accuracy === "number" ? c.accuracy : null,
+            });
+          }
+        });
+      }
 
       const updateVisibleBounds = () => {
         const bounds = map.getBounds();
@@ -1521,6 +1533,7 @@ function SearchPageInner() {
   const [claimTarget, setClaimTarget] = useState<Mechanic | null>(null);
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number; accuracyM: number | null } | null>(null);
 
   useEffect(() => {
     if (isMapsPage) {
@@ -1717,7 +1730,13 @@ function SearchPageInner() {
     <PageLayout>
       <NoCopySurface>
       {/* Floating phone FAB — shares GPS and calls Sandy in one tap (Maps page only) */}
-      {isMapsPage && <ShareLocationCallButton />}
+      {isMapsPage && (
+        <ShareLocationCallButton
+          latitude={userCoords?.latitude ?? null}
+          longitude={userCoords?.longitude ?? null}
+          accuracyM={userCoords?.accuracyM ?? null}
+        />
+      )}
       {/* Hero search header (directory page only) */}
       {!isMapsPage ? (
       <section className="relative pt-10 pb-8 border-b border-roadcall-cyan/10 bg-gradient-to-b from-roadcall-panel/30 to-transparent">
@@ -1955,6 +1974,7 @@ function SearchPageInner() {
                 workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} />}
                 vendorControls={<VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />}
                 onPremiumModeChange={setPremiumMapMode}
+                onUserLocate={setUserCoords}
               />
             </div>
             <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[70] hidden justify-center px-3 lg:flex">

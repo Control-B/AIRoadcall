@@ -16,7 +16,17 @@ function statusLabel(state: CallState, error: string | null): string {
   return "Call Sandy";
 }
 
-export function ShareLocationCallButton({ className = "" }: { className?: string }) {
+export function ShareLocationCallButton({
+  className = "",
+  latitude,
+  longitude,
+  accuracyM,
+}: {
+  className?: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  accuracyM?: number | null;
+}) {
   const [state, setState] = useState<CallState>("idle");
   const [error, setError] = useState<string | null>(null);
   const clientRef = useRef<RetellWebClient | null>(null);
@@ -58,21 +68,37 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
 
     try {
       setError(null);
-      setState("locating");
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 12000,
-          maximumAge: 30000,
+      let coords: { latitude: number; longitude: number; accuracy_meters: number | null };
+
+      if (typeof latitude === "number" && typeof longitude === "number" && Number.isFinite(latitude) && Number.isFinite(longitude)) {
+        coords = {
+          latitude,
+          longitude,
+          accuracy_meters: typeof accuracyM === "number" && Number.isFinite(accuracyM) ? accuracyM : null,
+        };
+      } else {
+        if (!navigator.geolocation) {
+          setError("GPS unavailable");
+          setState("error");
+          return;
+        }
+        setState("locating");
+        const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, {
+            enableHighAccuracy: true,
+            timeout: 12000,
+            maximumAge: 30000,
+          });
         });
-      });
+        coords = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy_meters: position.coords.accuracy,
+        };
+      }
 
       setState("connecting");
-      const session = await createRoadsideRetellWebCall({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy_meters: position.coords.accuracy,
-      });
+      const session = await createRoadsideRetellWebCall(coords);
 
       const client = new RetellWebClient();
       client.on("call_started", () => {
@@ -98,6 +124,7 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
       await client.startCall({ accessToken: session.access_token });
       setState((prev) => (prev === "connecting" ? "connected" : prev));
     } catch (err) {
+      console.error("[Sandy] call failed", err);
       try {
         clientRef.current?.stopCall();
       } catch {
@@ -121,28 +148,38 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
     "Sandy";
 
   return (
-    <button
-      type="button"
-      onClick={startCall}
-      disabled={isBusy}
-      aria-label={isConnected ? "End Sandy call" : label}
-      style={{ top: "calc(env(safe-area-inset-top, 0px) + 4.75rem)" }}
-      className={`fixed right-3 z-[90] inline-flex h-11 items-center gap-1.5 rounded-full border px-3 text-[11px] font-black uppercase tracking-wide shadow-2xl shadow-black/50 backdrop-blur-md transition active:scale-95 disabled:cursor-wait disabled:opacity-70 ${
-        isConnected
-          ? "border-red-500/40 bg-[#06101f]/95 text-red-400 hover:bg-red-950/80"
-          : state === "error"
-          ? "border-yellow-500/40 bg-[#06101f]/95 text-yellow-400 hover:bg-yellow-950/80"
-          : "border-emerald-500/30 bg-[#06101f]/95 text-emerald-400 hover:bg-emerald-950/60"
-      } ${className}`}
-    >
-      {isConnected ? (
-        <PhoneOff className="h-4 w-4 shrink-0" fill="currentColor" />
-      ) : isBusy ? (
-        <Mic className="h-4 w-4 shrink-0 animate-pulse" />
-      ) : (
-        <Phone className="h-4 w-4 shrink-0" fill="currentColor" />
+    <>
+      <button
+        type="button"
+        onClick={startCall}
+        disabled={isBusy}
+        aria-label={isConnected ? "End Sandy call" : label}
+        style={{ top: "calc(env(safe-area-inset-top, 0px) + 4.75rem)" }}
+        className={`fixed right-3 z-[90] inline-flex h-11 items-center gap-1.5 rounded-full border px-3 text-[11px] font-black uppercase tracking-wide shadow-2xl shadow-black/50 backdrop-blur-md transition active:scale-95 disabled:cursor-wait disabled:opacity-70 ${
+          isConnected
+            ? "border-red-500/40 bg-[#06101f]/95 text-red-400 hover:bg-red-950/80"
+            : state === "error"
+            ? "border-yellow-500/40 bg-[#06101f]/95 text-yellow-400 hover:bg-yellow-950/80"
+            : "border-emerald-500/30 bg-[#06101f]/95 text-emerald-400 hover:bg-emerald-950/60"
+        } ${className}`}
+      >
+        {isConnected ? (
+          <PhoneOff className="h-4 w-4 shrink-0" fill="currentColor" />
+        ) : isBusy ? (
+          <Mic className="h-4 w-4 shrink-0 animate-pulse" />
+        ) : (
+          <Phone className="h-4 w-4 shrink-0" fill="currentColor" />
+        )}
+        <span>{shortLabel}</span>
+      </button>
+      {state === "error" && error && (
+        <div
+          style={{ top: "calc(env(safe-area-inset-top, 0px) + 8.25rem)" }}
+          className="fixed right-3 z-[90] max-w-[16rem] rounded-md border border-yellow-500/40 bg-[#06101f]/95 px-3 py-2 text-[11px] font-medium text-yellow-200 shadow-2xl shadow-black/50 backdrop-blur-md"
+        >
+          {error}
+        </div>
       )}
-      <span>{shortLabel}</span>
-    </button>
+    </>
   );
 }
