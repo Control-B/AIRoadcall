@@ -9,76 +9,36 @@ import { HELP_PHONE, telHref } from "@/lib/phone";
 
 const plans = [
   {
-    id: "widget_only",
-    name: "Widget Only",
-    price: "$99.99",
-    period: "/mo",
-    setup: "$49.99 setup",
-    description: "AI widget for mechanics that do not want a new website.",
-    features: ["AI widget", "FAQ assistant", "Appointment capture", "Lead capture"],
-    cta: "Start Widget Only",
-  },
-  {
-    id: "ai_telephony",
-    name: "AI Telephony Only",
-    price: "$99.99",
-    period: "/mo",
-    setup: "$49.99 setup",
-    description: "AI answering and intake without a website or widget package.",
-    features: ["AI phone answering", "AI intake", "Missed-call text-back", "Call summaries"],
-    cta: "Start AI Telephony",
-  },
-  {
-    id: "widget_voice",
-    name: "Widget + AI Telephony",
-    price: "$149.99",
-    period: "/mo",
-    setup: "$97.99 setup",
-    description: "AI widget plus AI phone answering for shops that do not need a full growth stack.",
-    features: ["AI widget", "AI phone answering", "Lead capture", "Call summaries"],
-    cta: "Start Widget + AI Telephony",
-    highlighted: true,
-  },
-  {
-    id: "driver_pro",
-    name: "Driver Pro",
-    price: "$9.99",
-    period: "/mo",
-    setup: "No setup fee",
-    description: "AI roadside intelligence membership for owner operators and independent drivers.",
-    features: ["AI dispatch priority", "Saved truck profile", "Emergency roadside mode", "Live dispatch tracking"],
-    cta: "Start Driver Pro",
-  },
-  {
     id: "standard",
     name: "Standard",
-    price: "$297",
+    price: "$197",
     period: "/mo",
-    setup: "$149 setup",
-    description: "Website, AI telephone, widget, CRM, and workflow foundation.",
-    features: ["Website", "AI telephone", "AI widget", "CRM workflows"],
+    setup: "$99 setup",
+    description: "Core 24/7 AI service operations for mechanics.",
+    features: ["AI phone answering", "AI intake", "Call summaries", "FAQ assistant", "Appointment capture", "Lead capture"],
     cta: "Start Standard",
     ghl: true,
   },
   {
     id: "professional",
     name: "Professional",
-    price: "$497",
+    price: "$297",
     period: "/mo",
-    setup: "$199 setup",
-    description: "Everything in Standard plus mobile app access.",
-    features: ["Everything in Standard", "Mobile app", "Customer portal", "Managed CRM access"],
+    setup: "$149 setup",
+    description: "Everything in Standard plus conversion and reputation upgrades.",
+    features: ["Everything in Standard", "AI Widget", "Reviews"],
     cta: "Start Professional",
     ghl: true,
+    highlighted: true,
   },
   {
     id: "advanced",
     name: "Advanced",
-    price: "$997",
+    price: "$397",
     period: "/mo",
-    setup: "$299 setup",
-    description: "Everything in Professional plus social media marketing.",
-    features: ["Everything in Professional", "Social media marketing", "Content planning", "Managed CRM access"],
+    setup: "$249 setup",
+    description: "Everything in Professional with a Smart Website built for booking.",
+    features: ["Everything in Professional", "Smart Website"],
     cta: "Start Advanced",
     ghl: true,
   },
@@ -146,7 +106,7 @@ export default function ShopsPage() {
               <p className="text-sm font-bold uppercase tracking-[0.22em] text-cyan-200">Hybrid Pricing</p>
               <h2 className="mt-3 text-4xl font-black">Simple service plans plus managed growth.</h2>
             </div>
-            <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-5 md:grid-cols-3">
               {plans.map((plan) => (
                 <article key={plan.id} className={`flex flex-col rounded-[1.5rem] border p-6 ${plan.highlighted ? "border-orange-300/50 bg-orange-300/10" : "border-white/10 bg-white/[0.035]"}`}>
                   <h3 className="text-xl font-black">{plan.name}</h3>

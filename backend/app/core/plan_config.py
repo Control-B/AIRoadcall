@@ -412,8 +412,8 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "standard": _plan(
             id=PlanTier.standard,
             name="Standard",
-            price_monthly=297,
-            setup_fee=149,
+            price_monthly=197,
+            setup_fee=99,
             ecosystem="ghl_business_os",
             billing_system="ghl",
             onboarding_mode="ghl_saas_snapshot",
@@ -428,8 +428,8 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "professional": _plan(
             id=PlanTier.professional,
             name="Professional",
-            price_monthly=497,
-            setup_fee=199,
+            price_monthly=297,
+            setup_fee=149,
             ecosystem="ghl_business_os",
             billing_system="ghl",
             onboarding_mode="ghl_saas_snapshot",
@@ -444,8 +444,8 @@ def get_plan_configs() -> dict[str, PlanConfig]:
         "advanced": _plan(
             id=PlanTier.advanced,
             name="Advanced",
-            price_monthly=997,
-            setup_fee=299,
+            price_monthly=397,
+            setup_fee=249,
             ecosystem="ghl_business_os",
             billing_system="ghl",
             onboarding_mode="ghl_saas_snapshot_plus_marketing",

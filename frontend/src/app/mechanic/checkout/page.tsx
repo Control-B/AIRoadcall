@@ -7,47 +7,23 @@ import { ArrowRight, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 import { getApiBase } from "@/lib/api-client";
 
 const PLANS = {
-  widget_only: {
-    name: "Widget Only",
-    price: "$99.99/mo",
-    setup: "$49.99 setup",
-    features: ["AI widget", "FAQ assistant", "Appointment capture", "Lead capture", "No SaaS Mode provisioning"],
+  standard: {
+    name: "Standard",
+    price: "$197/mo",
+    setup: "$99 setup",
+    features: ["AI phone answering", "AI intake", "Call summaries", "FAQ assistant", "Appointment capture", "Lead capture"],
   },
-  ai_telephony: {
-    name: "AI Telephony Only",
-    price: "$99.99/mo",
-    setup: "$49.99 setup",
-    features: ["AI phone answering", "AI intake", "Missed-call text-back", "Call summaries", "No SaaS Mode provisioning"],
+  professional: {
+    name: "Professional",
+    price: "$297/mo",
+    setup: "$149 setup",
+    features: ["Everything in Standard", "AI Widget", "Reviews"],
   },
-  widget_voice: {
-    name: "Widget + AI Telephony",
-    price: "$149.99/mo",
-    setup: "$97.99 setup",
-    features: ["AI widget", "AI phone answering", "Lead capture", "Call summaries", "No SaaS Mode provisioning"],
-  },
-  driver_pro: {
-    name: "Driver Pro",
-    price: "$9.99/mo",
-    setup: "No setup fee",
-    features: ["AI dispatch priority", "Saved truck profile", "Emergency mode", "Live dispatch tracking", "Route-aware intelligence"],
-  },
-  fleet_starter: {
-    name: "Fleet Starter",
-    price: "$99.99/mo",
-    setup: "No setup fee",
-    features: ["Fleet dashboard", "Multi-driver management", "Roadside activity feed", "Provider preferences", "Centralized dispatch visibility"],
-  },
-  fleet_professional: {
-    name: "Fleet Professional",
-    price: "$299.99/mo",
-    setup: "No setup fee",
-    features: ["Advanced AI dispatch", "Downtime analytics", "SLA tracking", "Roadside heatmaps", "Operational dashboards"],
-  },
-  fleet_enterprise: {
-    name: "Fleet Enterprise",
-    price: "$599.99/mo",
-    setup: "No setup fee",
-    features: ["Command center", "Multi-location operations", "API integrations", "Custom workflows", "AI fleet intelligence"],
+  advanced: {
+    name: "Advanced",
+    price: "$397/mo",
+    setup: "$249 setup",
+    features: ["Everything in Professional", "Smart Website"],
   },
 } as const;
 
@@ -55,20 +31,18 @@ type PlanId = keyof typeof PLANS;
 
 function MechanicCheckoutContent() {
   const params = useSearchParams();
-  const rawPlan = params.get("plan") || "widget_voice";
-  const initialPlan = ({ starter: "widget_only", ai_chat: "widget_only", voice: "ai_telephony", enterprise: "fleet_enterprise" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
-  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "widget_voice");
+  const rawPlan = params.get("plan") || "professional";
+  const initialPlan = ({ starter: "standard", ai_chat: "standard", voice: "standard", widget_only: "standard", ai_telephony: "standard", widget_voice: "professional", enterprise: "advanced" } as Record<string, PlanId>)[rawPlan] || rawPlan as PlanId;
+  const [planId, setPlanId] = useState<PlanId>(PLANS[initialPlan] ? initialPlan : "professional");
   const [businessName, setBusinessName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
-  const [fleetVehicleCount, setFleetVehicleCount] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const selectedPlan = useMemo(() => PLANS[planId], [planId]);
-  const isFleetPlan = planId.startsWith("fleet_");
 
   async function startCheckout(event: React.FormEvent) {
     event.preventDefault();
@@ -85,7 +59,6 @@ function MechanicCheckoutContent() {
           email,
           phone: phone || undefined,
           website: website || undefined,
-          fleet_vehicle_count: isFleetPlan ? Number(fleetVehicleCount) : undefined,
         }),
       });
       const body = await response.json();
@@ -105,9 +78,9 @@ function MechanicCheckoutContent() {
         <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-8 shadow-2xl">
           <Link href="/pricing" className="text-sm font-semibold text-blue-300 hover:text-blue-200">← Back to pricing</Link>
           <h1 className="mt-8 text-4xl font-black tracking-tight">Start your Roadcall AI operating system.</h1>
-          <p className="mt-4 text-slate-300">Start with 7 days free, complete your profile, then Roadcall activates the right AI service, Driver Pro, or Fleet Operations membership.</p>
+          <p className="mt-4 text-slate-300">Start with 7 days free, complete your profile, then Roadcall activates the right AI service operations plan.</p>
           <div className="mt-8 space-y-3">
-            {["Secure billing activates your subscription", "Driver and fleet plans require authenticated premium access", "Standard, Professional, and Advanced start managed onboarding", "Your profile is completed after checkout"].map((item) => (
+            {["Secure billing activates your subscription", "Standard, Professional, and Advanced start managed onboarding", "Your profile is completed after checkout"].map((item) => (
               <div key={item} className="flex items-center gap-3 text-sm text-slate-300"><CheckCircle2 className="h-4 w-4 text-emerald-300" /> {item}</div>
             ))}
           </div>
@@ -140,7 +113,6 @@ function MechanicCheckoutContent() {
             <label className="space-y-2 text-sm text-slate-300">Email<input required type="email" value={email} onChange={(event) => setEmail(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
             <label className="space-y-2 text-sm text-slate-300">Phone<input value={phone} onChange={(event) => setPhone(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
             <label className="space-y-2 text-sm text-slate-300 sm:col-span-2">Website<input value={website} onChange={(event) => setWebsite(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label>
-            {isFleetPlan ? <label className="space-y-2 text-sm text-slate-300 sm:col-span-2">Number of vehicles in fleet<input required min={1} type="number" value={fleetVehicleCount} onChange={(event) => setFleetVehicleCount(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none focus:border-blue-300" /></label> : null}
           </div>
 
           {error && <div className="mt-5 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">{error}</div>}
