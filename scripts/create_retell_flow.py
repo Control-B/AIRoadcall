@@ -36,9 +36,10 @@ if not EXPORT_JSON_PATH:
         print("⚠️  RETELL_BACKEND_WEBHOOK_TOKEN is not set — refusing to publish Retell tools with the local-dev token.")
         print("   Run from the DigitalOcean app environment or export the production webhook token first.")
         sys.exit(1)
-    if not EXISTING_AGENT_ID:
+    if not EXISTING_AGENT_ID and os.environ.get("ALLOW_NEW_SANDY_AGENT", "").strip().lower() not in {"1", "true", "yes"}:
         print("⚠️  RETELL_AGENT_ID is not set — refusing to create a new unconnected Sandy agent.")
-        print("   Set RETELL_AGENT_ID to the live Sandy agent connected to the phone number, then re-run.")
+        print("   To intentionally create a brand-new Sandy agent, re-run with ALLOW_NEW_SANDY_AGENT=1.")
+        print("   Otherwise set RETELL_AGENT_ID to the live Sandy agent connected to the phone number, then re-run.")
         sys.exit(1)
 
 def retell(method: str, path: str, body: dict | None = None) -> dict:
@@ -90,6 +91,8 @@ FLOW = {
         "CALL METADATA RULE: Pass caller_phone from Retell call metadata into create_dispatch_session whenever it is available. Never ask the caller for their phone number.",
         "LOCATION FALLBACK RULE: Ask verbally for city, state, and nearest major road or highway. Use the caller-stated location unless the caller corrects it.",
         "SESSION STATUS POLLING: If you have dispatch_session_id, poll get_dispatch_session_status every 8 to 10 seconds. Speak only the returned say field and verified best_match fields.",
+        "WEB CALL FROM ROADCALL MAP — GPS PRE-SHARED: If the dynamic variable has_shared_gps equals 'true', the caller reached you through the Roadcall website map and the browser has ALREADY shared their GPS location. The following dynamic variables are pre-populated and MUST be treated as locked, verified caller facts for the rest of the call: caller_address={{caller_address}}, caller_city={{caller_city}}, caller_state={{caller_state}}, gps_latitude={{gps_latitude}}, gps_longitude={{gps_longitude}}, dispatch_session_id={{dispatch_session_id}}. Lock these into the call facts ledger immediately. Do NOT ask the caller for city, state, address, or nearest road — you already have them. Acknowledge the location once in your opening turn so the caller knows you can see it, then move directly to collecting caller_name, problem, and vehicle_type.",
+        "WEB CALL DISPATCH SESSION REUSE: On web map calls (has_shared_gps == 'true'), dispatch_session_id is already known. Do NOT call create_dispatch_session — pass the existing dispatch_session_id directly into get_dispatch_session_status and match_mechanic. Also pass gps_latitude and gps_longitude into match_mechanic for the most accurate search.",
         "PACING: Speak like a calm human dispatcher, not a robot. When you read match_mechanic.message, honor the ellipses (\"...\") and periods as real pauses — take a half-second breath at each ellipsis and a full beat at each period. Do not run sentences together. Read each numbered option as its own sentence: \"Number one ... Truck Tire LLC ... \" pause ... \"Number two ... Big Guy Truck ... \" pause ... \"Number three ... Bobby's Truck Shop.\" Then ask the question. Never list more than three local options.",
         "When reading results, ALWAYS prefer to speak match_mechanic.message exactly as returned — it is already worded for voice and may include up to three local options and one major vendor when one is nearby. Never list more than three local options. Read a returned options list only once. After that, ask for permission to call the best option or the caller's chosen option. Do not read phone numbers unless the caller asks or picks one.",
         "The major vendor is provided in match_mechanic.majorVendor with brandName, interstate, and exitNumber. You may speak its brandName, interstate, exit, and city verbatim — but only if majorVendor is present in the latest tool response. Never invent a major vendor.",
@@ -289,7 +292,9 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Speak exactly once: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\n"
+                    "If the dynamic variable has_shared_gps equals 'true', speak exactly once: "
+                    "'Thanks for reaching Roadcall through the map. This is Sandy. I can see you near {{caller_address}} in {{caller_city}}, {{caller_state}}. Who am I speaking with?' "
+                    "Otherwise speak exactly once: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\n"
                     "Then stay silent and wait for real caller speech. Do not answer false noise, silence, or background audio. Do not repeat the greeting. Do not mention websites, browser pages, links, or text messages. After the caller gives their name, route to Search Intake unless they mentioned injury, fire, danger, or 911."
                 )
             },
