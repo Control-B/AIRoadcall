@@ -774,29 +774,6 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         }
       `}</style>
       <div ref={containerRef} className="h-full w-full" />
-      {onPremiumModeChange ? (
-        <div
-          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
-          className="absolute left-20 z-[80] inline-flex overflow-hidden rounded-full border border-white/20 bg-[#06101f]/95 text-[10px] font-black uppercase tracking-wide text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
-        >
-          <button
-            type="button"
-            onClick={() => onPremiumModeChange("basic")}
-            className={`px-3 py-2 ${premiumMode !== "satellite" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver"}`}
-            aria-pressed={premiumMode !== "satellite"}
-          >
-            City
-          </button>
-          <button
-            type="button"
-            onClick={() => onPremiumModeChange("satellite")}
-            className={`px-3 py-2 ${premiumMode === "satellite" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver"}`}
-            aria-pressed={premiumMode === "satellite"}
-          >
-            Satellite
-          </button>
-        </div>
-      ) : null}
       {isMobile ? (
         <>
           {!mapSearchOpen ? (
