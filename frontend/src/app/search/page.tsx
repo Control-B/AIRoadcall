@@ -1760,9 +1760,8 @@ function SearchPageInner() {
               Request Service
             </button>
           </div>
-          <div className="mb-4 flex justify-center">
-            <ShareLocationCallButton />
-          </div>
+          {/* Floating phone FAB — shares GPS and calls Sandy in one tap */}
+          <ShareLocationCallButton />
   {intakeOpen && <IntakeModal onClose={() => setIntakeOpen(false)} />}
 
           {/* Quick filters row */}
