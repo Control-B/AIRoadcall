@@ -544,12 +544,13 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
   const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<Mechanic | null>(null);
-  const [mapSearchOpen, setMapSearchOpen] = useState(true);
+  const [mapSearchOpen, setMapSearchOpen] = useState(false);
   const [mapCity, setMapCity] = useState(city);
   const [mapState, setMapState] = useState(state);
   const [mapServiceType, setMapServiceType] = useState(serviceType);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [desktopMapControlsOpen, setDesktopMapControlsOpen] = useState(false);
   const premiumModeEnabled = premiumMode !== "basic";
   const mapStyle = premiumMode === "satellite"
     ? "mapbox://styles/mapbox/satellite-streets-v12"
@@ -968,7 +969,25 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
               Search
             </button>
           )}
-          {workspaceControls ? <div className="absolute right-4 top-20 z-20 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
+          {workspaceControls ? (
+            <div className="absolute right-4 top-20 z-20 flex max-w-[calc(100%-2rem)] flex-col items-end gap-2">
+              <button
+                type="button"
+                onClick={() => setDesktopMapControlsOpen((value) => !value)}
+                className="inline-flex h-11 items-center gap-2 rounded-full border border-white/20 bg-[#06101f]/95 px-4 text-xs font-black uppercase tracking-wide text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md hover:bg-[#0b1728] hover:text-white"
+                aria-expanded={desktopMapControlsOpen}
+                aria-label="Toggle map type controls"
+              >
+                <Menu className="h-4 w-4" />
+                Map type
+              </button>
+              {desktopMapControlsOpen ? (
+                <div className="max-w-full overflow-x-auto rounded-full shadow-2xl shadow-black/30">
+                  {workspaceControls}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           <div className="absolute bottom-48 left-4 z-20 max-w-[calc(100%-2rem)] rounded-2xl border border-white/15 bg-[#06101f]/85 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
             <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-roadcall-cyan">Legend</p>
             <div className="flex flex-col gap-1.5">
