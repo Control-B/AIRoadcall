@@ -24,6 +24,7 @@ from app.api.routes import (
     webhooks_stripe,
     webhooks_retell,
     retell_dispatch,
+    retell_web,
     shop_ai,
     data_pipeline,
     shops,
@@ -182,6 +183,7 @@ app.include_router(roadside.router, prefix="/api")
 app.include_router(webhooks_stripe.router, prefix="/api")
 app.include_router(webhooks_retell.router, prefix="/api")
 app.include_router(retell_dispatch.router)
+app.include_router(retell_web.router, prefix="/api")
 app.include_router(shop_ai.router, prefix="/api")
 app.include_router(data_pipeline.router, prefix="/api")
 app.include_router(shops.router, prefix="/api")

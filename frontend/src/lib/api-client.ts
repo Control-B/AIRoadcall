@@ -248,6 +248,33 @@ export async function createRoadsideLiveKitSession(body: {
   });
 }
 
+export interface RoadsideRetellWebCall {
+  ok: boolean;
+  call_id: string | null;
+  access_token: string;
+  session_id: string;
+  agent_id: string;
+  location: {
+    latitude: number;
+    longitude: number;
+    accuracy_meters?: number | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+  };
+}
+
+export async function createRoadsideRetellWebCall(body: {
+  latitude: number;
+  longitude: number;
+  accuracy_meters?: number | null;
+}): Promise<RoadsideRetellWebCall> {
+  return request<RoadsideRetellWebCall>("/retell/roadside-web-call", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function getJobByToken(token: string): Promise<JobDriverView> {
   return request<JobDriverView>(`/jobs/${token}`);
 }

@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Mic, Phone, PhoneOff } from "lucide-react";
-import { Room, RoomEvent, Track, createLocalAudioTrack } from "livekit-client";
+import { RetellWebClient } from "retell-client-js-sdk";
 
-import { createRoadsideLiveKitSession } from "@/lib/api-client";
+import { createRoadsideRetellWebCall } from "@/lib/api-client";
 
 type CallState = "idle" | "locating" | "connecting" | "connected" | "error";
 
@@ -19,27 +19,26 @@ function statusLabel(state: CallState, error: string | null): string {
 export function ShareLocationCallButton({ className = "" }: { className?: string }) {
   const [state, setState] = useState<CallState>("idle");
   const [error, setError] = useState<string | null>(null);
-  const roomRef = useRef<Room | null>(null);
-
-  function detachSandyAudio() {
-    document.querySelectorAll<HTMLAudioElement>("audio[data-lk-sandy]").forEach((el) => {
-      el.pause();
-      el.srcObject = null;
-      el.remove();
-    });
-  }
+  const clientRef = useRef<RetellWebClient | null>(null);
 
   useEffect(() => {
     return () => {
-      roomRef.current?.disconnect();
-      detachSandyAudio();
+      try {
+        clientRef.current?.stopCall();
+      } catch {
+        /* ignore */
+      }
+      clientRef.current = null;
     };
   }, []);
 
   async function endCall() {
-    roomRef.current?.disconnect();
-    roomRef.current = null;
-    detachSandyAudio();
+    try {
+      clientRef.current?.stopCall();
+    } catch {
+      /* ignore */
+    }
+    clientRef.current = null;
     setState("idle");
     setError(null);
   }
@@ -69,56 +68,42 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
       });
 
       setState("connecting");
-      const session = await createRoadsideLiveKitSession({
+      const session = await createRoadsideRetellWebCall({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
         accuracy_meters: position.coords.accuracy,
       });
 
-      const room = new Room({ adaptiveStream: true, dynacast: true });
-
-      // Play Sandy's audio when she joins and starts speaking.
-      // iOS Safari needs playsInline + explicit play() to honour autoplay even
-      // when initiated from a user gesture.
-      room.on(RoomEvent.TrackSubscribed, (track) => {
-        if (track.kind !== Track.Kind.Audio) return;
-        const el = track.attach() as HTMLAudioElement;
-        el.dataset.lkSandy = "true";
-        el.autoplay = true;
-        el.setAttribute("playsinline", "");
-        (el as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
-        el.muted = false;
-        el.volume = 1.0;
-        document.body.appendChild(el);
-        void el.play().catch((playErr) => {
-          // Surface so we can see autoplay blocks in mobile Safari logs.
-          console.warn("[Sandy] audio play() rejected", playErr);
-        });
+      const client = new RetellWebClient();
+      client.on("call_started", () => {
+        setState("connected");
       });
-      room.on(RoomEvent.TrackUnsubscribed, (track) => {
-        track.detach();
-      });
-      room.on(RoomEvent.Disconnected, () => {
-        detachSandyAudio();
-        roomRef.current = null;
+      client.on("call_ended", () => {
+        clientRef.current = null;
         setState("idle");
       });
+      client.on("error", (err: unknown) => {
+        console.warn("[Sandy] Retell client error", err);
+        try {
+          client.stopCall();
+        } catch {
+          /* ignore */
+        }
+        clientRef.current = null;
+        setError(err instanceof Error ? err.message : "Call error");
+        setState("error");
+      });
 
-      await room.connect(session.livekit_url, session.participant_token);
-      const audioTrack = await createLocalAudioTrack({ echoCancellation: true, noiseSuppression: true });
-      await room.localParticipant.publishTrack(audioTrack);
-      // iOS autoplay recovery — keeps us inside the original click gesture chain.
-      try {
-        await room.startAudio();
-      } catch (audioErr) {
-        console.warn("[Sandy] room.startAudio() failed", audioErr);
-      }
-      roomRef.current = room;
-      setState("connected");
+      clientRef.current = client;
+      await client.startCall({ accessToken: session.access_token });
+      setState((prev) => (prev === "connecting" ? "connected" : prev));
     } catch (err) {
-      roomRef.current?.disconnect();
-      roomRef.current = null;
-      detachSandyAudio();
+      try {
+        clientRef.current?.stopCall();
+      } catch {
+        /* ignore */
+      }
+      clientRef.current = null;
       setError(err instanceof Error ? err.message : "Unable to call Sandy");
       setState("error");
     }
@@ -128,7 +113,6 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
   const isConnected = state === "connected";
 
   const label = statusLabel(state, error);
-  // Compact label: shorten long states for the small button
   const shortLabel =
     state === "locating" ? "GPS…" :
     state === "connecting" ? "Calling…" :
