@@ -205,6 +205,16 @@ def _create_livekit_token(*, room_name: str, identity: str, session_id: UUID, ex
             "canSubscribe": True,
             "canPublishData": True,
         },
+        # Explicit agent dispatch via token — when this caller joins, LiveKit
+        # auto-dispatches Sandy into the room. Mirrors the SIP dispatch rule.
+        "roomConfig": {
+            "agents": [
+                {
+                    "agentName": settings.LIVEKIT_AGENT_NAME,
+                    "metadata": json.dumps({"session_id": str(session_id)}),
+                }
+            ]
+        },
     }
     return jwt.encode(payload, settings.LIVEKIT_API_SECRET, algorithm="HS256")
 
