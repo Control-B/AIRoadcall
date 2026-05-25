@@ -116,7 +116,7 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
         type="button"
         onClick={handleClick}
         aria-label={`Share location and call ${HELP_PHONE}`}
-        className={`fixed bottom-6 right-6 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 shadow-2xl ring-4 ring-emerald-400/30 transition hover:scale-105 active:scale-95 sm:h-20 sm:w-20 ${className}`}
+        className={`fixed bottom-6 right-6 z-[90] flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 shadow-2xl ring-4 ring-emerald-400/30 transition hover:scale-105 active:scale-95 sm:h-20 sm:w-20 ${className}`}
       >
         {status === "working" ? (
           <Loader2 className="h-7 w-7 animate-spin" />
@@ -126,7 +126,7 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
       </button>
 
       {status !== "idle" ? (
-        <div className="fixed bottom-28 right-6 z-40 w-[18rem] max-w-[calc(100vw-3rem)] rounded-2xl border border-roadcall-cyan/25 bg-roadcall-panel/95 p-4 shadow-2xl backdrop-blur-md">
+        <div className="fixed bottom-28 right-6 z-[90] w-[18rem] max-w-[calc(100vw-3rem)] rounded-2xl border border-roadcall-cyan/25 bg-roadcall-panel/95 p-4 shadow-2xl backdrop-blur-md">
           <div className="mb-2 flex items-start justify-between gap-2">
             <p className="text-sm font-semibold text-white">Share location & call Sandy</p>
             <button
