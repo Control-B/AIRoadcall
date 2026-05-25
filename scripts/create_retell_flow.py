@@ -884,6 +884,19 @@ else:
     agent_resp = retell("POST", "/create-agent", agent_body)
     agent_id = agent_resp["agent_id"]
     print(f"✅ Agent created: {agent_id}")
+
+# ── Also point the Sandy web (map-button) agent at the same GPS-aware flow ──
+WEB_AGENT_ID = os.environ.get("RETELL_ROADSIDE_WEB_AGENT_ID", "").strip()
+if WEB_AGENT_ID and WEB_AGENT_ID != agent_id:
+    print(f"\nUpdating Sandy web (map-button) agent: {WEB_AGENT_ID}")
+    web_body = dict(agent_body)
+    web_body["agent_name"] = "Sandy — Roadcall.ai Web (Map Button)"
+    web_resp = retell("PATCH", f"/update-agent/{WEB_AGENT_ID}", web_body)
+    print(f"✅ Web agent updated: {web_resp.get('agent_id', WEB_AGENT_ID)} (now shares flow {flow_id})")
+elif WEB_AGENT_ID == agent_id:
+    print("\nℹ️  RETELL_ROADSIDE_WEB_AGENT_ID equals RETELL_AGENT_ID — nothing else to update.")
+else:
+    print("\nℹ️  RETELL_ROADSIDE_WEB_AGENT_ID not set — the web map button will fall back to RETELL_AGENT_ID.")
 print(f"\n{'='*60}")
 print(f"  Conversation Flow ID : {flow_id}")
 print(f"  Agent ID             : {agent_id}")
