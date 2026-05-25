@@ -38,11 +38,13 @@ export function ShareLocationCallButton({
   latitude,
   longitude,
   accuracyM,
+  requireSharedLocation = false,
 }: {
   className?: string;
   latitude?: number | null;
   longitude?: number | null;
   accuracyM?: number | null;
+  requireSharedLocation?: boolean;
 }) {
   const [state, setState] = useState<CallState>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -94,6 +96,11 @@ export function ShareLocationCallButton({
           accuracy_meters: typeof accuracyM === "number" && Number.isFinite(accuracyM) ? accuracyM : null,
         };
       } else {
+        if (requireSharedLocation) {
+          setError("Map GPS not ready yet");
+          setState("error");
+          return;
+        }
         if (!navigator.geolocation) {
           setError("GPS unavailable");
           setState("error");

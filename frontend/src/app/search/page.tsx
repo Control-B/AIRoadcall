@@ -1735,6 +1735,7 @@ function SearchPageInner() {
           latitude={userCoords?.latitude ?? null}
           longitude={userCoords?.longitude ?? null}
           accuracyM={userCoords?.accuracyM ?? null}
+          requireSharedLocation
         />
       )}
       {/* Hero search header (directory page only) */}
