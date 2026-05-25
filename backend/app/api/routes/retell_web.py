@@ -109,10 +109,10 @@ async def create_roadside_web_call(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Retell is not configured for this environment.",
         )
-    # Prefer the dedicated web agent when configured; otherwise reuse the
-    # Sandy phone agent, which carries the GPS-aware conversation flow
-    # (see scripts/create_retell_flow.py — `has_shared_gps` prompt block).
-    agent_id = (settings.RETELL_ROADSIDE_WEB_AGENT_ID or settings.RETELL_AGENT_ID or "").strip()
+    # Prefer the main Sandy phone agent because it is the canonical agent tied
+    # to the GPS-aware conversation flow. A separate web agent can drift stale
+    # in Retell and ignore the map call's pre-shared location.
+    agent_id = (settings.RETELL_AGENT_ID or settings.RETELL_ROADSIDE_WEB_AGENT_ID or "").strip()
     if not agent_id:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -170,6 +170,12 @@ async def create_roadside_web_call(
         "caller_city": reverse.get("city") or "",
         "caller_state": reverse.get("state") or "",
         "caller_location_phrase": location_phrase,
+        "web_call_opening_instruction": (
+            f"Start by saying: Thanks for reaching Roadcall through the map. "
+            f"This is Sandy. I can see you {location_phrase}. Who am I speaking with? "
+            "Treat this GPS location as already shared and verified. Do not ask for city, "
+            "state, address, nearest road, or a location link unless the caller corrects it."
+        ),
         "caller_source": "roadcall_map_button",
         "has_shared_gps": "true",
     }
@@ -186,6 +192,7 @@ async def create_roadside_web_call(
             "caller_state": state,
         },
         "retell_llm_dynamic_variables": dynamic_vars,
+        "current_node_id": "start-node",
     }
 
     response = await asyncio.to_thread(
