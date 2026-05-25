@@ -88,13 +88,13 @@ def _retell_create_web_call(api_key: str, body: dict[str, Any]) -> dict[str, Any
         logger.error("Retell create-web-call HTTP %s: %s", exc.code, detail)
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Retell rejected the web call request ({exc.code}).",
+            detail=f"Retell rejected web call ({exc.code}): {detail}",
         ) from exc
     except urllib.error.URLError as exc:
         logger.exception("Retell create-web-call network error")
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Retell network error.",
+            detail=f"Retell network error: {exc}",
         ) from exc
 
 
