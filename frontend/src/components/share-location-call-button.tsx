@@ -37,36 +37,23 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
     }
   }, []);
 
-  const shareAndCall = useCallback(async (rawPhone: string) => {
+  const shareLocationInBackground = useCallback((rawPhone: string) => {
     const digits = digitsOnly(rawPhone);
-    if (digits.length < 10) {
-      setStatus("needPhone");
-      setMessage("Enter the number you'll call from.");
-      return;
-    }
+    if (digits.length < 10) return;
     try {
       window.localStorage.setItem(PHONE_STORAGE_KEY, digits);
     } catch {
       /* ignore */
     }
-
-    const dial = () => {
-      setStatus("ready");
-      setTimeout(() => callLinkRef.current?.click(), 50);
-    };
-
     if (!navigator.geolocation) {
+      setStatus("ready");
       setMessage("Calling now — Sandy will ask for your location.");
-      dial();
       return;
     }
-
     setStatus("working");
-    setMessage("Reading your GPS…");
-
+    setMessage("Sharing your GPS with Sandy…");
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
-        setMessage("Sending your location to Sandy…");
         try {
           await fetch(`${getApiBase()}/caller/share-location`, {
             method: "POST",
@@ -79,27 +66,41 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
             }),
           });
         } catch {
-          /* even if the share fails, still place the call */
+          /* even if the share fails, the call already went through */
         }
-        setMessage("Calling Sandy now…");
-        dial();
+        setStatus("ready");
+        setMessage("Location shared — Sandy has your GPS.");
       },
       () => {
-        setMessage("Couldn't read GPS — calling now, Sandy will ask for your location.");
-        dial();
+        setStatus("ready");
+        setMessage("Couldn't read GPS — Sandy will ask for your location on the call.");
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
   }, []);
 
-  const handleClick = useCallback(() => {
-    if (digitsOnly(phone).length < 10) {
+  const shareAndCall = useCallback(async (rawPhone: string) => {
+    const digits = digitsOnly(rawPhone);
+    if (digits.length < 10) {
+      setStatus("needPhone");
+      setMessage("Enter the number you'll call from.");
+      return;
+    }
+    shareLocationInBackground(digits);
+    setTimeout(() => callLinkRef.current?.click(), 50);
+  }, [shareLocationInBackground]);
+
+  const hasPhone = digitsOnly(phone).length >= 10;
+
+  const handleFabClick = useCallback(() => {
+    if (!hasPhone) {
       setStatus("needPhone");
       setMessage(null);
       return;
     }
-    void shareAndCall(phone);
-  }, [phone, shareAndCall]);
+    // tel: navigation happens via the anchor's native click — fire share in parallel.
+    shareLocationInBackground(phone);
+  }, [hasPhone, phone, shareLocationInBackground]);
 
   const close = useCallback(() => {
     setStatus("idle");
@@ -112,21 +113,32 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
         call
       </a>
 
-      <button
-        type="button"
-        onClick={handleClick}
-        aria-label={`Share location and call ${HELP_PHONE}`}
-        className={`fixed bottom-6 right-6 z-[90] flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 shadow-2xl ring-4 ring-emerald-400/30 transition hover:scale-105 active:scale-95 sm:h-20 sm:w-20 ${className}`}
-      >
-        {status === "working" ? (
-          <Loader2 className="h-7 w-7 animate-spin" />
-        ) : (
+      {hasPhone ? (
+        <a
+          href={telHref(HELP_PHONE)}
+          onClick={handleFabClick}
+          aria-label={`Share location and call ${HELP_PHONE}`}
+          className={`fixed bottom-6 left-1/2 z-[90] flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 shadow-2xl ring-4 ring-emerald-400/30 transition hover:scale-105 active:scale-95 sm:h-20 sm:w-20 ${className}`}
+        >
+          {status === "working" ? (
+            <Loader2 className="h-7 w-7 animate-spin" />
+          ) : (
+            <Phone className="h-7 w-7 sm:h-8 sm:w-8" fill="currentColor" />
+          )}
+        </a>
+      ) : (
+        <button
+          type="button"
+          onClick={handleFabClick}
+          aria-label={`Share location and call ${HELP_PHONE}`}
+          className={`fixed bottom-6 left-1/2 z-[90] flex h-16 w-16 -translate-x-1/2 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 shadow-2xl ring-4 ring-emerald-400/30 transition hover:scale-105 active:scale-95 sm:h-20 sm:w-20 ${className}`}
+        >
           <Phone className="h-7 w-7 sm:h-8 sm:w-8" fill="currentColor" />
-        )}
-      </button>
+        </button>
+      )}
 
       {status !== "idle" ? (
-        <div className="fixed bottom-28 right-6 z-[90] w-[18rem] max-w-[calc(100vw-3rem)] rounded-2xl border border-roadcall-cyan/25 bg-roadcall-panel/95 p-4 shadow-2xl backdrop-blur-md">
+        <div className="fixed bottom-28 left-1/2 z-[90] w-[18rem] max-w-[calc(100vw-3rem)] -translate-x-1/2 rounded-2xl border border-roadcall-cyan/25 bg-roadcall-panel/95 p-4 shadow-2xl backdrop-blur-md">
           <div className="mb-2 flex items-start justify-between gap-2">
             <p className="text-sm font-semibold text-white">Share location & call Sandy</p>
             <button
