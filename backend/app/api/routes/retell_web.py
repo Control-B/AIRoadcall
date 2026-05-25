@@ -109,11 +109,11 @@ async def create_roadside_web_call(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Retell is not configured for this environment.",
         )
-    agent_id = (settings.RETELL_AGENT_ID or "").strip()
+    agent_id = (settings.RETELL_ROADSIDE_WEB_AGENT_ID or "").strip()
     if not agent_id:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Sandy roadside Retell agent is not configured.",
+            detail="Sandy roadside web Retell agent is not configured (set RETELL_ROADSIDE_WEB_AGENT_ID).",
         )
 
     phone_e164 = _normalize_phone(payload.caller_phone)

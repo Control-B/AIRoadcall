@@ -78,6 +78,8 @@ class Settings(BaseSettings):
     RETELL_API_KEY: str = ""
     RETELL_AGENT_ID: str = ""
     RETELL_CONVERSATION_FLOW_ID: str = ""
+    # Browser map button "Call Sandy" web-call agent (separate from phone Sandy)
+    RETELL_ROADSIDE_WEB_AGENT_ID: str = ""
     # Shop AI receptionist (third Retell agent, separate from Sandy roadside + Fleet roadside)
     RETELL_SHOP_AGENT_ID: str = ""
     RETELL_SHOP_CONVERSATION_FLOW_ID: str = ""
