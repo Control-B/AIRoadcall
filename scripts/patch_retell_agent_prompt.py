@@ -47,8 +47,8 @@ RETELL_BASE = "https://api.retellai.com"
 KNOWN_AGENTS: dict[str, dict] = {
     "roadside": {
         "env_var": "RETELL_AGENT_ID",
-        "default_id": "agent_c55f3b83dd7614ba0be6bec7e4",
-        "label": "Roadcall Roadside Dispatch",
+        "default_id": "agent_475e0799d4687ba914b1873532",
+        "label": "Sandy — Roadcall.ai Dispatcher",
         "tools": "roadside",
     },
     "fleet": {
@@ -80,21 +80,24 @@ def _roadside_tools() -> list[dict]:
             "description": (
                 "Call this at the start of every roadside call. "
                 "Pass driver_name, vehicle_type, issue_type, situation_note. "
-                "Returns a 4-digit location code for the agent to speak to the caller."
+                "The backend automatically matches the caller's phone number to any "
+                "GPS location they shared on roadcall.ai before calling. "
+                "Returns either confirmation that GPS is already on file, or asks the "
+                "agent to collect location details verbally."
             ),
             "url": f"{base}/api/retell/save-driver-info",
             "method": "POST",
             "speak_during_execution": True,
             "speak_after_execution": True,
-            "execution_message_description": "Setting up your location code now.",
+            "execution_message_description": "Looking up your location now.",
         },
         {
             "type": "webhook",
             "name": "check_location",
             "description": (
-                "Poll whether the caller has opened roadcall.ai/go and shared GPS. "
-                "Pass location_code returned by save_driver_info. "
-                "Call every 15 seconds until GPS is confirmed."
+                "Poll whether the caller has shared GPS from roadcall.ai. "
+                "No arguments required \u2014 the backend uses the inbound caller phone. "
+                "Call every 15 seconds while waiting for the caller to share location."
             ),
             "url": f"{base}/api/retell/check-location",
             "method": "POST",
