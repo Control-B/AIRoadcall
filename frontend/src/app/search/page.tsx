@@ -587,11 +587,16 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       if (!isMobile) {
         map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "bottom-left");
       }
-      map.addControl(new mapboxgl.GeolocateControl({
+      const geolocate = new mapboxgl.GeolocateControl({
         positionOptions: { enableHighAccuracy: true },
         trackUserLocation: true,
         showUserHeading: true,
-      }), "bottom-left");
+        showAccuracyCircle: true,
+      });
+      map.addControl(geolocate, "bottom-left");
+      map.on("load", () => {
+        try { geolocate.trigger(); } catch { /* user gesture may be required */ }
+      });
 
       const updateVisibleBounds = () => {
         const bounds = map.getBounds();
@@ -865,11 +870,12 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         </>
       ) : (
         <>
+          {mapSearchOpen ? (
           <div className="absolute left-4 top-20 z-20 w-[min(360px,calc(100%-2rem))]">
             <div className="rounded-2xl border border-white/20 bg-white/95 p-3 text-slate-950 shadow-2xl backdrop-blur">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <p className="text-xs font-black uppercase tracking-wide text-slate-600">Map search</p>
-                <button type="button" onClick={() => setMapSearchOpen(false)} className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-950"><X className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setMapSearchOpen(false)} aria-label="Minimize search" className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-950"><X className="h-4 w-4" /></button>
               </div>
               <div className="grid gap-2 sm:grid-cols-[1fr_92px]">
                 <input
@@ -921,6 +927,17 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
               </div>
             </div>
           </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setMapSearchOpen(true)}
+              className="absolute left-4 top-20 z-20 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/95 px-3 py-2 text-xs font-black uppercase tracking-wide text-slate-700 shadow-2xl backdrop-blur hover:bg-white"
+              aria-label="Open map search"
+            >
+              <Search className="h-4 w-4" />
+              Search
+            </button>
+          )}
           {workspaceControls ? <div className="absolute right-4 top-20 z-20 max-w-[calc(100%-2rem)] overflow-x-auto">{workspaceControls}</div> : null}
           <div className="absolute bottom-48 left-4 z-20 max-w-[calc(100%-2rem)] rounded-2xl border border-white/15 bg-[#06101f]/85 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
             <p className="mb-2 text-[10px] font-black uppercase tracking-[0.18em] text-roadcall-cyan">Legend</p>
