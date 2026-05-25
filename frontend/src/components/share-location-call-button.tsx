@@ -8,6 +8,23 @@ import { createRoadsideRetellWebCall } from "@/lib/api-client";
 
 type CallState = "idle" | "locating" | "connecting" | "connected" | "error";
 
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === "string" && err.trim()) return err;
+  if (err && typeof err === "object") {
+    const maybeMessage = (err as { message?: unknown; error?: unknown; detail?: unknown }).message
+      ?? (err as { message?: unknown; error?: unknown; detail?: unknown }).error
+      ?? (err as { message?: unknown; error?: unknown; detail?: unknown }).detail;
+    if (typeof maybeMessage === "string" && maybeMessage.trim()) return maybeMessage;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return fallback;
+    }
+  }
+  return fallback;
+}
+
 function statusLabel(state: CallState, error: string | null): string {
   if (state === "locating") return "Getting GPS";
   if (state === "connecting") return "Calling Sandy";
@@ -98,7 +115,9 @@ export function ShareLocationCallButton({
       }
 
       setState("connecting");
+      console.info("[Sandy] creating Retell web call", coords);
       const session = await createRoadsideRetellWebCall(coords);
+      console.info("[Sandy] Retell web call created", { callId: session.call_id, agentId: session.agent_id });
 
       const client = new RetellWebClient();
       client.on("call_started", () => {
@@ -116,11 +135,12 @@ export function ShareLocationCallButton({
           /* ignore */
         }
         clientRef.current = null;
-        setError(err instanceof Error ? err.message : "Call error");
+        setError(getErrorMessage(err, "Call error"));
         setState("error");
       });
 
       clientRef.current = client;
+      console.info("[Sandy] starting Retell client call");
       await client.startCall({ accessToken: session.access_token });
       setState((prev) => (prev === "connecting" ? "connected" : prev));
     } catch (err) {
@@ -131,7 +151,7 @@ export function ShareLocationCallButton({
         /* ignore */
       }
       clientRef.current = null;
-      setError(err instanceof Error ? err.message : "Unable to call Sandy");
+      setError(getErrorMessage(err, "Unable to call Sandy"));
       setState("error");
     }
   }
