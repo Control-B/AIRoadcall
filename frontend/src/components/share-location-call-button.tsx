@@ -77,14 +77,23 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
 
       const room = new Room({ adaptiveStream: true, dynacast: true });
 
-      // Play Sandy's audio when she joins and starts speaking
+      // Play Sandy's audio when she joins and starts speaking.
+      // iOS Safari needs playsInline + explicit play() to honour autoplay even
+      // when initiated from a user gesture.
       room.on(RoomEvent.TrackSubscribed, (track) => {
-        if (track.kind === Track.Kind.Audio) {
-          const el = track.attach() as HTMLAudioElement;
-          el.dataset.lkSandy = "true";
-          el.autoplay = true;
-          document.body.appendChild(el);
-        }
+        if (track.kind !== Track.Kind.Audio) return;
+        const el = track.attach() as HTMLAudioElement;
+        el.dataset.lkSandy = "true";
+        el.autoplay = true;
+        el.setAttribute("playsinline", "");
+        (el as HTMLAudioElement & { playsInline?: boolean }).playsInline = true;
+        el.muted = false;
+        el.volume = 1.0;
+        document.body.appendChild(el);
+        void el.play().catch((playErr) => {
+          // Surface so we can see autoplay blocks in mobile Safari logs.
+          console.warn("[Sandy] audio play() rejected", playErr);
+        });
       });
       room.on(RoomEvent.TrackUnsubscribed, (track) => {
         track.detach();
@@ -98,6 +107,12 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
       await room.connect(session.livekit_url, session.participant_token);
       const audioTrack = await createLocalAudioTrack({ echoCancellation: true, noiseSuppression: true });
       await room.localParticipant.publishTrack(audioTrack);
+      // iOS autoplay recovery — keeps us inside the original click gesture chain.
+      try {
+        await room.startAudio();
+      } catch (audioErr) {
+        console.warn("[Sandy] room.startAudio() failed", audioErr);
+      }
       roomRef.current = room;
       setState("connected");
     } catch (err) {

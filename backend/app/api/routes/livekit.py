@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
@@ -21,6 +22,7 @@ from app.services.geocoding_service import GeocodingService
 from app.services.roadside_matching_service import RoadsideMatchingService
 
 router = APIRouter(prefix="/livekit", tags=["livekit"])
+logger = logging.getLogger(__name__)
 
 
 class RoadsideLiveKitSessionIn(BaseModel):
@@ -164,9 +166,20 @@ async def _dispatch_agent_to_room(*, room_name: str, session_id: UUID) -> None:
                 },
                 headers={"Authorization": f"Bearer {admin_token}", "Content-Type": "application/json"},
             )
-            resp.raise_for_status()
-    except Exception:
-        pass  # Non-fatal: log in prod; caller will still join and agent may still connect
+            if resp.status_code >= 400:
+                logger.error(
+                    "LiveKit agent dispatch failed: status=%s agent=%s room=%s body=%s",
+                    resp.status_code,
+                    settings.LIVEKIT_AGENT_NAME,
+                    room_name,
+                    resp.text[:500],
+                )
+            else:
+                logger.info(
+                    "LiveKit agent dispatched: agent=%s room=%s", settings.LIVEKIT_AGENT_NAME, room_name
+                )
+    except Exception as exc:
+        logger.exception("LiveKit agent dispatch exception for room=%s: %s", room_name, exc)
 
 
 def _create_livekit_token(*, room_name: str, identity: str, session_id: UUID, expires_at: datetime) -> str:
