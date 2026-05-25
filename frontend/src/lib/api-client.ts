@@ -217,6 +217,37 @@ export interface ConfirmPaymentResponse {
   status?: string;
 }
 
+export interface RoadsideLiveKitSession {
+  ok: boolean;
+  session_id: string;
+  room_name: string;
+  livekit_url: string;
+  participant_identity: string;
+  participant_token: string;
+  expires_at: string;
+  agent_name: string;
+  location: {
+    latitude: number;
+    longitude: number;
+    accuracy_meters?: number | null;
+    address?: string | null;
+    city?: string | null;
+    state?: string | null;
+  };
+  instruction: string;
+}
+
+export async function createRoadsideLiveKitSession(body: {
+  latitude: number;
+  longitude: number;
+  accuracy_meters?: number | null;
+}): Promise<RoadsideLiveKitSession> {
+  return request<RoadsideLiveKitSession>("/livekit/roadside-session", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
 export async function getJobByToken(token: string): Promise<JobDriverView> {
   return request<JobDriverView>(`/jobs/${token}`);
 }

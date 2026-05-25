@@ -50,6 +50,7 @@ from app.api.routes import (
     roadcall_orchestrator,
     caller_location,
     caller_share,
+    livekit,
 )
 
 settings = get_settings()
@@ -205,6 +206,7 @@ app.include_router(support_router, prefix="/api")
 app.include_router(roadcall_orchestrator.router, prefix="/api")
 app.include_router(caller_location.router, prefix="/api")
 app.include_router(caller_share.router, prefix="/api")
+app.include_router(livekit.router, prefix="/api")
 
 
 @app.on_event("startup")

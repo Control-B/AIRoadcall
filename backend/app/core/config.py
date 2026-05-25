@@ -88,6 +88,14 @@ class Settings(BaseSettings):
     RETELL_CLONED_VOICE_ID: str = ""
     # Fleet vertical routing (used by retell_dispatch.create_service_request to fork into RoadsideIncident)
     RETELL_FLEET_AGENT_ID: str = ""
+
+    # LiveKit Cloud (web voice + GPS-backed Sandy beta)
+    LIVEKIT_URL: str = ""
+    LIVEKIT_API_KEY: str = ""
+    LIVEKIT_API_SECRET: str = ""
+    LIVEKIT_AGENT_NAME: str = "roadcall-agent"
+    LIVEKIT_TOKEN_TTL_MINUTES: int = 30
+
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "change-this"
     RETELL_BACKEND_WEBHOOK_TOKEN: str = "local-dev-retell-token"
