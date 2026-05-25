@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { Menu, X, ArrowRight, Phone } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { BrandMark } from "@/components/BrandMark";
 import { GHL_SIGN_IN_URL } from "@/lib/ghl-links";
@@ -309,18 +308,18 @@ export function SiteHeader() {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden overflow-hidden border-t border-slate-200/80 bg-slate-50/95 text-slate-950 shadow-2xl shadow-black/35 backdrop-blur-xl"
+            className="fixed inset-x-0 bottom-0 top-20 z-[95] flex flex-col overflow-hidden border-t border-slate-200/80 bg-slate-50/95 text-slate-950 shadow-2xl shadow-black/35 backdrop-blur-xl lg:hidden"
           >
-            <div className="px-4 py-4 space-y-1 max-h-[80vh] overflow-y-auto">
+            <div className="flex-1 space-y-1 overflow-y-auto px-4 py-4 [scrollbar-width:thin]">
               {navItems.map((item) => (
                 <div key={item.label}>
                   <Link
                     href={item.href}
-                    className={`flex items-center justify-between px-4 py-3 text-sm font-extrabold rounded-lg ${
+                    className={`flex items-center justify-between rounded-lg px-3.5 py-2.5 text-[15px] font-extrabold ${
                       pathname === item.href
                         ? "bg-slate-950 text-white shadow-sm"
                         : "text-slate-950 hover:bg-slate-950/10 hover:text-black"
@@ -332,12 +331,12 @@ export function SiteHeader() {
                     )}
                   </Link>
                   {item.children && (
-                    <div className="pl-4 space-y-0.5 mt-1 mb-2">
+                    <div className="mb-1.5 mt-0.5 space-y-0.5 pl-4">
                       {item.children.map((child) => (
                         <Link
                           key={child.label}
                           href={child.href}
-                          className="block px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-950/10 hover:text-black rounded-lg"
+                          className="block rounded-lg px-3.5 py-2 text-[14px] font-bold leading-tight text-slate-800 hover:bg-slate-950/10 hover:text-black"
                         >
                           {child.label}
                         </Link>
@@ -346,25 +345,35 @@ export function SiteHeader() {
                   )}
                 </div>
               ))}
-              <div className="pt-3 border-t border-roadcall-cyan/15 space-y-2">
-                <Link href={getStartedHref}>
-                  <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 w-full">
-                    Get Started
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
+            </div>
+            <div className="shrink-0 border-t border-slate-200/90 bg-white/95 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] pt-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)]">
+              <div className="grid gap-2">
+                <Link
+                  href={getStartedHref}
+                  className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-4 text-sm font-black text-white shadow-lg shadow-cyan-500/20 hover:brightness-110"
+                >
+                  Get Started
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
-                <Link href={signInHref}>
-                  <Button variant="outline" className="border-roadcall-cyan/25 bg-roadcall-panel/40 text-roadcall-silver hover:bg-roadcall-cyan/10 w-full">
+                <div className="grid grid-cols-2 gap-2">
+                  <Link
+                    href={signInHref}
+                    className="inline-flex h-11 items-center justify-center rounded-2xl border border-slate-300 bg-white px-4 text-sm font-black text-slate-900 hover:bg-slate-100"
+                  >
                     Sign In
-                  </Button>
-                </Link>
-                <a href={telHref(HELP_PHONE)}>
-                  <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 w-full">
-                    <Phone className="h-4 w-4 mr-2" />
-                    Call {HELP_PHONE}
-                  </Button>
-                </a>
+                  </Link>
+                  <a
+                    href={telHref(HELP_PHONE)}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 text-sm font-black text-white shadow-lg shadow-slate-950/20 hover:bg-slate-800"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Call
+                  </a>
+                </div>
               </div>
+              <a href={telHref(HELP_PHONE)} className="mt-2 block text-center text-xs font-bold text-slate-600">
+                {HELP_PHONE}
+              </a>
             </div>
           </motion.div>
         )}
