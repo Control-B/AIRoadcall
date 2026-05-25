@@ -1731,9 +1731,9 @@ function SearchPageInner() {
       setMapAreaSummary(`Showing map near ${[mechanic.city, mechanic.state].filter(Boolean).join(", ")}`);
     }
   }, [isMapsPage, router, serviceType]);
-  const mapShellClass = "fixed inset-0 z-[60] bg-[#040810] p-3";
-  const mapGridClass = "grid gap-4";
-  const mapHeightClass = "h-[calc(100vh-24px)] min-h-[420px]";
+  const mapShellClass = "fixed inset-x-0 top-16 bottom-0 z-[60] bg-[#040810] p-2 sm:top-20 sm:p-3";
+  const mapGridClass = "grid h-full gap-4";
+  const mapHeightClass = "h-full min-h-[420px]";
 
   return (
     <PageLayout>
