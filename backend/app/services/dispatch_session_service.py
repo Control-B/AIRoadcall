@@ -79,6 +79,12 @@ class DispatchSessionService:
     @staticmethod
     async def create_session(db: AsyncSession, payload: DispatchCreateSessionRequest) -> DispatchCreateSessionResponse:
         existing = await DispatchSessionService._find_existing_session(db, payload)
+        map_fallback_attached = False
+        if DispatchSessionService._is_retell_session(payload) and (not existing or existing.lat is None or existing.lng is None):
+            map_session = await DispatchSessionService._find_recent_map_shared_session(db)
+            if map_session and (not existing or map_session.id != existing.id):
+                existing = map_session
+                map_fallback_attached = True
         session = existing or DispatchSession(
             public_code=await DispatchSessionService._unique_public_code(db),
             status=DispatchSessionStatus.awaiting_location.value,
@@ -98,6 +104,7 @@ class DispatchSessionService:
             "has_retell_call_id": bool(session.retell_call_id),
             "has_twilio_call_sid": bool(session.twilio_call_sid),
             "has_pre_shared_location": bool(shared_location),
+            "map_fallback_attached": map_fallback_attached,
         })
         if shared_location:
             await DispatchSessionService.record_event(db, session.id, "location.updated", "caller", {
@@ -396,6 +403,32 @@ class DispatchSessionService:
         if not clauses:
             return None
         result = await db.execute(select(DispatchSession).where(or_(*clauses)).order_by(desc(DispatchSession.created_at)).limit(1))
+        return result.scalar_one_or_none()
+
+    @staticmethod
+    def _is_retell_session(payload: DispatchCreateSessionRequest) -> bool:
+        return (payload.source or "").lower() == "retell" or bool(payload.retell_call_id)
+
+    @staticmethod
+    async def _find_recent_map_shared_session(db: AsyncSession) -> DispatchSession | None:
+        since = datetime.now(timezone.utc) - timedelta(minutes=10)
+        result = await db.execute(
+            select(DispatchSession)
+            .where(
+                DispatchSession.source == "map_phone_button",
+                DispatchSession.lat.is_not(None),
+                DispatchSession.lng.is_not(None),
+                DispatchSession.location_captured_at.is_not(None),
+                DispatchSession.retell_call_id.is_(None),
+                DispatchSession.created_at >= since,
+                DispatchSession.status.notin_([
+                    DispatchSessionStatus.completed.value,
+                    DispatchSessionStatus.cancelled.value,
+                ]),
+            )
+            .order_by(desc(DispatchSession.created_at))
+            .limit(1)
+        )
         return result.scalar_one_or_none()
 
     @staticmethod

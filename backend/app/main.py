@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy import text
 import json as _json
+import re as _re
 
 import app.models  # noqa: F401
 from app.core.config import get_settings
@@ -87,6 +88,39 @@ app.add_middleware(SessionCorrelationMiddleware)
 # call.from_number folded in as caller_phone / callerPhone / callback_number if not already set).
 _RETELL_UNWRAP_PREFIXES = ("/api/",)
 
+_RETELL_PHONE_FIELDS = (
+    "from_number",
+    "fromNumber",
+    "caller_phone",
+    "callerPhone",
+    "from",
+    "caller",
+    "phone_number",
+    "phoneNumber",
+)
+
+
+def _retell_call_phone(call: dict) -> str | None:
+    candidates = [call]
+    for nested_key in ("metadata", "call_metadata", "telephony_metadata"):
+        nested = call.get(nested_key)
+        if isinstance(nested, dict):
+            candidates.append(nested)
+    for source in candidates:
+        for field in _RETELL_PHONE_FIELDS:
+            value = source.get(field)
+            if isinstance(value, str) and len(_re.sub(r"\D", "", value)) >= 7:
+                return value
+    return None
+
+
+def _retell_call_id(call: dict) -> str | None:
+    for field in ("call_id", "callId", "retell_call_id", "id"):
+        value = call.get(field)
+        if isinstance(value, str) and value.strip():
+            return value
+    return None
+
 @app.middleware("http")
 async def unwrap_retell_envelope(request: Request, call_next):
     if (
@@ -104,13 +138,13 @@ async def unwrap_retell_envelope(request: Request, call_next):
                 args = dict(data["args"])
                 call = data.get("call") or {}
                 if isinstance(call, dict):
-                    from_num = call.get("from_number") or call.get("caller_phone")
+                    from_num = _retell_call_phone(call)
                     if from_num:
                         args.setdefault("caller_phone", from_num)
                         args.setdefault("callerPhone", from_num)
                         args.setdefault("callback_number", from_num)
                         args.setdefault("callbackNumber", from_num)
-                    call_id = call.get("call_id")
+                    call_id = _retell_call_id(call)
                     if call_id:
                         args.setdefault("retell_call_id", call_id)
                     agent_id = call.get("agent_id")

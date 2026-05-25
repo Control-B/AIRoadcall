@@ -11,6 +11,7 @@ from app.api.deps import get_session  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.main import app  # noqa: E402
 from app.schemas.dispatch_session import (  # noqa: E402
+    DispatchCreateSessionRequest,
     DispatchCreateSessionResponse,
     DispatchSessionStatusResponse,
 )
@@ -76,6 +77,113 @@ async def test_create_dispatch_session_requires_retell_or_admin_auth(monkeypatch
     assert allowed.json()["public_code"] == "RC-12345"
     assert called["payload"].retell_call_id == "call_123"
     assert called["payload"].caller_phone == "+18135551212"
+
+
+@pytest.mark.asyncio
+async def test_retell_envelope_extracts_alternate_caller_phone_field(monkeypatch):
+    app.dependency_overrides[get_session] = _empty_session
+    called = {}
+
+    async def fake_create_session(db, payload):
+        called["payload"] = payload
+        return DispatchCreateSessionResponse(
+            dispatch_session_id=uuid.uuid4(),
+            public_code="RC-2233",
+            status="matching",
+            location_url="https://roadcall.ai/go?t=token",
+            location_token="token",
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=30),
+        )
+
+    monkeypatch.setattr(DispatchSessionService, "create_session", fake_create_session)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/dispatch/create-session",
+            headers={"Authorization": "Bearer test-token"},
+            json={
+                "name": "create_dispatch_session",
+                "args": {"source": "retell", "caller_name": "Sam"},
+                "call": {"from": "+18135551212", "callId": "call_alt_123"},
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    assert called["payload"].caller_phone == "+18135551212"
+    assert called["payload"].retell_call_id == "call_alt_123"
+
+
+@pytest.mark.asyncio
+async def test_retell_session_reuses_recent_map_session_when_phone_join_missing(monkeypatch):
+    map_session_id = uuid.uuid4()
+    map_session = DispatchSession(
+        public_code="RC-9090",
+        source="map_phone_button",
+        status=DispatchSessionStatus.matching.value,
+    )
+    map_session.id = map_session_id
+    map_session.lat = 27.8156
+    map_session.lng = -82.7023
+    map_session.address = "Park Street North and 48th Avenue, St. Petersburg, FL"
+    map_session.city = "St. Petersburg"
+    map_session.state = "FL"
+    map_session.location_captured_at = datetime.now(timezone.utc)
+    map_session.created_at = datetime.now(timezone.utc)
+
+    class FakeDb:
+        def add(self, value):
+            pass
+
+        async def flush(self):
+            pass
+
+    class TokenRow:
+        id = uuid.uuid4()
+        expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+
+    events = []
+
+    async def fake_find_existing(db, payload):
+        empty_retell_session = DispatchSession(public_code="RC-0001", source="retell", status=DispatchSessionStatus.awaiting_location.value)
+        empty_retell_session.id = uuid.uuid4()
+        empty_retell_session.retell_call_id = payload.retell_call_id
+        return empty_retell_session
+
+    async def fake_find_recent_map(db):
+        return map_session
+
+    async def fake_issue_token(db, session, expires_minutes):
+        return TokenRow(), "signed-token"
+
+    async def fake_record_event(db, session_id, event_type, actor_type, payload, **kwargs):
+        events.append((session_id, event_type, payload))
+
+    async def fake_mirror_session(session, ttl_seconds=None):
+        return None
+
+    monkeypatch.setattr(DispatchSessionService, "_find_existing_session", fake_find_existing)
+    monkeypatch.setattr(DispatchSessionService, "_find_recent_map_shared_session", fake_find_recent_map)
+    monkeypatch.setattr(DispatchSessionService, "_issue_location_token", fake_issue_token)
+    monkeypatch.setattr(DispatchSessionService, "record_event", fake_record_event)
+    from app.services.session_cache_service import SessionCacheService
+    monkeypatch.setattr(SessionCacheService, "mirror_session", fake_mirror_session)
+
+    response = await DispatchSessionService.create_session(
+        FakeDb(),
+        DispatchCreateSessionRequest(
+            source="retell",
+            retell_call_id="call_missing_phone",
+            caller_name="Sam",
+            expires_minutes=30,
+        ),
+    )
+
+    assert response.dispatch_session_id == map_session_id
+    assert map_session.retell_call_id == "call_missing_phone"
+    assert map_session.lat == 27.8156
+    assert map_session.address.startswith("Park Street North")
+    assert any(payload.get("map_fallback_attached") is True for _, event_type, payload in events if event_type == "session.reused")
 
 
 @pytest.mark.asyncio

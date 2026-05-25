@@ -88,7 +88,7 @@ FLOW = {
         "Never repeat a question the caller already answered. If you already heard 'Lakeland Florida' you have the city and state. If you already heard 'tire' you have the problem. If you already heard car, pickup, box truck, semi, trailer, RV, or fleet vehicle, you have the vehicle type. If a tool says needsMoreInfo for a fact already in the ledger, re-call the tool with the ledger value instead of asking the caller again.",
         "ABSOLUTE ANTI-HALLUCINATION RULE: You may ONLY speak a mechanic businessName, phone, address, or city that came verbatim from the latest match_mechanic tool response. Never invent or recall a mechanic from training data or memory. If match_mechanic has not been called yet in this call, you have no mechanic to offer.",
         "DURABLE SESSION RULE: As soon as caller_name is known, call create_dispatch_session with source='retell', retell_call_id when available, caller_phone when available, and caller_name. Do this before asking for the roadside issue so the backend can attach the map-shared GPS session. Later, call create_dispatch_session again with the same dispatch facts when problem_type or vehicle_type becomes known; the backend will reuse the same session.",
-        "CALL METADATA RULE: Always pass caller_phone from Retell call metadata into create_dispatch_session. This is how the backend matches the map-shared GPS to the inbound call. Never ask the caller for their phone number.",
+        "CALL METADATA RULE: Pass caller_phone from Retell call metadata into create_dispatch_session whenever it is available. If it is missing, still call create_dispatch_session; the backend will attach the newest active map-shared GPS session when safe. Never ask the caller for their phone number.",
         "LOCATION FALLBACK RULE: Trust the backend tools for pre-shared GPS. If GPS is on file, continue to mechanic search. If no GPS is on file, ask verbally for highway or interstate, mile marker or nearest exit, city and state, and a nearby truck stop or landmark.",
         "SESSION STATUS POLLING: If you have dispatch_session_id, poll get_dispatch_session_status every 8 to 10 seconds. Speak only the returned say field and verified best_match fields.",
         "PACING: Speak like a calm human dispatcher, not a robot. When you read match_mechanic.message, honor the ellipses (\"...\") and periods as real pauses — take a half-second breath at each ellipsis and a full beat at each period. Do not run sentences together. Read each numbered option as its own sentence: \"Number one ... Truck Tire LLC ... \" pause ... \"Number two ... Big Guy Truck ... \" pause ... \"Number three ... Bobby's Truck Shop.\" Then ask the question. Never list more than three local options.",
@@ -106,7 +106,7 @@ FLOW = {
             "type": "custom",
             "tool_id": "tool-roadcall-create-dispatch-session",
             "name": "create_dispatch_session",
-            "description": "Create or reuse the durable Roadcall dispatch session for this live Retell call. Call this immediately after caller_name is known, before asking the issue. Always pass caller_phone from Retell call metadata so the backend can attach GPS already shared from the Roadcall map phone button. Use dispatch_session_id for backend polling. Do not speak any returned location code, URL, or link to the caller.",
+            "description": "Create or reuse the durable Roadcall dispatch session for this live Retell call. Call this immediately after caller_name is known, before asking the issue. Pass caller_phone from Retell call metadata when available; if it is missing, the backend can still attach the newest active map-shared GPS session. Use dispatch_session_id for backend polling. Do not speak any returned location code, URL, or link to the caller.",
             "url": f"{BACKEND_URL}/api/dispatch/create-session",
             "method": "POST",
             "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
@@ -116,7 +116,7 @@ FLOW = {
                     "source": {"type": "string", "description": "Always 'retell'"},
                     "retell_call_id": {"type": "string", "description": "Retell call ID when available"},
                     "twilio_call_sid": {"type": "string", "description": "Twilio CallSid when available"},
-                    "caller_phone": {"type": "string", "description": "Required. Caller phone from Retell call metadata / inbound from_number. This links the call to GPS shared from the map phone button."},
+                    "caller_phone": {"type": "string", "description": "Caller phone from Retell call metadata / inbound from_number when available. This links the call to GPS shared from the map phone button; if omitted, backend falls back to the newest active map-shared session."},
                     "caller_name": {"type": "string", "description": "Caller name if already provided"},
                     "problem_description": {"type": "string", "description": "Brief description of the problem if already known"},
                     "problem_type": {"type": "string", "description": "Normalized problem type if known"},
@@ -124,7 +124,7 @@ FLOW = {
                     "city": {"type": "string", "description": "City if already known"},
                     "state": {"type": "string", "description": "State if already known"}
                 },
-                "required": ["source", "caller_phone"]
+                "required": ["source"]
             }
         },
         {
