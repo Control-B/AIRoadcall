@@ -73,11 +73,11 @@ FLOW = {
         "You are Roadcall’s AI roadside dispatcher.",
         "Your primary job is: collect the caller's name, city, state, nearest major road or highway, what they need help with, and what type of vehicle they need assistance for, then search the private mechanic directory with verified caller facts.",
         "Roadcall has a private mechanic directory available through the match_mechanic function. Never claim exact directory counts or coverage unless the tool response says so.",
-        "HARD RULE — MINIMUM QUESTIONS: Before the first search, collect only missing dispatch facts: caller name, city and state when backend location is missing or unreadable, nearest major road or highway when location needs clarification, roadside problem, and vehicle type. Do not ask for callback, company, payment, insurance, license plate, exact address, or any location-sharing link before the mechanic search.",
-        "CALL FACTS LEDGER: Silently maintain caller_name, problem_type, problem_description, vehicle_type, city, state, nearest_major_road_or_highway, dispatch_session_id, caller_gps_available, and selected_mechanic. Once the caller says a fact or a tool returns it, treat it as locked for the rest of the call. Never ask for a locked fact again.",
+        "HARD RULE — MINIMUM QUESTIONS: Before the first search, collect only missing dispatch facts: caller name, city and state when location is missing or unreadable, nearest major road or highway when location needs clarification, roadside problem, and vehicle type. Do not ask for callback, company, payment, insurance, license plate, exact address, or any link before the mechanic search.",
+        "CALL FACTS LEDGER: Silently maintain caller_name, problem_type, problem_description, vehicle_type, city, state, nearest_major_road_or_highway, dispatch_session_id, and selected_mechanic. Once the caller says a fact or a tool returns it, treat it as locked for the rest of the call. Never ask for a locked fact again.",
         "BEFORE EVERY QUESTION: Check the ledger and transcript. If the answer appears anywhere earlier in the call, update the ledger and move forward instead of asking. If you need to verify a possibly misheard fact, confirm it briefly: 'I have [fact] - is that right?' Do not use the original open-ended question again.",
         "Normalize common answers without asking again: flat, blowout, spare, tire off rim, and low air mean problem_type=tire; won't start, dead battery, no crank, and crank no start mean problem_type=no_start or battery as stated; semi, tractor, eighteen-wheeler, rig, box truck, pickup, car, trailer, RV, and fleet vehicle are valid vehicle_type answers.",
-        "LOCATION RULE: Do not use the Roadcall map location-sharing flow for now. Do not mention websites, browser pages, links, text messages, location codes, shared GPS, or shared map pins. Ask the caller verbally for city, state, and nearest major road or highway.",
+        "LOCATION RULE: Ask the caller verbally for city, state, and nearest major road or highway. Do not mention websites, browser pages, links, or text messages.",
         "Immediately after the caller gives their name and location details, the flow may enter the Create Dispatch Session function node. Use caller-stated facts as the source of truth.",
         "If the caller explicitly names a city, search that exact caller-stated city — do not ask which part of the city before the first search. The tool can return nearby options automatically. Never use example cities as caller facts.",
         "At the start of the call, say exactly: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?' After the caller answers, collect city, state, nearest major road or highway, issue, and vehicle type one at a time. Never repeat the welcome after the caller answers.",
@@ -105,7 +105,7 @@ FLOW = {
             "type": "custom",
             "tool_id": "tool-roadcall-create-dispatch-session",
             "name": "create_dispatch_session",
-            "description": "Create or reuse the durable Roadcall dispatch session for this live Retell call. Pass caller_phone from Retell call metadata when available, plus caller-stated name, city, state, problem, and vehicle facts as they become known. Do not speak any returned location code, URL, or link to the caller.",
+            "description": "Create or reuse the durable Roadcall dispatch session for this live Retell call. Pass caller_phone from Retell call metadata when available, plus caller-stated name, city, state, problem, and vehicle facts as they become known. Do not speak any returned URL or link to the caller.",
             "url": f"{BACKEND_URL}/api/dispatch/create-session",
             "method": "POST",
             "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
@@ -290,7 +290,7 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "Speak exactly once: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\n"
-                    "Then stay silent and wait for real caller speech. Do not answer false noise, silence, or background audio. Do not repeat the greeting. Do not mention websites, browser pages, links, text messages, location codes, shared GPS, or shared map pins. After the caller gives their name, route to Search Intake unless they mentioned injury, fire, danger, or 911."
+                    "Then stay silent and wait for real caller speech. Do not answer false noise, silence, or background audio. Do not repeat the greeting. Do not mention websites, browser pages, links, or text messages. After the caller gives their name, route to Search Intake unless they mentioned injury, fire, danger, or 911."
                 )
             },
             "edges": [
@@ -344,7 +344,7 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Do not repeat the welcome message. Maintain the call facts ledger. Do not mention shared GPS, map pins, browser pages, links, text messages, or location codes.\n"
+                    "Do not repeat the welcome message. Maintain the call facts ledger. Do not mention browser pages, links, or text messages.\n"
                     "Collect ONLY the missing search fact, one question at a time. Before asking, scan the full transcript and ledger; if the caller already gave the answer, use it and move to the next missing fact:\n"
                     "- If caller name missing: 'Who am I speaking with?'\n"
                     "- If city/state missing: 'What city and state are you in?'\n"
@@ -352,7 +352,7 @@ FLOW = {
                     "- If nearest road is needed: 'What nearest major road or highway are you by?'\n"
                     "- If vehicle type missing and no vehicle was already given: 'What type of vehicle do you need assistance for?'\n"
                     "If a fact was already provided but may have been misheard, confirm it once with yes/no phrasing instead of re-asking the original question.\n"
-                    "Do not ask GPS, callback, company, payment, insurance, license plate, or exact address before matching.\n"
+                    "Do not ask callback, company, payment, insurance, license plate, or exact address before matching.\n"
                     "If dispatch_session_id is known, poll get_dispatch_session_status every 8 to 10 seconds while you continue intake. Speak only the returned say field if it is useful and does not repeat a question already answered."
                 )
             },
@@ -458,7 +458,7 @@ FLOW = {
                 },
                 {
                     "id": "edge-connect",
-                    "transition_condition": {"type": "prompt", "prompt": "Caller wants Roadcall to create the dispatch request, send GPS link, or continue helping"},
+                    "transition_condition": {"type": "prompt", "prompt": "Caller wants Roadcall to create the dispatch request or continue helping"},
                     "destination_node_id": "node-post-match-intake"
                 },
                 {
@@ -479,14 +479,14 @@ FLOW = {
                 "text": (
                     "Read the phone for the mechanic the caller chose. If they did not choose one, ask which option they want first.\n"
                     "Use only businessName and phone values from the latest match_mechanic response; do not invent or guess.\n"
-                    "Then ask: 'Do you want me to also create a Roadcall dispatch request using your shared location?'\n"
+                    "Then ask: 'Do you want me to also create a Roadcall dispatch request with those details?'\n"
                     "Do not end unless the caller explicitly says they are all set or no longer need help."
                 )
             },
             "edges": [
                 {
                     "id": "edge-phone-dispatch-request",
-                    "transition_condition": {"type": "prompt", "prompt": "Caller wants Roadcall dispatch request or GPS text after hearing mechanic phone"},
+                    "transition_condition": {"type": "prompt", "prompt": "Caller wants Roadcall dispatch request after hearing mechanic phone"},
                     "destination_node_id": "node-post-match-intake"
                 },
                 {
@@ -542,7 +542,7 @@ FLOW = {
                     "1. If get_dispatch_session_status has not been called yet and dispatch_session_id is known, call it now.\n"
                     "2. If city or state is missing, ask: 'What city and state are you in?'\n"
                     "3. If nearest road or highway is missing and needed for dispatch confidence, ask: 'What nearest major road or highway are you by?' Ask one short question at a time and continue with whatever the caller can provide.\n"
-                    "Do not mention websites, browser pages, links, text messages, codes, or any alternate location-sharing flow. Do not ask for the caller's phone number. Once you have a usable location from the backend or from what the caller says, move to dispatch search."
+                    "Do not mention websites, browser pages, links, text messages, or codes. Do not ask for the caller's phone number. Once you have a usable location from what the caller says, move to dispatch search."
                 )
             },
             "edges": [
@@ -865,7 +865,7 @@ agent_body = {
     "boosted_keywords": [
         "roadside", "mechanic", "towing", "tractor", "trailer",
         "tire", "coolant", "no-start", "derate", "air leak",
-        "roadcall", "dispatch", "shared location", "GPS", "nearest mechanic",
+        "roadcall", "dispatch", "city search", "nearest mechanic",
     ],
     "normalize_for_speech": True,
 }
