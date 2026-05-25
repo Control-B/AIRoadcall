@@ -183,6 +183,11 @@ async def test_retell_session_reuses_recent_map_session_when_phone_join_missing(
     assert map_session.retell_call_id == "call_missing_phone"
     assert map_session.lat == 27.8156
     assert map_session.address.startswith("Park Street North")
+    assert response.location_captured is True
+    assert response.latitude == 27.8156
+    assert response.longitude == -82.7023
+    assert response.say is not None
+    assert response.say.startswith("I see your shared location near")
     assert any(payload.get("map_fallback_attached") is True for _, event_type, payload in events if event_type == "session.reused")
 
 

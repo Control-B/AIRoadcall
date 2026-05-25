@@ -35,6 +35,16 @@ class DispatchCreateSessionResponse(BaseModel):
     location_url: str
     location_token: str
     expires_at: datetime
+    location_captured: bool = False
+    city: str | None = None
+    state: str | None = None
+    address: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    location_accuracy_m: float | None = None
+    location_source: str | None = None
+    location_captured_at: datetime | None = None
+    say: str | None = None
 
 
 class DispatchUpdateLocationRequest(BaseModel):

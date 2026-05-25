@@ -78,7 +78,7 @@ FLOW = {
         "BEFORE EVERY QUESTION: Check the ledger and transcript. If the answer appears anywhere earlier in the call, update the ledger and move forward instead of asking. If you need to verify a possibly misheard fact, confirm it briefly: 'I have [fact] - is that right?' Do not use the original open-ended question again.",
         "Normalize common answers without asking again: flat, blowout, spare, tire off rim, and low air mean problem_type=tire; won't start, dead battery, no crank, and crank no start mean problem_type=no_start or battery as stated; semi, tractor, eighteen-wheeler, rig, box truck, pickup, car, trailer, RV, and fleet vehicle are valid vehicle_type answers.",
         "LOCATION RULE: The caller's phone number and GPS are captured before the call when the driver taps the green phone button on the Roadcall map. Never direct the caller to a website, browser page, link, text message, code, or alternate location-sharing flow.",
-        "Immediately after the caller gives their name, call create_dispatch_session with caller_phone from Retell metadata and caller_name. Then call get_dispatch_session_status before asking what is wrong. If location_captured is true, verbally confirm the returned address/city in one sentence: 'I see your shared location near [address/city]. Is that correct?' Only after confirmation, ask what problem they are having.",
+        "Immediately after the caller gives their name, the flow must enter the Create Dispatch Session function node before asking what is wrong. Use that function result as the source of truth. If location_captured is true, verbally confirm the returned say field or address/city in one sentence before asking the issue.",
         "If location_captured is true, use that backend GPS for matching. Only use a caller-stated city instead when the caller explicitly says to search that city instead of their shared GPS.",
         "If the caller explicitly names a city, search that exact caller-stated city — do not ask which part of the city before the first search. The tool can return nearby options automatically. Never use example cities as caller facts.",
         "At the start of the call only, say exactly: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?' Then allow the caller to answer. Next ask exactly: 'What can I help you with today?' Never repeat the welcome after the caller answers.",
@@ -106,7 +106,7 @@ FLOW = {
             "type": "custom",
             "tool_id": "tool-roadcall-create-dispatch-session",
             "name": "create_dispatch_session",
-            "description": "Create or reuse the durable Roadcall dispatch session for this live Retell call. Call this immediately after caller_name is known, before asking the issue. Pass caller_phone from Retell call metadata when available; if it is missing, the backend can still attach the newest active map-shared GPS session. Use dispatch_session_id for backend polling. Do not speak any returned location code, URL, or link to the caller.",
+            "description": "Create or reuse the durable Roadcall dispatch session for this live Retell call. This function must run immediately after caller_name is known, before asking the issue. Pass caller_phone from Retell call metadata when available; if it is missing, the backend can still attach the newest active map-shared GPS session. Use dispatch_session_id and the returned location_captured/say fields as the call source of truth. Do not speak any returned location code, URL, or link to the caller.",
             "url": f"{BACKEND_URL}/api/dispatch/create-session",
             "method": "POST",
             "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
@@ -298,7 +298,7 @@ FLOW = {
                 {
                     "id": "edge-name-collected",
                     "transition_condition": {"type": "prompt", "prompt": "Caller provided their name, or declined to provide a name but still needs roadside help"},
-                    "destination_node_id": "node-intake"
+                    "destination_node_id": "node-create-dispatch-session"
                 },
                 {
                     "id": "edge-emergency",
@@ -308,18 +308,46 @@ FLOW = {
             ]
         },
 
+        # ── 1b. Deterministic session join ───────────────
+        {
+            "id": "node-create-dispatch-session",
+            "type": "function",
+            "name": "Create Dispatch Session",
+            "display_position": {"x": 280, "y": 300},
+            "tool_id": "tool-roadcall-create-dispatch-session",
+            "tool_type": "local",
+            "wait_for_result": True,
+            "speak_during_execution": True,
+            "instruction": {
+                "type": "prompt",
+                "text": "Say one short sentence: 'One moment, I’m checking your shared Roadcall location.'"
+            },
+            "edges": [
+                {
+                    "id": "edge-session-created",
+                    "transition_condition": {"type": "prompt", "prompt": "create_dispatch_session returned a dispatch_session_id"},
+                    "destination_node_id": "node-intake"
+                },
+                {
+                    "id": "edge-session-failed",
+                    "transition_condition": {"type": "prompt", "prompt": "create_dispatch_session failed, errored, or did not return a dispatch_session_id"},
+                    "destination_node_id": "node-intake"
+                }
+            ]
+        },
+
         # ── 2. Search intake without repeating greeting ──
         {
             "id": "node-intake",
             "type": "conversation",
             "name": "Search Intake",
-            "display_position": {"x": 400, "y": 300},
+            "display_position": {"x": 480, "y": 300},
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Do not repeat the welcome message. Maintain the call facts ledger. Do not ask what is wrong until you have first created/read the dispatch session and handled the shared-location confirmation below.\n"
-                    "Before asking the issue, call create_dispatch_session if it has not already been called. Pass caller_phone from call metadata when available plus caller_name and every known ledger fact. Store dispatch_session_id only; do not speak any location code, URL, link, or website instruction.\n"
-                    "Immediately call get_dispatch_session_status. If location_captured is true, speak the returned location confirmation naturally, for example: 'I see your shared location near [address or city]. Is that correct?' Wait for the caller's yes/no answer before asking what is wrong.\n"
+                    "Do not repeat the welcome message. Maintain the call facts ledger. This node is reached after the Create Dispatch Session function node. Treat its returned dispatch_session_id, location_captured, city, state, address, latitude, longitude, and say fields as locked backend facts.\n"
+                    "If create_dispatch_session returned location_captured=true, first speak its say field exactly if it asks to confirm the shared location; otherwise say: 'I see your shared location near [returned address/city/shared GPS pin]. Is that correct?' Wait for the caller's yes/no answer before asking what is wrong.\n"
+                    "If create_dispatch_session returned location_captured=false or no dispatch_session_id, say: 'I cannot see your shared location yet. Please keep the map page open and share your location again, or tell me your city and nearest highway or exit.' Then ask one short location question.\n"
                     "If the caller confirms the shared location, ask exactly: 'What can I help you with today?' If the caller says the map location is wrong, ask for city and nearest highway or exit.\n"
                     "Use the pre-shared GPS from the Roadcall map phone button when the backend has it. Collect ONLY the missing search fact, one question at a time. Before asking, scan the full transcript and ledger; if the caller already gave the answer, use it and move to the next missing fact:\n"
                     "- If city/state missing and GPS has not arrived yet: 'What city and state are you in?'\n"

@@ -123,6 +123,20 @@ class DispatchSessionService:
             location_url=_public_url(signed_token),
             location_token=signed_token,
             expires_at=token_row.expires_at,
+            location_captured=bool(session.location_captured_at),
+            city=session.city,
+            state=session.state,
+            address=session.address,
+            latitude=session.lat,
+            longitude=session.lng,
+            location_accuracy_m=session.location_accuracy_m,
+            location_source=session.location_source,
+            location_captured_at=session.location_captured_at,
+            say=DispatchSessionService._say(
+                session,
+                None,
+                ["problemType", "vehicleType"] if session.location_captured_at else ["location"],
+            ),
         )
 
     @staticmethod
