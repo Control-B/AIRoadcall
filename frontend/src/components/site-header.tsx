@@ -313,7 +313,7 @@ export function SiteHeader() {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="lg:hidden overflow-hidden bg-roadcall-panel/98 border-t border-roadcall-cyan/15"
+            className="lg:hidden overflow-hidden border-t border-white/50 bg-white/92 text-slate-950 shadow-2xl shadow-black/25 backdrop-blur-xl"
           >
             <div className="px-4 py-4 space-y-1 max-h-[80vh] overflow-y-auto">
               {navItems.map((item) => (
@@ -322,13 +322,13 @@ export function SiteHeader() {
                     href={item.href}
                     className={`flex items-center justify-between px-4 py-3 text-sm font-medium rounded-lg ${
                       pathname === item.href
-                        ? "text-white bg-roadcall-blue/15"
-                        : "text-roadcall-muted hover:text-white hover:bg-roadcall-cyan/10"
+                        ? "bg-slate-950 text-white shadow-sm"
+                        : "text-slate-900 hover:bg-slate-950/5 hover:text-slate-950"
                     }`}
                   >
                     {item.label}
                     {item.children && (
-                      <ArrowRight className="h-4 w-4 text-roadcall-muted" />
+                      <ArrowRight className={`h-4 w-4 ${pathname === item.href ? "text-white/75" : "text-slate-500"}`} />
                     )}
                   </Link>
                   {item.children && (
@@ -337,7 +337,7 @@ export function SiteHeader() {
                         <Link
                           key={child.label}
                           href={child.href}
-                          className="block px-4 py-2 text-sm text-roadcall-muted hover:text-white hover:bg-roadcall-cyan/10 rounded-lg"
+                          className="block px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-950/5 hover:text-slate-950 rounded-lg"
                         >
                           {child.label}
                         </Link>
