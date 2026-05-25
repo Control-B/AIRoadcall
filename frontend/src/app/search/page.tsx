@@ -30,6 +30,7 @@ import {
   Layers3,
   Satellite,
   Menu,
+  Minus,
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
@@ -762,6 +763,16 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
 
   return (
     <div className={`relative overflow-hidden rounded-2xl border border-roadcall-cyan/15 bg-roadcall-panel/30 ${className}`}>
+      <style jsx global>{`
+        .mapboxgl-ctrl-bottom-left,
+        .mapboxgl-ctrl-bottom-right {
+          padding-bottom: max(env(safe-area-inset-bottom), 12px);
+        }
+        .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl,
+        .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl {
+          margin-bottom: 12px;
+        }
+      `}</style>
       <div ref={containerRef} className="h-full w-full" />
       {isMobile ? (
         <>
@@ -789,9 +800,10 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                   type="button"
                   onClick={() => setMapSearchOpen(false)}
                   className="rounded-full p-1 text-roadcall-muted hover:bg-white/10 hover:text-white"
-                  aria-label="Close search"
+                  aria-label="Minimize search"
+                  title="Minimize"
                 >
-                  <X className="h-4 w-4" />
+                  <Minus className="h-4 w-4" />
                 </button>
               </div>
               <div className="grid gap-2">
@@ -875,7 +887,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             <div className="rounded-2xl border border-white/20 bg-white/95 p-3 text-slate-950 shadow-2xl backdrop-blur">
               <div className="mb-2 flex items-center justify-between gap-3">
                 <p className="text-xs font-black uppercase tracking-wide text-slate-600">Map search</p>
-                <button type="button" onClick={() => setMapSearchOpen(false)} aria-label="Minimize search" className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-950"><X className="h-4 w-4" /></button>
+                <button type="button" onClick={() => setMapSearchOpen(false)} aria-label="Minimize search" title="Minimize" className="rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-950"><Minus className="h-4 w-4" /></button>
               </div>
               <div className="grid gap-2 sm:grid-cols-[1fr_92px]">
                 <input
