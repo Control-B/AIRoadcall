@@ -536,7 +536,7 @@ function truckingCompanyToMechanic(company: PublicTruckingCompany, index: number
   };
 }
 
-function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, vendorControls, premiumMode, city, state, serviceType, onLocationSearch, onServiceTypeChange }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; vendorControls?: ReactNode; premiumMode: PremiumMapMode; city: string; state: string; serviceType: string; onLocationSearch: (city: string, state: string) => void; onServiceTypeChange: (serviceType: string) => void }) {
+function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = "h-[520px] min-h-[420px]", layoutKey, workspaceControls, vendorControls, premiumMode, onPremiumModeChange, city, state, serviceType, onLocationSearch, onServiceTypeChange }: { mechanics: Mechanic[]; onSearchArea: (bounds: MapBounds) => void; searchingArea: boolean; className?: string; layoutKey?: string; workspaceControls?: ReactNode; vendorControls?: ReactNode; premiumMode: PremiumMapMode; onPremiumModeChange?: (mode: PremiumMapMode) => void; city: string; state: string; serviceType: string; onLocationSearch: (city: string, state: string) => void; onServiceTypeChange: (serviceType: string) => void }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
@@ -774,20 +774,48 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         }
       `}</style>
       <div ref={containerRef} className="h-full w-full" />
-      {isMobile ? (
-        <>
+      {onPremiumModeChange ? (
+        <div
+          style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 0.75rem)" }}
+          className="absolute left-20 z-[80] inline-flex overflow-hidden rounded-full border border-white/20 bg-[#06101f]/95 text-[10px] font-black uppercase tracking-wide text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
+        >
           <button
             type="button"
-            onClick={() => { setMapSearchOpen((value) => !value); setMobileMenuOpen(false); }}
-            className="absolute left-3 top-3 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#06101f]/95 text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
-            aria-label="Open map search"
+            onClick={() => onPremiumModeChange("basic")}
+            className={`px-3 py-2 ${premiumMode !== "satellite" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver"}`}
+            aria-pressed={premiumMode !== "satellite"}
           >
-            <Search className="h-5 w-5" />
+            City
           </button>
           <button
             type="button"
+            onClick={() => onPremiumModeChange("satellite")}
+            className={`px-3 py-2 ${premiumMode === "satellite" ? "bg-roadcall-cyan text-slate-950" : "text-roadcall-silver"}`}
+            aria-pressed={premiumMode === "satellite"}
+          >
+            Satellite
+          </button>
+        </div>
+      ) : null}
+      {isMobile ? (
+        <>
+          {!mapSearchOpen ? (
+            <button
+              type="button"
+              onClick={() => { setMapSearchOpen(true); setMobileMenuOpen(false); }}
+              style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+              className="absolute left-3 z-[80] inline-flex items-center gap-2 rounded-full border border-white/20 bg-[#06101f]/95 px-3 py-2 text-[11px] font-black uppercase tracking-wide text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
+              aria-label="Open map search"
+            >
+              <Search className="h-4 w-4" />
+              Search
+            </button>
+          ) : null}
+          <button
+            type="button"
             onClick={() => { setMobileMenuOpen((value) => !value); setMapSearchOpen(false); }}
-            className="absolute right-3 top-3 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#06101f]/95 text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
+            style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
+            className="absolute right-3 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#06101f]/95 text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
             aria-label="Open map controls"
           >
             <Menu className="h-5 w-5" />
@@ -1946,6 +1974,7 @@ function SearchPageInner() {
                 onServiceTypeChange={setServiceType}
                 workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} />}
                 vendorControls={<VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />}
+                onPremiumModeChange={setPremiumMapMode}
               />
             </div>
             <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[70] hidden justify-center px-3 lg:flex">
