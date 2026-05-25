@@ -793,7 +793,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             type="button"
             onClick={() => { setMobileMenuOpen((value) => !value); setMapSearchOpen(false); }}
             style={{ top: "calc(env(safe-area-inset-top, 0px) + 0.75rem)" }}
-            className="absolute right-3 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#06101f]/95 text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
+            className="absolute left-1/2 -translate-x-1/2 z-[80] inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-[#06101f]/95 text-roadcall-silver shadow-2xl shadow-black/50 backdrop-blur-md"
             aria-label="Open map controls"
           >
             <Menu className="h-5 w-5" />
@@ -859,7 +859,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             </div>
           ) : null}
           {mobileMenuOpen ? (
-            <div className="absolute right-3 top-16 z-[80] w-[min(340px,calc(100%-1.5rem))] rounded-2xl border border-white/15 bg-[#06101f]/95 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
+            <div className="absolute left-1/2 -translate-x-1/2 top-16 z-[80] w-[min(340px,calc(100%-1.5rem))] rounded-2xl border border-white/15 bg-[#06101f]/95 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-roadcall-cyan">Map controls</p>
                 <button
@@ -1716,8 +1716,8 @@ function SearchPageInner() {
   return (
     <PageLayout>
       <NoCopySurface>
-      {/* Floating phone FAB — shares GPS and calls Sandy in one tap (visible on /search and /maps) */}
-      <ShareLocationCallButton />
+      {/* Floating phone FAB — shares GPS and calls Sandy in one tap (Maps page only) */}
+      {isMapsPage && <ShareLocationCallButton />}
       {/* Hero search header (directory page only) */}
       {!isMapsPage ? (
       <section className="relative pt-10 pb-8 border-b border-roadcall-cyan/10 bg-gradient-to-b from-roadcall-panel/30 to-transparent">
