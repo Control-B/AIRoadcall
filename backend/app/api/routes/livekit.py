@@ -136,6 +136,39 @@ async def _ensure_livekit_room(
         pass  # Non-fatal: room auto-creates on first join; metadata just won't be pre-set
 
 
+async def _dispatch_agent_to_room(*, room_name: str, session_id: UUID) -> None:
+    """Explicitly dispatch the Agent Builder agent (Sandy) to the WebRTC room."""
+    settings = get_settings()
+    if not settings.LIVEKIT_URL or not settings.LIVEKIT_API_KEY or not settings.LIVEKIT_API_SECRET:
+        return
+
+    now = datetime.now(timezone.utc)
+    admin_payload = {
+        "iss": settings.LIVEKIT_API_KEY,
+        "sub": "roadcall-backend",
+        "nbf": int(now.timestamp()),
+        "exp": int((now + timedelta(minutes=2)).timestamp()),
+        "video": {"roomAdmin": True, "agentDispatch": True},
+    }
+    admin_token = jwt.encode(admin_payload, settings.LIVEKIT_API_SECRET, algorithm="HS256")
+
+    rest_base = settings.LIVEKIT_URL.replace("wss://", "https://").replace("ws://", "http://")
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.post(
+                f"{rest_base}/twirp/livekit.AgentDispatchService/CreateDispatch",
+                json={
+                    "room_name": room_name,
+                    "agent_name": settings.LIVEKIT_AGENT_NAME,
+                    "metadata": json.dumps({"session_id": str(session_id)}),
+                },
+                headers={"Authorization": f"Bearer {admin_token}", "Content-Type": "application/json"},
+            )
+            resp.raise_for_status()
+    except Exception:
+        pass  # Non-fatal: log in prod; caller will still join and agent may still connect
+
+
 def _create_livekit_token(*, room_name: str, identity: str, session_id: UUID, expires_at: datetime) -> str:
     settings = get_settings()
     if not settings.LIVEKIT_URL or not settings.LIVEKIT_API_KEY or not settings.LIVEKIT_API_SECRET:
@@ -220,6 +253,12 @@ async def create_roadside_livekit_session(
         address=address,
         city=reverse.get("city"),
         state=reverse.get("state"),
+    )
+
+    # Dispatch Sandy (Alex-14b3) to the room so she joins the WebRTC call.
+    await _dispatch_agent_to_room(
+        room_name=room_name,
+        session_id=session.dispatch_session_id,
     )
 
     token = _create_livekit_token(

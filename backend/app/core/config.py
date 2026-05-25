@@ -93,7 +93,7 @@ class Settings(BaseSettings):
     LIVEKIT_URL: str = ""
     LIVEKIT_API_KEY: str = ""
     LIVEKIT_API_SECRET: str = ""
-    LIVEKIT_AGENT_NAME: str = "roadcall-agent"
+    LIVEKIT_AGENT_NAME: str = "Alex-14b3"
     LIVEKIT_TOKEN_TTL_MINUTES: int = 30
 
     ADMIN_USERNAME: str = "admin"
