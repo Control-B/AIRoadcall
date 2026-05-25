@@ -78,18 +78,36 @@ def _roadside_tools() -> list[dict]:
             "type": "webhook",
             "name": "save_driver_info",
             "description": (
-                "Call this at the start of every roadside call. "
-                "Pass driver_name, vehicle_type, issue_type, situation_note. "
-                "The backend automatically matches the caller's phone number to any "
-                "GPS location they shared on roadcall.ai before calling. "
-                "Returns either confirmation that GPS is already on file, or asks the "
-                "agent to collect location details verbally."
+                "Call this at the start of every roadside call. Pass any known: "
+                "driver_name, vehicle_type, truck_number, trailer_number, "
+                "company_name, issue_type, situation_note. "
+                "The backend auto-matches the caller's phone to (a) any GPS they "
+                "shared on roadcall.ai before calling, and (b) a stored caller "
+                "profile from prior calls. The response tells you whether this "
+                "is a returning caller (confirm any changes) or a first-timer "
+                "(collect missing details and location verbally)."
             ),
             "url": f"{base}/api/retell/save-driver-info",
             "method": "POST",
             "speak_during_execution": True,
             "speak_after_execution": True,
-            "execution_message_description": "Looking up your location now.",
+            "execution_message_description": "Pulling up your profile and location.",
+        },
+        {
+            "type": "webhook",
+            "name": "update_caller_profile",
+            "description": (
+                "Call ONLY when a returning caller says something on their stored "
+                "profile changed. Pass ONLY the changed fields among: driver_name, "
+                "vehicle_type, truck_number, trailer_number, company_name. "
+                "Do not call this for first-time callers — save_driver_info already "
+                "stored their info."
+            ),
+            "url": f"{base}/api/retell/update-caller-profile",
+            "method": "POST",
+            "speak_during_execution": False,
+            "speak_after_execution": True,
+            "execution_message_description": "Updating your profile.",
         },
         {
             "type": "webhook",

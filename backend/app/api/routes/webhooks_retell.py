@@ -80,20 +80,25 @@ def _body_args(body: dict) -> dict:
 
 @router.post("/save-driver-info")
 async def save_driver_info(request: Request, db: AsyncSession = Depends(get_session)):
-    """Create an active location session and attach the caller's pre-shared GPS.
+    """Create an active location session, attach pre-shared GPS, and look up
+    or upsert the caller profile keyed by phone.
 
-    Expected args: driver_name, vehicle_type, issue_type, situation_note
-    Phone is resolved from Retell call metadata. If the caller already shared
-    their location from the website (POST /api/caller/share-location) within
-    the TTL window, we hydrate the session immediately and the agent can skip
-    location collection entirely.
+    Expected args: driver_name, vehicle_type, issue_type, situation_note,
+    truck_number?, trailer_number?, company_name?
     """
     from app.services.caller_location_service import CallerLocationService
     from app.services.shared_caller_location_service import SharedCallerLocationService
+    from app.services.caller_profile_service import CallerProfileService
 
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
-    call_id: str = body.get("call_id") or body.get("call", {}).get("call_id") or ""
+    call_id: str = (
+        body.get("call_id")
+        or body.get("call", {}).get("call_id")
+        or args.get("retell_call_id")
+        or body.get("retell_call_id")
+        or ""
+    )
     logger.info("save_driver_info call_id=%s | body keys: %s", call_id, list(body.keys()))
 
     driver_name: str = (args.get("driver_name") or "").strip()
@@ -104,6 +109,9 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
     ).strip()
     issue_type: str = _normalize_issue(args.get("issue_type") or "other")
     situation_note: str = (args.get("situation_note") or "").strip()
+    truck_number: str = (args.get("truck_number") or args.get("unit_number") or "").strip()
+    trailer_number: str = (args.get("trailer_number") or "").strip()
+    company_name: str = (args.get("company_name") or args.get("company") or "").strip()
 
     # Resolve caller phone from args or Retell call API — optional, used to tag the session
     driver_phone: str = (
@@ -141,8 +149,24 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
             call_provider="retell",
         )
 
+        # Profile lookup BEFORE upsert so we can detect returning callers.
+        existing_profile = await CallerProfileService.get_by_phone(db, driver_phone)
+        is_returning = existing_profile is not None
+
+        # Upsert with whatever the agent passed this turn (also bumps call_count).
+        profile = await CallerProfileService.upsert(
+            db,
+            phone=driver_phone or "",
+            driver_name=driver_name or None,
+            vehicle_type=vehicle_type or None,
+            truck_number=truck_number or None,
+            trailer_number=trailer_number or None,
+            company_name=company_name or None,
+        )
+
         # Look up location the caller pre-shared from the website.
         shared = await SharedCallerLocationService.consume(driver_phone) if driver_phone else None
+        location_line = ""
         if shared and shared.get("latitude") is not None and shared.get("longitude") is not None:
             session.latitude = shared["latitude"]
             session.longitude = shared["longitude"]
@@ -151,23 +175,43 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
             session.city = shared.get("city") or session.city
             session.state = shared.get("state") or session.state
             session.status = "location_received"
-            await db.commit()
             where = (
                 f"near {session.city}, {session.state}"
                 if session.city and session.state
                 else f"at {session.latitude:.4f}, {session.longitude:.4f}"
             )
+            location_line = f"I already have your GPS from the website {where}. "
             logger.info(
                 "save_driver_info: hydrated location from website share phone=%s call_id=%s",
                 driver_phone, call_id,
             )
-            return _retell_result(
-                f"Got it. I already have your GPS from the website {where}. "
-                "Now call find_nearby_mechanics to match the closest help."
-            )
+        else:
+            logger.info("save_driver_info: no pre-shared location for phone=%s call_id=%s", driver_phone, call_id)
 
         await db.commit()
-        logger.info("save_driver_info: no pre-shared location for phone=%s call_id=%s", driver_phone, call_id)
+
+        # Build the spoken response.
+        if is_returning and existing_profile is not None:
+            summary = CallerProfileService.summarize(existing_profile)
+            confirm = (
+                f"Welcome back. I have you on file as {summary}. " if summary else "Welcome back. "
+            )
+            confirm += (
+                "Is anything different today — company, truck number, trailer number, or vehicle? "
+                "If something changed, tell me and I will update it with update_caller_profile."
+            )
+            if location_line:
+                return _retell_result(location_line + confirm + " Then we'll find the closest help.")
+            return _retell_result(
+                confirm + " Also, please share the highway, exit, nearest truck stop, city, and state — "
+                "or tap 'Share my location' on roadcall.ai and call back."
+            )
+
+        # First-time caller path
+        if location_line:
+            return _retell_result(
+                location_line + "Now call find_nearby_mechanics to match the closest help."
+            )
         return _retell_result(
             f"Thanks {driver_name or 'driver'}. I don't see a shared location for this number yet. "
             "Please tell me the highway, exit number, nearest truck stop, city, and state — "
@@ -180,6 +224,49 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
             "Ask the caller for their highway, exit number, nearest truck stop, city, and state "
             "so I can locate them manually."
         )
+
+
+@router.post("/update-caller-profile")
+async def update_caller_profile(request: Request, db: AsyncSession = Depends(get_session)):
+    """Update the caller's stored profile mid-call when something changed.
+
+    Expected args (any subset): driver_name, vehicle_type, truck_number,
+    trailer_number, company_name. Phone is taken from the Retell call envelope.
+    """
+    from app.services.caller_profile_service import CallerProfileService
+
+    body: dict[str, Any] = await request.json()
+    args = _body_args(body)
+    driver_phone: str = (
+        args.get("driver_phone")
+        or args.get("phone_number")
+        or args.get("caller_phone")
+        or body.get("from_number")
+        or ""
+    ).strip()
+    if not driver_phone:
+        return _retell_result("I can't update the profile without a phone number on this call.")
+
+    fields = {
+        "driver_name": (args.get("driver_name") or "").strip() or None,
+        "vehicle_type": (args.get("vehicle_type") or "").strip() or None,
+        "truck_number": (args.get("truck_number") or args.get("unit_number") or "").strip() or None,
+        "trailer_number": (args.get("trailer_number") or "").strip() or None,
+        "company_name": (args.get("company_name") or args.get("company") or "").strip() or None,
+    }
+    if not any(fields.values()):
+        return _retell_result("Nothing to update — no new values were given.")
+
+    profile = await CallerProfileService.upsert(
+        db, phone=driver_phone, bump_call_count=False, **fields
+    )
+    await db.commit()
+    changed = ", ".join(k.replace("_", " ") for k, v in fields.items() if v)
+    summary = CallerProfileService.summarize(profile) if profile else ""
+    logger.info("update_caller_profile: phone=%s changed=%s", driver_phone, changed)
+    if summary:
+        return _retell_result(f"Updated {changed}. I now have you as {summary}.")
+    return _retell_result(f"Updated {changed}.")
 
 
 @router.post("/check-location")
@@ -195,7 +282,13 @@ async def check_driver_location(request: Request, db: AsyncSession = Depends(get
 
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
-    call_id: str = body.get("call_id") or body.get("call", {}).get("call_id") or ""
+    call_id: str = (
+        body.get("call_id")
+        or body.get("call", {}).get("call_id")
+        or args.get("retell_call_id")
+        or body.get("retell_call_id")
+        or ""
+    )
     caller_phone: str = (
         args.get("caller_phone")
         or args.get("callerPhone")
