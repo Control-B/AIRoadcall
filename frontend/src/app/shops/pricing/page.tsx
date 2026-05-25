@@ -2,35 +2,33 @@
 
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Phone, Sparkles, Truck, Wrench } from "lucide-react";
+import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
 
 const plans = [
   {
     name: "Standard",
-    price: "$197",
-    setup: "+ $99 setup fee",
-    target: "Core 24/7 AI Service Operations System for mechanics.",
-    href: "https://buy.stripe.com/aFa8wR3JS1d4ezwaUu1sQ0o",
-    category: "MVP Plan",
-    features: ["AI phone answering", "AI intake", "Call summaries", "FAQ assistant", "Appointment capture", "Lead capture"],
+    price: "$297",
+    setup: "$149 setup",
+    target: "AI service advisor foundation for shops that need a website, AI telephone, widget, and CRM.",
+    href: GHL_GET_STARTED_URL,
+    features: ["Website", "AI Telephone", "AI Widget", "CRM", "Managed CRM access"],
   },
   {
     name: "Professional",
-    price: "$297",
-    setup: "+ $149 setup fee",
-    target: "Everything in Standard plus conversion and reputation upgrades.",
-    href: "https://buy.stripe.com/14A6oJbckg7Ycro0fQ1sQ0p",
-    category: "MVP Plan",
+    price: "$497",
+    setup: "$199 setup",
+    target: "Everything in Standard plus mobile app, customer portal, and managed CRM access.",
+    href: GHL_GET_STARTED_URL,
     highlighted: true,
-    features: ["Everything in Standard", "AI Widget", "Reviews"],
+    features: ["Everything in Standard", "Mobile App", "Customer Portal", "Managed CRM access"],
   },
   {
     name: "Advanced",
-    price: "$397",
-    setup: "+ $249 setup fee",
-    target: "Everything in Professional with a Smart Website built for booking.",
-    href: "https://buy.stripe.com/7sYfZjfsA090gHEe6G1sQ0q",
-    category: "MVP Plan",
-    features: ["Everything in Professional", "Smart Website"],
+    price: "$997",
+    setup: "$299 setup",
+    target: "Everything in Professional plus social media marketing and content planning.",
+    href: GHL_GET_STARTED_URL,
+    features: ["Everything in Professional", "Social Media Marketing", "Content Planning"],
   },
 ];
 
@@ -58,8 +56,7 @@ export default function ShopsPricingPage() {
       <section className="mx-auto mt-14 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-3">
         {plans.map((plan) => (
           <article key={plan.name} className={`flex flex-col rounded-[1.5rem] border p-6 ${plan.highlighted ? "border-orange-300/50 bg-orange-300/10" : "border-white/10 bg-white/[0.035]"}`}>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-200">{plan.category}</p>
-            <h2 className="mt-3 text-2xl font-black">{plan.name}</h2>
+            <h2 className="text-2xl font-black">{plan.name}</h2>
             <p className="mt-2 text-sm leading-6 text-slate-400">{plan.target}</p>
             <p className="mt-5 text-4xl font-black">{plan.price}<span className="text-sm font-semibold text-slate-400">/mo</span></p>
             <p className="mt-1 text-sm font-semibold text-orange-200">{plan.setup}</p>
