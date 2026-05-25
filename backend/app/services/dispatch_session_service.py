@@ -31,6 +31,7 @@ from app.schemas.roadside_match import RoadsideMatchRequest, RoadsideMatchRespon
 from app.services.geocoding_service import GeocodingService
 from app.services.roadside_matching_service import RoadsideMatchingService
 from app.services.session_cache_service import SessionCacheService
+from app.services.shared_caller_location_service import SharedCallerLocationService
 from app.utils.us_geo import infer_state_from_coordinates
 
 _PHONE_DIGITS = re.compile(r"\D")
@@ -84,6 +85,9 @@ class DispatchSessionService:
             source=payload.source or "api",
         )
         DispatchSessionService._apply_intake(session, payload)
+        shared_location = await DispatchSessionService._consume_pre_shared_location(payload.caller_phone)
+        if shared_location:
+            DispatchSessionService._apply_shared_location(session, shared_location)
         db.add(session)
         await db.flush()
 
@@ -93,8 +97,17 @@ class DispatchSessionService:
             "source": session.source,
             "has_retell_call_id": bool(session.retell_call_id),
             "has_twilio_call_sid": bool(session.twilio_call_sid),
+            "has_pre_shared_location": bool(shared_location),
         })
-        await DispatchSessionService.record_event(db, session.id, "location.requested", "system", {"location_token_id": str(token_row.id)})
+        if shared_location:
+            await DispatchSessionService.record_event(db, session.id, "location.updated", "caller", {
+                "source": "map_phone_button",
+                "city": session.city,
+                "state": session.state,
+                "accuracy_m": session.location_accuracy_m,
+            }, is_public=True)
+        else:
+            await DispatchSessionService.record_event(db, session.id, "location.requested", "system", {"location_token_id": str(token_row.id)})
         await SessionCacheService.mirror_session(session, ttl_seconds=payload.expires_minutes * 60)
         return DispatchCreateSessionResponse(
             dispatch_session_id=session.id,
@@ -403,6 +416,34 @@ class DispatchSessionService:
             session.location_captured_at = session.location_captured_at or datetime.now(timezone.utc)
 
     @staticmethod
+    async def _consume_pre_shared_location(caller_phone: str | None) -> dict[str, Any] | None:
+        if not caller_phone:
+            return None
+        shared = await SharedCallerLocationService.consume(caller_phone)
+        if not shared or shared.get("latitude") is None or shared.get("longitude") is None:
+            return None
+        return shared
+
+    @staticmethod
+    def _apply_shared_location(session: DispatchSession, shared: dict[str, Any]) -> None:
+        session.lat = shared["latitude"]
+        session.lng = shared["longitude"]
+        session.location_accuracy_m = shared.get("accuracy")
+        session.location_source = "map_phone_button"
+        session.location_captured_at = datetime.now(timezone.utc)
+        session.city = shared.get("city") or session.city
+        session.state = shared.get("state") or session.state
+        session.address = shared.get("address") or session.address
+        session.status = DispatchSessionStatus.matching.value
+        metadata = session.metadata_json or {}
+        session.metadata_json = {
+            **metadata,
+            "pre_shared_location": True,
+            "pre_shared_location_phone": shared.get("phone"),
+            "pre_shared_location_captured_at": shared.get("captured_at"),
+        }
+
+    @staticmethod
     async def _issue_location_token(db: AsyncSession, session: DispatchSession, expires_minutes: int) -> tuple[DispatchLocationToken, str]:
         placeholder_id = uuid.uuid4()
         token = create_dispatch_location_token(str(session.id), session.public_code, str(placeholder_id), expires_minutes=expires_minutes)
@@ -501,4 +542,4 @@ class DispatchSessionService:
             return f"I found {best_match['company_name']} near {location or 'your area'}. I’m confirming availability now."
         if session.location_captured_at:
             return "I have your location and I’m checking the best nearby provider now."
-        return f"I created your Roadcall session code {session.public_code}. Please go to roadcall.ai slash go and enter that code so I can find nearby help."
+        return "I still need your location. Please tell me the highway or interstate, nearest exit, city, state, and a nearby truck stop or landmark."

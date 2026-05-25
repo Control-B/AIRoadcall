@@ -19,6 +19,7 @@ from app.schemas.roadside_match import (  # noqa: E402
     RoadsideMatchResponse,
     RoadsideMechanicMatch,
 )
+from app.models.dispatch_session import DispatchSession, DispatchSessionStatus  # noqa: E402
 from app.services.dispatch_session_service import DispatchSessionService  # noqa: E402
 
 
@@ -145,6 +146,34 @@ async def test_session_status_returns_ai_safe_summary(monkeypatch):
     assert body["best_match"]["company_name"] == "Verified Truck Repair"
     assert "phone" not in body["best_match"]
     assert body["say"].startswith("I found Verified Truck Repair")
+
+
+def test_pre_shared_location_marks_dispatch_session_ready_for_matching():
+    session = DispatchSession(public_code="RC-1234", status=DispatchSessionStatus.awaiting_location.value)
+
+    DispatchSessionService._apply_shared_location(
+        session,
+        {
+            "phone": "+18135551212",
+            "latitude": 28.0395,
+            "longitude": -81.9498,
+            "accuracy": 12,
+            "city": "Lakeland",
+            "state": "FL",
+            "address": "I-4, Lakeland, FL",
+            "captured_at": "2026-05-25T02:00:00+00:00",
+        },
+    )
+
+    assert session.lat == 28.0395
+    assert session.lng == -81.9498
+    assert session.location_accuracy_m == 12
+    assert session.city == "Lakeland"
+    assert session.state == "FL"
+    assert session.location_source == "map_phone_button"
+    assert session.location_captured_at is not None
+    assert session.status == DispatchSessionStatus.matching.value
+    assert session.metadata_json["pre_shared_location"] is True
 
 
 @pytest.mark.asyncio

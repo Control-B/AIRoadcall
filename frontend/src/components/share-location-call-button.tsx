@@ -37,46 +37,57 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
     }
   }, []);
 
-  const shareLocationInBackground = useCallback((rawPhone: string) => {
+  const shareLocation = useCallback(async (rawPhone: string): Promise<boolean> => {
     const digits = digitsOnly(rawPhone);
-    if (digits.length < 10) return;
+    if (digits.length < 10) return false;
+
     try {
       window.localStorage.setItem(PHONE_STORAGE_KEY, digits);
     } catch {
       /* ignore */
     }
+
     if (!navigator.geolocation) {
       setStatus("ready");
       setMessage("Calling now — Sandy will ask for your location.");
-      return;
+      return false;
     }
+
     setStatus("working");
     setMessage("Sharing your GPS with Sandy…");
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          await fetch(`${getApiBase()}/caller/share-location`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              phone: digits,
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              accuracy: pos.coords.accuracy ?? null,
-            }),
-          });
-        } catch {
-          /* even if the share fails, the call already went through */
-        }
-        setStatus("ready");
-        setMessage("Location shared — Sandy has your GPS.");
-      },
-      () => {
-        setStatus("ready");
-        setMessage("Couldn't read GPS — Sandy will ask for your location on the call.");
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
-    );
+
+    return new Promise((resolve) => {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const response = await fetch(`${getApiBase()}/caller/share-location`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                phone: digits,
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                accuracy: pos.coords.accuracy ?? null,
+              }),
+            });
+            if (!response.ok) throw new Error("Location share failed");
+            setStatus("ready");
+            setMessage("Location shared — calling Sandy now.");
+            resolve(true);
+          } catch {
+            setStatus("ready");
+            setMessage("Couldn't share GPS — Sandy will ask for your location on the call.");
+            resolve(false);
+          }
+        },
+        () => {
+          setStatus("ready");
+          setMessage("Couldn't read GPS — Sandy will ask for your location on the call.");
+          resolve(false);
+        },
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+      );
+    });
   }, []);
 
   const shareAndCall = useCallback(async (rawPhone: string) => {
@@ -86,21 +97,23 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
       setMessage("Enter the number you'll call from.");
       return;
     }
-    shareLocationInBackground(digits);
-    setTimeout(() => callLinkRef.current?.click(), 50);
-  }, [shareLocationInBackground]);
+
+    setPhone(digits);
+    await shareLocation(digits);
+    callLinkRef.current?.click();
+  }, [shareLocation]);
 
   const hasPhone = digitsOnly(phone).length >= 10;
 
-  const handleFabClick = useCallback(() => {
+  const handleFabClick = useCallback((event?: { preventDefault: () => void }) => {
+    event?.preventDefault();
     if (!hasPhone) {
       setStatus("needPhone");
       setMessage(null);
       return;
     }
-    // tel: navigation happens via the anchor's native click — fire share in parallel.
-    shareLocationInBackground(phone);
-  }, [hasPhone, phone, shareLocationInBackground]);
+    void shareAndCall(phone);
+  }, [hasPhone, phone, shareAndCall]);
 
   const close = useCallback(() => {
     setStatus("idle");
