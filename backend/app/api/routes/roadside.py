@@ -21,6 +21,7 @@ from app.services.dispatch_session_service import DispatchSessionService
 from app.schemas.provisioning import RoadsideSessionView
 from app.services.provisioning_service import ProvisioningService
 from app.services.roadside_matching_service import RoadsideMatchingService
+from app.utils.us_geo import infer_state_from_coordinates
 
 router = APIRouter(prefix="/roadside", tags=["roadside"])
 logger = get_logger(__name__)
@@ -105,17 +106,18 @@ async def _prefer_shared_gps_if_available(db: AsyncSession, request: RoadsideMat
         return request
 
     caller_phone = request.callerPhone or request.callbackNumber
-    if not caller_phone:
-        return request
-    session = await DispatchSessionService.latest_by_phone(db, caller_phone)
+    session = await DispatchSessionService.latest_by_phone(db, caller_phone) if caller_phone else None
+    if not session or session.lat is None or session.lng is None:
+        session = await DispatchSessionService._find_recent_map_shared_session(db)
     if not session or session.lat is None or session.lng is None:
         return request
 
+    state = session.state or infer_state_from_coordinates(session.lat, session.lng)
     return request.model_copy(update={
         "latitude": session.lat,
         "longitude": session.lng,
-        "city": session.city or request.city,
-        "state": session.state or request.state,
+        "city": session.city,
+        "state": state,
         "callerPhone": request.callerPhone or session.caller_phone_encrypted,
         "callbackNumber": request.callbackNumber or session.caller_phone_encrypted,
     })
