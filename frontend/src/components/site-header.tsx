@@ -167,6 +167,7 @@ export function SiteHeader() {
   const pathname = usePathname();
   const getStartedHref = "/get-started";
   const signInHref = GHL_SIGN_IN_URL ? "/sign-in" : "/admin/login";
+  const isMapsPage = pathname === "/maps";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -288,7 +289,11 @@ export function SiteHeader() {
 
         {/* ── Mobile hamburger ──────────────────────────── */}
         <button
-          className="lg:hidden p-2 text-roadcall-muted hover:text-white transition-colors"
+          className={`lg:hidden rounded-full p-2 transition-colors ${
+            isMapsPage
+              ? "border border-slate-950/10 bg-white/95 text-slate-950 shadow-lg shadow-black/15 hover:bg-white"
+              : "text-roadcall-muted hover:text-white"
+          }`}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
         >

@@ -293,7 +293,7 @@ FLOW = {
                 "type": "prompt",
                 "text": (
                     "If the dynamic variable has_shared_gps equals 'true', speak exactly once: "
-                    "'Thanks for reaching Roadcall through the map. This is Sandy. I can see you near {{caller_address}} in {{caller_city}}, {{caller_state}}. Who am I speaking with?' "
+                    "'Thanks for reaching Roadcall through the map. This is Sandy. I can see you {{caller_location_phrase}}. Who am I speaking with?' "
                     "Otherwise speak exactly once: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\n"
                     "Then stay silent and wait for real caller speech. Do not answer false noise, silence, or background audio. Do not repeat the greeting. Do not mention websites, browser pages, links, or text messages. After the caller gives their name, route to Search Intake unless they mentioned injury, fire, danger, or 911."
                 )

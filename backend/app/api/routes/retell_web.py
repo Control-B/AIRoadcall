@@ -109,16 +109,36 @@ async def create_roadside_web_call(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Retell is not configured for this environment.",
         )
-    agent_id = (settings.RETELL_ROADSIDE_WEB_AGENT_ID or "").strip()
+    # Prefer the dedicated web agent when configured; otherwise reuse the
+    # Sandy phone agent, which carries the GPS-aware conversation flow
+    # (see scripts/create_retell_flow.py — `has_shared_gps` prompt block).
+    agent_id = (settings.RETELL_ROADSIDE_WEB_AGENT_ID or settings.RETELL_AGENT_ID or "").strip()
     if not agent_id:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Sandy roadside web Retell agent is not configured (set RETELL_ROADSIDE_WEB_AGENT_ID).",
+            detail="No Sandy Retell agent is configured (set RETELL_ROADSIDE_WEB_AGENT_ID or RETELL_AGENT_ID).",
         )
 
     phone_e164 = _normalize_phone(payload.caller_phone)
     reverse = await GeocodingService.reverse_geocode(payload.latitude, payload.longitude) or {}
     address = reverse.get("place_name") or reverse.get("address")
+    city = reverse.get("city")
+    state = reverse.get("state")
+
+    # Self-contained, always-non-empty phrase the agent can speak verbatim
+    # even when Mapbox reverse-geocode fails. Referenced as
+    # {{caller_location_phrase}} in the GPS-aware flow opening line.
+    if address and city and state:
+        location_phrase = f"near {address} in {city}, {state}"
+    elif city and state:
+        location_phrase = f"in {city}, {state}"
+    elif address:
+        location_phrase = f"near {address}"
+    else:
+        location_phrase = (
+            f"at the GPS spot you just shared "
+            f"(roughly {payload.latitude:.4f}, {payload.longitude:.4f})"
+        )
 
     session = await DispatchSessionService.create_session(
         db,
@@ -149,6 +169,7 @@ async def create_roadside_web_call(
         "caller_address": address or "",
         "caller_city": reverse.get("city") or "",
         "caller_state": reverse.get("state") or "",
+        "caller_location_phrase": location_phrase,
         "caller_source": "roadcall_map_button",
         "has_shared_gps": "true",
     }
@@ -160,6 +181,9 @@ async def create_roadside_web_call(
             "dispatch_session_id": str(session.dispatch_session_id),
             "latitude": payload.latitude,
             "longitude": payload.longitude,
+            "caller_address": address,
+            "caller_city": city,
+            "caller_state": state,
         },
         "retell_llm_dynamic_variables": dynamic_vars,
     }
