@@ -78,6 +78,7 @@ FLOW = {
         "BEFORE EVERY QUESTION: Check the ledger and transcript. If the answer appears anywhere earlier in the call, update the ledger and move forward instead of asking. If you need to verify a possibly misheard fact, confirm it briefly: 'I have [fact] - is that right?' Do not use the original open-ended question again.",
         "Normalize common answers without asking again: flat, blowout, spare, tire off rim, and low air mean problem_type=tire; won't start, dead battery, no crank, and crank no start mean problem_type=no_start or battery as stated; semi, tractor, eighteen-wheeler, rig, box truck, pickup, car, trailer, RV, and fleet vehicle are valid vehicle_type answers.",
         "LOCATION RULE: The caller's phone number and GPS are captured before the call when the driver taps the green phone button on the Roadcall map. Never direct the caller to a website, browser page, link, text message, code, or alternate location-sharing flow.",
+        "PRE-SPEECH CONTEXT RULE: Before the first spoken sentence, the flow must call load_active_call_context. The first spoken behavior must be to confirm active_call_context.shared_location when present: 'I see your shared location near [address/city/state]. Is that where you need roadside help?' Do not ask the problem until the caller confirms.",
         "Immediately after the caller gives their name, the flow must enter the Create Dispatch Session function node before asking what is wrong. Use that function result as the source of truth. If location_captured is true, verbally confirm the returned say field or address/city in one sentence before asking the issue.",
         "If location_captured is true, use that backend GPS for matching. Only use a caller-stated city instead when the caller explicitly says to search that city instead of their shared GPS.",
         "If the caller explicitly names a city, search that exact caller-stated city — do not ask which part of the city before the first search. The tool can return nearby options automatically. Never use example cities as caller facts.",
@@ -102,6 +103,24 @@ FLOW = {
     ]),
 
     "tools": [
+        {
+            "type": "custom",
+            "tool_id": "tool-roadcall-active-call-context",
+            "name": "load_active_call_context",
+            "description": "Load the active Roadcall call context before Sandy speaks. This must run as the first flow step. It fetches the caller's latest map-shared GPS session and returns the exact first sentence Sandy should use to confirm location.",
+            "url": f"{BACKEND_URL}/api/dispatch/active-call-context",
+            "method": "POST",
+            "headers": {"Authorization": f"Bearer {WEBHOOK_TOKEN}"},
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "source": {"type": "string", "description": "Always 'retell'"},
+                    "retell_call_id": {"type": "string", "description": "Retell call ID when available"},
+                    "caller_phone": {"type": "string", "description": "Caller phone from Retell metadata when available"}
+                },
+                "required": ["source"]
+            }
+        },
         {
             "type": "custom",
             "tool_id": "tool-roadcall-create-dispatch-session",
@@ -281,29 +300,64 @@ FLOW = {
     ],
 
     "nodes": [
-        # ── 1. Start: one-time greeting ───────────────────
+        # ── 1. Start: deterministic context load ───────────
         {
             "id": "start-node",
+            "type": "function",
+            "name": "Load Active Call Context",
+            "display_position": {"x": 40, "y": 300},
+            "tool_id": "tool-roadcall-active-call-context",
+            "tool_type": "local",
+            "wait_for_result": True,
+            "speak_during_execution": False,
+            "instruction": {
+                "type": "prompt",
+                "text": "Do not speak. Load active_call_context before Sandy says anything."
+            },
+            "edges": [
+                {
+                    "id": "edge-context-loaded",
+                    "transition_condition": {"type": "prompt", "prompt": "load_active_call_context returned ok=true or active_call_context"},
+                    "destination_node_id": "node-confirm-active-call-context"
+                },
+                {
+                    "id": "edge-context-failed",
+                    "transition_condition": {"type": "prompt", "prompt": "load_active_call_context failed or returned no context"},
+                    "destination_node_id": "node-confirm-active-call-context"
+                }
+            ]
+        },
+
+        # ── 1a. First spoken behavior ──────────────────────
+        {
+            "id": "node-confirm-active-call-context",
             "type": "conversation",
-            "name": "One-Time Greeting",
-            "display_position": {"x": 100, "y": 300},
+            "name": "Confirm Shared Location First",
+            "display_position": {"x": 220, "y": 300},
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Speak exactly once: 'Thanks for calling Roadcall. This is Sandy. Who am I speaking with?'\n"
-                    "Then stay silent and wait for real caller speech. Do not answer false noise, silence, or background audio. Do not repeat the greeting. Do not ask what they need yet in this node. Do not mention any website, link, text message, or location code. After the caller gives their name, route to Search Intake unless they mentioned injury, fire, danger, or 911."
+                    "This is the first spoken node. Do not greet first. Do not ask the caller's name first.\n"
+                    "If load_active_call_context returned active_call_context.shared_location, speak the returned say field exactly. It should be: 'I see your shared location near [address/city/state]. Is that where you need roadside help?' Then wait for yes or no.\n"
+                    "If no shared_location was returned, speak the returned say field exactly. Then ask one short location question.\n"
+                    "Only after the caller confirms the shared location, ask exactly: 'What can I help you with today?'"
                 )
             },
             "edges": [
                 {
-                    "id": "edge-name-collected",
-                    "transition_condition": {"type": "prompt", "prompt": "Caller provided their name, or declined to provide a name but still needs roadside help"},
-                    "destination_node_id": "node-create-dispatch-session"
+                    "id": "edge-location-confirmed",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller confirms the shared location is where they need roadside help"},
+                    "destination_node_id": "node-intake"
                 },
                 {
                     "id": "edge-emergency",
                     "transition_condition": {"type": "prompt", "prompt": "Driver mentions injuries, fire, danger, or needs 911 / emergency services"},
                     "destination_node_id": "node-end-emergency"
+                },
+                {
+                    "id": "edge-location-wrong",
+                    "transition_condition": {"type": "prompt", "prompt": "Caller says the shared location is wrong, missing, or not where they need help"},
+                    "destination_node_id": "node-intake"
                 }
             ]
         },
@@ -345,10 +399,8 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Do not repeat the welcome message. Maintain the call facts ledger. This node is reached after the Create Dispatch Session function node. Treat its returned dispatch_session_id, location_captured, city, state, address, latitude, longitude, and say fields as locked backend facts.\n"
-                    "If create_dispatch_session returned location_captured=true, first speak its say field exactly if it asks to confirm the shared location; otherwise say: 'I see your shared location near [returned address/city/shared GPS pin]. Is that correct?' Wait for the caller's yes/no answer before asking what is wrong.\n"
-                    "If create_dispatch_session returned location_captured=false or no dispatch_session_id, say: 'I cannot see your shared location yet. Please keep the map page open and share your location again, or tell me your city and nearest highway or exit.' Then ask one short location question.\n"
-                    "If the caller confirms the shared location, ask exactly: 'What can I help you with today?' If the caller says the map location is wrong, ask for city and nearest highway or exit.\n"
+                    "Do not repeat the welcome message or shared-location confirmation. Maintain the call facts ledger. This node is reached after active_call_context has already been loaded and the caller has answered the location confirmation. Treat active_call_context.session_id, shared_location.lat, shared_location.lng, city, state, and address as locked backend facts.\n"
+                    "If the caller confirmed the shared location, ask exactly one missing intake question. If the caller says the map location is wrong, ask for city and nearest highway or exit.\n"
                     "Use the pre-shared GPS from the Roadcall map phone button when the backend has it. Collect ONLY the missing search fact, one question at a time. Before asking, scan the full transcript and ledger; if the caller already gave the answer, use it and move to the next missing fact:\n"
                     "- If city/state missing and GPS has not arrived yet: 'What city and state are you in?'\n"
                     "- If state missing and city was already given: 'What state is that in?'\n"

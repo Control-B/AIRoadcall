@@ -47,6 +47,36 @@ class DispatchCreateSessionResponse(BaseModel):
     say: str | None = None
 
 
+class SharedLocationContext(BaseModel):
+    lat: float
+    lng: float
+    accuracy: float | None = None
+    address: str | None = None
+    city: str | None = None
+    state: str | None = None
+
+
+class ActiveCallContext(BaseModel):
+    caller_phone: str | None = None
+    session_id: UUID
+    location_confirmed: bool = False
+    shared_location: SharedLocationContext | None = None
+    instruction: str
+
+
+class ActiveCallContextRequest(BaseModel):
+    source: str = "retell"
+    retell_call_id: str | None = None
+    caller_phone: str | None = None
+    expires_minutes: int = Field(default=30, ge=5, le=240)
+
+
+class ActiveCallContextResponse(BaseModel):
+    ok: bool = True
+    active_call_context: ActiveCallContext
+    say: str
+
+
 class DispatchUpdateLocationRequest(BaseModel):
     token: str
     latitude: float = Field(..., ge=-90, le=90)

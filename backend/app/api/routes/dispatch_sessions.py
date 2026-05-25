@@ -6,6 +6,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_session
 from app.api.routes.roadside import require_roadside_match_access
 from app.schemas.dispatch_session import (
+    ActiveCallContextRequest,
+    ActiveCallContextResponse,
     DispatchCreateSessionRequest,
     DispatchCreateSessionResponse,
     DispatchLinkCaseCodeRequest,
@@ -18,6 +20,18 @@ from app.schemas.dispatch_session import (
 from app.services.dispatch_session_service import DispatchSessionService
 
 router = APIRouter(prefix="/dispatch", tags=["dispatch-sessions"])
+
+
+@router.post(
+    "/active-call-context",
+    response_model=ActiveCallContextResponse,
+    dependencies=[Depends(require_roadside_match_access)],
+)
+async def active_call_context(
+    payload: ActiveCallContextRequest,
+    db: AsyncSession = Depends(get_session),
+):
+    return await DispatchSessionService.active_call_context(db, payload)
 
 
 @router.post(

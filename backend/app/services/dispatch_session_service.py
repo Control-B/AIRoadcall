@@ -20,12 +20,16 @@ from app.models.dispatch_session import (
     DispatchSessionStatus,
 )
 from app.schemas.dispatch_session import (
+    ActiveCallContext,
+    ActiveCallContextRequest,
+    ActiveCallContextResponse,
     DispatchCreateSessionRequest,
     DispatchCreateSessionResponse,
     DispatchLinkCaseCodeResponse,
     DispatchSessionStatusResponse,
     DispatchUpdateLocationRequest,
     DispatchUpdateLocationResponse,
+    SharedLocationContext,
 )
 from app.schemas.roadside_match import RoadsideMatchRequest, RoadsideMatchResponse
 from app.services.geocoding_service import GeocodingService
@@ -76,6 +80,27 @@ def _public_url(token: str) -> str:
 
 
 class DispatchSessionService:
+    @staticmethod
+    async def active_call_context(db: AsyncSession, payload: ActiveCallContextRequest) -> ActiveCallContextResponse:
+        created = await DispatchSessionService.create_session(
+            db,
+            DispatchCreateSessionRequest(
+                source=payload.source or "retell",
+                retell_call_id=payload.retell_call_id,
+                caller_phone=payload.caller_phone,
+                expires_minutes=payload.expires_minutes,
+                metadata={"active_call_context_requested": True},
+            ),
+        )
+        session = await DispatchSessionService.get_session(db, created.dispatch_session_id)
+        if not session:
+            raise ValueError("Dispatch session not found after active call context creation")
+        context = DispatchSessionService._active_call_context(session)
+        return ActiveCallContextResponse(
+            active_call_context=context,
+            say=DispatchSessionService._active_call_context_say(context),
+        )
+
     @staticmethod
     async def create_session(db: AsyncSession, payload: DispatchCreateSessionRequest) -> DispatchCreateSessionResponse:
         existing = await DispatchSessionService._find_existing_session(db, payload)
@@ -623,3 +648,32 @@ class DispatchSessionService:
             return session.address
         city_state = ", ".join(item for item in [session.city, session.state] if item)
         return city_state or "your shared GPS pin"
+
+    @staticmethod
+    def _active_call_context(session: DispatchSession) -> ActiveCallContext:
+        shared_location = None
+        if session.lat is not None and session.lng is not None:
+            shared_location = SharedLocationContext(
+                lat=session.lat,
+                lng=session.lng,
+                accuracy=session.location_accuracy_m,
+                address=session.address or None,
+                city=session.city or None,
+                state=session.state or infer_state_from_coordinates(session.lat, session.lng),
+            )
+        return ActiveCallContext(
+            caller_phone=session.caller_phone_encrypted,
+            session_id=session.id,
+            location_confirmed=bool((session.metadata_json or {}).get("location_confirmed")),
+            shared_location=shared_location,
+            instruction="Before doing anything else, confirm this shared location with the caller.",
+        )
+
+    @staticmethod
+    def _active_call_context_say(context: ActiveCallContext) -> str:
+        location = context.shared_location
+        if not location:
+            return "I cannot see your shared location yet. Please keep the map page open and share your location again, or tell me your city and nearest highway or exit."
+        parts = [location.address, location.city, location.state]
+        label = ", ".join(part for part in parts if part) or "your shared GPS pin"
+        return f"I see your shared location near {label}. Is that where you need roadside help?"

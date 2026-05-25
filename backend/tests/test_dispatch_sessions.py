@@ -11,6 +11,10 @@ from app.api.deps import get_session  # noqa: E402
 from app.core.config import get_settings  # noqa: E402
 from app.main import app  # noqa: E402
 from app.schemas.dispatch_session import (  # noqa: E402
+    ActiveCallContext,
+    ActiveCallContextResponse,
+    SharedLocationContext,
+    ActiveCallContextRequest,
     DispatchCreateSessionRequest,
     DispatchCreateSessionResponse,
     DispatchSessionStatusResponse,
@@ -112,6 +116,109 @@ async def test_retell_envelope_extracts_alternate_caller_phone_field(monkeypatch
     assert response.status_code == 200, response.text
     assert called["payload"].caller_phone == "+18135551212"
     assert called["payload"].retell_call_id == "call_alt_123"
+
+
+@pytest.mark.asyncio
+async def test_active_call_context_route_extracts_retell_envelope(monkeypatch):
+    app.dependency_overrides[get_session] = _empty_session
+    session_id = uuid.uuid4()
+    called = {}
+
+    async def fake_active_context(db, payload):
+        called["payload"] = payload
+        return ActiveCallContextResponse(
+            active_call_context=ActiveCallContext(
+                caller_phone=payload.caller_phone,
+                session_id=session_id,
+                location_confirmed=False,
+                shared_location=SharedLocationContext(
+                    lat=27.8156,
+                    lng=-82.7023,
+                    accuracy=12,
+                    address="Park Street North and 48th Avenue North",
+                    city="St. Petersburg",
+                    state="FL",
+                ),
+                instruction="Before doing anything else, confirm this shared location with the caller.",
+            ),
+            say="I see your shared location near Park Street North and 48th Avenue North, St. Petersburg, FL. Is that where you need roadside help?",
+        )
+
+    monkeypatch.setattr(DispatchSessionService, "active_call_context", fake_active_context)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        denied = await client.post("/api/dispatch/active-call-context", json={"source": "retell"})
+        allowed = await client.post(
+            "/api/dispatch/active-call-context",
+            headers={"Authorization": "Bearer test-token"},
+            json={
+                "name": "load_active_call_context",
+                "args": {"source": "retell"},
+                "call": {"from": "+18135551212", "callId": "call_context_123"},
+            },
+        )
+
+    assert denied.status_code == 401
+    assert allowed.status_code == 200, allowed.text
+    body = allowed.json()
+    assert body["active_call_context"]["caller_phone"] == "+18135551212"
+    assert body["active_call_context"]["shared_location"]["state"] == "FL"
+    assert body["say"].startswith("I see your shared location near Park Street")
+    assert called["payload"].caller_phone == "+18135551212"
+    assert called["payload"].retell_call_id == "call_context_123"
+
+
+@pytest.mark.asyncio
+async def test_active_call_context_uses_recent_map_location(monkeypatch):
+    session_id = uuid.uuid4()
+    map_session = DispatchSession(
+        public_code="RC-4545",
+        source="map_phone_button",
+        status=DispatchSessionStatus.matching.value,
+    )
+    map_session.id = session_id
+    map_session.caller_phone_encrypted = "+18135551212"
+    map_session.lat = 27.8156
+    map_session.lng = -82.7023
+    map_session.location_accuracy_m = 12
+    map_session.address = "Park Street North and 48th Avenue North"
+    map_session.city = "St. Petersburg"
+    map_session.state = "FL"
+    map_session.location_captured_at = datetime.now(timezone.utc)
+
+    async def fake_create_session(db, payload):
+        assert payload.source == "retell"
+        assert payload.caller_phone == "+18135551212"
+        return DispatchCreateSessionResponse(
+            dispatch_session_id=session_id,
+            public_code="RC-4545",
+            status="matching",
+            location_url="https://roadcall.ai/go?t=token",
+            location_token="token",
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=30),
+            location_captured=True,
+        )
+
+    async def fake_get_session(db, dispatch_session_id):
+        assert dispatch_session_id == session_id
+        return map_session
+
+    monkeypatch.setattr(DispatchSessionService, "create_session", fake_create_session)
+    monkeypatch.setattr(DispatchSessionService, "get_session", fake_get_session)
+
+    response = await DispatchSessionService.active_call_context(
+        None,
+        ActiveCallContextRequest(source="retell", caller_phone="+18135551212", retell_call_id="call_context_123"),
+    )
+
+    context = response.active_call_context
+    assert context.session_id == session_id
+    assert context.location_confirmed is False
+    assert context.shared_location is not None
+    assert context.shared_location.city == "St. Petersburg"
+    assert context.shared_location.state == "FL"
+    assert response.say == "I see your shared location near Park Street North and 48th Avenue North, St. Petersburg, FL. Is that where you need roadside help?"
 
 
 @pytest.mark.asyncio

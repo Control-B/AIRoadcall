@@ -47,6 +47,7 @@ class ShareLocationOut(BaseModel):
     captured_at: datetime
     status: str
     expires_in_seconds: int
+    active_call_context: dict | None = None
 
 
 @router.post("/share-location", response_model=ShareLocationOut)
@@ -111,4 +112,18 @@ async def share_location(payload: ShareLocationIn, db: AsyncSession = Depends(ge
         captured_at=captured_at,
         status=session.status,
         expires_in_seconds=30 * 60,
+        active_call_context={
+            "caller_phone": phone_e164,
+            "session_id": str(session.dispatch_session_id),
+            "location_confirmed": False,
+            "shared_location": {
+                "lat": payload.latitude,
+                "lng": payload.longitude,
+                "accuracy": payload.accuracy,
+                "address": address,
+                "city": reverse.get("city"),
+                "state": reverse.get("state"),
+            },
+            "instruction": "Before doing anything else, confirm this shared location with the caller.",
+        },
     )
