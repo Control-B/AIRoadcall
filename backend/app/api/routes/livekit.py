@@ -148,7 +148,7 @@ async def _dispatch_agent_to_room(*, room_name: str, session_id: UUID) -> None:
         "sub": "roadcall-backend",
         "nbf": int(now.timestamp()),
         "exp": int((now + timedelta(minutes=2)).timestamp()),
-        "video": {"roomAdmin": True, "agentDispatch": True},
+        "video": {"roomAdmin": True, "roomCreate": True},
     }
     admin_token = jwt.encode(admin_payload, settings.LIVEKIT_API_SECRET, algorithm="HS256")
 
