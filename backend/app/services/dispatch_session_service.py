@@ -219,8 +219,12 @@ class DispatchSessionService:
             location_captured=bool(session.location_captured_at),
             city=session.city,
             state=session.state,
+            address=session.address,
             latitude=session.lat,
             longitude=session.lng,
+            location_accuracy_m=session.location_accuracy_m,
+            location_source=session.location_source,
+            location_captured_at=session.location_captured_at,
             problem_type=session.problem_type,
             vehicle_type=session.vehicle_type,
             payment_status=session.payment_status,
@@ -419,17 +423,22 @@ class DispatchSessionService:
         session.vehicle_description = payload.vehicle_description or session.vehicle_description
         session.city = payload.city or session.city
         session.state = payload.state or session.state
+        session.address = payload.address or session.address
         session.lat = payload.latitude if payload.latitude is not None else session.lat
         session.lng = payload.longitude if payload.longitude is not None else session.lng
+        session.location_accuracy_m = payload.accuracy_m if payload.accuracy_m is not None else session.location_accuracy_m
+        session.location_source = payload.location_source or session.location_source
         session.metadata_json = {**(session.metadata_json or {}), **payload.metadata}
         if session.lat is not None and session.lng is not None:
             session.location_captured_at = session.location_captured_at or datetime.now(timezone.utc)
+            if session.status in {DispatchSessionStatus.created.value, DispatchSessionStatus.awaiting_location.value}:
+                session.status = DispatchSessionStatus.matching.value
 
     @staticmethod
     async def _consume_pre_shared_location(caller_phone: str | None) -> dict[str, Any] | None:
         if not caller_phone:
             return None
-        shared = await SharedCallerLocationService.consume(caller_phone)
+        shared = await SharedCallerLocationService.lookup(caller_phone)
         if not shared or shared.get("latitude") is None or shared.get("longitude") is None:
             return None
         return shared
@@ -449,6 +458,7 @@ class DispatchSessionService:
         session.metadata_json = {
             **metadata,
             "pre_shared_location": True,
+            "pre_shared_location_session_id": shared.get("session_id"),
             "pre_shared_location_phone": shared.get("phone"),
             "pre_shared_location_captured_at": shared.get("captured_at"),
         }
@@ -540,9 +550,12 @@ class DispatchSessionService:
 
     @staticmethod
     def _say(session: DispatchSession, best_match: dict[str, Any] | None, missing_fields: list[str]) -> str:
+        location_label = DispatchSessionService._location_label(session)
         if missing_fields:
+            if session.location_captured_at and "problemType" in missing_fields:
+                return f"I see your shared location near {location_label}. Is that correct?"
             if "location" in missing_fields or "state" in missing_fields:
-                return "I still need your city and state, or you can use the secure GPS link."
+                return "I cannot see your shared location yet. Please keep the map page open and share your location again, or tell me your city and nearest highway or exit."
             if "problemType" in missing_fields:
                 return "What problem are you having — tire, engine, battery, fuel, towing, or something else?"
             if "vehicleType" in missing_fields:
@@ -553,3 +566,10 @@ class DispatchSessionService:
         if session.location_captured_at:
             return "I have your location and I’m checking the best nearby provider now."
         return "I still need your location. Please tell me the highway or interstate, nearest exit, city, state, and a nearby truck stop or landmark."
+
+    @staticmethod
+    def _location_label(session: DispatchSession) -> str:
+        if session.address:
+            return session.address
+        city_state = ", ".join(item for item in [session.city, session.state] if item)
+        return city_state or "your shared GPS pin"

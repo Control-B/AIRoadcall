@@ -217,6 +217,80 @@ def test_pre_shared_location_marks_dispatch_session_ready_for_matching():
     assert session.metadata_json["pre_shared_location"] is True
 
 
+def test_status_say_confirms_shared_location_before_problem_intake(monkeypatch):
+    session = DispatchSession(public_code="RC-1234", status=DispatchSessionStatus.matching.value)
+    session.id = uuid.uuid4()
+    session.lat = 27.8156
+    session.lng = -82.7023
+    session.address = "Park Street North and 48th Avenue, St. Petersburg, FL"
+    session.city = "St. Petersburg"
+    session.state = "FL"
+    session.location_captured_at = datetime.now(timezone.utc)
+
+    say = DispatchSessionService._say(session, None, ["problemType", "vehicleType"])
+
+    assert "I see your shared location near Park Street North" in say
+    assert say.endswith("Is that correct?")
+
+
+@pytest.mark.asyncio
+async def test_caller_share_creates_durable_dispatch_session(monkeypatch):
+    app.dependency_overrides[get_session] = _empty_session
+    session_id = uuid.uuid4()
+    captured = {}
+
+    async def fake_reverse_geocode(latitude, longitude):
+        return {
+            "city": "St. Petersburg",
+            "state": "FL",
+            "address": "Park Street North and 48th Avenue",
+            "place_name": "Park Street North and 48th Avenue, St. Petersburg, FL",
+        }
+
+    async def fake_create_session(db, payload):
+        captured["payload"] = payload
+        return DispatchCreateSessionResponse(
+            dispatch_session_id=session_id,
+            public_code="RC-8888",
+            status="matching",
+            location_url="https://roadcall.ai/go?t=token",
+            location_token="token",
+            expires_at=datetime.now(timezone.utc) + timedelta(minutes=30),
+        )
+
+    async def fake_store(**kwargs):
+        captured["store"] = kwargs
+        return {**kwargs, "ttl_seconds": 1800}
+
+    from app.services.geocoding_service import GeocodingService
+    from app.services.shared_caller_location_service import SharedCallerLocationService
+
+    monkeypatch.setattr(GeocodingService, "reverse_geocode", fake_reverse_geocode)
+    monkeypatch.setattr(DispatchSessionService, "create_session", fake_create_session)
+    monkeypatch.setattr(SharedCallerLocationService, "store", fake_store)
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/caller/share-location",
+            json={
+                "phone": "813-555-1212",
+                "latitude": 27.8156,
+                "longitude": -82.7023,
+                "accuracy": 14,
+            },
+        )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["dispatch_session_id"] == str(session_id)
+    assert body["readable_address"] == "Park Street North and 48th Avenue, St. Petersburg, FL"
+    assert captured["payload"].source == "map_phone_button"
+    assert captured["payload"].latitude == 27.8156
+    assert captured["payload"].address == "Park Street North and 48th Avenue, St. Petersburg, FL"
+    assert captured["store"]["session_id"] == str(session_id)
+
+
 @pytest.mark.asyncio
 async def test_go_dispatch_persists_durable_session(monkeypatch):
     app.dependency_overrides[get_session] = _empty_session

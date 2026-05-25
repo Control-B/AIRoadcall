@@ -7,8 +7,17 @@ import { getApiBase } from "@/lib/api-client";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 
 const PHONE_STORAGE_KEY = "roadcall.caller_phone";
+const SESSION_STORAGE_KEY = "roadcall.dispatch_session_id";
 
 type Status = "idle" | "needPhone" | "working" | "ready";
+
+type SharedLocation = {
+  dispatchSessionId: string;
+  readableAddress: string | null;
+  city: string | null;
+  state: string | null;
+  accuracy: number | null;
+};
 
 function formatPhone(value: string): string {
   const digits = value.replace(/\D/g, "").slice(0, 11);
@@ -26,6 +35,7 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
   const [status, setStatus] = useState<Status>("idle");
   const [phone, setPhone] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [sharedLocation, setSharedLocation] = useState<SharedLocation | null>(null);
 
   useEffect(() => {
     try {
@@ -67,20 +77,37 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
                 latitude: pos.coords.latitude,
                 longitude: pos.coords.longitude,
                 accuracy: pos.coords.accuracy ?? null,
+                captured_at: new Date().toISOString(),
               }),
             });
             if (!response.ok) throw new Error("Location share failed");
+            const stored = await response.json();
+            const nextLocation: SharedLocation = {
+              dispatchSessionId: stored.dispatch_session_id,
+              readableAddress: stored.readable_address || stored.address || null,
+              city: stored.city || null,
+              state: stored.state || null,
+              accuracy: typeof stored.accuracy === "number" ? stored.accuracy : null,
+            };
+            setSharedLocation(nextLocation);
+            try {
+              window.localStorage.setItem(SESSION_STORAGE_KEY, nextLocation.dispatchSessionId);
+            } catch {
+              /* ignore */
+            }
             setStatus("ready");
-            setMessage("Location shared. Tap the phone button to call Sandy now.");
+            setMessage("Location Shared Successfully");
             resolve(true);
           } catch {
             setStatus("ready");
+            setSharedLocation(null);
             setMessage("Couldn't share GPS. Tap the phone button to call Sandy now.");
             resolve(false);
           }
         },
         () => {
           setStatus("ready");
+          setSharedLocation(null);
           setMessage("Couldn't read GPS. Tap the phone button to call Sandy now.");
           resolve(false);
         },
@@ -110,39 +137,42 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
       setMessage(null);
       return;
     }
-    if (status === "ready") return;
+    if (status === "ready" && sharedLocation) return;
     event?.preventDefault();
     void shareAndCall(phone);
-  }, [hasPhone, phone, shareAndCall, status]);
+  }, [hasPhone, phone, shareAndCall, sharedLocation, status]);
 
   const close = useCallback(() => {
     setStatus("idle");
     setMessage(null);
   }, []);
 
+  const locationLabel = sharedLocation?.readableAddress || [sharedLocation?.city, sharedLocation?.state].filter(Boolean).join(", ");
+  const canCall = status === "ready" && Boolean(sharedLocation);
+
   return (
     <>
-      {hasPhone ? (
+      {hasPhone && canCall ? (
         <a
           href={telHref(HELP_PHONE)}
-          onClick={handleFabClick}
           aria-label={`Share location and call ${HELP_PHONE}`}
           className={`fixed bottom-6 left-1/2 z-[90] flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 shadow-2xl ring-2 ring-emerald-400/30 transition hover:scale-105 active:scale-95 sm:h-14 sm:w-14 ${className}`}
+        >
+          <Phone className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" />
+        </a>
+      ) : (
+        <button
+          type="button"
+          onClick={handleFabClick}
+          disabled={status === "working"}
+          aria-label={`Share location and call ${HELP_PHONE}`}
+          className={`fixed bottom-6 left-1/2 z-[90] flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 shadow-2xl ring-2 ring-emerald-400/30 transition hover:scale-105 active:scale-95 disabled:cursor-wait disabled:opacity-70 sm:h-14 sm:w-14 ${className}`}
         >
           {status === "working" ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
             <Phone className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" />
           )}
-        </a>
-      ) : (
-        <button
-          type="button"
-          onClick={handleFabClick}
-          aria-label={`Share location and call ${HELP_PHONE}`}
-          className={`fixed bottom-6 left-1/2 z-[90] flex h-12 w-12 -translate-x-1/2 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-cyan-500 text-slate-950 shadow-2xl ring-2 ring-emerald-400/30 transition hover:scale-105 active:scale-95 sm:h-14 sm:w-14 ${className}`}
-        >
-          <Phone className="h-5 w-5 sm:h-6 sm:w-6" fill="currentColor" />
         </button>
       )}
 
@@ -205,13 +235,31 @@ export function ShareLocationCallButton({ className = "" }: { className?: string
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                 {message || "Ready to call Sandy."}
               </p>
-              <a
-                href={telHref(HELP_PHONE)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-400 px-3 py-2.5 text-sm font-bold text-slate-950 hover:brightness-110"
-              >
-                <Phone className="h-4 w-4" />
-                Call Sandy {HELP_PHONE}
-              </a>
+              {locationLabel ? (
+                <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-50">
+                  <p className="font-semibold text-emerald-200">Shared location</p>
+                  <p>{locationLabel}</p>
+                  {sharedLocation?.accuracy ? <p className="mt-1 text-emerald-100/70">Accuracy about {Math.round(sharedLocation.accuracy)} m</p> : null}
+                </div>
+              ) : null}
+              {canCall ? (
+                <a
+                  href={telHref(HELP_PHONE)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-400 px-3 py-2.5 text-sm font-bold text-slate-950 hover:brightness-110"
+                >
+                  <Phone className="h-4 w-4" />
+                  Call Sandy {HELP_PHONE}
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void shareAndCall(phone)}
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-400 to-cyan-400 px-3 py-2.5 text-sm font-bold text-slate-950 hover:brightness-110"
+                >
+                  <Phone className="h-4 w-4" />
+                  Try sharing location again
+                </button>
+              )}
             </div>
           ) : null}
         </div>

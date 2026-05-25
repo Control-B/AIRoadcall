@@ -19,8 +19,11 @@ class DispatchCreateSessionRequest(BaseModel):
     vehicle_description: str | None = None
     city: str | None = None
     state: str | None = None
+    address: str | None = None
     latitude: float | None = Field(default=None, ge=-90, le=90)
     longitude: float | None = Field(default=None, ge=-180, le=180)
+    accuracy_m: float | None = Field(default=None, ge=0)
+    location_source: str | None = None
     expires_minutes: int = Field(default=15, ge=5, le=240)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
@@ -55,8 +58,12 @@ class DispatchSessionStatusResponse(BaseModel):
     location_captured: bool
     city: str | None = None
     state: str | None = None
+    address: str | None = None
     latitude: float | None = None
     longitude: float | None = None
+    location_accuracy_m: float | None = None
+    location_source: str | None = None
+    location_captured_at: datetime | None = None
     problem_type: str | None = None
     vehicle_type: str | None = None
     payment_status: str

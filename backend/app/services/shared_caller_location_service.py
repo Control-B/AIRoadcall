@@ -57,6 +57,7 @@ class SharedCallerLocationService:
         cls,
         *,
         phone: str,
+        session_id: str | None = None,
         latitude: float,
         longitude: float,
         accuracy: float | None,
@@ -70,6 +71,7 @@ class SharedCallerLocationService:
             return None
         payload = {
             "phone": phone_e164,
+            "session_id": session_id,
             "latitude": latitude,
             "longitude": longitude,
             "accuracy": accuracy,
