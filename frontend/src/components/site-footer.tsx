@@ -58,17 +58,17 @@ export function SiteFooter() {
             <div className="space-y-3">
               <a
                 href={telHref(COMPANY_PHONE)}
-                className="flex items-center gap-2 text-sm text-roadcall-muted hover:text-roadcall-cyan transition-colors"
+                className="flex items-center gap-2 whitespace-nowrap text-sm text-roadcall-muted transition-colors hover:text-roadcall-cyan"
               >
-                <Phone className="h-4 w-4" />
-                Company: {COMPANY_PHONE}
+                <Phone className="h-4 w-4 shrink-0" />
+                <span>Company: {COMPANY_PHONE}</span>
               </a>
               <a
                 href={telHref(HELP_PHONE)}
-                className="flex items-center gap-2 text-sm text-roadcall-muted hover:text-roadcall-cyan transition-colors"
+                className="flex items-center gap-2 whitespace-nowrap text-sm text-roadcall-muted transition-colors hover:text-roadcall-cyan"
               >
-                <Phone className="h-4 w-4" />
-                Help: {HELP_PHONE}
+                <Phone className="h-4 w-4 shrink-0" />
+                <span>Help: {HELP_PHONE}</span>
               </a>
               <a
                 href="mailto:support@roadcall.ai"
