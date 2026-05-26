@@ -19,9 +19,8 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading } from "@/components/motion";
-import { HELP_PHONE, telHref } from "@/lib/phone";
 
-const PROVIDER_SIGNUP = "/provider/register";
+const PROVIDER_SIGNUP = "/shops/onboarding";
 
 const benefits = [
   {
@@ -164,11 +163,6 @@ export default function ProviderPage() {
                   <Phone className="h-5 w-5" /> Configure AI Phone
                 </button>
               </Link>
-              <a href={telHref(HELP_PHONE)}>
-                <button className="inline-flex items-center justify-center gap-2 border border-roadcall-cyan/25 bg-roadcall-panel/20 backdrop-blur-sm text-roadcall-silver hover:bg-roadcall-panel/50 hover:text-white font-semibold px-8 py-5 rounded-2xl transition-all">
-                  <Phone className="h-5 w-5" /> Talk to Our Team
-                </button>
-              </a>
             </div>
             <p className="text-sm text-roadcall-muted">No credit card required for free listing · Roadcall profile access · Full profile control</p>
           </FadeIn>
