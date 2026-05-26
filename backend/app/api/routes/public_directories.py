@@ -12,7 +12,7 @@ from functools import lru_cache
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_session
@@ -20,6 +20,35 @@ from app.models.business_directory import NationalVendor, TruckingCompany
 
 router = APIRouter(prefix="/directories", tags=["public-directories"])
 DATA_DIR = Path(__file__).resolve().parents[3] / "data"
+US_STATE_CODES = {
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS",
+    "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY",
+    "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV",
+    "WI", "WY", "DC",
+}
+CANADIAN_PROVINCE_CODES = {
+    "AB", "ALBERTA", "BC", "BRITISH COLUMBIA", "MB", "MANITOBA", "NB", "NEW BRUNSWICK",
+    "NL", "NEWFOUNDLAND AND LABRADOR", "NS", "NOVA SCOTIA", "NT", "NORTHWEST TERRITORIES",
+    "NU", "NUNAVUT", "ON", "ONTARIO", "PE", "PRINCE EDWARD ISLAND", "QC", "QUEBEC",
+    "SK", "SASKATCHEWAN", "YT", "YUKON",
+}
+MEXICAN_STATE_NAMES = {
+    "AGUASCALIENTES", "BAJA CALIFORNIA", "BAJA CALIFORNIA SUR", "CAMPECHE", "CHIAPAS",
+    "CHIHUAHUA", "CIUDAD DE MEXICO", "COAHUILA", "COLIMA", "DURANGO",
+    "GUANAJUATO", "GUERRERO", "HIDALGO", "JALISCO", "MEXICO", "MICHOACAN",
+    "MORELOS", "NAYARIT", "NUEVO LEON", "OAXACA", "PUEBLA",
+    "QUERETARO", "QUINTANA ROO", "SAN LUIS POTOSI",
+    "SINALOA", "SONORA", "TABASCO", "TAMAULIPAS", "TLAXCALA", "VERACRUZ", "YUCATAN",
+    "YUCATÁN", "ZACATECAS",
+}
+NORTH_AMERICA_STATE_CODES = US_STATE_CODES | CANADIAN_PROVINCE_CODES | MEXICAN_STATE_NAMES
+NORTH_AMERICA_COUNTRY_TERMS = ("united states", "usa", "u.s.a", "canada", "mexico")
+NORTH_AMERICA_BOUNDS = {
+    "min_lat": 7.0,
+    "max_lat": 84.0,
+    "min_lng": -170.0,
+    "max_lng": -52.0,
+}
 
 
 def _like(term: str) -> str:
@@ -74,6 +103,41 @@ def _contains(row: dict[str, str], term: str, fields: tuple[str, ...]) -> bool:
 
 def _state_matches(row: dict[str, str], state: str | None) -> bool:
     return not state or (row.get("state") or "").upper() == state.upper()
+
+
+def _is_north_america_coordinate(lat: float | None, lng: float | None) -> bool:
+    return (
+        lat is not None
+        and lng is not None
+        and NORTH_AMERICA_BOUNDS["min_lat"] <= lat <= NORTH_AMERICA_BOUNDS["max_lat"]
+        and NORTH_AMERICA_BOUNDS["min_lng"] <= lng <= NORTH_AMERICA_BOUNDS["max_lng"]
+    )
+
+
+def _is_north_america_directory_row(row: dict[str, str]) -> bool:
+    state = (row.get("state") or "").strip().upper()
+    if state in NORTH_AMERICA_STATE_CODES:
+        return True
+    if _is_north_america_coordinate(_to_float(row.get("lat")), _to_float(row.get("lng"))):
+        return True
+    address = (row.get("address") or "").lower()
+    return any(term in address for term in NORTH_AMERICA_COUNTRY_TERMS)
+
+
+def _north_america_db_condition(model):
+    return or_(
+        func.upper(model.state).in_(NORTH_AMERICA_STATE_CODES),
+        and_(
+            model.lat >= NORTH_AMERICA_BOUNDS["min_lat"],
+            model.lat <= NORTH_AMERICA_BOUNDS["max_lat"],
+            model.lng >= NORTH_AMERICA_BOUNDS["min_lng"],
+            model.lng <= NORTH_AMERICA_BOUNDS["max_lng"],
+        ),
+        model.address.ilike("%United States%"),
+        model.address.ilike("%USA%"),
+        model.address.ilike("%Canada%"),
+        model.address.ilike("%Mexico%"),
+    )
 
 
 def _csv_stats(rows: list[dict[str, str]]) -> dict:
@@ -142,10 +206,23 @@ async def _public_stats(db: AsyncSession, model) -> dict:
 
 @router.get("/trucking-companies/stats")
 async def public_trucking_company_stats(db: AsyncSession = Depends(get_session)):
-    stats = await _public_stats(db, TruckingCompany)
+    total = await db.scalar(select(func.count(TruckingCompany.id)).where(_north_america_db_condition(TruckingCompany))) or 0
+    if total > 0:
+        state_rows = await db.execute(
+            select(TruckingCompany.state, func.count(TruckingCompany.id))
+            .where(_north_america_db_condition(TruckingCompany))
+            .group_by(TruckingCompany.state)
+            .order_by(func.count(TruckingCompany.id).desc())
+            .limit(12)
+        )
+        return {
+            "total": int(total),
+            "top_states": [{"state": row[0], "count": int(row[1])} for row in state_rows.all()],
+        }
+    stats = _csv_stats([row for row in _load_csv("trucking_companies_us.csv") if _is_north_america_directory_row(row)])
     if stats["total"] > 0:
         return stats
-    return _csv_stats(_load_csv("trucking_companies_us.csv"))
+    return stats
 
 
 @router.get("/trucking-companies")
@@ -161,7 +238,7 @@ async def public_trucking_companies(
     offset: int = Query(default=0, ge=0),
     db: AsyncSession = Depends(get_session),
 ):
-    filters = []
+    filters = [_north_america_db_condition(TruckingCompany)]
     if q:
         term = _like(q)
         filters.append(or_(TruckingCompany.company_name.ilike(term), TruckingCompany.city.ilike(term), TruckingCompany.categories.ilike(term), TruckingCompany.address.ilike(term), TruckingCompany.phone.ilike(term)))
@@ -194,7 +271,8 @@ async def public_trucking_companies(
     if not total:
         csv_rows = [
             row for row in _load_csv("trucking_companies_us.csv")
-            if _state_matches(row, state)
+            if _is_north_america_directory_row(row)
+            and _state_matches(row, state)
             and (not city or city.lower() in (row.get("city") or "").lower())
             and (not q or _contains(row, q, ("company_name", "city", "state", "categories", "address", "phone")))
             and (min_lat is None or ((_to_float(row.get("lat")) is not None) and _to_float(row.get("lat")) >= min_lat))

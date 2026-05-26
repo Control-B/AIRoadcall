@@ -36,7 +36,7 @@ from app.api.deps import get_session  # noqa: E402
 from app.models.mechanic import Mechanic  # noqa: E402
 from app.models.organization import Organization  # noqa: E402
 from app.models import mechanic_marketplace  # noqa: E402,F401
-from app.api.routes.public_directories import _public_trucking_row  # noqa: E402
+from app.api.routes.public_directories import _is_north_america_directory_row, _public_trucking_row  # noqa: E402
 from app.services.mechanic_data_service import MechanicDataService  # noqa: E402
 
 
@@ -311,3 +311,10 @@ def test_public_trucking_row_hides_coordinates_without_place_data():
 
     assert public_row["lat"] is None
     assert public_row["lng"] is None
+
+
+def test_public_trucking_directory_allows_north_america_rows():
+    assert _is_north_america_directory_row({"state": "FL"}) is True
+    assert _is_north_america_directory_row({"state": "ONTARIO"}) is True
+    assert _is_north_america_directory_row({"state": "", "lat": "25.6866", "lng": "-100.3161"}) is True
+    assert _is_north_america_directory_row({"state": "", "address": "Dublin, Ireland", "lat": "53.35", "lng": "-6.26"}) is False
