@@ -1799,10 +1799,11 @@ function SearchPageInner() {
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const mechanics = results?.mechanics || [];
-  const combinedProviders = useMemo(() => [...mechanics.map(withInferredVendorScope), ...truckingCompanies, ...nationalVendors], [mechanics, nationalVendors, truckingCompanies]);
+  const visibleNationalVendors = useMemo(() => vendorScopeMode === "national" ? nationalVendors : [], [nationalVendors, vendorScopeMode]);
+  const combinedProviders = useMemo(() => [...mechanics.map(withInferredVendorScope), ...truckingCompanies, ...visibleNationalVendors], [mechanics, truckingCompanies, visibleNationalVendors]);
   const displayProviders = useMemo(() => partnerDemoMode ? combinedProviders.map(withPartnerDemoBadge) : combinedProviders, [combinedProviders, partnerDemoMode]);
   const vendorScopeCounts = useMemo(() => ({
-    all: sourceTotals.mechanics + sourceTotals.national + sourceTotals.trucking,
+    all: sourceTotals.mechanics + sourceTotals.trucking,
     national: sourceTotals.national,
     local: sourceTotals.mechanics + sourceTotals.trucking,
   }), [sourceTotals]);
