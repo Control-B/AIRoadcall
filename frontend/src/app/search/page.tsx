@@ -766,6 +766,29 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             "circle-stroke-width": ["case", ["==", ["get", "is_paid_partner"], true], 3, 2],
           },
         });
+        map.addLayer({
+          id: "provider-partner-badges",
+          type: "symbol",
+          source: "providers",
+          minzoom: 13,
+          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "is_paid_partner"], true]],
+          layout: {
+            "text-field": ["get", "partner_badge_label"],
+            "text-size": 10,
+            "text-font": ["DIN Pro Bold", "Arial Unicode MS Bold"],
+            "text-offset": [0, -1.75],
+            "text-anchor": "bottom",
+            "text-allow-overlap": false,
+            "text-ignore-placement": false,
+            "text-padding": 6,
+          },
+          paint: {
+            "text-color": "#0f172a",
+            "text-halo-color": "#fde047",
+            "text-halo-width": 5,
+            "text-halo-blur": 0.5,
+          },
+        });
         if (premiumMode === "operations") {
           map.addLayer({
             id: "roadside-intelligence-heat",

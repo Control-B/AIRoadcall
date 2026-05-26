@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Phone, Sparkles, Truck, Wrench } from "lucide-react";
+import { ArrowRight, CheckCircle2, MapPin, Phone, Shield, Sparkles, Truck, Wrench } from "lucide-react";
 import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
 
 const plans = [
@@ -70,6 +70,32 @@ export default function ShopsPricingPage() {
             </Link>
           </article>
         ))}
+      </section>
+
+      <section className="mx-auto mt-8 max-w-7xl rounded-[1.5rem] border border-yellow-300/25 bg-yellow-300/10 p-6">
+        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full bg-yellow-300 px-3 py-1 text-xs font-black uppercase tracking-wide text-slate-950">
+              <Shield className="h-3.5 w-3.5" /> Vendor Listing Upgrade
+            </div>
+            <h2 className="mt-4 text-3xl font-black">Roadcall Partner map badge</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-300">
+              Add paid placement signals to your directory profile without cluttering the map. Partner shops get a highlighted pin, hover badge, selected-provider badge, and a floating label only at close city-level zoom.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+            <p className="text-4xl font-black">$19.99<span className="text-sm font-semibold text-slate-400">/mo</span></p>
+            <p className="mt-1 text-sm font-semibold text-yellow-100">Optional add-on for vendor listings</p>
+            <div className="mt-5 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
+              {["Partner pin ring", "Close-zoom floating badge", "Hover identity card", "Selected-provider badge"].map((feature) => (
+                <div key={feature} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" /> {feature}</div>
+              ))}
+            </div>
+            <Link href="/maps?partnerDemo=1&state=FL&city=Tallahassee" className="mt-6 inline-flex items-center justify-center rounded-xl border border-yellow-300/30 px-5 py-3 font-black text-yellow-100 hover:bg-yellow-300/10">
+              <MapPin className="mr-2 h-4 w-4" /> Preview map badge
+            </Link>
+          </div>
+        </div>
       </section>
 
       <section className="mx-auto mt-16 grid max-w-5xl gap-4 md:grid-cols-3">

@@ -20,6 +20,7 @@ import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading } from "@/components/motion";
 
 const PROVIDER_SIGNUP = "/shops/onboarding";
+const PARTNER_MAP_DEMO = "/maps?partnerDemo=1&state=FL&city=Tallahassee";
 
 const benefits = [
   {
@@ -119,6 +120,58 @@ export default function ProviderPage() {
               <span>{t}</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Paid vendor listing */}
+      <section className="border-b border-roadcall-cyan/10 bg-roadcall-panel/10 py-16">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+          <FadeIn>
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-yellow-300/25 bg-yellow-300/10 px-3 py-1 text-xs font-black uppercase tracking-[0.2em] text-yellow-100">
+                <Star className="h-3.5 w-3.5 text-yellow-300" /> Vendor Listing
+              </div>
+              <h2 className="mt-5 text-3xl font-black leading-tight text-white md:text-5xl">Stand out when drivers zoom into your city.</h2>
+              <p className="mt-4 max-w-2xl text-sm leading-7 text-roadcall-silver/80 md:text-base">
+                Free listings keep your shop searchable. The paid vendor listing adds a Roadcall Partner map treatment: a highlighted pin, hover identity card, selected-provider badge, and a small floating badge only at close city-level zoom so the map stays clean.
+              </p>
+            </div>
+          </FadeIn>
+          <FadeIn delay={0.12}>
+            <div className="rounded-3xl border border-yellow-300/20 bg-gradient-to-br from-yellow-300/12 via-roadcall-panel/70 to-cyan-500/10 p-6 shadow-2xl shadow-black/20">
+              <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.18em] text-yellow-100">Map Partner Badge</p>
+                  <p className="mt-2 text-5xl font-black text-white">$19.99<span className="text-sm font-semibold text-roadcall-muted">/mo</span></p>
+                  <p className="mt-2 text-sm text-roadcall-muted">Optional upgrade on top of your free shop listing.</p>
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full bg-yellow-300 px-3 py-1.5 text-xs font-black uppercase tracking-wide text-slate-950">
+                  <Shield className="h-4 w-4" /> Roadcall Partner
+                </div>
+              </div>
+              <div className="mt-6 grid gap-3 text-sm text-roadcall-silver sm:grid-cols-2">
+                {[
+                  "Subtle yellow pin ring on the map",
+                  "Floating badge at close zoom only",
+                  "Partner label in hover and selected cards",
+                  "Designed to market your shop without cluttering the map",
+                ].map((feature) => (
+                  <div key={feature} className="flex gap-2 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+                    <span>{feature}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <a href={PROVIDER_SIGNUP} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-yellow-300 px-5 py-3 text-sm font-black text-slate-950 hover:bg-yellow-200">
+                  <Wrench className="h-4 w-4" /> Add My Listing
+                </a>
+                <Link href={PARTNER_MAP_DEMO} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-roadcall-cyan/25 bg-roadcall-panel/50 px-5 py-3 text-sm font-black text-white hover:border-roadcall-cyan/45">
+                  <MapPin className="h-4 w-4" /> Preview on Map
+                </Link>
+              </div>
+            </div>
+          </FadeIn>
         </div>
       </section>
 
