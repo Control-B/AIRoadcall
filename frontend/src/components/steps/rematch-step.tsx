@@ -9,6 +9,7 @@ import {
   type RematchCandidate,
   type JobDriverView,
 } from "@/lib/api-client";
+import { loadMapboxCss } from "@/lib/load-mapbox-css";
 import { Loader2, MapPin, Send } from "lucide-react";
 
 interface RematchStepProps {
@@ -53,6 +54,7 @@ export function RematchStep({ token, onOfferSent }: RematchStepProps) {
     const centerLng = lngs.reduce((a, b) => a + b, 0) / lngs.length;
 
     let map: import("mapbox-gl").Map | undefined;
+    loadMapboxCss();
     import("mapbox-gl").then((mapboxgl) => {
       (mapboxgl as unknown as { accessToken: string }).accessToken = mapboxToken;
       map = new mapboxgl.Map({

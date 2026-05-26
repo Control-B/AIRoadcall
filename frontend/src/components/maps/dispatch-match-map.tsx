@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 
 import type { DispatchMatchResponse } from "@/lib/api-client";
+import { loadMapboxCss } from "@/lib/load-mapbox-css";
 
 type DispatchMatchMapProps = {
   match: DispatchMatchResponse;
@@ -32,6 +33,7 @@ export function DispatchMatchMap({ match, className = "h-[420px] w-full" }: Disp
     if (!containerRef.current || !mapboxToken || !match.coordinates) return;
 
     let disposed = false;
+    loadMapboxCss();
     import("mapbox-gl").then((mapboxgl) => {
       if (disposed || !containerRef.current) return;
       (mapboxgl as any).accessToken = mapboxToken;

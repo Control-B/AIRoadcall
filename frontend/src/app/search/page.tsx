@@ -1,7 +1,6 @@
 
 
 "use client";
-export const dynamic = "force-dynamic";
 
 import { useEffect, useState, useCallback, Suspense, useMemo, useRef, type FormEvent, type ReactNode } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
@@ -36,8 +35,8 @@ import { PageLayout } from "@/components/page-layout";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
 import { ShareLocationCallButton } from "@/components/share-location-call-button";
-import { ConnectSandyLocationPanel } from "@/components/connect-sandy-location-panel";
 import { getApiBase } from "@/lib/api-client";
+import { loadMapboxCss } from "@/lib/load-mapbox-css";
 import { useMapboxToken } from "@/lib/mapbox-token";
 // ...existing code...
 // Intake modal and form
@@ -589,6 +588,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
     let map: any;
     let cancelled = false;
 
+    loadMapboxCss();
     import("mapbox-gl").then((mapboxModule) => {
       if (cancelled || !containerRef.current) return;
       const mapboxgl = (mapboxModule as any).default ?? mapboxModule;
@@ -1779,7 +1779,6 @@ function SearchPageInner() {
           accuracyM={userCoords?.accuracyM ?? null}
         />
       )}
-      {isMapsPage && <ConnectSandyLocationPanel onShared={setUserCoords} />}
       {/* Hero search header (directory page only) */}
       {!isMapsPage ? (
       <section className="relative pt-10 pb-8 border-b border-roadcall-cyan/10 bg-gradient-to-b from-roadcall-panel/30 to-transparent">

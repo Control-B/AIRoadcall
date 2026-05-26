@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { geocodeAddress, updateDriverLocation } from "@/lib/api-client";
+import { loadMapboxCss } from "@/lib/load-mapbox-css";
 import {
   MapPin,
   Loader2,
@@ -142,6 +143,7 @@ export function LocationStep({ token, onSuccess }: LocationStepProps) {
 
     let map: any;
 
+    loadMapboxCss();
     import("mapbox-gl").then((mapboxgl) => {
       (mapboxgl as any).accessToken = mapboxToken;
 

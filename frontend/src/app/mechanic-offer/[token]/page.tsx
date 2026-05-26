@@ -11,6 +11,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Loader2, MapPin, CheckCircle2, XCircle, Ban } from "lucide-react";
+import { loadMapboxCss } from "@/lib/load-mapbox-css";
 import { formatIssueType } from "@/lib/utils";
 
 export default function MechanicOfferPage() {
@@ -54,6 +55,7 @@ export default function MechanicOfferPage() {
     if (!mapboxToken) return;
 
     let map: import("mapbox-gl").Map | undefined;
+    loadMapboxCss();
     import("mapbox-gl").then((mapboxgl) => {
       (mapboxgl as unknown as { accessToken: string }).accessToken = mapboxToken;
       map = new mapboxgl.Map({

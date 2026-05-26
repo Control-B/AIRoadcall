@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Mic, Phone, PhoneOff } from "lucide-react";
-import { RetellWebClient } from "retell-client-js-sdk";
+import type { RetellWebClient } from "retell-client-js-sdk";
 
 import { createRoadsideRetellWebCall } from "@/lib/api-client";
 
@@ -126,6 +126,7 @@ export function ShareLocationCallButton({
       const session = await createRoadsideRetellWebCall(coords);
       console.info("[Sandy] Retell web call created", { callId: session.call_id, agentId: session.agent_id });
 
+      const { RetellWebClient } = await import("retell-client-js-sdk");
       const client = new RetellWebClient();
       client.on("call_started", () => {
         setState("connected");

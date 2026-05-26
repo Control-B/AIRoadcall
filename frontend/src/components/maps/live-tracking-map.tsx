@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MapPin } from "lucide-react";
+import { loadMapboxCss } from "@/lib/load-mapbox-css";
 import { useMapboxToken } from "@/lib/mapbox-token";
 
 type MarkerPoint = {
@@ -64,6 +65,7 @@ export function LiveTrackingMap({
     let mapInstance: any;
     let mounted = true;
 
+    loadMapboxCss();
     import("mapbox-gl").then((mapboxModule) => {
       if (!mounted || !mapContainerRef.current) return;
       const mapboxgl = (mapboxModule as any).default ?? mapboxModule;

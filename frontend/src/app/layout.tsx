@@ -67,10 +67,6 @@ export default function RootLayout({
         <link rel="icon" href="/favicon-16x16.png?v=4" type="image/png" sizes="16x16" />
         <link rel="shortcut icon" href="/favicon.ico?v=4" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=4" />
-        <link
-          href="https://api.mapbox.com/mapbox-gl-js/v3.9.3/mapbox-gl.css"
-          rel="stylesheet"
-        />
       </head>
       <body className={`${inter.className} bg-roadcall-void text-roadcall-silver`}>
         <SiteHeaderChrome />
