@@ -23,7 +23,7 @@ Roadcall now has two product ecosystems:
 | Ecosystem | Plans | Billing | Onboarding | GHL SaaS Mode |
 | --- | --- | --- | --- | --- |
 | Simple Roadcall Services | Widget Only ($99.99), AI Telephony Only ($99.99), Widget + AI Telephony ($149.99), Driver Pro ($9.99), Fleet Starter ($99.99), Fleet Professional ($299.99), Fleet Enterprise ($599.99) | Stripe | Roadcall lightweight profile/widget/voice/driver/fleet setup | No |
-| GHL Business OS | Standard ($297 + $149 setup), Professional ($497 + $199 setup), Advanced ($997 + $299 setup) | GHL | Roadcall tenant plus GHL SaaS snapshot | Yes |
+| GHL Business OS | Standard ($197 + $99 setup), Professional ($297 + $149 setup), Advanced ($397 + $249 setup) | GHL | Roadcall tenant plus GHL SaaS snapshot | Yes |
 
 Rules:
 
@@ -32,6 +32,7 @@ Rules:
 - Stripe remains billing truth for simple Roadcall services. GHL owns checkout/billing for Standard, Professional, and Advanced.
 - Roadcall remains operational truth for tenants, profiles, AI widgets, AI telephony, driver profiles, fleet dashboards, dispatch state, and entitlements.
 - GHL remains CRM, workflows, pipelines, calendars, forms, email/SMS marketing, reputation, funnels, and onboarding automation for full Business OS accounts.
+- `docs/ghl-safe-crm-sync.md` defines which mechanic, shop, and vendor contact fields may sync to GHL. Do not export the full mechanics or national vendors database to GHL.
 
 ## 1. Create Custom Fields
 
@@ -317,9 +318,9 @@ Roadcall endpoints already exist for:
 
 Only the full Business OS plans require GHL snapshots:
 
-- Standard — $297/mo + $149 setup: website, AI telephone, widget, CRM, pipelines, workflows, calendars, and reputation management.
-- Professional — $497/mo + $199 setup: everything in Standard plus mobile app and customer portal access.
-- Advanced — $997/mo + $299 setup: everything in Professional plus social media marketing.
+- Standard — $197/mo + $99 setup: website, AI telephone, widget, CRM, pipelines, workflows, calendars, and reputation management.
+- Professional — $297/mo + $149 setup: everything in Standard plus mobile app and customer portal access.
+- Advanced — $397/mo + $249 setup: everything in Professional plus social media marketing.
 
 The lightweight plans are Roadcall-owned services and should not be built as GHL SaaS snapshots:
 

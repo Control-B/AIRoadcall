@@ -78,6 +78,37 @@ interface MechanicListResponse {
   items: MechanicRecord[];
 }
 
+interface GHLSafeListItem {
+  business_name: string;
+  contact_name: string | null;
+  phone: string;
+  email: string | null;
+  website: string | null;
+  public_address: string | null;
+  city: string | null;
+  state: string | null;
+  business_category: string;
+  lead_source: string;
+  marketing_segment: string;
+  plan_interest: string;
+  pipeline_stage: string;
+  onboarding_stage: string | null;
+  sms_consent: boolean;
+  email_consent: boolean;
+  consent_source: string;
+  consent_timestamp: string | null;
+  roadcall_public_reference_id: string;
+  tags: string;
+  notes: string;
+}
+
+interface GHLSafeListResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  items: GHLSafeListItem[];
+}
+
 interface CityMechanicGroup {
   city: string;
   items: MechanicRecord[];
@@ -197,26 +228,47 @@ function emailQualityLabel(kind: string | null) {
   }
 }
 
+function downloadCsv(filename: string, headers: string[], rows: Record<string, unknown>[]) {
+  const escape = (v: unknown) => {
+    if (v === null || v === undefined) return "";
+    const s = String(v).replaceAll('"', '""');
+    return /[",\n]/.test(s) ? `"${s}"` : s;
+  };
+  const csvRows = rows.map((r) => headers.map((h) => escape(r[h])).join(","));
+  const csv = [headers.join(","), ...csvRows].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function exportCsv(records: MechanicRecord[]) {
   const headers = [
     "company_name","phone","email","website","city","state","address",
     "accepts_mobile_roadside","emergency_service","service_radius_miles","priority_score",
     "rating","review_count","source","last_enriched_at",
   ];
-  const escape = (v: unknown) => {
-    if (v === null || v === undefined) return "";
-    const s = String(v).replaceAll('"', '""');
-    return /[",\n]/.test(s) ? `"${s}"` : s;
-  };
-  const rows = records.map((r) => headers.map((h) => escape((r as unknown as Record<string, unknown>)[h])).join(","));
-  const csv = [headers.join(","), ...rows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `mechanics-${new Date().toISOString().slice(0, 10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+  downloadCsv(
+    `mechanics-${new Date().toISOString().slice(0, 10)}.csv`,
+    headers,
+    records.map((r) => r as unknown as Record<string, unknown>)
+  );
+}
+
+function exportGhlSafeCsv(records: GHLSafeListItem[]) {
+  const headers = [
+    "business_name","contact_name","phone","email","website","public_address","city","state",
+    "business_category","lead_source","marketing_segment","plan_interest","pipeline_stage","onboarding_stage",
+    "sms_consent","email_consent","consent_source","consent_timestamp","roadcall_public_reference_id","tags","notes",
+  ];
+  downloadCsv(
+    `ghl-safe-mechanic-list-${new Date().toISOString().slice(0, 10)}.csv`,
+    headers,
+    records.map((r) => r as unknown as Record<string, unknown>)
+  );
 }
 
 export default function AdminMechanicsPage() {
@@ -240,6 +292,7 @@ export default function AdminMechanicsPage() {
   const [lastLoadedAt, setLastLoadedAt] = useState<Date | null>(null);
   const [reviewQueues, setReviewQueues] = useState<AdminReviewQueues | null>(null);
   const [reviewBusy, setReviewBusy] = useState<string | null>(null);
+  const [ghlSafeBusy, setGhlSafeBusy] = useState(false);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams({
@@ -256,6 +309,22 @@ export default function AdminMechanicsPage() {
     if (roadsideOnly) params.set("roadside_only", "true");
     return params.toString();
   }, [city, emergencyOnly, hasEmail, hasWebsite, offset, roadsideOnly, search, serviceType, state]);
+
+  const ghlSafeQueryString = useMemo(() => {
+    const params = new URLSearchParams({
+      limit: "5000",
+      offset: "0",
+    });
+    if (search.trim()) params.set("q", search.trim());
+    if (city.trim()) params.set("city", city.trim());
+    if (state.trim()) params.set("state", state.trim().toUpperCase());
+    if (serviceType.trim()) params.set("service_type", serviceType.trim());
+    if (hasEmail !== "any") params.set("has_email", String(hasEmail === "yes"));
+    if (hasWebsite !== "any") params.set("has_website", String(hasWebsite === "yes"));
+    if (emergencyOnly) params.set("emergency_only", "true");
+    if (roadsideOnly) params.set("roadside_only", "true");
+    return params.toString();
+  }, [city, emergencyOnly, hasEmail, hasWebsite, roadsideOnly, search, serviceType, state]);
 
   const loadData = useCallback(async (options?: { silent?: boolean }) => {
     if (!options?.silent) setLoading(true);
@@ -393,6 +462,19 @@ export default function AdminMechanicsPage() {
     }
   }
 
+  async function downloadGhlSafeList() {
+    setGhlSafeBusy(true);
+    setError(null);
+    try {
+      const response = await adminFetch<GHLSafeListResponse>(`/mechanics/admin/ghl-safe-list?${ghlSafeQueryString}`);
+      exportGhlSafeCsv(response.items);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create GHL safe list");
+    } finally {
+      setGhlSafeBusy(false);
+    }
+  }
+
   const total = records?.total || 0;
   const showingStart = total === 0 ? 0 : offset + 1;
   const showingEnd = Math.min(offset + PAGE_SIZE, total);
@@ -462,6 +544,9 @@ export default function AdminMechanicsPage() {
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportCsv(records?.items || [])} disabled={!records?.items.length} className="gap-2">
               <Download className="h-4 w-4" /> Export CSV
+            </Button>
+            <Button variant="outline" size="sm" onClick={downloadGhlSafeList} disabled={ghlSafeBusy || loading} className="gap-2 border-emerald-400/30 text-emerald-200 hover:bg-emerald-500/10">
+              <Download className="h-4 w-4" /> {ghlSafeBusy ? "Creating..." : "GHL Safe List"}
             </Button>
             <Button size="sm" onClick={() => setEnrichOpen(true)} className="gap-2 bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110">
               <Sparkles className="h-4 w-4" /> Email enrichment

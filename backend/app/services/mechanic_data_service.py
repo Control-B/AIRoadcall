@@ -17,6 +17,8 @@ from app.schemas.mechanic import (
     MechanicAdminListItem,
     MechanicAdminListResponse,
     MechanicAdminStats,
+    MechanicGHLSafeListItem,
+    MechanicGHLSafeListResponse,
 )
 from app.core.logging import get_logger
 from app.services.mechanic_scoring_service import MechanicScoringService
@@ -327,6 +329,141 @@ class MechanicDataService:
                 for row in rows
             ],
         )
+
+    @staticmethod
+    async def list_ghl_safe_crm_contacts(
+        db: AsyncSession,
+        *,
+        q: str | None = None,
+        city: str | None = None,
+        state: str | None = None,
+        source: str | None = None,
+        service_type: str | None = None,
+        has_email: bool | None = None,
+        has_website: bool | None = None,
+        roadside_only: bool = False,
+        emergency_only: bool = False,
+        limit: int = 500,
+        offset: int = 0,
+    ) -> MechanicGHLSafeListResponse:
+        filters = [Mechanic.active == True]  # noqa: E712
+        filters.append(
+            or_(
+                Mechanic.phone.isnot(None),
+                Mechanic.email.isnot(None),
+            )
+        )
+        if q:
+            term = f"%{q.strip()}%"
+            filters.append(
+                or_(
+                    Mechanic.company_name.ilike(term),
+                    Mechanic.contact_name.ilike(term),
+                    Mechanic.phone.ilike(term),
+                    Mechanic.email.ilike(term),
+                    Mechanic.website.ilike(term),
+                    Mechanic.address.ilike(term),
+                )
+            )
+        if city:
+            city_terms = MechanicDataService._city_search_terms(city)
+            if city_terms:
+                filters.append(
+                    or_(
+                        *(Mechanic.city.ilike(f"%{term}%") for term in city_terms)
+                    )
+                )
+        if state:
+            filters.append(Mechanic.state == normalize_state(state))
+        if source:
+            filters.append(Mechanic.source == source)
+        if service_type:
+            filters.append(MechanicDataService._service_filter_condition(service_type))
+        if has_email is True:
+            filters.append(Mechanic.email.isnot(None))
+            filters.append(Mechanic.email != "")
+        elif has_email is False:
+            filters.append(or_(Mechanic.email.is_(None), Mechanic.email == ""))
+        if has_website is True:
+            filters.append(Mechanic.website.isnot(None))
+            filters.append(Mechanic.website != "")
+        elif has_website is False:
+            filters.append(or_(Mechanic.website.is_(None), Mechanic.website == ""))
+        if roadside_only:
+            filters.append(Mechanic.accepts_mobile_roadside == True)  # noqa: E712
+        if emergency_only:
+            filters.append(Mechanic.emergency_service == True)  # noqa: E712
+
+        count_query = select(func.count(Mechanic.id))
+        data_query = (
+            select(
+                Mechanic.id,
+                Mechanic.company_name,
+                Mechanic.contact_name,
+                Mechanic.phone,
+                Mechanic.email,
+                Mechanic.website,
+                Mechanic.address,
+                Mechanic.city,
+                Mechanic.state,
+                Mechanic.service_types,
+            )
+            .order_by(Mechanic.state.asc(), Mechanic.city.asc(), Mechanic.company_name.asc())
+            .limit(limit)
+            .offset(offset)
+        )
+        for condition in filters:
+            count_query = count_query.where(condition)
+            data_query = data_query.where(condition)
+
+        total = await db.scalar(count_query) or 0
+        rows = (await db.execute(data_query)).mappings().all()
+
+        return MechanicGHLSafeListResponse(
+            total=total,
+            limit=limit,
+            offset=offset,
+            items=[
+                MechanicGHLSafeListItem(
+                    business_name=row["company_name"],
+                    contact_name=row["contact_name"],
+                    phone=row["phone"],
+                    email=row["email"],
+                    website=row["website"],
+                    public_address=row["address"],
+                    city=row["city"],
+                    state=row["state"],
+                    business_category=MechanicDataService._ghl_business_category(row["service_types"] or []),
+                    roadcall_public_reference_id=f"mechanic:{row['id']}",
+                    email_consent=bool(row["email"]),
+                    tags=";".join(
+                        [
+                            "roadcall",
+                            "roadcall:shop",
+                            "roadcall:prospect",
+                            "roadcall:ai-telephony-interest",
+                        ]
+                    ),
+                    notes="CRM-safe marketing contact only. Private dispatch, matching, scoring, coordinates, source URLs, and provider metadata stay in Roadcall.",
+                )
+                for row in rows
+            ],
+        )
+
+    @staticmethod
+    def _ghl_business_category(service_types: list[str]) -> str:
+        normalized = " ".join(service_types).lower()
+        if "tire" in normalized:
+            return "tire service"
+        if "tow" in normalized or "wrecker" in normalized:
+            return "towing"
+        if "trailer" in normalized:
+            return "trailer repair"
+        if "mobile" in normalized or "roadside" in normalized:
+            return "mobile mechanic"
+        if "diesel" in normalized or "heavy" in normalized:
+            return "diesel shop"
+        return "mechanic shop"
 
     @staticmethod
     async def public_directory_search(

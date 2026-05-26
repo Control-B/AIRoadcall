@@ -16,6 +16,7 @@ from app.schemas.mechanic import (
     MechanicLocationUpdate,
     MechanicAdminListResponse,
     MechanicAdminStats,
+    MechanicGHLSafeListResponse,
     MarketplaceSearchResponse,
 )
 from app.services.mechanic_data_service import MechanicDataService
@@ -113,6 +114,47 @@ async def list_mechanics_admin(
         emergency_only=emergency_only,
         sort_by=sort_by,
         sort_dir=sort_dir,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get(
+    "/admin/ghl-safe-list",
+    response_model=MechanicGHLSafeListResponse,
+    dependencies=[Depends(verify_admin)],
+)
+async def list_ghl_safe_mechanic_contacts(
+    q: str | None = Query(default=None),
+    city: str | None = Query(default=None),
+    state: str | None = Query(default=None, min_length=2, max_length=2),
+    source: str | None = Query(default=None),
+    service_type: str | None = Query(default=None),
+    has_email: bool | None = Query(default=None),
+    has_website: bool | None = Query(default=None),
+    roadside_only: bool = Query(default=False),
+    emergency_only: bool = Query(default=False),
+    limit: int = Query(default=500, ge=1, le=5000),
+    offset: int = Query(default=0, ge=0),
+    db: AsyncSession = Depends(get_session),
+):
+    """Return a GHL-safe duplicate list from selected mechanic records.
+
+    This intentionally excludes coordinates, radius, scores, ratings, source URLs,
+    dispatch state, and other operational marketplace fields.
+    """
+    await ensure_mechanic_admin_columns(db)
+    return await MechanicDataService.list_ghl_safe_crm_contacts(
+        db,
+        q=q,
+        city=city,
+        state=state,
+        source=source,
+        service_type=service_type,
+        has_email=has_email,
+        has_website=has_website,
+        roadside_only=roadside_only,
+        emergency_only=emergency_only,
         limit=limit,
         offset=offset,
     )

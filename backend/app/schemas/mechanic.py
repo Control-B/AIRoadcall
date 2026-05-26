@@ -97,6 +97,37 @@ class MechanicAdminListResponse(BaseModel):
     items: list[MechanicAdminListItem]
 
 
+class MechanicGHLSafeListItem(BaseModel):
+    business_name: str
+    contact_name: Optional[str] = None
+    phone: str
+    email: Optional[str] = None
+    website: Optional[str] = None
+    public_address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    business_category: str = "mechanic shop"
+    lead_source: str = "roadcall_mechanic_database"
+    marketing_segment: str = "ai_telephony_interest"
+    plan_interest: str = "professional"
+    pipeline_stage: str = "New Lead"
+    onboarding_stage: Optional[str] = None
+    sms_consent: bool = False
+    email_consent: bool = False
+    consent_source: str = "manual_admin_selection"
+    consent_timestamp: Optional[datetime] = None
+    roadcall_public_reference_id: str
+    tags: str
+    notes: str
+
+
+class MechanicGHLSafeListResponse(BaseModel):
+    total: int
+    limit: int
+    offset: int
+    items: list[MechanicGHLSafeListItem]
+
+
 class MechanicAdminStats(BaseModel):
     total_mechanics: int
     active_mechanics: int

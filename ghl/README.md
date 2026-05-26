@@ -9,6 +9,7 @@ Roadcall remains the source of truth for operations. GHL should react to lifecyc
 - `ghl/roadcall-ghl-setup.json` — structured setup blueprint for fields, tags, pipelines, workflows, templates, AI receptionist guardrails, Ask AI prompts, and acceptance tests.
 - `ghl/roadcall-plan-snapshots.json` — plan-specific blueprint definitions for the Standard, Professional, and Premium GHL snapshot builds.
 - `backend/scripts/build_ghl_plan_snapshots.py` — dry-run-first generator that writes per-plan build artifacts and can optionally apply supported LeadConnector assets to a location.
+- `docs/ghl-safe-crm-sync.md` — the allow/deny list for syncing CRM-safe mechanic, shop, and vendor contact data to GHL without exporting the private provider database.
 
 ## Plan Snapshot Builder
 
@@ -82,3 +83,5 @@ Do not make GHL responsible for:
 - marketplace analytics
 
 GHL can display notes, tags, tasks, and opportunities based on Roadcall events, but Roadcall owns the operational record.
+
+For field-level sync rules, use `docs/ghl-safe-crm-sync.md` as the source of truth. GHL should receive selected CRM-safe contact records for marketing and onboarding, not the full mechanics or national vendors database.
