@@ -5,7 +5,8 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_db, require_admin_api_key
+from app.core.config import get_settings
 from app.schemas.billing import (
     AIActivationOut,
     BillingPlanView,
@@ -18,6 +19,7 @@ from app.schemas.billing import (
     ResendDashboardLinkOut,
     ShopProfileUpdateIn,
 )
+from app.services.partner_badge_billing_service import PartnerBadgeBillingService
 from app.services.subscription_billing_service import SubscriptionBillingService
 
 router = APIRouter(prefix="/billing", tags=["billing"])
@@ -41,6 +43,16 @@ async def create_checkout_session(payload: CheckoutSessionCreateIn, db: AsyncSes
     except Exception as exc:
         await db.rollback()
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Could not create Stripe checkout: {exc}") from exc
+
+
+@router.post("/partner-badge/payment-link", dependencies=[Depends(require_admin_api_key)])
+async def create_partner_badge_payment_link():
+    try:
+        return PartnerBadgeBillingService(get_settings()).create_or_reuse_payment_link()
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Could not create Stripe payment link: {exc}") from exc
 
 
 @router.post("/resend-dashboard-link", response_model=ResendDashboardLinkOut)
