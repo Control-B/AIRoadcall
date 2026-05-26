@@ -705,6 +705,8 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                 company_name: mechanic.company_name,
                 category: mechanic.business_category || "Roadside Provider",
                 color: providerTypeColor(mechanic),
+                is_paid_partner: isPaidPartner(mechanic),
+                partner_badge_label: mechanic.partner_badge_label || "Roadcall Partner",
                 priority_score: mechanic.priority_score || mechanic.dispatch_fit_score || mechanic.marketplace_score || 0.5,
               },
               geometry: { type: "Point", coordinates: [mechanic.lng, mechanic.lat] },
@@ -740,15 +742,28 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           paint: { "text-color": "#ffffff" },
         });
         map.addLayer({
+          id: "provider-partner-halo",
+          type: "circle",
+          source: "providers",
+          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "is_paid_partner"], true]],
+          paint: {
+            "circle-color": "rgba(250, 204, 21, 0.18)",
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 13, 10, 18],
+            "circle-stroke-color": "#facc15",
+            "circle-stroke-opacity": 0.9,
+            "circle-stroke-width": 2,
+          },
+        });
+        map.addLayer({
           id: "provider-pins",
           type: "circle",
           source: "providers",
           filter: ["!", ["has", "point_count"]],
           paint: {
             "circle-color": ["get", "color"],
-            "circle-radius": 8,
-            "circle-stroke-color": "#ffffff",
-            "circle-stroke-width": 2,
+            "circle-radius": ["case", ["==", ["get", "is_paid_partner"], true], 9, 8],
+            "circle-stroke-color": ["case", ["==", ["get", "is_paid_partner"], true], "#facc15", "#ffffff"],
+            "circle-stroke-width": ["case", ["==", ["get", "is_paid_partner"], true], 3, 2],
           },
         });
         if (premiumMode === "operations") {
@@ -789,10 +804,37 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           const provider = points.find((mechanic) => mechanic.id === mechanicId);
           if (provider) setSelectedProvider(provider);
         });
+        const hoverPopup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false, offset: 14, className: "roadcall-provider-hover" });
         map.on("mouseenter", "provider-clusters", () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "provider-clusters", () => { map.getCanvas().style.cursor = ""; });
-        map.on("mouseenter", "provider-pins", () => { map.getCanvas().style.cursor = "pointer"; });
-        map.on("mouseleave", "provider-pins", () => { map.getCanvas().style.cursor = ""; });
+        map.on("mouseenter", "provider-pins", (event: any) => {
+          map.getCanvas().style.cursor = "pointer";
+          const mechanicId = event.features?.[0]?.properties?.mechanic_id;
+          const provider = points.find((mechanic) => mechanic.id === mechanicId);
+          const coordinates = event.features?.[0]?.geometry?.coordinates?.slice();
+          if (!provider || !coordinates) return;
+          const popupNode = document.createElement("div");
+          popupNode.className = "min-w-[190px] max-w-[240px] rounded-xl bg-slate-950 px-3 py-2 text-white shadow-2xl";
+          const name = document.createElement("p");
+          name.className = "text-sm font-black leading-tight";
+          name.textContent = provider.company_name;
+          popupNode.appendChild(name);
+          const category = document.createElement("p");
+          category.className = "mt-1 text-[11px] font-bold text-cyan-200";
+          category.textContent = provider.business_category || "Roadside Provider";
+          popupNode.appendChild(category);
+          if (isPaidPartner(provider)) {
+            const badge = document.createElement("span");
+            badge.className = "mt-2 inline-flex rounded-full bg-yellow-300 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-950";
+            badge.textContent = provider.partner_badge_label || "Roadcall Partner";
+            popupNode.appendChild(badge);
+          }
+          hoverPopup.setLngLat(coordinates).setDOMContent(popupNode).addTo(map);
+        });
+        map.on("mouseleave", "provider-pins", () => {
+          map.getCanvas().style.cursor = "";
+          hoverPopup.remove();
+        });
         if (points.length > 1) {
           map.fitBounds(bounds, { padding: 64, maxZoom: 10, duration: 0 });
         }
@@ -839,6 +881,14 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
         .mapboxgl-ctrl-bottom-left .mapboxgl-ctrl,
         .mapboxgl-ctrl-bottom-right .mapboxgl-ctrl {
           margin-bottom: 12px;
+        }
+        .roadcall-provider-hover .mapboxgl-popup-content {
+          background: transparent;
+          box-shadow: none;
+          padding: 0;
+        }
+        .roadcall-provider-hover .mapboxgl-popup-tip {
+          border-top-color: #020617;
         }
       `}</style>
       <div ref={containerRef} className="h-full w-full" />
@@ -1063,6 +1113,10 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                   <span className="whitespace-nowrap">{label}</span>
                 </div>
               ))}
+              <div className="flex items-center gap-1.5 border-t border-white/10 pt-1.5">
+                <span className="inline-block h-2.5 w-2.5 rounded-full bg-roadcall-cyan ring-2 ring-yellow-300" />
+                <span className="whitespace-nowrap">Roadcall Partner</span>
+              </div>
             </div>
             <div className="mt-2 flex flex-col gap-1 border-t border-white/10 pt-2 text-[10px] text-roadcall-muted">
               <span className="font-black uppercase tracking-wide text-roadcall-cyan">Clusters</span>
@@ -1077,6 +1131,12 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       {selectedProvider ? (
         <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
           <button type="button" onClick={() => setSelectedProvider(null)} className="absolute right-3 top-3 rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"><X className="h-4 w-4" /></button>
+          {isPaidPartner(selectedProvider) ? (
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-yellow-300 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-slate-950">
+              <Shield className="h-3.5 w-3.5" />
+              {selectedProvider.partner_badge_label || "Roadcall Partner"}
+            </div>
+          ) : null}
           <p className="pr-8 text-base font-black leading-tight">{selectedProvider.company_name}</p>
           <p className="mt-1 text-xs font-bold text-cyan-700">{selectedProvider.business_category || "Roadside Provider"}</p>
           <p className="mt-3 text-sm text-slate-700">{selectedProvider.address || [selectedProvider.city, selectedProvider.state].filter(Boolean).join(", ") || "Address unavailable"}</p>
