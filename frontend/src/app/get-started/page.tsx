@@ -13,7 +13,7 @@ import {
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
 import { FLEET_MEMBERSHIP_PLANS } from "@/lib/fleet-memberships";
-import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
+import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
 import AgentsLink from "./AgentsLink";
 
 type Track = "shop" | "fleet";
@@ -41,7 +41,7 @@ const SHOP_PLANS = [
     setup: "$99 setup",
     bullets: ["AI phone answering", "AI intake", "Call summaries", "FAQ assistant", "Appointment capture", "Lead capture"],
     cta: "Start Standard",
-    href: GHL_GET_STARTED_URL,
+    href: SHOP_CHECKOUT_LINKS.standard,
   },
   {
     id: "professional",
@@ -50,7 +50,7 @@ const SHOP_PLANS = [
     setup: "$149 setup",
     bullets: ["Everything in Standard", "AI Widget", "Reviews"],
     cta: "Start Professional",
-    href: GHL_GET_STARTED_URL,
+    href: SHOP_CHECKOUT_LINKS.professional,
     accent: true,
   },
   {
@@ -60,7 +60,7 @@ const SHOP_PLANS = [
     setup: "$249 setup",
     bullets: ["Everything in Professional", "Smart Website"],
     cta: "Start Advanced",
-    href: GHL_GET_STARTED_URL,
+    href: SHOP_CHECKOUT_LINKS.advanced,
   },
 ];
 

@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/card";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { SiteFooter } from "@/components/site-footer";
-import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
+import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
 
 const features = [
   {
@@ -71,7 +71,7 @@ const plans = [
     price: 197,
     setup: "$99 setup",
     description: "AI phone answering, intake, summaries, and lead capture",
-    href: GHL_GET_STARTED_URL,
+    href: SHOP_CHECKOUT_LINKS.standard,
     features: [
       "AI phone answering",
       "AI intake",
@@ -86,7 +86,7 @@ const plans = [
     setup: "$149 setup",
     description: "Everything in Standard plus conversion upgrades",
     popular: true,
-    href: GHL_GET_STARTED_URL,
+    href: SHOP_CHECKOUT_LINKS.professional,
     features: [
       "Everything in Standard",
       "AI Widget",
@@ -98,7 +98,7 @@ const plans = [
     price: 397,
     setup: "$249 setup",
     description: "Professional plus a Smart Website",
-    href: GHL_GET_STARTED_URL,
+    href: SHOP_CHECKOUT_LINKS.advanced,
     features: [
       "Everything in Professional",
       "Smart Website",
@@ -312,7 +312,7 @@ export default function DemoPage() {
                       </li>
                     ))}
                   </ul>
-                  <a href={plan.href} target="_blank" rel="noopener noreferrer">
+                  <a href={plan.href}>
                     <Button
                       className={`w-full ${
                         plan.popular

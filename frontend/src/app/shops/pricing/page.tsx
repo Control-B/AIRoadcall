@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight, CheckCircle2, Phone, Sparkles, Truck, Wrench } from "lucide-react";
-import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
+import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
 
 const plans = [
   {
@@ -10,7 +10,7 @@ const plans = [
     price: "$197",
     setup: "$99 setup",
     target: "Core 24/7 AI Service Operations System for mechanics.",
-    href: GHL_GET_STARTED_URL,
+    href: SHOP_CHECKOUT_LINKS.standard,
     features: ["AI phone answering", "AI intake", "Call summaries", "FAQ assistant", "Appointment capture", "Lead capture"],
   },
   {
@@ -18,7 +18,7 @@ const plans = [
     price: "$297",
     setup: "$149 setup",
     target: "Everything in Standard plus conversion and reputation upgrades.",
-    href: GHL_GET_STARTED_URL,
+    href: SHOP_CHECKOUT_LINKS.professional,
     highlighted: true,
     features: ["Everything in Standard", "AI Widget", "Reviews"],
   },
@@ -27,7 +27,7 @@ const plans = [
     price: "$397",
     setup: "$249 setup",
     target: "Everything in Professional with a Smart Website built for booking.",
-    href: GHL_GET_STARTED_URL,
+    href: SHOP_CHECKOUT_LINKS.advanced,
     features: ["Everything in Professional", "Smart Website"],
   },
 ];
@@ -65,7 +65,7 @@ export default function ShopsPricingPage() {
                 <li key={feature} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" /> {feature}</li>
               ))}
             </ul>
-            <Link href={plan.href} target="_blank" rel="noreferrer" className="mt-7 inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-black text-slate-950 hover:bg-cyan-50">
+            <Link href={plan.href} className="mt-7 inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-black text-slate-950 hover:bg-cyan-50">
               Start {plan.name} <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </article>

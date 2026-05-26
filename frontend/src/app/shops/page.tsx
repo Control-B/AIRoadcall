@@ -4,8 +4,8 @@ import Link from "next/link";
 import { ArrowRight, Bot, CheckCircle2, Phone, ShieldCheck, Sparkles, Truck } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
-import { GHL_GET_STARTED_URL } from "@/lib/ghl-links";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
 
 const plans = [
   {
@@ -17,7 +17,7 @@ const plans = [
     description: "Core 24/7 AI service operations for mechanics.",
     features: ["AI phone answering", "AI intake", "Call summaries", "FAQ assistant", "Appointment capture", "Lead capture"],
     cta: "Start Standard",
-    ghl: true,
+    href: SHOP_CHECKOUT_LINKS.standard,
   },
   {
     id: "professional",
@@ -28,7 +28,7 @@ const plans = [
     description: "Everything in Standard plus conversion and reputation upgrades.",
     features: ["Everything in Standard", "AI Widget", "Reviews"],
     cta: "Start Professional",
-    ghl: true,
+    href: SHOP_CHECKOUT_LINKS.professional,
     highlighted: true,
   },
   {
@@ -40,7 +40,7 @@ const plans = [
     description: "Everything in Professional with a Smart Website built for booking.",
     features: ["Everything in Professional", "Smart Website"],
     cta: "Start Advanced",
-    ghl: true,
+    href: SHOP_CHECKOUT_LINKS.advanced,
   },
 ];
 
@@ -118,7 +118,7 @@ export default function ShopsPage() {
                       <li key={feature} className="flex gap-2"><CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-emerald-300" /> {feature}</li>
                     ))}
                   </ul>
-                  <Link href={plan.ghl ? GHL_GET_STARTED_URL : `/mechanic/checkout?plan=${plan.id}`} className="mt-6 inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-black text-slate-950 hover:bg-cyan-50">
+                  <Link href={plan.href} className="mt-6 inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-black text-slate-950 hover:bg-cyan-50">
                     {plan.cta} <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </article>
