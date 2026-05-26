@@ -466,6 +466,18 @@ function hasCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: numbe
   return typeof mechanic.lat === "number" && Number.isFinite(mechanic.lat) && typeof mechanic.lng === "number" && Number.isFinite(mechanic.lng);
 }
 
+const STATE_COORDINATE_BOUNDS: Record<string, { minLat: number; maxLat: number; minLng: number; maxLng: number }> = {
+  FL: { minLat: 24.2, maxLat: 31.1, minLng: -87.8, maxLng: -79.7 },
+};
+
+function hasMappableCoordinates(mechanic: Mechanic): mechanic is Mechanic & { lat: number; lng: number } {
+  if (!hasCoordinates(mechanic)) return false;
+  const stateCode = mechanic.state?.trim().toUpperCase();
+  const bounds = stateCode ? STATE_COORDINATE_BOUNDS[stateCode] : null;
+  if (!bounds) return true;
+  return mechanic.lat >= bounds.minLat && mechanic.lat <= bounds.maxLat && mechanic.lng >= bounds.minLng && mechanic.lng <= bounds.maxLng;
+}
+
 function isNationalVendor(mechanic: Mechanic) {
   if (mechanic.vendor_scope === "national") return true;
   if (mechanic.vendor_scope === "local") return false;
@@ -580,7 +592,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const { token, configured, loading } = useMapboxToken(process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN);
-  const points = useMemo(() => mechanics.filter(hasCoordinates), [mechanics]);
+  const points = useMemo(() => mechanics.filter(hasMappableCoordinates), [mechanics]);
   const [visibleBounds, setVisibleBounds] = useState<MapBounds | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<Mechanic | null>(null);
   const [mapSearchOpen, setMapSearchOpen] = useState(false);
@@ -763,27 +775,14 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           }, "provider-pins");
         }
         map.addLayer({
-          id: "provider-pin-labels",
-          type: "symbol",
-          source: "providers",
-          filter: ["!", ["has", "point_count"]],
-          layout: {
-            "text-field": ["get", "company_name"],
-            "text-size": 11,
-            "text-offset": [0, 1.35],
-            "text-anchor": "top",
-          },
-          paint: { "text-color": "#0f172a", "text-halo-color": "#ffffff", "text-halo-width": 1.2 },
-        });
-        map.addLayer({
           id: "partner-pin-badges",
           type: "symbol",
           source: "providers",
-          minzoom: 5,
+          minzoom: 10,
           filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "is_partner"], true]],
           layout: {
             "text-field": ["get", "partner_badge_label"],
-            "text-size": ["interpolate", ["linear"], ["zoom"], 5, 9, 10, 11],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 10, 9, 13, 11],
             "text-offset": [0, -2.05],
             "text-anchor": "bottom",
             "text-transform": "uppercase",
