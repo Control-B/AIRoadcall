@@ -1799,14 +1799,22 @@ function SearchPageInner() {
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const mechanics = results?.mechanics || [];
-  const combinedProviders = useMemo(() => [...nationalVendors, ...mechanics.map(withInferredVendorScope), ...truckingCompanies], [mechanics, nationalVendors, truckingCompanies]);
+  const combinedProviders = useMemo(() => [...mechanics.map(withInferredVendorScope), ...truckingCompanies, ...nationalVendors], [mechanics, nationalVendors, truckingCompanies]);
   const displayProviders = useMemo(() => partnerDemoMode ? combinedProviders.map(withPartnerDemoBadge) : combinedProviders, [combinedProviders, partnerDemoMode]);
   const vendorScopeCounts = useMemo(() => ({
     all: sourceTotals.mechanics + sourceTotals.national + sourceTotals.trucking,
     national: sourceTotals.national,
     local: sourceTotals.mechanics + sourceTotals.trucking,
   }), [sourceTotals]);
-  const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(displayProviders, vendorScopeMode), [displayProviders, vendorScopeMode]);
+  const scopedMechanics = useMemo(() => {
+    const filteredProviders = filterMechanicsByVendorScope(displayProviders, vendorScopeMode);
+    if (vendorScopeMode !== "national") return filteredProviders;
+    return [...filteredProviders].sort((first, second) => {
+      const firstDirectoryVendor = first.id.startsWith("national-") ? 0 : 1;
+      const secondDirectoryVendor = second.id.startsWith("national-") ? 0 : 1;
+      return firstDirectoryVendor - secondDirectoryVendor;
+    });
+  }, [displayProviders, vendorScopeMode]);
   const cityGroups = useMemo(() => groupMechanicsByCity(scopedMechanics), [scopedMechanics]);
   const handleViewMap = useCallback((mechanic: Mechanic) => {
     const mapParams = new URLSearchParams();
