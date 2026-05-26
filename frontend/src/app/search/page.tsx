@@ -283,6 +283,8 @@ type Mechanic = {
   trust_level?: string | null;
   availability_status?: string | null;
   estimated_response_minutes?: number | null;
+  is_paid_partner?: boolean | null;
+  partner_badge_label?: string | null;
   badges?: string[];
   reasons?: string[];
 };
@@ -441,6 +443,16 @@ function providerTypeColor(mechanic: Mechanic) {
   return "#06b6d4";
 }
 
+function isPaidPartner(mechanic: Mechanic) {
+  return mechanic.is_paid_partner === true;
+}
+
+function partnerBadgeLabel(mechanic: Mechanic) {
+  const explicit = mechanic.partner_badge_label?.trim();
+  if (explicit) return explicit.slice(0, 14);
+  return "Partner";
+}
+
 function verificationLabel(status?: Mechanic["verification_status"]) {
   switch (status) {
     case "verified": return "Verified provider";
@@ -520,6 +532,17 @@ function nationalVendorToMechanic(vendor: PublicNationalVendor, index: number): 
     export_status: "ready",
     badges: ["National vendor"],
     reasons: ["National vendor database"],
+  };
+}
+
+function withPartnerDemoBadge(mechanic: Mechanic): Mechanic {
+  if (!isNationalVendor(mechanic) || isPaidPartner(mechanic)) return mechanic;
+  const brand = mechanic.company_name.split(" - ")[0]?.trim();
+  return {
+    ...mechanic,
+    is_paid_partner: true,
+    partner_badge_label: brand || "Partner",
+    badges: ["Roadcall Partner", ...(mechanic.badges || [])],
   };
 }
 
@@ -655,6 +678,8 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                 company_name: mechanic.company_name,
                 category: mechanic.business_category || "Roadside Provider",
                 color: providerTypeColor(mechanic),
+                is_partner: isPaidPartner(mechanic),
+                partner_badge_label: partnerBadgeLabel(mechanic),
                 priority_score: mechanic.priority_score || mechanic.dispatch_fit_score || mechanic.marketplace_score || 0.5,
               },
               geometry: { type: "Point", coordinates: [mechanic.lng, mechanic.lat] },
@@ -701,6 +726,18 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             "circle-stroke-width": 2,
           },
         });
+        map.addLayer({
+          id: "partner-pin-halos",
+          type: "circle",
+          source: "providers",
+          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "is_partner"], true]],
+          paint: {
+            "circle-color": "rgba(250, 204, 21, 0.16)",
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 3, 12, 8, 18, 12, 24],
+            "circle-stroke-color": "#facc15",
+            "circle-stroke-width": 2.5,
+          },
+        }, "provider-pins");
         if (premiumModeEnabled && ["operations", "density", "hotspots"].includes(premiumMode)) {
           map.addLayer({
             id: "roadside-intelligence-heat",
@@ -738,6 +775,26 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           },
           paint: { "text-color": "#0f172a", "text-halo-color": "#ffffff", "text-halo-width": 1.2 },
         });
+        map.addLayer({
+          id: "partner-pin-badges",
+          type: "symbol",
+          source: "providers",
+          minzoom: 5,
+          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "is_partner"], true]],
+          layout: {
+            "text-field": ["get", "partner_badge_label"],
+            "text-size": ["interpolate", ["linear"], ["zoom"], 5, 9, 10, 11],
+            "text-offset": [0, -2.05],
+            "text-anchor": "bottom",
+            "text-transform": "uppercase",
+            "text-letter-spacing": 0.04,
+          },
+          paint: {
+            "text-color": "#713f12",
+            "text-halo-color": "#fef3c7",
+            "text-halo-width": 2,
+          },
+        });
         map.on("click", "provider-clusters", (event: any) => {
           const features = map.queryRenderedFeatures(event.point, { layers: ["provider-clusters"] });
           const clusterId = features[0]?.properties?.cluster_id;
@@ -752,10 +809,17 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           const provider = points.find((mechanic) => mechanic.id === mechanicId);
           if (provider) setSelectedProvider(provider);
         });
+        map.on("click", "partner-pin-badges", (event: any) => {
+          const mechanicId = event.features?.[0]?.properties?.mechanic_id;
+          const provider = points.find((mechanic) => mechanic.id === mechanicId);
+          if (provider) setSelectedProvider(provider);
+        });
         map.on("mouseenter", "provider-clusters", () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "provider-clusters", () => { map.getCanvas().style.cursor = ""; });
         map.on("mouseenter", "provider-pins", () => { map.getCanvas().style.cursor = "pointer"; });
         map.on("mouseleave", "provider-pins", () => { map.getCanvas().style.cursor = ""; });
+        map.on("mouseenter", "partner-pin-badges", () => { map.getCanvas().style.cursor = "pointer"; });
+        map.on("mouseleave", "partner-pin-badges", () => { map.getCanvas().style.cursor = ""; });
         if (points.length > 1) {
           map.fitBounds(bounds, { padding: 64, maxZoom: 10, duration: 0 });
         }
@@ -1021,6 +1085,10 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                   <span className="whitespace-nowrap">{label}</span>
                 </div>
               ))}
+              <div className="mt-1 flex items-center gap-1.5 border-t border-white/10 pt-2">
+                <span className="inline-block h-3.5 w-3.5 rounded-full border-2 border-yellow-300 bg-yellow-300/20 ring-2 ring-white/70" />
+                <span className="whitespace-nowrap">Roadcall Partner</span>
+              </div>
             </div>
             <div className="mt-2 flex flex-col gap-1 border-t border-white/10 pt-2 text-[10px] text-roadcall-muted">
               <span className="font-black uppercase tracking-wide text-roadcall-cyan">Clusters</span>
@@ -1035,6 +1103,11 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
       {selectedProvider ? (
         <div className="absolute bottom-4 right-4 z-20 w-[min(360px,calc(100%-2rem))] rounded-2xl border border-slate-200 bg-white p-4 text-slate-950 shadow-2xl">
           <button type="button" onClick={() => setSelectedProvider(null)} className="absolute right-3 top-3 rounded-full p-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900"><X className="h-4 w-4" /></button>
+          {isPaidPartner(selectedProvider) ? (
+            <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-yellow-300 bg-yellow-100 px-2.5 py-1 text-[10px] font-black uppercase tracking-wide text-yellow-900">
+              <Shield className="h-3.5 w-3.5" /> Roadcall Partner
+            </div>
+          ) : null}
           <p className="pr-8 text-base font-black leading-tight">{selectedProvider.company_name}</p>
           <p className="mt-1 text-xs font-bold text-cyan-700">{selectedProvider.business_category || "Roadside Provider"}</p>
           <p className="mt-3 text-sm text-slate-700">{selectedProvider.address || [selectedProvider.city, selectedProvider.state].filter(Boolean).join(", ") || "Address unavailable"}</p>
@@ -1045,6 +1118,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             {selectedProvider.phone ? <a href={telHref(selectedProvider.phone)} className="rounded-xl bg-slate-950 px-3 py-2 text-center text-xs font-black text-white">Call Provider</a> : <span className="rounded-xl bg-slate-100 px-3 py-2 text-center text-xs font-bold text-slate-500">Phone protected</span>}
             {safeExternalUrl(selectedProvider.website) ? <a href={safeExternalUrl(selectedProvider.website)!} target="_blank" rel="noreferrer" className="rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-black text-slate-900">Visit Website</a> : <span className="rounded-xl border border-slate-200 px-3 py-2 text-center text-xs font-bold text-slate-500">Website unavailable</span>}
           </div>
+          {isPaidPartner(selectedProvider) ? <p className="mt-3 rounded-xl bg-yellow-50 px-3 py-2 text-xs font-semibold text-yellow-900">Partner badge improves map and profile visibility. AI dispatch still ranks by service fit, location, availability, and response signals.</p> : null}
           {selectedProvider.contact_protected ? <p className="mt-3 rounded-xl bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800">Contact details are protected. Use Roadcall dispatch to connect.</p> : null}
         </div>
       ) : null}
@@ -1064,9 +1138,11 @@ function MechanicCard({ m, onClaim, onViewMap }: { m: Mechanic; onClaim: (mechan
   const trustLabel = m.trust_level ? m.trust_level.replace(/_/g, " ") : null;
   const websiteUrl = safeExternalUrl(m.website);
   const status = m.verification_status || "unverified";
+  const paidPartner = isPaidPartner(m);
 
   return (
     <div className="group relative overflow-hidden rounded-2xl border border-roadcall-cyan/10 bg-roadcall-panel/40 backdrop-blur-sm transition-all duration-200 p-5 hover:-translate-y-1 hover:border-roadcall-cyan/35 hover:bg-roadcall-panel/60 hover:shadow-2xl hover:shadow-roadcall-cyan/10">
+      {paidPartner ? <div className="absolute right-0 top-0 h-20 w-20 rounded-bl-full bg-yellow-300/10" /> : null}
       <div className="absolute inset-0 bg-gradient-to-br from-roadcall-cyan/[0.04] via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
       <div className="relative z-10">
         {/* Header */}
@@ -1083,6 +1159,11 @@ function MechanicCard({ m, onClaim, onViewMap }: { m: Mechanic; onClaim: (mechan
               {m.business_category || "Roadside Provider"}
             </p>
           </div>
+          {paidPartner ? (
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-yellow-300/40 bg-yellow-300/15 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-yellow-200">
+              <Shield className="h-3 w-3" /> Partner
+            </span>
+          ) : null}
         </div>
 
         <div className="mb-3 space-y-1.5 text-xs text-roadcall-muted">
@@ -1133,7 +1214,7 @@ function MechanicCard({ m, onClaim, onViewMap }: { m: Mechanic; onClaim: (mechan
               {s.replace(/_/g, " ")}
             </span>
           ))}
-          {m.badges?.slice(0, 2).map((badge) => (
+          {m.badges?.filter((badge) => badge.toLowerCase() !== "roadcall partner").slice(0, 2).map((badge) => (
             <span key={badge} className="inline-flex items-center px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/10 text-roadcall-silver text-[10px] font-medium">
               {badge}
             </span>
@@ -1151,6 +1232,12 @@ function MechanicCard({ m, onClaim, onViewMap }: { m: Mechanic; onClaim: (mechan
             {topReason}
           </p>
         )}
+
+        {paidPartner ? (
+          <p className="mb-4 rounded-xl border border-yellow-300/20 bg-yellow-300/10 px-3 py-2 text-xs font-semibold leading-relaxed text-yellow-100">
+            Featured partner badge. AI dispatch still prioritizes service fit, location, availability, and response signals.
+          </p>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-2">
           <button type="button" onClick={() => onViewMap(m)} className="rounded-xl border border-roadcall-cyan/20 bg-roadcall-cyan/10 px-3 py-2 text-xs font-black text-roadcall-cyan transition group-hover:border-roadcall-cyan/40 group-hover:bg-roadcall-cyan/15">View on Map</button>
@@ -1570,6 +1657,7 @@ function SearchPageInner() {
   const [claimStatus, setClaimStatus] = useState<string | null>(null);
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [userCoords, setUserCoords] = useState<{ latitude: number; longitude: number; accuracyM: number | null } | null>(null);
+  const partnerDemoMode = searchParams.get("partnerDemo") === "1";
 
   useEffect(() => {
     if (isMapsPage) {
@@ -1746,13 +1834,14 @@ function SearchPageInner() {
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const mechanics = results?.mechanics || [];
   const combinedProviders = useMemo(() => [...nationalVendors, ...mechanics.map((mechanic) => ({ ...mechanic, vendor_scope: "local" as const })), ...truckingCompanies], [mechanics, nationalVendors, truckingCompanies]);
+  const displayProviders = useMemo(() => partnerDemoMode ? combinedProviders.map(withPartnerDemoBadge) : combinedProviders, [combinedProviders, partnerDemoMode]);
   const allProviderCount = sourceTotals.mechanics + sourceTotals.national + sourceTotals.trucking;
   const vendorScopeCounts = useMemo(() => ({
     all: allProviderCount,
     national: sourceTotals.national,
     local: sourceTotals.mechanics + sourceTotals.trucking,
   }), [allProviderCount, sourceTotals]);
-  const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(combinedProviders, vendorScopeMode), [combinedProviders, vendorScopeMode]);
+  const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(displayProviders, vendorScopeMode), [displayProviders, vendorScopeMode]);
   const cityGroups = useMemo(() => groupMechanicsByCity(scopedMechanics), [scopedMechanics]);
   const handleViewMap = useCallback((mechanic: Mechanic) => {
     const mapParams = new URLSearchParams();

@@ -264,3 +264,27 @@ async def test_public_directory_search_ranks_by_inferred_roadside_intent(db):
     assert result["search_intelligence"]["vehicle_type"] == "heavy_duty"
     assert result["mechanics"][0]["id"] == str(strong.id)
     assert result["mechanics"][0]["dispatch_fit_score"] > 0.5
+
+
+@pytest.mark.asyncio
+async def test_public_directory_search_exposes_paid_partner_badge(db):
+    partner = await _make_mechanic(
+        db,
+        company_name="Orlando Roadcall Partner",
+        phone="4075551212",
+        service_types=["tow_needed"],
+    )
+    partner.subscription_product = "ai_telephony"
+    await db.commit()
+
+    result = await MechanicDataService.public_directory_search(
+        db,
+        q="tow",
+        city="Orlando",
+        state="FL",
+        page_size=5,
+    )
+
+    mechanic = next(item for item in result["mechanics"] if item["id"] == str(partner.id))
+    assert mechanic["is_paid_partner"] is True
+    assert mechanic["partner_badge_label"] == "Roadcall Partner"

@@ -95,6 +95,13 @@ class MechanicDataService:
         "heavy_duty": ("heavy_duty", "heavy duty", "diesel", "truck", "engine_trouble", "tow_needed", "trailer_repair"),
     }
 
+    _PAID_SUBSCRIPTION_PRODUCTS = {
+        "ai_telephony": "AI Telephony",
+        "ai_voice_text": "Voice + Text",
+        "social_media": "Social Media",
+        "website_management": "Website",
+    }
+
     @staticmethod
     async def get_admin_stats(db: AsyncSession) -> MechanicAdminStats:
         def non_empty(column):
@@ -476,6 +483,8 @@ class MechanicDataService:
                 "trust_level": intelligence.trust_level,
                 "availability_status": intelligence.availability_status,
                 "estimated_response_minutes": intelligence.estimated_response_minutes,
+                "is_paid_partner": MechanicDataService._is_paid_partner(mechanic),
+                "partner_badge_label": MechanicDataService._partner_badge_label(mechanic),
                 "badges": intelligence.badges,
                 "reasons": intelligence.reasons,
             })
@@ -494,6 +503,18 @@ class MechanicDataService:
                 "ranking": "dispatch_intelligence_v1",
             },
         }
+
+    @staticmethod
+    def _is_paid_partner(mechanic: Mechanic) -> bool:
+        product = str(getattr(mechanic, "subscription_product", "") or "").strip().lower()
+        return product in MechanicDataService._PAID_SUBSCRIPTION_PRODUCTS
+
+    @staticmethod
+    def _partner_badge_label(mechanic: Mechanic) -> str | None:
+        product = str(getattr(mechanic, "subscription_product", "") or "").strip().lower()
+        if product not in MechanicDataService._PAID_SUBSCRIPTION_PRODUCTS:
+            return None
+        return "Roadcall Partner"
 
     @staticmethod
     def _public_search_text_score(mechanic: Mechanic, terms: list[str]) -> float:
