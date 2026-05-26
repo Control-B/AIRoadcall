@@ -414,6 +414,16 @@ const NATIONAL_VENDOR_HINTS = [
 
 const NATIONAL_VENDOR_CATEGORY_HINTS = ["national", "chain", "truck stop", "travel center", "dealer", "dealership", "fleet service", "commercial tire"];
 
+function normalizeVendorSignal(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[’'`]/g, "")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
 function safeExternalUrl(value?: string | null) {
   if (!value) return null;
   try {
@@ -471,6 +481,7 @@ function hasMappableCoordinates(mechanic: Mechanic): mechanic is Mechanic & { la
 
 function hasNationalVendorSignals(mechanic: Mechanic) {
   const haystack = [
+    mechanic.id,
     mechanic.company_name,
     mechanic.business_category,
     mechanic.website,
@@ -480,10 +491,8 @@ function hasNationalVendorSignals(mechanic: Mechanic) {
   ]
     .filter(Boolean)
     .join(" ")
-    .toLowerCase()
-    .replace(/&/g, "and");
-  const category = (mechanic.business_category || "").toLowerCase();
-  return NATIONAL_VENDOR_HINTS.some((hint) => haystack.includes(hint)) || NATIONAL_VENDOR_CATEGORY_HINTS.some((hint) => category.includes(hint));
+  const normalizedHaystack = normalizeVendorSignal(haystack);
+  return [...NATIONAL_VENDOR_HINTS, ...NATIONAL_VENDOR_CATEGORY_HINTS].some((hint) => normalizedHaystack.includes(normalizeVendorSignal(hint)));
 }
 
 function isNationalVendor(mechanic: Mechanic) {
