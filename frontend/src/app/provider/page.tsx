@@ -9,7 +9,6 @@ import {
   Users,
   Zap,
   CheckCircle2,
-  ArrowRight,
   MapPin,
   BarChart3,
   Shield,
@@ -58,64 +57,6 @@ const benefits = [
     title: "Trusted & Verified Badge",
     description: "Pass our verification process and earn a Trusted Provider badge — the highest trust level shown to fleet dispatchers.",
     accent: "text-purple-400",
-  },
-];
-
-const tiers = [
-  {
-    name: "Free Listing",
-    price: "$0",
-    period: "/mo",
-    setup: null,
-    description: "Get found. Build your presence.",
-    features: [
-      "Directory listing in all 50 states",
-      "Phone number & website display",
-      "Basic service type & hours info",
-      "Appear in search results",
-      "Claim & verify your profile",
-    ],
-    cta: "Claim Free Listing",
-    href: PROVIDER_SIGNUP,
-    highlighted: false,
-  },
-  {
-    name: "Verified Provider",
-    price: "$97",
-    period: "/mo",
-    setup: null,
-    description: "Get dispatched. Build trust.",
-    features: [
-      "Everything in Free",
-      "Verified badge — priority ranking",
-      "AI dispatch lead routing",
-      "Performance analytics dashboard",
-      "Post-job review automation",
-      "Priority placement in search",
-      "SMS dispatch notifications",
-    ],
-    cta: "Start Verified Trial",
-    href: PROVIDER_SIGNUP,
-    highlighted: true,
-  },
-  {
-    name: "Roadcall Standard",
-    price: "$197",
-    period: "/mo",
-    setup: "$99 setup",
-    description: "AI telephony and growth essentials.",
-    features: [
-      "Everything in Verified",
-      "AI Telephony",
-      "Leads",
-      "Calendar",
-      "CRM",
-      "Form Builder",
-      "Missed Call Text Back",
-    ],
-    cta: "Start Free Trial",
-    href: "https://buy.stripe.com/aFafZj94cbRI8b83s21sQ0k",
-    highlighted: false,
   },
 ];
 
@@ -221,62 +162,8 @@ export default function ProviderPage() {
         </div>
       </section>
 
-      {/* Pricing */}
-      <section className="py-24 md:py-32">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6">
-          <SectionHeading
-            eyebrow="Provider Plans"
-            title="Start free. Scale with AI."
-            description="Every business gets a free listing. Upgrade when you're ready to receive dispatched leads and automate your phone."
-          />
-          <div className="grid sm:grid-cols-3 gap-6 mt-14">
-            {tiers.map((tier, i) => (
-              <FadeIn key={tier.name} delay={i * 0.1}>
-                <div className={`relative p-7 rounded-2xl border flex flex-col transition-all ${
-                  tier.highlighted
-                    ? "border-emerald-500/40 bg-gradient-to-b from-emerald-900/20 to-roadcall-panel/50 shadow-xl shadow-emerald-900/20"
-                    : "border-roadcall-cyan/15 bg-roadcall-panel/35"
-                }`}>
-                  {tier.highlighted && (
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full">
-                      Most Popular
-                    </div>
-                  )}
-                  <div className="mb-5">
-                    <h3 className="font-bold text-white text-lg mb-1">{tier.name}</h3>
-                    <div className="flex items-end gap-1 mb-1">
-                      <span className="text-3xl font-black text-white">{tier.price}</span>
-                      <span className="text-roadcall-muted text-sm mb-1">{tier.period}</span>
-                    </div>
-                    {tier.setup && <p className="mb-1 text-xs font-semibold text-roadcall-orange">{tier.setup}</p>}
-                    <p className="text-xs text-roadcall-muted">{tier.description}</p>
-                  </div>
-                  <ul className="space-y-2 mb-6 flex-1">
-                    {tier.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-sm text-roadcall-silver/90">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <a href={tier.href}>
-                    <button className={`w-full py-3 rounded-xl font-semibold text-sm transition-all ${
-                      tier.highlighted
-                        ? "bg-emerald-500 hover:bg-emerald-400 text-white"
-                        : "border border-roadcall-cyan/20 bg-roadcall-panel/50 text-roadcall-silver hover:text-white hover:border-roadcall-cyan/40"
-                    }`}>
-                      {tier.cta} <ArrowRight className="inline h-4 w-4 ml-1" />
-                    </button>
-                  </a>
-                </div>
-              </FadeIn>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Bottom CTA */}
-      <section className="pb-24">
+      <section className="py-24">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900/30 via-roadcall-panel/60 to-blue-900/25 border border-emerald-500/20 p-10">
             <h2 className="text-3xl font-black text-white mb-4">Ready to grow your shop?</h2>
