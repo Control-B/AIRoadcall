@@ -90,15 +90,19 @@ def _csv_stats(rows: list[dict[str, str]]) -> dict:
 
 
 def _public_trucking_row(row) -> dict:
+    address = row.address if hasattr(row, "address") else row.get("address")
+    city = row.city if hasattr(row, "city") else row.get("city")
+    state = row.state if hasattr(row, "state") else row.get("state")
+    has_place = bool(address or (city and state))
     return {
         "company_name": row.company_name if hasattr(row, "company_name") else row.get("company_name"),
         "phone": row.phone if hasattr(row, "phone") else row.get("phone"),
         "website": row.website if hasattr(row, "website") else row.get("website"),
-        "address": row.address if hasattr(row, "address") else row.get("address"),
-        "city": row.city if hasattr(row, "city") else row.get("city"),
-        "state": row.state if hasattr(row, "state") else row.get("state"),
-        "lat": row.lat if hasattr(row, "lat") else _to_float(row.get("lat")),
-        "lng": row.lng if hasattr(row, "lng") else _to_float(row.get("lng")),
+        "address": address,
+        "city": city,
+        "state": state,
+        "lat": (row.lat if hasattr(row, "lat") else _to_float(row.get("lat"))) if has_place else None,
+        "lng": (row.lng if hasattr(row, "lng") else _to_float(row.get("lng"))) if has_place else None,
         "rating": row.rating if hasattr(row, "rating") else _to_float(row.get("rating")),
         "review_count": row.review_count if hasattr(row, "review_count") else _to_int(row.get("review_count")),
         "categories": _split_public_tags(row.categories if hasattr(row, "categories") else row.get("categories")),

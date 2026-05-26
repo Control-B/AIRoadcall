@@ -8,6 +8,7 @@ These exercise the ownership-gate logic the user requested:
 """
 import os
 import uuid
+from types import SimpleNamespace
 
 import pytest
 import pytest_asyncio
@@ -35,6 +36,7 @@ from app.api.deps import get_session  # noqa: E402
 from app.models.mechanic import Mechanic  # noqa: E402
 from app.models.organization import Organization  # noqa: E402
 from app.models import mechanic_marketplace  # noqa: E402,F401
+from app.api.routes.public_directories import _public_trucking_row  # noqa: E402
 from app.services.mechanic_data_service import MechanicDataService  # noqa: E402
 
 
@@ -288,3 +290,24 @@ async def test_public_directory_search_exposes_paid_partner_badge(db):
     mechanic = next(item for item in result["mechanics"] if item["id"] == str(partner.id))
     assert mechanic["is_paid_partner"] is True
     assert mechanic["partner_badge_label"] == "Roadcall Partner"
+
+
+def test_public_trucking_row_hides_coordinates_without_place_data():
+    row = SimpleNamespace(
+        company_name="Hunter Logistix",
+        phone="+13053955057",
+        website="http://hunterlogistix.com/",
+        address=None,
+        city=None,
+        state=None,
+        lat=27.698638,
+        lng=-83.804601,
+        rating=4.9,
+        review_count=54,
+        categories="Trucking company;Service establishment",
+    )
+
+    public_row = _public_trucking_row(row)
+
+    assert public_row["lat"] is None
+    assert public_row["lng"] is None
