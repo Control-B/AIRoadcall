@@ -26,7 +26,6 @@ import {
   Loader2,
   Activity,
   RadioTower,
-  Layers3,
   Satellite,
   Menu,
   Minus,
@@ -339,7 +338,7 @@ type TruckingCompanyResponse = {
 };
 
 type ProviderViewMode = "map" | "cards" | "list";
-type PremiumMapMode = "basic" | "operations" | "satellite" | "density" | "hotspots";
+type PremiumMapMode = "basic" | "operations" | "satellite";
 type VendorScopeMode = "all" | "national" | "local";
 
 const VIEW_STORAGE_KEY = "roadcall-provider-view";
@@ -374,8 +373,6 @@ const PREMIUM_MAP_MODES: { id: PremiumMapMode; label: string; description: strin
   { id: "basic", label: "City", description: "Standard city map, provider pins, and simple search.", icon: MapIcon },
   { id: "operations", label: "Operations", description: "Provider readiness, mobile service, emergency support, and dispatch-fit signals from Roadcall data.", icon: RadioTower },
   { id: "satellite", label: "Satellite", description: "Premium imagery for industrial zones, truck stops, rural access, and service roads.", icon: Satellite },
-  { id: "density", label: "Density", description: "Coverage heatmaps for mobile repair, towing, tires, and after-hours support from provider data.", icon: Layers3, fleetOnly: true },
-  { id: "hotspots", label: "Hotspots", description: "Coverage gaps and high-priority service clusters from Roadcall provider signals.", icon: Zap, fleetOnly: true },
 ];
 
 const VENDOR_SCOPE_MODES: { id: VendorScopeMode; label: string; description: string; icon: typeof MapIcon }[] = [
@@ -735,7 +732,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             "circle-stroke-width": 2,
           },
         });
-        if (premiumModeEnabled && ["operations", "density", "hotspots"].includes(premiumMode)) {
+        if (premiumMode === "operations") {
           map.addLayer({
             id: "roadside-intelligence-heat",
             type: "heatmap",
@@ -755,7 +752,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                 1, "rgba(239,68,68,0.62)",
               ],
               "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 0, 18, 9, 42],
-              "heatmap-opacity": premiumMode === "density" || premiumMode === "hotspots" ? 0.82 : 0.45,
+              "heatmap-opacity": 0.45,
             },
           }, "provider-pins");
         }
@@ -1383,7 +1380,7 @@ function PremiumMapModeControls({ mode, onModeChange }: { mode: PremiumMapMode; 
         </div>
         <Activity className="h-4 w-4 text-emerald-300" />
       </div>
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-2 sm:grid-cols-3">
         {PREMIUM_MAP_MODES.map((item) => {
           const Icon = item.icon;
           const active = mode === item.id;
@@ -1547,13 +1544,9 @@ function PremiumOperationsOverlay({ mechanics, mode }: { mechanics: (Mechanic & 
   const avgEta = Math.round(
     mechanics.reduce((sum, mechanic) => sum + (mechanic.estimated_response_minutes || 38), 0) / Math.max(1, mechanics.length),
   );
-  const message = mode === "density"
-    ? "Provider coverage density highlights service availability by geography."
-    : mode === "hotspots"
-      ? "Roadcall provider signals highlight service gaps and high-priority clusters."
-      : mode === "satellite"
-        ? "Satellite imagery is active for rural access, yards, and service roads."
-        : "Roadcall provider readiness and dispatch-fit signals are active.";
+  const message = mode === "satellite"
+    ? "Satellite imagery is active for rural access, yards, and service roads."
+    : "Roadcall provider readiness and dispatch-fit signals are active.";
   return (
     <div className="pointer-events-none absolute bottom-20 right-4 z-10 w-[min(320px,calc(100%-2rem))] space-y-3">
       <div className="rounded-2xl border border-roadcall-cyan/20 bg-[#02050c]/80 p-4 shadow-2xl shadow-cyan-500/10 backdrop-blur-xl">
