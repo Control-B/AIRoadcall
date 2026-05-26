@@ -479,6 +479,22 @@ function filterMechanicsByVendorScope(mechanics: Mechanic[], scope: VendorScopeM
   return mechanics.filter((mechanic) => isNationalVendor(mechanic) === (scope === "national"));
 }
 
+function normalizeSearchIntent(value: string) {
+  return value.trim().toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9\s']/g, " ").replace(/\s+/g, " ");
+}
+
+function isGenericNationalVendorSearch(value: string) {
+  const normalized = normalizeSearchIntent(value);
+  return /\bnational\s+(vendor|vendors|chain|chains|brand|brands)\b/.test(normalized) || /^national vendors?$/.test(normalized);
+}
+
+function isNationalVendorSearch(value: string) {
+  const normalized = normalizeSearchIntent(value);
+  if (!normalized) return false;
+  if (isGenericNationalVendorSearch(normalized)) return true;
+  return NATIONAL_VENDOR_HINTS.some((hint) => normalized.includes(normalizeSearchIntent(hint)));
+}
+
 function nationalVendorToMechanic(vendor: PublicNationalVendor, index: number): Mechanic {
   const serviceTypes = vendor.services || [];
   return {
@@ -1595,9 +1611,10 @@ function SearchPageInner() {
     return params;
   }, [city, only24_7, onlyMobile, page, query, serviceType, state, verifiedOnly]);
 
-  const buildDirectoryParams = useCallback((options?: { bounds?: MapBounds; limit?: number }) => {
+  const buildDirectoryParams = useCallback((options?: { bounds?: MapBounds; limit?: number; queryOverride?: string }) => {
     const params = new URLSearchParams();
-    if (query) params.set("q", query);
+    const directoryQuery = options?.queryOverride ?? query;
+    if (directoryQuery) params.set("q", directoryQuery);
     if (state) params.set("state", state);
     if (city && !options?.bounds) params.set("city", city);
     if (options?.bounds) {
@@ -1611,12 +1628,13 @@ function SearchPageInner() {
   }, [city, query, state]);
 
   const fetchNationalVendors = useCallback(async (options?: { bounds?: MapBounds }) => {
-    const params = buildDirectoryParams({ ...options, limit: DIRECTORY_VENDOR_LIMIT });
+    const queryOverride = isGenericNationalVendorSearch(query) ? "" : undefined;
+    const params = buildDirectoryParams({ ...options, limit: DIRECTORY_VENDOR_LIMIT, queryOverride });
     const response = await fetch(`${API_URL}/directories/national-vendors?${params}`);
     if (!response.ok) throw new Error("National vendor search failed");
     const data = await response.json() as NationalVendorResponse;
     return { total: data.total, items: data.items.map(nationalVendorToMechanic) };
-  }, [buildDirectoryParams]);
+  }, [buildDirectoryParams, query]);
 
   const fetchTruckingCompanies = useCallback(async (options?: { bounds?: MapBounds }) => {
     const params = buildDirectoryParams({ ...options, limit: DIRECTORY_TRUCKING_LIMIT });
@@ -1633,18 +1651,20 @@ function SearchPageInner() {
     setError(null);
     setMapAreaSummary(null);
     const params = buildSearchParams({ pageOverride: currentPage });
+    const nationalVendorOnly = isNationalVendorSearch(query);
 
     try {
       const [res, nationalVendorData, truckingCompanyData] = await Promise.all([
-        fetch(`${API_URL}/mechanics/search?${params}`),
+        nationalVendorOnly ? Promise.resolve(null) : fetch(`${API_URL}/mechanics/search?${params}`),
         fetchNationalVendors().catch(() => ({ total: 0, items: [] as Mechanic[] })),
-        fetchTruckingCompanies().catch(() => ({ total: 0, items: [] as Mechanic[] })),
+        nationalVendorOnly ? Promise.resolve({ total: 0, items: [] as Mechanic[] }) : fetchTruckingCompanies().catch(() => ({ total: 0, items: [] as Mechanic[] })),
       ]);
-      if (!res.ok) throw new Error("Search failed");
-      const data = await res.json();
+      if (res && !res.ok) throw new Error("Search failed");
+      const data = res ? await res.json() : { mechanics: [], total: 0, page: currentPage, page_size: FOCUSED_PROVIDER_PREVIEW_LIMIT };
       setNationalVendors(nationalVendorData.items);
       setTruckingCompanies(truckingCompanyData.items);
       setSourceTotals({ mechanics: data.total || 0, national: nationalVendorData.total, trucking: truckingCompanyData.total });
+      if (nationalVendorOnly) setVendorScopeMode("national");
       setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
     } catch {
       // Fall back to a public-friendly empty state
@@ -1656,7 +1676,7 @@ function SearchPageInner() {
     } finally {
       setLoading(false);
     }
-  }, [buildSearchParams, fetchNationalVendors, fetchTruckingCompanies, page, verifiedOnly]);
+  }, [buildSearchParams, fetchNationalVendors, fetchTruckingCompanies, page, query, verifiedOnly]);
 
   const searchMapArea = useCallback(async (bounds: MapBounds) => {
     setSearchingArea(true);
@@ -1664,18 +1684,20 @@ function SearchPageInner() {
     setError(null);
     setPage(1);
     const params = buildSearchParams({ bounds, pageOverride: 1, pageSize: MAP_PROVIDER_LIMIT });
+    const nationalVendorOnly = isNationalVendorSearch(query);
 
     try {
       const [res, nationalVendorData, truckingCompanyData] = await Promise.all([
-        fetch(`${API_URL}/mechanics/search?${params}`),
+        nationalVendorOnly ? Promise.resolve(null) : fetch(`${API_URL}/mechanics/search?${params}`),
         fetchNationalVendors({ bounds }).catch(() => ({ total: 0, items: [] as Mechanic[] })),
-        fetchTruckingCompanies({ bounds }).catch(() => ({ total: 0, items: [] as Mechanic[] })),
+        nationalVendorOnly ? Promise.resolve({ total: 0, items: [] as Mechanic[] }) : fetchTruckingCompanies({ bounds }).catch(() => ({ total: 0, items: [] as Mechanic[] })),
       ]);
-      if (!res.ok) throw new Error("Search failed");
-      const data = await res.json();
+      if (res && !res.ok) throw new Error("Search failed");
+      const data = res ? await res.json() : { mechanics: [], total: 0, page: 1, page_size: MAP_PROVIDER_LIMIT };
       setNationalVendors(nationalVendorData.items);
       setTruckingCompanies(truckingCompanyData.items);
       setSourceTotals({ mechanics: data.total || 0, national: nationalVendorData.total, trucking: truckingCompanyData.total });
+      if (nationalVendorOnly) setVendorScopeMode("national");
       setResults(verifiedOnly ? { ...data, mechanics: data.mechanics.filter((m: Mechanic) => m.verification_status === "verified" || m.verification_status === "claimed") } : data);
       setMapAreaSummary(`Showing ${(data.mechanics.length + nationalVendorData.items.length + truckingCompanyData.items.length).toLocaleString()} mapped providers in the visible map area`);
       if (isMapsPage) setView("map");
@@ -1685,7 +1707,7 @@ function SearchPageInner() {
       setLoading(false);
       setSearchingArea(false);
     }
-  }, [buildSearchParams, fetchNationalVendors, fetchTruckingCompanies, isMapsPage, verifiedOnly]);
+  }, [buildSearchParams, fetchNationalVendors, fetchTruckingCompanies, isMapsPage, query, verifiedOnly]);
 
   const searchNearMe = useCallback(() => {
     if (!navigator.geolocation) {
@@ -1955,7 +1977,7 @@ function SearchPageInner() {
             ) : null}
           </div>
           <div className={`flex-wrap items-center gap-2 sm:justify-end ${isMapsPage ? "hidden lg:flex" : "flex"}`}>
-            {results && combinedProviders.length > 0 && (
+            {results && combinedProviders.length > 0 && !isMapsPage && (
               <ResultsToolbar
                 view={view}
                 onViewChange={setView}
@@ -1993,24 +2015,9 @@ function SearchPageInner() {
                 onLocationSearch={searchMapLocation}
                 onServiceTypeChange={setServiceType}
                 workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} />}
-                vendorControls={<VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />}
                 onPremiumModeChange={setPremiumMapMode}
                 onUserLocate={setUserCoords}
               />
-            </div>
-            <div className="pointer-events-none absolute inset-x-0 bottom-4 z-[70] hidden justify-center px-3 lg:flex">
-              <div className="pointer-events-auto">
-                <ResultsToolbar
-                  view={view}
-                  onViewChange={setView}
-                  showViewToggle={false}
-                  scope={vendorScopeMode}
-                  scopeCounts={vendorScopeCounts}
-                  onScopeChange={setVendorScopeMode}
-                  sourceTotals={sourceTotals}
-                  compact
-                />
-              </div>
             </div>
           </div>
         ) : results && scopedMechanics.length > 0 && view === "list" ? (
