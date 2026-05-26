@@ -94,6 +94,9 @@ export default function ShopsPricingPage() {
             <Link href="/maps?partnerDemo=1&state=FL&city=Tallahassee" className="mt-6 inline-flex items-center justify-center rounded-xl border border-yellow-300/30 px-5 py-3 font-black text-yellow-100 hover:bg-yellow-300/10">
               <MapPin className="mr-2 h-4 w-4" /> Preview map badge
             </Link>
+            <Link href={SHOP_CHECKOUT_LINKS.partnerBadge} className="ml-0 mt-3 inline-flex items-center justify-center rounded-xl bg-yellow-300 px-5 py-3 font-black text-slate-950 hover:bg-yellow-200 sm:ml-3">
+              Pay for badge <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
           </div>
         </div>
       </section>

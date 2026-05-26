@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading } from "@/components/motion";
+import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
 
 const PROVIDER_SIGNUP = "/shops/onboarding";
 const PARTNER_MAP_DEMO = "/maps?partnerDemo=1&state=FL&city=Tallahassee";
@@ -163,8 +164,11 @@ export default function ProviderPage() {
                 ))}
               </div>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <a href={PROVIDER_SIGNUP} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-yellow-300 px-5 py-3 text-sm font-black text-slate-950 hover:bg-yellow-200">
-                  <Wrench className="h-4 w-4" /> Add My Listing
+                <Link href={SHOP_CHECKOUT_LINKS.partnerBadge} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-yellow-300 px-5 py-3 text-sm font-black text-slate-950 hover:bg-yellow-200">
+                  <Wrench className="h-4 w-4" /> Pay for Map Badge
+                </Link>
+                <a href={PROVIDER_SIGNUP} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white hover:border-white/20">
+                  <Wrench className="h-4 w-4" /> List Free First
                 </a>
                 <Link href={PARTNER_MAP_DEMO} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-roadcall-cyan/25 bg-roadcall-panel/50 px-5 py-3 text-sm font-black text-white hover:border-roadcall-cyan/45">
                   <MapPin className="h-4 w-4" /> Preview on Map

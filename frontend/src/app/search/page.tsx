@@ -573,6 +573,42 @@ function withPartnerDemoBadge(mechanic: Mechanic): Mechanic {
   };
 }
 
+function demoPartnerProvider(city: string | null, state: string | null): Mechanic {
+  const stateCode = state?.trim().toUpperCase() || "FL";
+  const cityName = city?.trim() || "Tallahassee";
+  const coordinates = stateCode === "FL" && cityName.toLowerCase().includes("tallahassee")
+    ? { lat: 30.4383, lng: -84.2807 }
+    : { lat: 30.4383, lng: -84.2807 };
+  return {
+    id: `demo-partner-${cityName}-${stateCode}`,
+    company_name: "Example Roadcall Partner",
+    vendor_scope: "local",
+    business_category: "Mobile Truck Repair",
+    address: `Demo partner pin near ${cityName}, ${stateCode}`,
+    city: cityName,
+    state: stateCode,
+    lat: coordinates.lat,
+    lng: coordinates.lng,
+    phone: HELP_PHONE,
+    website: "https://roadcall.ai/provider",
+    rating: 4.9,
+    review_count: 128,
+    accepts_mobile_roadside: true,
+    emergency_service: true,
+    is_emergency_24_7: true,
+    service_types: ["mobile_repair", "tire_repair", "engine_diesel"],
+    priority_score: 0.98,
+    verification_status: "verified",
+    claim_status: "claimed",
+    contact_protected: false,
+    export_status: "ready",
+    is_paid_partner: true,
+    partner_badge_label: "Roadcall Partner",
+    badges: ["Roadcall Partner", "Verified provider"],
+    reasons: ["Demo paid visibility preview"],
+  };
+}
+
 function truckingCompanyToMechanic(company: PublicTruckingCompany, index: number): Mechanic {
   const categories = company.categories || [];
   return {
@@ -1888,7 +1924,8 @@ function SearchPageInner() {
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const mechanics = results?.mechanics || [];
   const visibleNationalVendors = useMemo(() => vendorScopeMode === "local" ? [] : nationalVendors, [nationalVendors, vendorScopeMode]);
-  const combinedProviders = useMemo(() => [...mechanics.map(withInferredVendorScope), ...truckingCompanies, ...visibleNationalVendors], [mechanics, truckingCompanies, visibleNationalVendors]);
+  const demoPartnerProviders = useMemo(() => partnerDemoMode ? [demoPartnerProvider(city, state)] : [], [city, partnerDemoMode, state]);
+  const combinedProviders = useMemo(() => [...demoPartnerProviders, ...mechanics.map(withInferredVendorScope), ...truckingCompanies, ...visibleNationalVendors], [demoPartnerProviders, mechanics, truckingCompanies, visibleNationalVendors]);
   const displayProviders = useMemo(() => partnerDemoMode ? combinedProviders.map(withPartnerDemoBadge) : combinedProviders, [combinedProviders, partnerDemoMode]);
   const vendorScopeCounts = useMemo(() => ({
     all: sourceTotals.mechanics + sourceTotals.trucking + sourceTotals.national,
