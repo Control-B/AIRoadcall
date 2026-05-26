@@ -469,9 +469,7 @@ function hasMappableCoordinates(mechanic: Mechanic): mechanic is Mechanic & { la
   return mechanic.lat >= bounds.minLat && mechanic.lat <= bounds.maxLat && mechanic.lng >= bounds.minLng && mechanic.lng <= bounds.maxLng;
 }
 
-function isNationalVendor(mechanic: Mechanic) {
-  if (mechanic.vendor_scope === "national") return true;
-  if (mechanic.vendor_scope === "local") return false;
+function hasNationalVendorSignals(mechanic: Mechanic) {
   const haystack = [
     mechanic.company_name,
     mechanic.business_category,
@@ -486,6 +484,18 @@ function isNationalVendor(mechanic: Mechanic) {
     .replace(/&/g, "and");
   const category = (mechanic.business_category || "").toLowerCase();
   return NATIONAL_VENDOR_HINTS.some((hint) => haystack.includes(hint)) || NATIONAL_VENDOR_CATEGORY_HINTS.some((hint) => category.includes(hint));
+}
+
+function isNationalVendor(mechanic: Mechanic) {
+  if (mechanic.vendor_scope === "national") return true;
+  return hasNationalVendorSignals(mechanic);
+}
+
+function withInferredVendorScope(mechanic: Mechanic): Mechanic {
+  return {
+    ...mechanic,
+    vendor_scope: hasNationalVendorSignals(mechanic) ? "national" : "local",
+  };
 }
 
 function filterMechanicsByVendorScope(mechanics: Mechanic[], scope: VendorScopeMode) {
@@ -1019,6 +1029,11 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
               {desktopMapControlsOpen ? (
                 <div className="max-w-full overflow-x-auto rounded-full shadow-2xl shadow-black/30">
                   {workspaceControls}
+                </div>
+              ) : null}
+              {vendorControls ? (
+                <div className="max-w-full overflow-x-auto rounded-full shadow-2xl shadow-black/30">
+                  {vendorControls}
                 </div>
               ) : null}
             </div>
@@ -1775,14 +1790,13 @@ function SearchPageInner() {
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const mechanics = results?.mechanics || [];
-  const combinedProviders = useMemo(() => [...nationalVendors, ...mechanics.map((mechanic) => ({ ...mechanic, vendor_scope: "local" as const })), ...truckingCompanies], [mechanics, nationalVendors, truckingCompanies]);
+  const combinedProviders = useMemo(() => [...nationalVendors, ...mechanics.map(withInferredVendorScope), ...truckingCompanies], [mechanics, nationalVendors, truckingCompanies]);
   const displayProviders = useMemo(() => partnerDemoMode ? combinedProviders.map(withPartnerDemoBadge) : combinedProviders, [combinedProviders, partnerDemoMode]);
-  const allProviderCount = sourceTotals.mechanics + sourceTotals.national + sourceTotals.trucking;
   const vendorScopeCounts = useMemo(() => ({
-    all: allProviderCount,
-    national: sourceTotals.national,
-    local: sourceTotals.mechanics + sourceTotals.trucking,
-  }), [allProviderCount, sourceTotals]);
+    all: displayProviders.length,
+    national: displayProviders.filter(isNationalVendor).length,
+    local: displayProviders.filter((mechanic) => !isNationalVendor(mechanic)).length,
+  }), [displayProviders]);
   const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(displayProviders, vendorScopeMode), [displayProviders, vendorScopeMode]);
   const cityGroups = useMemo(() => groupMechanicsByCity(scopedMechanics), [scopedMechanics]);
   const handleViewMap = useCallback((mechanic: Mechanic) => {
@@ -2045,6 +2059,7 @@ function SearchPageInner() {
                 onLocationSearch={searchMapLocation}
                 onServiceTypeChange={setServiceType}
                 workspaceControls={<MapModeToolbar mode={premiumMapMode} onModeChange={setPremiumMapMode} />}
+                vendorControls={<VendorScopeControls mode={vendorScopeMode} counts={vendorScopeCounts} onModeChange={setVendorScopeMode} />}
                 onPremiumModeChange={setPremiumMapMode}
                 onUserLocate={setUserCoords}
               />
