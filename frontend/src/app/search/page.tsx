@@ -1483,6 +1483,7 @@ function ResultsToolbar({
   const filteredViewButtons = viewButtons.filter((button) => !viewOptions || viewOptions.includes(button.id));
   const pad = compact ? "px-2.5 py-1" : "px-3 py-1.5";
   const text = compact ? "text-[11px]" : "text-xs";
+  const showTruckingSource = sourceTotals.trucking > 0;
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className ?? ""}`}>
       {showViewToggle ? (
@@ -1529,10 +1530,14 @@ function ResultsToolbar({
         <Truck className="h-3.5 w-3.5 text-roadcall-orange" />
         <span>National</span>
         <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white">{sourceTotals.national.toLocaleString()}</span>
-        <span className="mx-1 text-roadcall-muted/60">·</span>
-        <Truck className="h-3.5 w-3.5 text-emerald-300" />
-        <span>Trucking</span>
-        <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white">{sourceTotals.trucking.toLocaleString()}</span>
+        {showTruckingSource ? (
+          <>
+            <span className="mx-1 text-roadcall-muted/60">·</span>
+            <Truck className="h-3.5 w-3.5 text-emerald-300" />
+            <span>Trucking</span>
+            <span className="rounded-full bg-white/10 px-1.5 py-0.5 text-[10px] text-white">{sourceTotals.trucking.toLocaleString()}</span>
+          </>
+        ) : null}
       </div>
     </div>
   );
@@ -1799,11 +1804,11 @@ function SearchPageInner() {
 
   const totalPages = results ? Math.ceil(results.total / results.page_size) : 0;
   const mechanics = results?.mechanics || [];
-  const visibleNationalVendors = useMemo(() => vendorScopeMode === "national" ? nationalVendors : [], [nationalVendors, vendorScopeMode]);
+  const visibleNationalVendors = useMemo(() => vendorScopeMode === "local" ? [] : nationalVendors, [nationalVendors, vendorScopeMode]);
   const combinedProviders = useMemo(() => [...mechanics.map(withInferredVendorScope), ...truckingCompanies, ...visibleNationalVendors], [mechanics, truckingCompanies, visibleNationalVendors]);
   const displayProviders = useMemo(() => partnerDemoMode ? combinedProviders.map(withPartnerDemoBadge) : combinedProviders, [combinedProviders, partnerDemoMode]);
   const vendorScopeCounts = useMemo(() => ({
-    all: sourceTotals.mechanics + sourceTotals.trucking,
+    all: sourceTotals.mechanics + sourceTotals.trucking + sourceTotals.national,
     national: sourceTotals.national,
     local: sourceTotals.mechanics + sourceTotals.trucking,
   }), [sourceTotals]);
