@@ -1031,11 +1031,11 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
                   {workspaceControls}
                 </div>
               ) : null}
-              {vendorControls ? (
-                <div className="max-w-full overflow-x-auto rounded-full shadow-2xl shadow-black/30">
-                  {vendorControls}
-                </div>
-              ) : null}
+            </div>
+          ) : null}
+          {vendorControls ? (
+            <div className="absolute bottom-4 left-1/2 z-20 max-w-[calc(100%-2rem)] -translate-x-1/2 overflow-x-auto rounded-full shadow-2xl shadow-black/30">
+              {vendorControls}
             </div>
           ) : null}
           <div className="absolute bottom-48 left-4 z-20 max-w-[calc(100%-2rem)] rounded-2xl border border-white/15 bg-[#06101f]/85 p-3 text-[11px] font-bold text-roadcall-silver shadow-2xl shadow-black/40 backdrop-blur-md">
@@ -1793,10 +1793,10 @@ function SearchPageInner() {
   const combinedProviders = useMemo(() => [...nationalVendors, ...mechanics.map(withInferredVendorScope), ...truckingCompanies], [mechanics, nationalVendors, truckingCompanies]);
   const displayProviders = useMemo(() => partnerDemoMode ? combinedProviders.map(withPartnerDemoBadge) : combinedProviders, [combinedProviders, partnerDemoMode]);
   const vendorScopeCounts = useMemo(() => ({
-    all: displayProviders.length,
-    national: displayProviders.filter(isNationalVendor).length,
-    local: displayProviders.filter((mechanic) => !isNationalVendor(mechanic)).length,
-  }), [displayProviders]);
+    all: sourceTotals.mechanics + sourceTotals.national + sourceTotals.trucking,
+    national: sourceTotals.national,
+    local: sourceTotals.mechanics + sourceTotals.trucking,
+  }), [sourceTotals]);
   const scopedMechanics = useMemo(() => filterMechanicsByVendorScope(displayProviders, vendorScopeMode), [displayProviders, vendorScopeMode]);
   const cityGroups = useMemo(() => groupMechanicsByCity(scopedMechanics), [scopedMechanics]);
   const handleViewMap = useCallback((mechanic: Mechanic) => {
