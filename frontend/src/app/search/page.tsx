@@ -673,6 +673,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
 
     let map: any;
     let cancelled = false;
+    let partnerPulseFrame: number | null = null;
 
     loadMapboxCss();
     import("mapbox-gl").then((mapboxModule) => {
@@ -778,6 +779,21 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
           paint: { "text-color": "#ffffff" },
         });
         map.addLayer({
+          id: "provider-partner-flash",
+          type: "circle",
+          source: "providers",
+          filter: ["all", ["!", ["has", "point_count"]], ["==", ["get", "is_paid_partner"], true]],
+          paint: {
+            "circle-color": "#facc15",
+            "circle-opacity": 0.34,
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 4, 18, 10, 26, 14, 34],
+            "circle-stroke-color": "#fef08a",
+            "circle-stroke-opacity": 0.85,
+            "circle-stroke-width": 2,
+            "circle-blur": 0.28,
+          },
+        });
+        map.addLayer({
           id: "provider-partner-halo",
           type: "circle",
           source: "providers",
@@ -823,8 +839,26 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
             "text-halo-color": "#fde047",
             "text-halo-width": 5,
             "text-halo-blur": 0.5,
+            "text-opacity": 1,
           },
         });
+        const animatePartnerBadge = () => {
+          if (!map.getLayer("provider-partner-flash")) return;
+          const phase = (Math.sin(Date.now() / 360) + 1) / 2;
+          map.setPaintProperty("provider-partner-flash", "circle-opacity", 0.18 + phase * 0.46);
+          map.setPaintProperty("provider-partner-flash", "circle-stroke-opacity", 0.5 + phase * 0.45);
+          map.setPaintProperty("provider-partner-flash", "circle-radius", [
+            "interpolate", ["linear"], ["zoom"],
+            4, 15 + phase * 5,
+            10, 22 + phase * 8,
+            14, 30 + phase * 10,
+          ]);
+          if (map.getLayer("provider-partner-badges")) {
+            map.setPaintProperty("provider-partner-badges", "text-opacity", 0.72 + phase * 0.28);
+          }
+          partnerPulseFrame = window.requestAnimationFrame(animatePartnerBadge);
+        };
+        partnerPulseFrame = window.requestAnimationFrame(animatePartnerBadge);
         if (premiumMode === "operations") {
           map.addLayer({
             id: "roadside-intelligence-heat",
@@ -902,6 +936,7 @@ function SearchResultsMap({ mechanics, onSearchArea, searchingArea, className = 
 
     return () => {
       cancelled = true;
+      if (partnerPulseFrame !== null) window.cancelAnimationFrame(partnerPulseFrame);
       if (map) map.remove();
       mapRef.current = null;
     };

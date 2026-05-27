@@ -3,8 +3,9 @@
 Create the Roadcall.ai Mara front-desk agent in Retell.
 
 Mara handles inbound calls to the company line (866) 623-3331.
-She knows about Roadcall, answers basic questions, and warm-transfers
-anything she can't handle to a live human at (727) 272-8156.
+She crawls Roadcall.ai, answers basic questions from that website knowledge,
+redirects active roadside callers to Sandy, and gives the live team number
+for sales, billing, partnerships, complaints, or other human requests.
 
 Reads RETELL_API_KEY from .env.
 
@@ -13,7 +14,9 @@ Safety:
   - Will NOT reassign the phone number unless ASSIGN_MARA_NUMBER=1
 """
 from __future__ import annotations
-import json, os, sys, urllib.request, urllib.error
+import html
+import json, os, re, sys, urllib.parse, urllib.request, urllib.error
+from html.parser import HTMLParser
 from pathlib import Path
 
 env_path = Path(__file__).parent.parent / ".env"
@@ -31,6 +34,9 @@ EXISTING_FLOW_ID = os.environ.get("MARA_CONVERSATION_FLOW_ID", "").strip()
 MARA_NUMBER = "+18666233331"
 ESCALATION_NUMBER = "+17272728156"
 SANDY_ROADSIDE_NUMBER = "(866) 818-3060"
+WEBSITE_BASE_URL = os.environ.get("MARA_WEBSITE_URL", "https://roadcall.ai").rstrip("/")
+WEBSITE_CRAWL_LIMIT = int(os.environ.get("MARA_WEBSITE_CRAWL_LIMIT", "18"))
+DRY_RUN = os.environ.get("RETELL_DRY_RUN", "").strip().lower() in {"1", "true", "yes"}
 
 if not EXISTING_AGENT_ID and os.environ.get("ALLOW_NEW_MARA_AGENT", "").strip().lower() not in {"1", "true", "yes"}:
     print("⚠️  MARA_AGENT_ID is not set — refusing to create a new Mara agent.")
@@ -39,6 +45,17 @@ if not EXISTING_AGENT_ID and os.environ.get("ALLOW_NEW_MARA_AGENT", "").strip().
 
 
 def retell(method: str, path: str, body: dict | None = None) -> dict:
+    if DRY_RUN:
+        print(f"DRY RUN {method.upper()} {path}")
+        if path == "/create-conversation-flow":
+            return {"conversation_flow_id": "dry_run_flow"}
+        if path == "/create-agent":
+            return {"agent_id": "dry_run_agent", "version": 0}
+        if path.startswith("/update-agent/"):
+            return {"agent_id": path.rsplit("/", 1)[-1], "version": 0}
+        if path.startswith("/update-phone-number/"):
+            return {"phone_number": MARA_NUMBER}
+        return {}
     url = f"https://api.retellai.com{path}"
     data = json.dumps(body).encode() if body else None
     req = urllib.request.Request(
@@ -58,8 +75,107 @@ def retell(method: str, path: str, body: dict | None = None) -> dict:
         raise
 
 
+class WebsiteTextParser(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.skip_depth = 0
+        self.chunks: list[str] = []
+        self.links: list[str] = []
+        self.current_href: str | None = None
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in {"script", "style", "noscript", "svg"}:
+            self.skip_depth += 1
+            return
+        if tag == "a":
+            for key, value in attrs:
+                if key == "href" and value:
+                    self.links.append(value)
+                    self.current_href = value
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in {"script", "style", "noscript", "svg"} and self.skip_depth:
+            self.skip_depth -= 1
+        if tag in {"p", "li", "h1", "h2", "h3", "title", "section", "article", "br"}:
+            self.chunks.append("\n")
+        if tag == "a":
+            self.current_href = None
+
+    def handle_data(self, data: str) -> None:
+        if self.skip_depth:
+            return
+        text = " ".join(html.unescape(data).split())
+        if text:
+            self.chunks.append(text)
+
+
+def fetch_text(url: str) -> tuple[str, list[str]]:
+    request = urllib.request.Request(url, headers={"User-Agent": "Roadcall-Mara-Knowledge-Crawler/1.0"})
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            content_type = response.headers.get("content-type", "")
+            if "text/html" not in content_type and "application/xhtml" not in content_type:
+                return "", []
+            raw = response.read(1_500_000).decode("utf-8", errors="ignore")
+    except Exception as exc:
+        print(f"⚠️  Could not crawl {url}: {exc}")
+        return "", []
+    parser = WebsiteTextParser()
+    parser.feed(raw)
+    text = re.sub(r"\n{3,}", "\n\n", " ".join(parser.chunks))
+    text = re.sub(r"[ \t]{2,}", " ", text).strip()
+    return text, parser.links
+
+
+def normalize_internal_url(base_url: str, href: str) -> str | None:
+    if href.startswith(("mailto:", "tel:", "sms:", "#", "javascript:")):
+        return None
+    absolute = urllib.parse.urljoin(base_url + "/", href)
+    parsed_base = urllib.parse.urlparse(base_url)
+    parsed = urllib.parse.urlparse(absolute)
+    if parsed.netloc.replace("www.", "") != parsed_base.netloc.replace("www.", ""):
+        return None
+    if any(parsed.path.lower().endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".gif", ".webp", ".pdf", ".mp4", ".svg")):
+        return None
+    return urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path.rstrip("/") or "/", "", "", ""))
+
+
+def crawl_website_knowledge(base_url: str, limit: int) -> str:
+    queue = [base_url]
+    seen: set[str] = set()
+    pages: list[tuple[str, str]] = []
+    while queue and len(pages) < limit:
+        url = queue.pop(0)
+        if url in seen:
+            continue
+        seen.add(url)
+        text, links = fetch_text(url)
+        if text:
+            pages.append((url, text[:3000]))
+        for href in links:
+            normalized = normalize_internal_url(base_url, href)
+            if normalized and normalized not in seen and normalized not in queue:
+                queue.append(normalized)
+
+    if not pages:
+        return "Website crawl failed. Use only the fixed Roadcall facts in this prompt."
+
+    sections = []
+    for url, text in pages:
+        compact = re.sub(r"\s+", " ", text).strip()
+        sections.append(f"SOURCE: {url}\nCONTENT: {compact}")
+    knowledge = "\n\n".join(sections)
+    return knowledge[:18000]
+
+
+WEBSITE_KNOWLEDGE = crawl_website_knowledge(WEBSITE_BASE_URL, WEBSITE_CRAWL_LIMIT)
+print(f"✅ Crawled website knowledge from {WEBSITE_BASE_URL}: {min(len(WEBSITE_KNOWLEDGE), 18000)} chars")
+
+
 GLOBAL_PROMPT = "\n".join([
     "You are Mara, the front desk voice for Roadcall.ai.",
+    "You answer questions using the crawled Roadcall.ai website knowledge base below plus the fixed operating rules in this prompt.",
+    "If the website knowledge does not contain the answer, do not guess. Say you can connect the caller with the team.",
     "Roadcall.ai is an AI-powered roadside dispatch platform that connects stranded drivers (passenger cars, pickups, fleet vehicles, semi-trucks and trailers) with vetted mobile mechanics and towing partners through a private nationwide directory.",
     "",
     "WHAT YOU KNOW ABOUT ROADCALL — answer briefly and confidently:",
@@ -76,9 +192,12 @@ GLOBAL_PROMPT = "\n".join([
     "• Never invent pricing, contract terms, coverage areas, partner names, ETAs, or guarantees. If you don't know, say 'Let me get the right person on the line for that' and transfer.",
     "• If the caller is in danger, injured, or reports a fire or accident with injuries, tell them to hang up and call 911 immediately.",
     "• If the caller is broken down, redirect them to the roadside line " + SANDY_ROADSIDE_NUMBER + ".",
-    "• For any sales question, partnership, billing, account change, complaint, press, or 'I want to speak to someone' — warm transfer to the live human line.",
+    "• For any sales question, partnership, billing, account change, complaint, press, or 'I want to speak to someone' — give the live team number: " + ESCALATION_NUMBER + ".",
     "",
-    "TRANSFER BEHAVIOR: When you transfer, say one short line first such as 'One moment — connecting you to the team now.' Then trigger the transfer. Do not keep talking after the transfer line.",
+    "HUMAN HANDOFF BEHAVIOR: When a caller needs a person, say one short line such as 'The team can help with that. Please call " + ESCALATION_NUMBER + ".' Do not pretend a transfer is happening unless the current flow has an active transfer node.",
+    "",
+    "CRAWLED ROADCALL.AI WEBSITE KNOWLEDGE BASE:",
+    WEBSITE_KNOWLEDGE,
 ])
 
 
@@ -102,8 +221,8 @@ FLOW = {
                     "Then stay silent and wait for the caller. Do not respond to silence or background noise. "
                     "Once the caller speaks, identify what they need:\n"
                     " • Roadside emergency / broken down right now → route to 'roadside-redirect'.\n"
-                    " • Sales, partnership, pricing, billing, account, complaint, press, or 'speak to a person' → route to 'transfer-human'.\n"
-                    " • General question you can answer briefly from what you know about Roadcall → answer in one or two sentences, then ask if there is anything else. If they want more detail or want a person, route to 'transfer-human'."
+                    " • Sales, partnership, pricing, billing, account, complaint, press, or 'speak to a person' → give the live team number " + ESCALATION_NUMBER + ".\n"
+                    " • General question you can answer briefly from the crawled Roadcall website knowledge → answer in one or two sentences, then ask if there is anything else. If they want more detail or want a person, give " + ESCALATION_NUMBER + "."
                 )
             },
             "edges": [
@@ -113,14 +232,6 @@ FLOW = {
                     "transition_condition": {
                         "type": "prompt",
                         "prompt": "Caller is broken down, stranded, needs a tow, has a flat, dead battery, mechanical issue, or is otherwise asking for roadside help right now."
-                    }
-                },
-                {
-                    "id": "edge-start-transfer",
-                    "destination_node_id": "transfer-human",
-                    "transition_condition": {
-                        "type": "prompt",
-                        "prompt": "Caller asked for sales, partnership, pricing, billing, account help, complaint, press, or wants to speak to a person."
                     }
                 }
             ]
@@ -138,23 +249,6 @@ FLOW = {
                 )
             },
             "edges": []
-        },
-        {
-            "id": "transfer-human",
-            "type": "transfer_call",
-            "name": "Warm Transfer to Live Human",
-            "display_position": {"x": 500, "y": 500},
-            "instruction": {
-                "type": "static_text",
-                "text": "One moment — connecting you to the team now."
-            },
-            "transfer_destination": {
-                "type": "predefined",
-                "number": ESCALATION_NUMBER
-            },
-            "transfer_option": {
-                "type": "cold_transfer"
-            }
         }
     ]
 }
@@ -219,14 +313,25 @@ else:
 assign = os.environ.get("ASSIGN_MARA_NUMBER", "").strip().lower() in {"1", "true", "yes"}
 if assign:
     print(f"\nAssigning {MARA_NUMBER} to Mara ({agent_id})...")
+    phone_body = {
+        "nickname": "Roadcall Main Office - Mara",
+        "inbound_agents": [{"agent_id": agent_id, "agent_version": agent_resp.get("version", 0), "weight": 1}],
+        "outbound_agents": [{"agent_id": agent_id, "agent_version": agent_resp.get("version", 0), "weight": 1}],
+    }
     try:
-        retell("PATCH", f"/update-phone-number/{MARA_NUMBER}", {
-            "inbound_agent_id": agent_id,
-            "outbound_agent_id": agent_id,
-        })
+        retell("PATCH", f"/update-phone-number/{MARA_NUMBER}", phone_body)
         print(f"✅ {MARA_NUMBER} now routes to Mara.")
     except urllib.error.HTTPError as e:
-        print(f"⚠️  Phone assignment failed: {e}. Assign manually in the Retell dashboard.")
+        print(f"⚠️  Weighted phone assignment failed: {e}. Retrying legacy single-agent assignment...")
+        try:
+            retell("PATCH", f"/update-phone-number/{MARA_NUMBER}", {
+                "nickname": "Roadcall Main Office - Mara",
+                "inbound_agent_id": agent_id,
+                "outbound_agent_id": agent_id,
+            })
+            print(f"✅ {MARA_NUMBER} now routes to Mara via legacy assignment fields.")
+        except urllib.error.HTTPError as legacy_error:
+            print(f"⚠️  Phone assignment failed: {legacy_error}. Assign manually in the Retell dashboard.")
 else:
     print(f"\nℹ️  Skipped phone assignment. Re-run with ASSIGN_MARA_NUMBER=1 to attach {MARA_NUMBER}.")
 

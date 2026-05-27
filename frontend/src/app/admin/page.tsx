@@ -13,6 +13,7 @@ import {
   RefreshCw,
   Crown,
   ExternalLink,
+  Download,
 } from "lucide-react";
 import { adminFetch } from "@/lib/admin-auth";
 
@@ -63,6 +64,37 @@ interface TenantView {
 
 interface TenantListResponse {
   tenants: TenantView[];
+}
+
+interface GHLSafeListItem {
+  business_name: string;
+  contact_name: string | null;
+  phone: string;
+  email: string | null;
+  website: string | null;
+  public_address: string | null;
+  city: string | null;
+  state: string | null;
+  business_category: string;
+  lead_source: string;
+  marketing_segment: string;
+  plan_interest: string;
+  pipeline_stage: string;
+  onboarding_stage: string | null;
+  sms_consent: boolean;
+  email_consent: boolean;
+  consent_source: string;
+  consent_timestamp: string | null;
+  roadcall_public_reference_id: string;
+  tags: string;
+  notes: string;
+}
+
+interface GHLSafeListResponse {
+  total: number;
+  limit: number;
+  offset: number;
+  items: GHLSafeListItem[];
 }
 
 const ACCENT: Record<string, string> = {
@@ -131,11 +163,41 @@ function statusTone(status?: string | null): "green" | "amber" | "red" | "slate"
   return "slate";
 }
 
+function downloadCsv(filename: string, headers: string[], rows: Record<string, unknown>[]) {
+  const escape = (value: unknown) => {
+    if (value === null || value === undefined) return "";
+    const text = String(value).replaceAll('"', '""');
+    return /[",\n]/.test(text) ? `"${text}"` : text;
+  };
+  const csvRows = rows.map((row) => headers.map((header) => escape(row[header])).join(","));
+  const blob = new Blob([[headers.join(","), ...csvRows].join("\n")], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportGhlSafeCsv(records: GHLSafeListItem[]) {
+  const headers = [
+    "business_name","contact_name","phone","email","website","public_address","city","state",
+    "business_category","lead_source","marketing_segment","plan_interest","pipeline_stage","onboarding_stage",
+    "sms_consent","email_consent","consent_source","consent_timestamp","roadcall_public_reference_id","tags","notes",
+  ];
+  downloadCsv(
+    `ghl-safe-mechanic-list-${new Date().toISOString().slice(0, 10)}.csv`,
+    headers,
+    records.map((record) => record as unknown as Record<string, unknown>)
+  );
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [tenants, setTenants] = useState<TenantView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [ghlSafeBusy, setGhlSafeBusy] = useState(false);
 
   async function fetchStats() {
     setLoading(true);
@@ -157,6 +219,19 @@ export default function AdminDashboard() {
   useEffect(() => {
     fetchStats();
   }, []);
+
+  async function downloadGhlSafeList() {
+    setGhlSafeBusy(true);
+    setError(null);
+    try {
+      const response = await adminFetch<GHLSafeListResponse>("/mechanics/admin/ghl-safe-list?limit=5000&offset=0");
+      exportGhlSafeCsv(response.items);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create GHL safe list");
+    } finally {
+      setGhlSafeBusy(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -251,6 +326,32 @@ export default function AdminDashboard() {
           sublabel={`${activeSubscribers} active · ${proSubscribers} Pro`}
           color="green"
         />
+      </div>
+
+      <div className="rounded-2xl border border-emerald-400/15 bg-gradient-to-br from-emerald-950/20 via-slate-950 to-slate-950 p-5 shadow-lg">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-3xl">
+            <div className="flex items-center gap-2">
+              <Download className="h-5 w-5 text-emerald-300" />
+              <h2 className="font-semibold text-white">GHL Safe Mechanic List</h2>
+            </div>
+            <p className="mt-1 text-sm text-slate-400">
+              Download the redacted CRM import list for GHL marketing. It includes public contact fields, consent placeholders, tags, and pipeline fields while keeping the private provider database in Roadcall.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <a href="/admin/mechanics" className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-300 hover:bg-white/10 hover:text-white">
+              Open mechanics <ExternalLink className="h-4 w-4" />
+            </a>
+            <button
+              onClick={downloadGhlSafeList}
+              disabled={ghlSafeBusy}
+              className="inline-flex items-center gap-2 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <Download className="h-4 w-4" /> {ghlSafeBusy ? "Creating..." : "Download CSV"}
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-2xl border border-white/5 bg-gradient-to-br from-slate-900/80 to-slate-950 shadow-lg">
