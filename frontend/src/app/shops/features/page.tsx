@@ -17,6 +17,9 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { HELP_PHONE } from "@/lib/phone";
+import { supportMailtoHref } from "@/lib/support-email";
+
+const SHOP_AI_PHONE_REQUEST_HREF = supportMailtoHref("Roadcall AI phone setup request", { source: "shops_features" });
 
 const FEATURES = [
   {
@@ -98,12 +101,12 @@ export default function ShopsFeaturesPage() {
             answering calls, booking jobs, and following up automatically.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/shops/onboarding"
+            <a
+              href={SHOP_AI_PHONE_REQUEST_HREF}
               className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
             >
               Start AI Phones for Your Shop <ArrowRight className="w-4 h-4" />
-            </Link>
+            </a>
             <a
               href={`tel:${HELP_PHONE}`}
               className="border border-roadcall-cyan/30 bg-roadcall-panel/45 backdrop-blur-sm text-white font-semibold px-8 py-3 rounded-xl hover:bg-roadcall-panel/60 transition-colors"
@@ -195,12 +198,12 @@ export default function ShopsFeaturesPage() {
         <div className="max-w-2xl mx-auto">
           <h2 className="text-3xl font-bold mb-4">Ready to start AI Phones for your shop?</h2>
           <p className="text-white/85 mb-8 text-lg">Setup takes under 30 minutes. No long-term contracts on entry plans.</p>
-          <Link
-            href="/shops/onboarding"
+          <a
+            href={SHOP_AI_PHONE_REQUEST_HREF}
             className="bg-white text-roadcall-orange font-semibold px-10 py-4 rounded-lg hover:bg-roadcall-silver transition-colors inline-flex items-center gap-2 text-lg"
           >
             Start AI Phones for Your Shop <ArrowRight className="w-5 h-5" />
-          </Link>
+          </a>
         </div>
       </section>
     </main>

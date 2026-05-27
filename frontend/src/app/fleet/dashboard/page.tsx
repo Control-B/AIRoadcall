@@ -15,6 +15,9 @@ import {
   Users,
 } from "lucide-react";
 import { VoiceCloneControls } from "@/components/VoiceCloneControls";
+import { supportMailtoHref } from "@/lib/support-email";
+
+const FLEET_SETUP_REQUEST_HREF = supportMailtoHref("Roadcall fleet setup request", { source: "fleet_dashboard" });
 
 type FleetCallSummary = {
   id: string;
@@ -142,7 +145,7 @@ function FleetDashboardContent() {
             The live fleet console is in private beta. In the meantime, take the
             <Link href="/fleet/dashboard?demo=1" className="underline hover:text-amber-50"> demo for a spin </Link>
             or start
-            <Link href="/fleet/onboarding" className="underline hover:text-amber-50"> fleet onboarding</Link>.
+            <a href={FLEET_SETUP_REQUEST_HREF} className="underline hover:text-amber-50"> fleet onboarding</a>.
           </p>
         </div>
       </main>
@@ -172,12 +175,12 @@ function FleetDashboardContent() {
               <PlayCircle className="h-5 w-5 text-roadcall-orange" />
               <span>You&apos;re in <strong>demo mode</strong>. Data is sample; nothing here is dispatching real vendors.</span>
             </div>
-            <Link
-              href="/fleet/onboarding"
+            <a
+              href={FLEET_SETUP_REQUEST_HREF}
               className="inline-flex items-center justify-center rounded-full bg-roadcall-orange px-5 py-2 text-sm font-bold text-slate-950 hover:brightness-110"
             >
               Start fleet onboarding
-            </Link>
+            </a>
           </div>
         )}
 

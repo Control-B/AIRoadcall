@@ -1,4 +1,4 @@
-type IntakeKind = "shops" | "fleet" | "mechanic";
+type IntakeKind = "shops" | "fleet" | "mechanic" | "vendor" | "trucking_company" | "marketplace_listing" | "marketplace_claim" | "marketplace_update" | "ai_phone" | "map_badge";
 type IntakeBody = Record<string, unknown>;
 
 type DeliveryResult = {

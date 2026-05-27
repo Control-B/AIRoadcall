@@ -37,6 +37,7 @@ import { ShareLocationCallButton } from "@/components/share-location-call-button
 import { getApiBase } from "@/lib/api-client";
 import { loadMapboxCss } from "@/lib/load-mapbox-css";
 import { useMapboxToken } from "@/lib/mapbox-token";
+import { SUPPORT_EMAIL, submitSupportRequest } from "@/lib/support-email";
 // ...existing code...
 // Intake modal and form
 function IntakeModal({ onClose }: { onClose: () => void }) {
@@ -1464,27 +1465,23 @@ function ClaimUpdateModal({ mechanic, onClose, onSubmitted }: { mechanic: Mechan
     setSubmitting(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL}/marketplace/${mechanic.id}/update-request`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          role: form.get("role"),
-          full_name: form.get("full_name"),
-          work_email: form.get("work_email"),
-          phone_number: form.get("phone_number"),
-          company_name: form.get("submitted_company_name") || mechanic.company_name,
-          company_address: form.get("submitted_company_address"),
-          website: form.get("submitted_website"),
-          proof_message: form.get("proof_message"),
-          requested_changes: requestedChanges,
-        }),
+      await submitSupportRequest("marketplace_update", `Roadcall listing update request: ${mechanic.company_name}`, {
+        mechanic_id: mechanic.id,
+        current_company_name: mechanic.company_name,
+        role: String(form.get("role") || ""),
+        full_name: String(form.get("full_name") || ""),
+        work_email: String(form.get("work_email") || ""),
+        phone_number: String(form.get("phone_number") || ""),
+        company_name: String(form.get("submitted_company_name") || mechanic.company_name),
+        company_address: String(form.get("submitted_company_address") || ""),
+        website: String(form.get("submitted_website") || ""),
+        proof_message: String(form.get("proof_message") || ""),
+        requested_changes: requestedChanges,
       });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.detail || "Could not submit update request");
-      onSubmitted(data.message || "Update request submitted for Roadcall admin review.");
+      onSubmitted("Update request sent to support, or an email draft opened with your details.");
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not submit update request");
+      setError(err instanceof Error ? err.message : `Could not prepare the support email. Please email ${SUPPORT_EMAIL}.`);
     } finally {
       setSubmitting(false);
     }

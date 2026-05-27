@@ -2,6 +2,10 @@ import Link from "next/link";
 import { Phone, Mail, MapPin } from "lucide-react";
 import { COMPANY_PHONE, HELP_PHONE, telHref } from "@/lib/phone";
 import { BrandMark } from "@/components/BrandMark";
+import { SUPPORT_EMAIL, supportMailtoHref } from "@/lib/support-email";
+
+const LIST_SHOP_SUPPORT_HREF = supportMailtoHref("Roadcall shop listing request", { request_type: "List my shop" });
+const VERIFIED_PROVIDER_SUPPORT_HREF = supportMailtoHref("Roadcall provider verification request", { request_type: "Get verified" });
 
 const footerLinks = {
   "Four Lanes": [
@@ -17,8 +21,8 @@ const footerLinks = {
     { label: "Driver Help", href: "/driver" },
   ],
   Providers: [
-    { label: "List Your Shop", href: "/provider" },
-    { label: "Get Verified", href: "/provider#verified" },
+    { label: "List Your Shop", href: LIST_SHOP_SUPPORT_HREF },
+    { label: "Get Verified", href: VERIFIED_PROVIDER_SUPPORT_HREF },
     { label: "AI Phone Plans", href: "/pricing" },
     { label: "Fleet Solutions", href: "/fleet" },
   ],
@@ -71,11 +75,11 @@ export function SiteFooter() {
                 <span>Help: {HELP_PHONE}</span>
               </a>
               <a
-                href="mailto:support@roadcall.ai"
+                href={`mailto:${SUPPORT_EMAIL}`}
                 className="flex items-center gap-2 text-sm text-roadcall-muted hover:text-roadcall-cyan transition-colors"
               >
                 <Mail className="h-4 w-4" />
-                support@roadcall.ai
+                {SUPPORT_EMAIL}
               </a>
               <div className="flex items-center gap-2 text-sm text-roadcall-muted">
                 <MapPin className="h-4 w-4" />

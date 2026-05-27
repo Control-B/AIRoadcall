@@ -18,9 +18,11 @@ import {
 } from "lucide-react";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading } from "@/components/motion";
-import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
+import { supportMailtoHref } from "@/lib/support-email";
 
-const PROVIDER_SIGNUP = "/shops/onboarding";
+const PROVIDER_SIGNUP = supportMailtoHref("Roadcall shop listing request", { request_type: "List my shop free" });
+const AI_PHONE_REQUEST = supportMailtoHref("Roadcall AI phone setup request", { request_type: "Configure AI phone for mechanic shop" });
+const MAP_BADGE_REQUEST = supportMailtoHref("Roadcall map partner badge request", { request_type: "Map Partner Badge" });
 const PARTNER_MAP_DEMO = "/maps?partnerDemo=1&state=FL&city=Tallahassee";
 
 const benefits = [
@@ -101,11 +103,11 @@ export default function ProviderPage() {
                   <Wrench className="h-5 w-5" /> List My Shop — Free
                 </button>
               </a>
-              <Link href="/ai-telephony#setup">
+              <a href={AI_PHONE_REQUEST}>
                 <button className="inline-flex items-center justify-center gap-2 border border-roadcall-cyan/25 bg-roadcall-panel/40 backdrop-blur-sm text-white hover:bg-roadcall-panel/60 font-semibold px-8 py-5 rounded-2xl transition-all">
                   <Phone className="h-5 w-5" /> Configure AI Phone
                 </button>
-              </Link>
+              </a>
             </div>
             <p className="text-sm text-roadcall-muted">No credit card required for free listing · Roadcall profile access · Full profile control</p>
           </FadeIn>
@@ -164,9 +166,9 @@ export default function ProviderPage() {
                 ))}
               </div>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-                <Link href={SHOP_CHECKOUT_LINKS.partnerBadge} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-yellow-300 px-5 py-3 text-sm font-black text-slate-950 hover:bg-yellow-200">
-                  <Wrench className="h-4 w-4" /> Pay for Map Badge
-                </Link>
+                <a href={MAP_BADGE_REQUEST} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-yellow-300 px-5 py-3 text-sm font-black text-slate-950 hover:bg-yellow-200">
+                  <Wrench className="h-4 w-4" /> Request Map Badge
+                </a>
                 <a href={PROVIDER_SIGNUP} className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-black text-white hover:border-white/20">
                   <Wrench className="h-4 w-4" /> List Free First
                 </a>

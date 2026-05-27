@@ -35,6 +35,11 @@ import { ScrollingMarqueeSection } from "@/components/marketing/scrolling-marque
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { mediaUrl } from "@/lib/media";
 import { getApiBase } from "@/lib/api-client";
+import { supportMailtoHref } from "@/lib/support-email";
+
+const SHOP_LISTING_REQUEST_HREF = supportMailtoHref("Roadcall shop listing request", { request_type: "List my shop" });
+const SHOP_AI_PHONE_REQUEST_HREF = supportMailtoHref("Roadcall AI phone setup request", { request_type: "Mechanic shop AI phone setup" });
+const FLEET_SETUP_REQUEST_HREF = supportMailtoHref("Roadcall fleet setup request", { request_type: "Fleet roadside setup" });
 
 const shopsFeatures = [
   { icon: Phone,        title: "AI Call Answering",      description: "Sandy answers every call instantly — day or night — and captures lead details." },
@@ -271,9 +276,9 @@ export default function HomePage() {
           <Link href="/search" className="flex items-center justify-center gap-2 rounded-xl border border-cyan-400/40 bg-cyan-400/10 px-5 py-2.5 text-sm font-semibold text-cyan-100 hover:bg-cyan-400/20 transition-colors backdrop-blur-md">
             Find Service <ArrowRight className="h-4 w-4" />
           </Link>
-          <Link href="/provider" className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors backdrop-blur-md">
+          <a href={SHOP_LISTING_REQUEST_HREF} className="flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-5 py-2.5 text-sm font-semibold text-emerald-300 hover:bg-emerald-500/20 transition-colors backdrop-blur-md">
             List your shop <ArrowRight className="h-4 w-4" />
-          </Link>
+          </a>
 
           {/* Sound toggle button — below the CTAs */}
           <button
@@ -399,11 +404,11 @@ export default function HomePage() {
                 ))}
               </ul>
               <div className="flex gap-3">
-                <Link href="/shops/onboarding">
+                <a href={SHOP_AI_PHONE_REQUEST_HREF}>
                   <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-6">
                     Start All Phones
                   </Button>
-                </Link>
+                </a>
                 <Link href="/shops/features">
                   <Button variant="outline" className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl px-6">
                     See Features
@@ -458,11 +463,11 @@ export default function HomePage() {
                 ))}
               </ul>
               <div className="flex gap-3">
-                <Link href="/fleet/onboarding">
+                <a href={FLEET_SETUP_REQUEST_HREF}>
                   <Button className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-6">
                     Book A Demo
                   </Button>
-                </Link>
+                </a>
                 <Link href="/fleet/features">
                   <Button variant="outline" className="border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl px-6">
                     See Features
@@ -596,16 +601,16 @@ export default function HomePage() {
               Less downtime. Lower costs. <span className="text-roadcall-orange font-medium">That&apos;s the Roadcall promise.</span>
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/shops/onboarding">
+              <a href={SHOP_AI_PHONE_REQUEST_HREF}>
                 <Button size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-8">
                   <Wrench className="h-5 w-5 mr-2" /> I&apos;m a Mechanic Shop
                 </Button>
-              </Link>
-              <Link href="/fleet/onboarding">
+              </a>
+              <a href={FLEET_SETUP_REQUEST_HREF}>
                 <Button size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold rounded-xl px-8">
                   <Truck className="h-5 w-5 mr-2" /> I Manage a Fleet
                 </Button>
-              </Link>
+              </a>
             </div>
             <p className="text-roadcall-muted/70 text-sm mt-6">
               Or call us:{" "}

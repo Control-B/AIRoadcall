@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
+import { SUPPORT_EMAIL, submitSupportRequest } from "@/lib/support-email";
 
 interface ShopsFormData {
   business_name: string;
@@ -53,22 +54,10 @@ export default function ShopsOnboardingPage() {
     }
     setLoading(true);
     try {
-      // TODO: replace with POST /api/shops/onboarding once backend endpoint is live
-      const res = await fetch("/api/shops/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (res.ok) {
-        setSuccess(true);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setError(data?.detail || "Something went wrong. Please try again or call us.");
-      }
-    } catch {
-      // Network error — still show success so user doesn't lose their submission
-      // In production the backend stores the record; here we degrade gracefully.
+      await submitSupportRequest("shops", "Roadcall shop listing request", { ...form, source: "shops_onboarding" });
       setSuccess(true);
+    } catch {
+      setError(`Could not prepare the support email. Please email ${SUPPORT_EMAIL}.`);
     } finally {
       setLoading(false);
     }
@@ -83,7 +72,7 @@ export default function ShopsOnboardingPage() {
           </div>
           <h1 className="text-2xl font-bold text-white mb-3">Shop profile received!</h1>
           <p className="text-roadcall-muted mb-6">
-            A Roadcall Shops specialist will reach out within one business day to complete setup and port your number.
+            Your request was sent to Roadcall support, or an email draft opened with your completed shop profile.
           </p>
           <a
             href="/shops"

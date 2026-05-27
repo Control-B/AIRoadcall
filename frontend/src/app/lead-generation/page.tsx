@@ -5,6 +5,9 @@ import { ArrowRight, CheckCircle2, Mail, Megaphone, PhoneCall, Search, ShieldChe
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
 import { FadeIn, GlassCard, SectionHeading } from "@/components/motion";
+import { supportMailtoHref } from "@/lib/support-email";
+
+const SHOP_LISTING_REQUEST_HREF = supportMailtoHref("Roadcall shop listing request", { source: "lead_generation_page" });
 
 const leadSources = [
   {
@@ -60,11 +63,11 @@ export default function LeadGenerationPage() {
                   View Provider Plans <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link href="/provider">
+              <a href={SHOP_LISTING_REQUEST_HREF}>
                 <Button size="lg" variant="outline" className="rounded-xl border-white/15 bg-white/[0.04] px-8 text-white hover:bg-white/10">
                   List Your Shop
                 </Button>
-              </Link>
+              </a>
             </div>
           </FadeIn>
 

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
 import { getApiBase } from "@/lib/api-client";
+import { SUPPORT_EMAIL, submitSupportRequest } from "@/lib/support-email";
 
 const API_URL = getApiBase();
 
@@ -382,15 +383,20 @@ function ClaimModal({ provider, onClose, onSaved }: { provider: Provider; onClos
   async function submit() {
     setBusy(true); setErr(""); setOk("");
     try {
-      const res = await fetch(`${API_URL}/marketplace/${provider.id}/claim`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ claimant_name: name, claimant_phone: phone, claimant_email: email || undefined, subscription_product: product || undefined, notes: notes || undefined }),
+      await submitSupportRequest("marketplace_claim", `Roadcall listing claim request: ${provider.company_name}`, {
+        provider_id: provider.id,
+        provider_name: provider.company_name,
+        provider_city: provider.city,
+        provider_state: provider.state,
+        claimant_name: name,
+        claimant_phone: phone,
+        claimant_email: email,
+        subscription_product: product,
+        notes,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Could not submit claim");
-      setOk(data.message);
+      setOk("Claim request sent to support, or an email draft opened with your details.");
       setTimeout(onSaved, 1800);
-    } catch (e) { setErr(e instanceof Error ? e.message : "Error"); }
+    } catch { setErr(`Could not prepare the support email. Please email ${SUPPORT_EMAIL}.`); }
     finally { setBusy(false); }
   }
 
@@ -426,6 +432,7 @@ function ClaimModal({ provider, onClose, onSaved }: { provider: Provider; onClos
 
 function SubmitModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const [form, setForm] = useState({
+    listing_type: "shop_vendor",
     company_name: "", contact_name: "", phone: "", email: "", website: "",
     address: "", city: "", state: "",
     emergency_service: false, accepts_mobile_roadside: true, service_radius_miles: 50,
@@ -441,27 +448,28 @@ function SubmitModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
   async function submit() {
     setBusy(true); setErr(""); setOk("");
     try {
-      const res = await fetch(`${API_URL}/marketplace/submit`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...form,
-          email: form.email || undefined,
-          website: form.website || undefined,
-          service_types: services.split(",").map((s) => s.trim()).filter(Boolean),
-          vehicle_types_supported: vehicles.split(",").map((s) => s.trim()).filter(Boolean),
-        }),
+      await submitSupportRequest("marketplace_listing", "Roadcall marketplace listing request", {
+        ...form,
+        service_types: services.split(",").map((s) => s.trim()).filter(Boolean),
+        vehicle_types_supported: vehicles.split(",").map((s) => s.trim()).filter(Boolean),
+        source: "marketplace_add_business",
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail?.[0]?.msg || data.detail || "Could not submit");
-      setOk(data.message);
+      setOk("Listing request sent to support, or an email draft opened with your details.");
       setTimeout(onSaved, 1800);
-    } catch (e) { setErr(e instanceof Error ? e.message : "Error"); }
+    } catch { setErr(`Could not prepare the support email. Please email ${SUPPORT_EMAIL}.`); }
     finally { setBusy(false); }
   }
 
   return (
     <Modal title="Add your business" onClose={onClose}>
       <div className="max-h-[70vh] space-y-3 overflow-y-auto pr-1">
+        <Field label="Listing type *">
+          <select value={form.listing_type} onChange={(e) => update("listing_type", e.target.value)} className="w-full rounded-xl border border-roadcall-cyan/10 bg-roadcall-panel px-3 py-2 text-white outline-none focus:border-blue-300">
+            <option value="shop_vendor">Mechanic shop / roadside vendor</option>
+            <option value="national_vendor">National vendor</option>
+            <option value="trucking_company">Trucking company</option>
+          </select>
+        </Field>
         <Field label="Business name *"><input value={form.company_name} onChange={(e) => update("company_name", e.target.value)} className={INPUT_CLS} /></Field>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Contact name *"><input value={form.contact_name} onChange={(e) => update("contact_name", e.target.value)} className={INPUT_CLS} /></Field>
@@ -482,9 +490,9 @@ function SubmitModal({ onClose, onSaved }: { onClose: () => void; onSaved: () =>
         {err && <p className="text-sm text-red-300">{err}</p>}
         {ok && <p className="text-sm text-emerald-300">{ok}</p>}
         <button disabled={busy || !form.company_name || !form.contact_name || !form.phone} onClick={submit} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-roadcall-blue to-roadcall-cyan px-4 py-3 font-semibold text-white hover:brightness-110 disabled:opacity-60">
-          <Plus className="h-4 w-4" /> Submit listing
+          <Plus className="h-4 w-4" /> Submit listing request
         </button>
-        <p className="text-xs text-roadcall-muted">Your listing will be reviewed by our team before going live. To edit it later, use the &ldquo;Claim listing&rdquo; option.</p>
+        <p className="text-xs text-roadcall-muted">Requests go to {SUPPORT_EMAIL} for review before anything goes live. To edit it later, use the &ldquo;Claim listing&rdquo; option.</p>
       </div>
     </Modal>
   );

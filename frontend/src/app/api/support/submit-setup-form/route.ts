@@ -3,7 +3,18 @@ import { forwardIntake } from "@/lib/server/onboarding-intake";
 
 export const dynamic = "force-dynamic";
 
-const allowedRoles = new Set(["mechanic", "shops", "fleet"]);
+const allowedRoles = new Set([
+  "mechanic",
+  "shops",
+  "fleet",
+  "vendor",
+  "trucking_company",
+  "marketplace_listing",
+  "marketplace_claim",
+  "marketplace_update",
+  "ai_phone",
+  "map_badge",
+]);
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -21,7 +32,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const delivery = await forwardIntake(role as "mechanic" | "shops" | "fleet", payload.data as Record<string, unknown>);
+    const delivery = await forwardIntake(role as Parameters<typeof forwardIntake>[0], payload.data as Record<string, unknown>);
     return NextResponse.json({ ok: true, delivery });
   } catch (error) {
     console.error("Support setup forward failed", error);

@@ -7,6 +7,9 @@ import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
 import { getApiBase } from "@/lib/api-client";
 import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
+import { supportMailtoHref } from "@/lib/support-email";
+
+const FLEET_SETUP_REQUEST_HREF = supportMailtoHref("Roadcall fleet setup request", { source: "sign_in_fleet_track" });
 
 type Role = "shop" | "fleet" | "admin";
 
@@ -126,11 +129,11 @@ function FleetTrack() {
           is coming next.
         </p>
         <div className="mt-6 space-y-3">
-          <Link href="/fleet/onboarding" className="block">
+          <a href={FLEET_SETUP_REQUEST_HREF} className="block">
             <Button className="w-full bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-bold rounded-xl py-6">
               <ArrowRight className="h-4 w-4 mr-2" /> Start fleet onboarding
             </Button>
-          </Link>
+          </a>
           <Link href="/fleet/dashboard?demo=1" className="block">
             <Button variant="outline" className="w-full border-slate-600 text-roadcall-silver/85 hover:bg-roadcall-panel rounded-xl py-6">
               <PlayCircle className="h-4 w-4 mr-2" /> Try the fleet demo dashboard

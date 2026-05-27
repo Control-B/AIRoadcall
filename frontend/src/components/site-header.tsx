@@ -8,6 +8,10 @@ import { AnimatePresence, motion } from "framer-motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { BrandMark } from "@/components/BrandMark";
 import { GHL_SIGN_IN_URL } from "@/lib/ghl-links";
+import { supportMailtoHref } from "@/lib/support-email";
+
+const LIST_SHOP_SUPPORT_HREF = supportMailtoHref("Roadcall shop listing request", { request_type: "List my shop" });
+const VERIFIED_PROVIDER_SUPPORT_HREF = supportMailtoHref("Roadcall provider verification request", { request_type: "Get verified and dispatched" });
 
 /* ── Navigation structure (Omniweb-style mega-dropdown) ──── */
 interface NavSubItem {
@@ -85,12 +89,12 @@ const navItems: NavItem[] = [
       {
         label: "List Your Shop",
         description: "Add or claim your mechanic profile — free",
-        href: "/provider",
+        href: LIST_SHOP_SUPPORT_HREF,
       },
       {
         label: "Get Verified & Dispatched",
         description: "Receive AI-routed leads and grow your revenue",
-        href: "/provider#verified",
+        href: VERIFIED_PROVIDER_SUPPORT_HREF,
       },
     ],
   },

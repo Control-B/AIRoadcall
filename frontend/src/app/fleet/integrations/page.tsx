@@ -4,6 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Plug, Truck, Map, Wrench, Radio, Network, MessageSquare } from "lucide-react";
 import { HELP_PHONE } from "@/lib/phone";
+import { supportMailtoHref } from "@/lib/support-email";
+
+const FLEET_INTEGRATION_REQUEST_HREF = supportMailtoHref("Roadcall fleet integration request", { source: "fleet_integrations" });
 
 const CATEGORIES = [
   {
@@ -87,12 +90,12 @@ export default function FleetIntegrationsPage() {
             so you automate roadside support without replacing what&apos;s already working.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/fleet/onboarding"
+            <a
+              href={FLEET_INTEGRATION_REQUEST_HREF}
               className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
             >
               Plan Fleet Integration <ArrowRight className="w-4 h-4" />
-            </Link>
+            </a>
             <a
               href={`tel:${HELP_PHONE}`}
               className="border border-roadcall-cyan/30 bg-roadcall-panel/45 backdrop-blur-sm text-white font-semibold px-8 py-3 rounded-xl hover:bg-roadcall-panel/60 transition-colors"
@@ -163,12 +166,12 @@ export default function FleetIntegrationsPage() {
             Every Roadcall Fleet endpoint is accessible via REST. Bring your own integration, your own scheduler,
             your own data pipeline — we publish and version our API so your team can build confidently.
           </p>
-          <Link
-            href="/fleet/onboarding"
+          <a
+            href={FLEET_INTEGRATION_REQUEST_HREF}
             className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold px-8 py-3 rounded-lg hover:brightness-110 transition-colors inline-flex items-center gap-2"
           >
             Plan Fleet Integration <ArrowRight className="w-4 h-4" />
-          </Link>
+          </a>
         </div>
       </section>
 
@@ -177,12 +180,12 @@ export default function FleetIntegrationsPage() {
         <div className="max-w-xl mx-auto">
           <h2 className="text-2xl font-bold mb-4">Ready to connect your fleet stack?</h2>
           <p className="text-blue-100 mb-6">Book a call with the Roadcall Fleet team to map your integration path.</p>
-          <Link
-            href="/fleet/onboarding"
+          <a
+            href={FLEET_INTEGRATION_REQUEST_HREF}
             className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold px-8 py-3 rounded-lg hover:brightness-110 transition-colors inline-flex items-center gap-2"
           >
             Start Fleet Setup <ArrowRight className="w-4 h-4" />
-          </Link>
+          </a>
         </div>
       </section>
     </main>

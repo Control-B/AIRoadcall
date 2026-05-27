@@ -6,8 +6,10 @@ import Link from "next/link";
 import { PageLayout } from "@/components/page-layout";
 import { NoCopySurface } from "@/components/privacy/no-copy-surface";
 import { getApiBase } from "@/lib/api-client";
+import { supportMailtoHref } from "@/lib/support-email";
 
 const API_URL = getApiBase();
+const TRUCKING_COMPANY_REQUEST_HREF = supportMailtoHref("Roadcall trucking company listing request", { listing_type: "trucking_company" });
 
 const PAGE_SIZE = 24;
 
@@ -191,7 +193,10 @@ export default function PublicTruckingCompaniesPage() {
 
           <div className="mb-4 flex items-center justify-between gap-3 text-sm text-roadcall-muted">
             <span>{loading ? "Loading…" : `${total.toLocaleString()} limited records`}</span>
-            <Link href="/directories/national-vendors" className="inline-flex items-center gap-2 text-roadcall-cyan hover:text-white"><Building2 className="h-4 w-4" /> National vendors</Link>
+            <div className="flex flex-wrap items-center justify-end gap-3">
+              <a href={TRUCKING_COMPANY_REQUEST_HREF} className="inline-flex items-center gap-2 rounded-full border border-roadcall-cyan/15 px-3 py-1 text-roadcall-cyan hover:text-white"><Truck className="h-4 w-4" /> Add trucking company</a>
+              <Link href="/directories/national-vendors" className="inline-flex items-center gap-2 text-roadcall-cyan hover:text-white"><Building2 className="h-4 w-4" /> National vendors</Link>
+            </div>
           </div>
 
           {error ? <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-6 text-red-200">{error}</div> : null}

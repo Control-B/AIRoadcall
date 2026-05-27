@@ -21,6 +21,9 @@ import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, SectionHeading, GlassCard } from "@/components/motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
+import { supportMailtoHref } from "@/lib/support-email";
+
+const FLEET_SETUP_REQUEST_HREF = supportMailtoHref("Roadcall fleet setup request", { source: "fleet_features" });
 
 const features = [
   {
@@ -155,7 +158,7 @@ export default function FleetFeaturesPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white px-8">
-                <Link href="/fleet/onboarding">Book a Fleet Demo</Link>
+                <a href={FLEET_SETUP_REQUEST_HREF}>Book a Fleet Demo</a>
               </Button>
               <Button asChild variant="outline" size="lg" className="border-slate-600 text-roadcall-silver hover:bg-roadcall-panel">
                 <a href={telHref(HELP_PHONE)}>Call {HELP_PHONE}</a>
@@ -252,9 +255,9 @@ export default function FleetFeaturesPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button asChild size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white px-8">
-                <Link href="/fleet/onboarding">
+                <a href={FLEET_SETUP_REQUEST_HREF}>
                   Book a Fleet Demo <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
+                </a>
               </Button>
               <Button asChild variant="outline" size="lg" className="border-slate-600 text-roadcall-silver hover:bg-roadcall-panel">
                 <Link href="/fleet/security">Security Details</Link>
@@ -276,7 +279,7 @@ export default function FleetFeaturesPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button asChild size="lg" className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white">
-              <Link href="/fleet/onboarding">Start Fleet Setup</Link>
+              <a href={FLEET_SETUP_REQUEST_HREF}>Start Fleet Setup</a>
             </Button>
             <Button asChild variant="ghost" size="lg" className="text-roadcall-silver/85 hover:text-white">
               <Link href="/fleet/pricing">

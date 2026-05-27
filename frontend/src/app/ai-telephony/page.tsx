@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { PageLayout } from "@/components/page-layout";
 import { FadeIn, GlassCard, SectionHeading } from "@/components/motion";
+import { SUPPORT_EMAIL, submitSupportRequest } from "@/lib/support-email";
 
 const capabilities = [
   "Roadcall AI answers calls 24/7 as your shop's service advisor",
@@ -106,18 +107,10 @@ export default function AiTelephonyPage() {
     }
     setLoading(true);
     try {
-      const response = await fetch("/api/shops/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, source: "ai-telephony-calendar" }),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data?.detail || "Could not submit the AI telephony setup request.");
-      }
+      await submitSupportRequest("ai_phone", "Roadcall AI telephony setup request", { ...form, source: "ai-telephony-calendar" });
       setSuccess(true);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not submit the AI telephony setup request.");
+    } catch {
+      setError(`Could not prepare the support email. Please email ${SUPPORT_EMAIL}.`);
     } finally {
       setLoading(false);
     }
@@ -258,7 +251,7 @@ export default function AiTelephonyPage() {
                 </div>
                 <h3 className="mt-6 text-2xl font-bold text-white">AI telephony request received.</h3>
                 <p className="mx-auto mt-3 max-w-md text-roadcall-muted">
-                  We&apos;ll review your number choice, calendar setup, and AI phone configuration details before activating the shop profile.
+                  Your request was sent to Roadcall support, or an email draft opened with your completed setup details.
                 </p>
                 <Link href="/shops" className="mt-6 inline-flex items-center gap-2 text-roadcall-cyan hover:underline">
                   Back to Roadcall Shops <ArrowRight className="h-4 w-4" />

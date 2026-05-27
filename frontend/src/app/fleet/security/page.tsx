@@ -4,6 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { Shield, Lock, Eye, MapPin, Database, Users, FileText, Layers, ArrowRight } from "lucide-react";
 import { HELP_PHONE } from "@/lib/phone";
+import { supportMailtoHref } from "@/lib/support-email";
+
+const FLEET_SECURITY_REQUEST_HREF = supportMailtoHref("Roadcall fleet security review request", { source: "fleet_security" });
 
 const PILLARS = [
   { icon: Shield, title: "Tenant Isolation", desc: "Each fleet organization operates in a fully isolated data context. No cross-tenant data access is possible at the query layer." },
@@ -84,12 +87,12 @@ export default function FleetSecurityPage() {
             Your data architecture. Your rules.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/fleet/onboarding"
+            <a
+              href={FLEET_SECURITY_REQUEST_HREF}
               className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan hover:brightness-110 text-white font-semibold px-8 py-3 rounded-xl transition-colors inline-flex items-center gap-2"
             >
               Request Fleet Security Review <ArrowRight className="w-4 h-4" />
-            </Link>
+            </a>
             <a
               href={`tel:${HELP_PHONE}`}
               className="border border-roadcall-cyan/30 bg-roadcall-panel/45 backdrop-blur-sm text-white font-semibold px-8 py-3 rounded-xl hover:bg-roadcall-panel/60 transition-colors"
@@ -174,12 +177,12 @@ export default function FleetSecurityPage() {
         <div className="max-w-xl mx-auto">
           <h2 className="text-2xl font-bold mb-4">Request a Fleet Security Review</h2>
           <p className="text-blue-200 mb-6">Walk through our data architecture with a Roadcall Fleet engineer before signing anything.</p>
-          <Link
-            href="/fleet/onboarding"
+          <a
+            href={FLEET_SECURITY_REQUEST_HREF}
             className="bg-gradient-to-r from-roadcall-blue to-roadcall-cyan text-white font-semibold px-8 py-3 rounded-lg hover:brightness-110 transition-colors inline-flex items-center gap-2"
           >
             Start Fleet Setup <ArrowRight className="w-4 h-4" />
-          </Link>
+          </a>
         </div>
       </section>
     </main>

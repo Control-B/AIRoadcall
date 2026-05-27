@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle2, ArrowRight, Loader2 } from "lucide-react";
+import { SUPPORT_EMAIL, submitSupportRequest } from "@/lib/support-email";
 
 type DataMode = "hosted" | "private_tenant" | "hybrid_in_house";
 
@@ -73,20 +74,10 @@ export default function FleetOnboardingPage() {
     }
     setLoading(true);
     try {
-      // TODO: replace with POST /api/fleet/onboarding once backend endpoint is live
-      const res = await fetch("/api/fleet/onboarding", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (res.ok) {
-        setSuccess(true);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setError(data?.detail || "Something went wrong. Please try again or call us.");
-      }
-    } catch {
+      await submitSupportRequest("fleet", "Roadcall fleet setup request", { ...form, source: "fleet_onboarding" });
       setSuccess(true);
+    } catch {
+      setError(`Could not prepare the support email. Please email ${SUPPORT_EMAIL}.`);
     } finally {
       setLoading(false);
     }
@@ -101,7 +92,7 @@ export default function FleetOnboardingPage() {
           </div>
           <h1 className="text-2xl font-bold text-white mb-3">Fleet setup request received!</h1>
           <p className="text-roadcall-muted mb-6">
-            A Roadcall Fleet engineer will reach out within one business day to map your truck, trailer, driver, vendor, and roadside workflow data.
+            Your request was sent to Roadcall support, or an email draft opened with your completed fleet details.
           </p>
           <a
             href="/fleet"
