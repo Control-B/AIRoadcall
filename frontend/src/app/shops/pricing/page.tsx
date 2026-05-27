@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, MapPin, Phone, Shield, Sparkles, Truck, Wrench } from "lucide-react";
+import { ArrowRight, CheckCircle2, LogIn, MapPin, Phone, Shield, Sparkles, Truck, Wrench } from "lucide-react";
+import { GHL_SIGN_IN_URL, isExternalUrl } from "@/lib/ghl-links";
 import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
+
+const RETURNING_SUBSCRIBER_HREF = GHL_SIGN_IN_URL || "/sign-in";
+const RETURNING_SUBSCRIBER_EXTERNAL = isExternalUrl(RETURNING_SUBSCRIBER_HREF);
 
 const plans = [
   {
@@ -51,9 +55,22 @@ export default function ShopsPricingPage() {
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-300">
           Start with Standard, grow with Professional, and scale with Advanced.
         </p>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link href="#plans" className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-black text-slate-950 hover:bg-cyan-50">
+            Choose a plan <ArrowRight className="ml-2 h-4 w-4" />
+          </Link>
+          <Link
+            href={RETURNING_SUBSCRIBER_HREF}
+            target={RETURNING_SUBSCRIBER_EXTERNAL ? "_blank" : undefined}
+            rel={RETURNING_SUBSCRIBER_EXTERNAL ? "noopener noreferrer" : undefined}
+            className="inline-flex items-center justify-center rounded-xl border border-roadcall-cyan/35 px-5 py-3 font-black text-cyan-100 hover:bg-roadcall-cyan/10"
+          >
+            <LogIn className="mr-2 h-4 w-4" /> Already subscribed? Continue to GHL dashboard
+          </Link>
+        </div>
       </section>
 
-      <section className="mx-auto mt-14 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <section id="plans" className="mx-auto mt-14 grid max-w-7xl gap-5 md:grid-cols-2 xl:grid-cols-3">
         {plans.map((plan) => (
           <article key={plan.name} className={`flex flex-col rounded-[1.5rem] border p-6 ${plan.highlighted ? "border-orange-300/50 bg-orange-300/10" : "border-white/10 bg-white/[0.035]"}`}>
             <h2 className="text-2xl font-black">{plan.name}</h2>

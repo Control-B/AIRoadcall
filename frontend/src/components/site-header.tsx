@@ -7,7 +7,6 @@ import { Menu, X, ArrowRight, Phone } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { HELP_PHONE, telHref } from "@/lib/phone";
 import { BrandMark } from "@/components/BrandMark";
-import { GHL_SIGN_IN_URL } from "@/lib/ghl-links";
 import { supportMailtoHref } from "@/lib/support-email";
 
 const LIST_SHOP_SUPPORT_HREF = supportMailtoHref("Roadcall shop listing request", { request_type: "List my shop" });
@@ -169,7 +168,7 @@ export function SiteHeader() {
   const timeoutRef = useRef<NodeJS.Timeout>();
   const pathname = usePathname();
   const getStartedHref = "/get-started";
-  const signInHref = GHL_SIGN_IN_URL ? "/sign-in" : "/admin/login";
+  const signInHref = "/pricing";
   const isMapsPage = pathname === "/maps";
 
   useEffect(() => {

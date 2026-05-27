@@ -13,6 +13,7 @@ import {
 import { PageLayout } from "@/components/page-layout";
 import { Button } from "@/components/ui/button";
 import { FLEET_MEMBERSHIP_PLANS } from "@/lib/fleet-memberships";
+import { GHL_SIGN_IN_URL, isExternalUrl } from "@/lib/ghl-links";
 import { SHOP_CHECKOUT_LINKS } from "@/lib/shop-checkout-links";
 import AgentsLink from "./AgentsLink";
 
@@ -32,6 +33,9 @@ const TRACKS: { id: Track; label: string; icon: typeof Wrench; tagline: string }
     tagline: "AI roadside dispatch for trucks, trailers, and drivers.",
   },
 ];
+
+const RETURNING_SUBSCRIBER_HREF = GHL_SIGN_IN_URL || "/sign-in";
+const RETURNING_SUBSCRIBER_EXTERNAL = isExternalUrl(RETURNING_SUBSCRIBER_HREF);
 
 const SHOP_PLANS = [
   {
@@ -79,7 +83,12 @@ export default function GetStartedPage() {
             <p className="text-roadcall-muted max-w-2xl mx-auto leading-relaxed">
               Subscribe to launch your live AI receptionist or roadside dispatcher.
               Already a customer?
-              <Link href="/sign-in" className="text-roadcall-cyan hover:text-cyan-200 underline ml-1">
+              <Link
+                href={RETURNING_SUBSCRIBER_HREF}
+                target={RETURNING_SUBSCRIBER_EXTERNAL ? "_blank" : undefined}
+                rel={RETURNING_SUBSCRIBER_EXTERNAL ? "noopener noreferrer" : undefined}
+                className="text-roadcall-cyan hover:text-cyan-200 underline ml-1"
+              >
                 Sign in here
               </Link>
               .
@@ -251,7 +260,12 @@ function FleetSubscribe() {
         </Link>
         <p className="mt-5 text-xs text-roadcall-muted">
           Already onboarded?{" "}
-          <Link href="/sign-in" className="text-roadcall-cyan hover:text-cyan-200 underline">
+          <Link
+            href={RETURNING_SUBSCRIBER_HREF}
+            target={RETURNING_SUBSCRIBER_EXTERNAL ? "_blank" : undefined}
+            rel={RETURNING_SUBSCRIBER_EXTERNAL ? "noopener noreferrer" : undefined}
+            className="text-roadcall-cyan hover:text-cyan-200 underline"
+          >
             Sign in to your console
           </Link>
           .

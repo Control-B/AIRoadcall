@@ -28,11 +28,11 @@ const footerLinks = {
   ],
   Platform: [
     { label: "Get Started", href: "/get-started" },
-    { label: "Sign In", href: "/sign-in" },
+    { label: "Sign In", href: "/pricing" },
     { label: "Features", href: "/features" },
     { label: "Pricing", href: "/pricing" },
     { label: "Solutions", href: "/solutions" },
-    { label: "Dashboard", href: "/admin/login" },
+    { label: "Admin", href: "/admin" },
   ],
   Company: [
     { label: "About", href: "/company#about" },
