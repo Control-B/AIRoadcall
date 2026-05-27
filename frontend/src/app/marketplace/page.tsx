@@ -398,7 +398,7 @@ function ClaimModal({ provider, onClose, onSaved }: { provider: Provider; onClos
     <Modal title={`Claim ${provider.company_name}`} onClose={onClose}>
       <p className="mb-4 text-sm text-roadcall-silver/85">
         To prevent competitive or malicious edits, only the verified business owner can edit this listing.
-        We'll auto-approve if your phone matches the listing or your active Roadcall subscription.
+        We&apos;ll auto-approve if your phone matches the listing or your active Roadcall subscription.
       </p>
       <div className="space-y-3">
         <Field label="Your full name"><input value={name} onChange={(e) => setName(e.target.value)} className={INPUT_CLS} /></Field>

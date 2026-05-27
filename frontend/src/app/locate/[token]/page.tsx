@@ -165,7 +165,7 @@ export default function LocatePage() {
             </div>
             <h2 className="text-xl font-bold text-white mb-3">Location timed out</h2>
             <p className="text-roadcall-muted mb-6">
-              We couldn't get a GPS fix in time. Make sure you're not in a tunnel or underground, then try again.
+              We couldn&apos;t get a GPS fix in time. Make sure you&apos;re not in a tunnel or underground, then try again.
             </p>
             <button
               onClick={() => setState("idle")}
@@ -195,7 +195,7 @@ export default function LocatePage() {
             </div>
             <h2 className="text-xl font-bold text-white mb-3">GPS not supported</h2>
             <p className="text-roadcall-muted">
-              Your browser or device doesn't support location sharing. Try opening this link in Chrome or Safari,
+              Your browser or device doesn&apos;t support location sharing. Try opening this link in Chrome or Safari,
               or call your dispatcher to give your location verbally.
             </p>
           </>

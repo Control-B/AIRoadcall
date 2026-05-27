@@ -151,7 +151,8 @@ function MechanicDashboardContent() {
   const params = useSearchParams();
   const tenantId = params.get("tenant") || "";
   const token = params.get("token") || "";
-  const isDemo = params.get("demo") === "1";
+  const isTrialRequest = params.get("trial") === "3days";
+  const isDemo = params.get("demo") === "1" || isTrialRequest;
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [form, setForm] = useState<Record<string, any>>({ services_offered: [] });
   const [message, setMessage] = useState<string | null>(null);
@@ -166,10 +167,11 @@ function MechanicDashboardContent() {
     // Demo mode bypasses the API entirely so /mechanic/dashboard?demo=1 works
     // without a live tenant + token. Mutating actions also short-circuit below.
     if (isDemo) {
-      setDashboard(DEMO_DASHBOARD);
+      setDashboard(isTrialRequest ? { ...DEMO_DASHBOARD, business_name: "Three-Day Free Trial Request", call_summaries: [] } : DEMO_DASHBOARD);
       setForm({
-        ...(DEMO_DASHBOARD.profile || {}),
-        services_offered: DEMO_DASHBOARD.profile?.services_offered || [],
+        ...(isTrialRequest ? {} : DEMO_DASHBOARD.profile || {}),
+        services_offered: isTrialRequest ? [] : DEMO_DASHBOARD.profile?.services_offered || [],
+        trial_request: isTrialRequest ? "Three days free trial" : undefined,
       });
       setLoading(false);
       return;
@@ -197,6 +199,24 @@ function MechanicDashboardContent() {
 
   async function saveProfile(event: React.FormEvent) {
     event.preventDefault();
+    if (isTrialRequest) {
+      if (!form.business_name || !form.email || !form.phone) {
+        setError("Please add the business name, email, and shop phone before requesting the trial.");
+        return;
+      }
+      setSaving(true);
+      setError(null);
+      setMessage(null);
+      try {
+        await submitToSupport({ ...form, request_type: "Three days free trial" });
+        setMessage("Trial request submitted. Roadcall support will review your mechanic shop profile and follow up.");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not submit trial request");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
     if (isDemo) {
       router.push("/agents/dashboard?agent=mechanic");
       return;
@@ -278,7 +298,11 @@ function MechanicDashboardContent() {
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-blue-300">Mechanics AI Profile</p>
             <h1 className="mt-3 text-4xl font-black tracking-tight">{dashboard?.business_name}</h1>
           </div>
-          {isDemo ? (
+          {isTrialRequest ? (
+            <a href="mailto:support@roadcall.ai?subject=Roadcall%203-Day%20Free%20Trial%20Request" className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-white/10">
+              Contact support
+            </a>
+          ) : isDemo ? (
             <Link href="/mechanic/checkout?plan=widget_voice" className="rounded-full border border-white/15 px-5 py-3 text-sm font-bold text-slate-200 hover:bg-white/10">
               Manage billing
             </Link>
@@ -291,13 +315,19 @@ function MechanicDashboardContent() {
           <div className="mt-6 flex flex-col gap-3 rounded-2xl border border-roadcall-orange/30 bg-roadcall-orange/10 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3 text-sm text-orange-100">
               <PlayCircle className="h-5 w-5 text-roadcall-orange" />
-              <span>You&apos;re in <strong>demo mode</strong>. Data is sample; changes won&apos;t persist.</span>
+              <span>
+                {isTrialRequest ? (
+                  <>Fill out the <strong>mechanic shop form</strong> to request a three-day free trial.</>
+                ) : (
+                  <>You&apos;re in <strong>demo mode</strong>. Data is sample; changes won&apos;t persist.</>
+                )}
+              </span>
             </div>
             <a
-              href="/mechanic/checkout?plan=widget_voice"
+              href={isTrialRequest ? "mailto:support@roadcall.ai?subject=Roadcall%203-Day%20Free%20Trial%20Request" : "/mechanic/checkout?plan=widget_voice"}
               className="inline-flex items-center justify-center rounded-full bg-roadcall-orange px-5 py-2 text-sm font-bold text-slate-950 hover:brightness-110"
             >
-              Subscribe to activate your real shop
+              {isTrialRequest ? "Email support@roadcall.ai" : "Subscribe to activate your real shop"}
             </a>
           </div>
         )}
