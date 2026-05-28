@@ -13,6 +13,7 @@ import logging
 from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
+from urllib.parse import quote
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +31,59 @@ class SmsResult:
     provider: SmsProviderType
     message_id: Optional[str] = None
     error: Optional[str] = None
+
+
+MOBILE_LINE_TYPES = {"mobile"}
+
+
+def _lookup_sms_capable_number(
+    account_sid: str,
+    auth_token: str,
+    phone_number: str,
+) -> tuple[bool, str | None]:
+    if not account_sid or not auth_token:
+        return True, None
+
+    try:
+        import httpx
+
+        url = f"https://lookups.twilio.com/v2/PhoneNumbers/{quote(phone_number, safe='')}"
+        resp = httpx.get(
+            url,
+            params={"Fields": "line_type_intelligence"},
+            auth=(account_sid, auth_token),
+            timeout=10,
+        )
+        if resp.status_code == 404:
+            return False, "Twilio Lookup rejected phone number"
+        resp.raise_for_status()
+        data = resp.json()
+        line_type = (data.get("line_type_intelligence") or {}).get("type")
+        if not line_type:
+            return False, "Twilio Lookup did not return a line type"
+        if str(line_type).lower() not in MOBILE_LINE_TYPES:
+            return False, f"Phone number is not SMS-safe mobile line type: {line_type}"
+        return True, None
+    except Exception as exc:
+        logger.error("Twilio Lookup preflight failed for %s: %s", phone_number, exc)
+        return False, f"Twilio Lookup preflight failed: {exc}"
+
+
+def _contact_has_sms_dnd(contact: dict) -> bool:
+    if contact.get("dnd") is True:
+        return True
+
+    settings = contact.get("dndSettings") or contact.get("dnd_settings") or {}
+    sms_settings = settings.get("SMS") or settings.get("sms") or {}
+    if isinstance(sms_settings, dict):
+        status = str(sms_settings.get("status") or "").lower()
+        if status in {"active", "opted_out", "opt_out", "dnd", "blocked"}:
+            return True
+
+    for key in ("optOut", "opt_out", "smsOptOut", "sms_opt_out"):
+        if contact.get(key) is True:
+            return True
+    return False
 
 
 class SMSProvider(abc.ABC):
@@ -76,6 +130,14 @@ class TwilioSmsProvider(SMSProvider):
 
     def send(self, to: str, body: str, from_number: Optional[str] = None) -> SmsResult:
         try:
+            sms_capable, lookup_error = _lookup_sms_capable_number(
+                self._account_sid,
+                self._auth_token,
+                to,
+            )
+            if not sms_capable:
+                return SmsResult(success=False, provider=SmsProviderType.twilio, error=lookup_error)
+
             from twilio.rest import Client  # type: ignore
             client = Client(self._account_sid, self._auth_token)
             msg = client.messages.create(
@@ -131,18 +193,71 @@ class GhlSmsProvider(SMSProvider):
     Docs: https://highlevel.stoplight.io/docs/integrations/b3A6MjY1MDI5Mg-create-sms-message
     """
 
-    def __init__(self, api_key: str, location_id: str, default_from: Optional[str] = None):
+    def __init__(
+        self,
+        api_key: str,
+        location_id: str,
+        default_from: Optional[str] = None,
+        twilio_account_sid: Optional[str] = None,
+        twilio_auth_token: Optional[str] = None,
+    ):
         self._api_key = api_key
         self._location_id = location_id
         self._default_from = default_from
+        self._twilio_account_sid = twilio_account_sid or ""
+        self._twilio_auth_token = twilio_auth_token or ""
 
     @property
     def provider_type(self) -> SmsProviderType:
         return SmsProviderType.ghl
 
+    def _find_ghl_contact_by_phone(self, phone_number: str) -> dict | None:
+        import httpx
+
+        headers = {
+            "Authorization": f"Bearer {self._api_key}",
+            "Content-Type": "application/json",
+            "Version": "2021-04-15",
+        }
+        resp = httpx.get(
+            "https://services.leadconnectorhq.com/contacts/",
+            params={"locationId": self._location_id, "query": phone_number},
+            headers=headers,
+            timeout=15,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        contacts = data.get("contacts") or data.get("contact") or []
+        if isinstance(contacts, dict):
+            contacts = [contacts]
+        normalized_phone = "".join(ch for ch in phone_number if ch.isdigit())
+        for contact in contacts:
+            contact_phone = str(contact.get("phone") or contact.get("contactPhone") or "")
+            normalized_contact_phone = "".join(ch for ch in contact_phone if ch.isdigit())
+            if normalized_contact_phone and normalized_contact_phone == normalized_phone:
+                return contact
+        return contacts[0] if contacts else None
+
     def send(self, to: str, body: str, from_number: Optional[str] = None) -> SmsResult:
         try:
             import httpx
+            sms_capable, lookup_error = _lookup_sms_capable_number(
+                self._twilio_account_sid,
+                self._twilio_auth_token,
+                to,
+            )
+            if not sms_capable:
+                return SmsResult(success=False, provider=SmsProviderType.ghl, error=lookup_error)
+
+            contact = self._find_ghl_contact_by_phone(to)
+            if contact and _contact_has_sms_dnd(contact):
+                contact_id = contact.get("id") or contact.get("contactId") or "unknown"
+                return SmsResult(
+                    success=False,
+                    provider=SmsProviderType.ghl,
+                    error=f"GHL contact has SMS DND enabled: {contact_id}",
+                )
+
             headers = {
                 "Authorization": f"Bearer {self._api_key}",
                 "Content-Type": "application/json",
@@ -186,11 +301,17 @@ def get_sms_provider(vertical: str = "fleet") -> SMSProvider:
     from app.core.config import get_settings
     cfg = get_settings()
 
-    if vertical == "shops" and getattr(cfg, "GHL_API_KEY", None) and getattr(cfg, "GHL_LOCATION_ID", None):
+    if (
+        vertical == "shops"
+        and getattr(cfg, "GHL_API_KEY", None)
+        and getattr(cfg, "GHL_LOCATION_ID", None)
+    ):
         return GhlSmsProvider(
             api_key=cfg.GHL_API_KEY,
             location_id=cfg.GHL_LOCATION_ID,
             default_from=getattr(cfg, "GHL_FROM_NUMBER", None),
+            twilio_account_sid=getattr(cfg, "TWILIO_ACCOUNT_SID", None),
+            twilio_auth_token=getattr(cfg, "TWILIO_AUTH_TOKEN", None),
         )
 
     # Fleet (or Shops fallback) — Twilio primary

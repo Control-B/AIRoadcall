@@ -80,6 +80,17 @@ class SMSService:
             f" telnyx_key={'SET' if telnyx_key else 'EMPTY'} telnyx_from={telnyx_from!r}"
         )
         if twilio_sid and twilio_tok and not twilio_sid.startswith("AC_placeholder"):
+            from app.services.sms_provider import _lookup_sms_capable_number
+
+            sms_capable, lookup_error = _lookup_sms_capable_number(
+                twilio_sid,
+                twilio_tok,
+                phone_number,
+            )
+            if not sms_capable:
+                logger.warning("[SMS] Twilio Lookup blocked %s: %s", phone_number, lookup_error)
+                return False
+
             ok = SMSService._send_via_twilio(phone_number, body)
             if ok:
                 return True
@@ -100,7 +111,8 @@ class SMSService:
             return False
         body = SMSService._with_compliance_footer(
             (
-                f"{SMSService.BRAND_NAME}: Hi {driver_name}, tap this secure link to share your location "
+                f"{SMSService.BRAND_NAME}: Hi {driver_name}, tap this secure link to "
+                "share your location "
                 f"so we can dispatch the nearest mechanic: {magic_link_url}"
             )
         )
