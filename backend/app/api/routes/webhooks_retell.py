@@ -13,7 +13,6 @@ Endpoints:
 
 from __future__ import annotations
 
-import json
 import logging
 from typing import Any
 
@@ -24,8 +23,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_session
 from app.core.config import get_settings
 from app.models.job import Job
-from app.schemas.job import JobCreateRequest
-from app.services.job_service import JobService
 from app.services.dispatch_service import DispatchService
 
 logger = logging.getLogger("retell-webhooks")
@@ -75,6 +72,45 @@ def _body_args(body: dict) -> dict:
     return body.get("args", body)
 
 
+def _nested_call(body: dict) -> dict:
+    call = body.get("call")
+    return call if isinstance(call, dict) else {}
+
+
+def _extract_call_id(body: dict, args: dict) -> str:
+    call = _nested_call(body)
+    for source in (args, body, call):
+        for key in ("retell_call_id", "call_id", "callId", "id"):
+            value = source.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return ""
+
+
+def _extract_caller_phone(body: dict, args: dict) -> str:
+    call = _nested_call(body)
+    sources = [args, body, call]
+    for nested_key in ("metadata", "call_metadata", "telephony_metadata"):
+        nested = call.get(nested_key)
+        if isinstance(nested, dict):
+            sources.append(nested)
+    for source in sources:
+        for key in (
+            "driver_phone",
+            "phone_number",
+            "phoneNumber",
+            "caller_phone",
+            "callerPhone",
+            "from_number",
+            "fromNumber",
+            "from",
+        ):
+            value = source.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    return ""
+
+
 # ─── endpoints ────────────────────────────────────────────────────────────────
 
 
@@ -87,40 +123,27 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
     truck_number?, trailer_number?, company_name?
     """
     from app.services.caller_location_service import CallerLocationService
-    from app.services.shared_caller_location_service import SharedCallerLocationService
     from app.services.caller_profile_service import CallerProfileService
+    from app.services.shared_caller_location_service import SharedCallerLocationService
 
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
-    call_id: str = (
-        body.get("call_id")
-        or body.get("call", {}).get("call_id")
-        or args.get("retell_call_id")
-        or body.get("retell_call_id")
-        or ""
-    )
+    call_id = _extract_call_id(body, args)
     logger.info("save_driver_info call_id=%s | body keys: %s", call_id, list(body.keys()))
 
     driver_name: str = (args.get("driver_name") or "").strip()
-    vehicle_type: str = (
-        args.get("vehicle_type")
-        or f"{args.get('vehicle_year','')} {args.get('vehicle_make','')} {args.get('vehicle_model','')}".strip()
-        or ""
+    vehicle_description = (
+        f"{args.get('vehicle_year', '')} "
+        f"{args.get('vehicle_make', '')} "
+        f"{args.get('vehicle_model', '')}"
     ).strip()
-    issue_type: str = _normalize_issue(args.get("issue_type") or "other")
-    situation_note: str = (args.get("situation_note") or "").strip()
+    vehicle_type: str = (args.get("vehicle_type") or vehicle_description or "").strip()
     truck_number: str = (args.get("truck_number") or args.get("unit_number") or "").strip()
     trailer_number: str = (args.get("trailer_number") or "").strip()
     company_name: str = (args.get("company_name") or args.get("company") or "").strip()
 
     # Resolve caller phone from args or Retell call API — optional, used to tag the session
-    driver_phone: str = (
-        args.get("driver_phone")
-        or args.get("phone_number")
-        or args.get("caller_phone")
-        or body.get("from_number")
-        or ""
-    ).strip()
+    driver_phone = _extract_caller_phone(body, args)
 
     if not driver_phone and call_id:
         try:
@@ -132,13 +155,17 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
                 )
                 if r.status_code == 200:
                     driver_phone = r.json().get("from_number", "")
-                    logger.info("save_driver_info: resolved phone from Retell API: %s", driver_phone)
+                    logger.info(
+                        "save_driver_info: resolved phone from Retell API: %s",
+                        driver_phone,
+                    )
         except Exception as exc:
             logger.warning("save_driver_info: Retell call lookup failed: %s", exc)
 
     if not call_id:
         return _retell_result(
-            "No call ID found. Please ask the caller for their city and highway so I can note the location manually."
+            "No call ID found. Please ask the caller for their city and highway "
+            "so I can note the location manually."
         )
 
     try:
@@ -154,7 +181,7 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
         is_returning = existing_profile is not None
 
         # Upsert with whatever the agent passed this turn (also bumps call_count).
-        profile = await CallerProfileService.upsert(
+        await CallerProfileService.upsert(
             db,
             phone=driver_phone or "",
             driver_name=driver_name or None,
@@ -186,7 +213,11 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
                 driver_phone, call_id,
             )
         else:
-            logger.info("save_driver_info: no pre-shared location for phone=%s call_id=%s", driver_phone, call_id)
+            logger.info(
+                "save_driver_info: no pre-shared location for phone=%s call_id=%s",
+                driver_phone,
+                call_id,
+            )
 
         await db.commit()
 
@@ -201,10 +232,12 @@ async def save_driver_info(request: Request, db: AsyncSession = Depends(get_sess
                 "If something changed, tell me and I will update it with update_caller_profile."
             )
             if location_line:
-                return _retell_result(location_line + confirm + " Then we'll find the closest help.")
+                return _retell_result(
+                    location_line + confirm + " Then we'll find the closest help."
+                )
             return _retell_result(
-                confirm + " Also, please share the highway, exit, nearest truck stop, city, and state — "
-                "or tap 'Share my location' on roadcall.ai and call back."
+                confirm
+                + " Also, please share the highway, exit, nearest truck stop, city, and state."
             )
 
         # First-time caller path
@@ -237,13 +270,7 @@ async def update_caller_profile(request: Request, db: AsyncSession = Depends(get
 
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
-    driver_phone: str = (
-        args.get("driver_phone")
-        or args.get("phone_number")
-        or args.get("caller_phone")
-        or body.get("from_number")
-        or ""
-    ).strip()
+    driver_phone = _extract_caller_phone(body, args)
     if not driver_phone:
         return _retell_result("I can't update the profile without a phone number on this call.")
 
@@ -282,19 +309,8 @@ async def check_driver_location(request: Request, db: AsyncSession = Depends(get
 
     body: dict[str, Any] = await request.json()
     args = _body_args(body)
-    call_id: str = (
-        body.get("call_id")
-        or body.get("call", {}).get("call_id")
-        or args.get("retell_call_id")
-        or body.get("retell_call_id")
-        or ""
-    )
-    caller_phone: str = (
-        args.get("caller_phone")
-        or args.get("callerPhone")
-        or body.get("from_number")
-        or ""
-    ).strip()
+    call_id = _extract_call_id(body, args)
+    caller_phone = _extract_caller_phone(body, args)
 
     try:
         session = None
@@ -305,7 +321,11 @@ async def check_driver_location(request: Request, db: AsyncSession = Depends(get
                 session = None
 
         # Caller may have shared location AFTER we created the session — re-check Redis.
-        if session is not None and session.latitude is None and (caller_phone or session.caller_phone):
+        if (
+            session is not None
+            and session.latitude is None
+            and (caller_phone or session.caller_phone)
+        ):
             shared = await SharedCallerLocationService.consume(caller_phone or session.caller_phone)
             if shared and shared.get("latitude") is not None:
                 session.latitude = shared["latitude"]
@@ -316,6 +336,23 @@ async def check_driver_location(request: Request, db: AsyncSession = Depends(get
                 session.state = shared.get("state") or session.state
                 session.status = "location_received"
                 await db.commit()
+
+        if session is None and caller_phone:
+            shared = await SharedCallerLocationService.lookup(caller_phone)
+            if (
+                shared
+                and shared.get("latitude") is not None
+                and shared.get("longitude") is not None
+            ):
+                lat, lng = float(shared["latitude"]), float(shared["longitude"])
+                city = shared.get("city") or ""
+                state = shared.get("state") or ""
+                loc = f"near {city}, {state}" if city and state else f"at {lat:.4f}, {lng:.4f}"
+                return _retell_result(
+                    f"GPS confirmed {loc}. "
+                    f"Coordinates: latitude {lat}, longitude {lng}. "
+                    "You can now call find_nearby_mechanics."
+                )
 
         if session is None:
             return _retell_result(
@@ -367,9 +404,13 @@ async def find_nearby_mechanics(request: Request, db: AsyncSession = Depends(get
         lat, lng = 0.0, 0.0
     issue_type: str = _normalize_issue(args.get("issue_type") or "other")
     vehicle_type: str = (args.get("vehicle_type") or "").strip()
+    city: str = (args.get("city") or args.get("driver_city") or "").strip()
+    state: str = (args.get("state") or args.get("driver_state") or "").strip()
+    call_id = _extract_call_id(body, args)
+    caller_phone = _extract_caller_phone(body, args)
     limit: int = int(args.get("limit") or 3)
 
-    # Fall back to job coords if none provided
+    # Fall back to job/session/shared-location coords if none provided.
     if (lat == 0.0 and lng == 0.0) and job_id:
         try:
             result = await db.execute(select(Job).where(Job.public_job_id == job_id))
@@ -377,22 +418,56 @@ async def find_nearby_mechanics(request: Request, db: AsyncSession = Depends(get
             if job and job.driver_lat is not None:
                 lat = job.driver_lat
                 lng = job.driver_lng
+                city = city or job.driver_city or ""
+                state = state or job.driver_state or ""
         except Exception:
             pass
 
-    if lat == 0.0 and lng == 0.0:
+    if lat == 0.0 and lng == 0.0 and call_id:
+        try:
+            from app.services.caller_location_service import CallerLocationService
+
+            session = await CallerLocationService.session_by_provider_call_id(db, call_id)
+            if session.latitude is not None and session.longitude is not None:
+                lat = session.latitude
+                lng = session.longitude
+                city = city or session.city or ""
+                state = state or session.state or ""
+        except Exception:
+            pass
+
+    if lat == 0.0 and lng == 0.0 and caller_phone:
+        try:
+            from app.services.shared_caller_location_service import SharedCallerLocationService
+
+            shared = await SharedCallerLocationService.lookup(caller_phone)
+            if (
+                shared
+                and shared.get("latitude") is not None
+                and shared.get("longitude") is not None
+            ):
+                lat = float(shared["latitude"])
+                lng = float(shared["longitude"])
+                city = city or shared.get("city") or ""
+                state = state or shared.get("state") or ""
+        except Exception:
+            pass
+
+    if lat == 0.0 and lng == 0.0 and not (city and state):
         return _retell_result(
-            "I need GPS coordinates to find nearby mechanics. "
-            "Please call check_driver_location first."
+            "I need a location before I can search the mechanic database. "
+            "Please call check_location first or use the caller's city and state."
         )
 
     try:
-        from app.services.mechanic_data_service import MechanicDataService
         from app.schemas.mechanic import MechanicRecommendationRequest
+        from app.services.mechanic_data_service import MechanicDataService
 
         rec_req = MechanicRecommendationRequest(
-            lat=lat,
-            lng=lng,
+            lat=lat if lat != 0.0 else None,
+            lng=lng if lng != 0.0 else None,
+            city=city or None,
+            state=state or None,
             issue_type=issue_type,
             vehicle_type=vehicle_type or None,
             limit=limit,
@@ -400,7 +475,11 @@ async def find_nearby_mechanics(request: Request, db: AsyncSession = Depends(get
             prefer_immediate=True,
         )
         data = await MechanicDataService.recommend_mechanics(db, rec_req)
-        recommendations = data.recommendations if hasattr(data, "recommendations") else data.get("recommendations", [])
+        recommendations = (
+            data.recommendations
+            if hasattr(data, "recommendations")
+            else data.get("recommendations", [])
+        )
         if not recommendations:
             return _retell_result(
                 "No available mechanics found nearby right now. "
@@ -421,7 +500,10 @@ async def find_nearby_mechanics(request: Request, db: AsyncSession = Depends(get
         return _retell_result(" ".join(lines) + ". I'll dispatch them now.")
     except Exception as exc:
         logger.error("find_mechanics error: %s", exc, exc_info=True)
-        return _retell_result("Could not search for mechanics right now. The job is logged and dispatch will follow up.")
+        return _retell_result(
+            "Could not search for mechanics right now. "
+            "The job is logged and dispatch will follow up."
+        )
 
 
 @router.post("/dispatch")

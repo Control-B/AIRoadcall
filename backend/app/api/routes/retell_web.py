@@ -11,10 +11,9 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends
 
 from app.api.deps import get_session
 from app.core.config import get_settings
@@ -109,13 +108,16 @@ async def create_roadside_web_call(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Retell is not configured for this environment.",
         )
-    # Browser WebRTC calls need the Retell web-call agent. The phone-call
-    # pairing flow uses RETELL_AGENT_ID separately through location codes.
-    agent_id = (settings.RETELL_ROADSIDE_WEB_AGENT_ID or settings.RETELL_AGENT_ID or "").strip()
+    # Browser WebRTC calls must use canonical Sandy so GPS-aware prompt/tool
+    # updates cannot be bypassed by an older map-button agent ID.
+    agent_id = (settings.RETELL_AGENT_ID or settings.RETELL_ROADSIDE_WEB_AGENT_ID or "").strip()
     if not agent_id:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="No Sandy Retell agent is configured (set RETELL_ROADSIDE_WEB_AGENT_ID or RETELL_AGENT_ID).",
+            detail=(
+                "No Sandy Retell agent is configured "
+                "(set RETELL_AGENT_ID or RETELL_ROADSIDE_WEB_AGENT_ID)."
+            ),
         )
 
     phone_e164 = _normalize_phone(payload.caller_phone)

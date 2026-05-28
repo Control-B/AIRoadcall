@@ -173,13 +173,13 @@ print(f"✅ Crawled website knowledge from {WEBSITE_BASE_URL}: {min(len(WEBSITE_
 
 
 GLOBAL_PROMPT = "\n".join([
-    "You are Mara, the front desk voice for Roadcall.ai.",
-    "You answer questions using the crawled Roadcall.ai website knowledge base below plus the fixed operating rules in this prompt.",
+    "You are Mara, the front desk voice for Roadcall AI.",
+    "You answer questions using the crawled Roadcall website knowledge base below plus the fixed operating rules in this prompt.",
     "If the website knowledge does not contain the answer, do not guess. Say you can connect the caller with the team.",
-    "Roadcall.ai is an AI-powered roadside dispatch platform that connects stranded drivers (passenger cars, pickups, fleet vehicles, semi-trucks and trailers) with vetted mobile mechanics and towing partners through a private nationwide directory.",
+    "Roadcall AI is an AI-powered roadside dispatch platform that connects stranded drivers (passenger cars, pickups, fleet vehicles, semi-trucks and trailers) with vetted mobile mechanics and towing partners through a private nationwide directory.",
     "",
     "WHAT YOU KNOW ABOUT ROADCALL — answer briefly and confidently:",
-    "• Who we are: Roadcall.ai is a private dispatch network with an AI dispatcher (Sandy) that takes the call, gathers the driver's location and problem, and matches the nearest qualified mechanic from our verified directory.",
+    "• Who we are: Roadcall AI is a private dispatch network with an AI dispatcher (Sandy) that takes the call, gathers the driver's location and problem, and matches the nearest qualified mechanic from our verified directory.",
     "• Who we serve: independent drivers, trucking companies, fleets, and repair shops that want either on-demand roadside help or steady dispatch leads.",
     "• Roadside emergency: if the caller is actually broken down right now, do NOT try to dispatch from this line. Politely give them the roadside number — " + SANDY_ROADSIDE_NUMBER + " — and tell them Sandy will pick up immediately and get them help.",
     "• For shops / mechanics: we add verified shops to the directory so they receive matched roadside jobs in their area.",
@@ -217,7 +217,7 @@ FLOW = {
             "instruction": {
                 "type": "prompt",
                 "text": (
-                    "Speak exactly once: 'Thanks for calling Roadcall. This is Mara — how can I help you today?' "
+                    "Speak exactly once: 'Thank you for calling Roadcall AI. This is Mara — how can I help you today?' "
                     "Then stay silent and wait for the caller. Do not respond to silence or background noise. "
                     "Once the caller speaks, identify what they need:\n"
                     " • Roadside emergency / broken down right now → route to 'roadside-redirect'.\n"
@@ -269,7 +269,7 @@ else:
 
 # ── Create / update agent ────────────────────────────────
 agent_body = {
-    "agent_name": "Mara — Roadcall.ai Front Desk",
+    "agent_name": "Mara — Roadcall AI Front Desk",
     "response_engine": {"type": "conversation-flow", "conversation_flow_id": flow_id},
     "voice_id": "11labs-Cimo",  # warm professional female; will fall back if unavailable
     "language": "en-US",
@@ -338,7 +338,7 @@ else:
 print(f"\n{'='*60}")
 print(f"  Conversation Flow ID : {flow_id}")
 print(f"  Agent ID             : {agent_id}")
-print(f"  Agent Name           : Mara — Roadcall.ai Front Desk")
+print(f"  Agent Name           : Mara — Roadcall AI Front Desk")
 print(f"  Phone (target)       : {MARA_NUMBER}")
 print(f"  Escalation target    : {ESCALATION_NUMBER}")
 print(f"{'='*60}")
