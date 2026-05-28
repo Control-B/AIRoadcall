@@ -6,7 +6,8 @@ import type { RetellWebClient } from "retell-client-js-sdk";
 
 import { createRoadsideRetellWebCall } from "@/lib/api-client";
 
-type CallState = "idle" | "locating" | "connecting" | "connected" | "error";
+type CallState = "idle" | "locating" | "phone" | "connecting" | "connected" | "error";
+type PendingCoords = { latitude: number; longitude: number; accuracy_meters: number | null };
 
 function getErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof Error && err.message) return err.message;
@@ -27,6 +28,7 @@ function getErrorMessage(err: unknown, fallback: string): string {
 
 function statusLabel(state: CallState, error: string | null): string {
   if (state === "locating") return "Getting GPS";
+  if (state === "phone") return "Add phone";
   if (state === "connecting") return "Calling Sandy";
   if (state === "connected") return "Live with Sandy";
   if (state === "error") return error || "Call failed";
@@ -48,6 +50,8 @@ export function ShareLocationCallButton({
 }) {
   const [state, setState] = useState<CallState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [callbackPhone, setCallbackPhone] = useState("");
+  const [pendingCoords, setPendingCoords] = useState<PendingCoords | null>(null);
   const clientRef = useRef<RetellWebClient | null>(null);
 
   useEffect(() => {
@@ -70,6 +74,65 @@ export function ShareLocationCallButton({
     clientRef.current = null;
     setState("idle");
     setError(null);
+    setPendingCoords(null);
+  }
+
+  async function connectWithSandy(coords: PendingCoords, phone: string) {
+    setState("connecting");
+    console.info("[Sandy] creating Retell web call", coords);
+    const session = await createRoadsideRetellWebCall({
+      ...coords,
+      caller_phone: phone.trim() || null,
+    });
+    console.info("[Sandy] Retell web call created", { callId: session.call_id, agentId: session.agent_id });
+
+    const { RetellWebClient } = await import("retell-client-js-sdk");
+    const client = new RetellWebClient();
+    client.on("call_started", () => {
+      setPendingCoords(null);
+      setState("connected");
+    });
+    client.on("call_ended", () => {
+      clientRef.current = null;
+      setPendingCoords(null);
+      setState("idle");
+    });
+    client.on("error", (err: unknown) => {
+      console.warn("[Sandy] Retell client error", err);
+      try {
+        client.stopCall();
+      } catch {
+        /* ignore */
+      }
+      clientRef.current = null;
+      setPendingCoords(null);
+      setError(getErrorMessage(err, "Call error"));
+      setState("error");
+    });
+
+    clientRef.current = client;
+    console.info("[Sandy] starting Retell client call");
+    await client.startCall({ accessToken: session.access_token });
+    setState((prev) => (prev === "connecting" ? "connected" : prev));
+  }
+
+  async function submitPhoneAndCall(skipPhone = false) {
+    if (!pendingCoords) return;
+    try {
+      setError(null);
+      await connectWithSandy(pendingCoords, skipPhone ? "" : callbackPhone);
+    } catch (err) {
+      console.error("[Sandy] call failed", err);
+      try {
+        clientRef.current?.stopCall();
+      } catch {
+        /* ignore */
+      }
+      clientRef.current = null;
+      setPendingCoords(null);
+      setError(getErrorMessage(err, "Unable to call Sandy"));
+      setState("error");
+    }
   }
 
   async function startCall() {
@@ -121,36 +184,8 @@ export function ShareLocationCallButton({
         };
       }
 
-      setState("connecting");
-      console.info("[Sandy] creating Retell web call", coords);
-      const session = await createRoadsideRetellWebCall(coords);
-      console.info("[Sandy] Retell web call created", { callId: session.call_id, agentId: session.agent_id });
-
-      const { RetellWebClient } = await import("retell-client-js-sdk");
-      const client = new RetellWebClient();
-      client.on("call_started", () => {
-        setState("connected");
-      });
-      client.on("call_ended", () => {
-        clientRef.current = null;
-        setState("idle");
-      });
-      client.on("error", (err: unknown) => {
-        console.warn("[Sandy] Retell client error", err);
-        try {
-          client.stopCall();
-        } catch {
-          /* ignore */
-        }
-        clientRef.current = null;
-        setError(getErrorMessage(err, "Call error"));
-        setState("error");
-      });
-
-      clientRef.current = client;
-      console.info("[Sandy] starting Retell client call");
-      await client.startCall({ accessToken: session.access_token });
-      setState((prev) => (prev === "connecting" ? "connected" : prev));
+      setPendingCoords(coords);
+      setState("phone");
     } catch (err) {
       console.error("[Sandy] call failed", err);
       try {
@@ -170,6 +205,7 @@ export function ShareLocationCallButton({
   const label = statusLabel(state, error);
   const shortLabel =
     state === "locating" ? "GPS…" :
+    state === "phone" ? "Phone" :
     state === "connecting" ? "Calling…" :
     state === "connected" ? "Live" :
     state === "error" ? "Retry" :
@@ -206,6 +242,35 @@ export function ShareLocationCallButton({
         >
           {error}
         </div>
+      )}
+      {state === "phone" && pendingCoords && (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            void submitPhoneAndCall(false);
+          }}
+          className="fixed right-3 top-[calc(env(safe-area-inset-top,0px)+8.25rem)] z-[90] w-[min(18rem,calc(100vw-1.5rem))] rounded-lg border border-emerald-500/30 bg-[#06101f]/95 p-3 text-emerald-50 shadow-2xl shadow-black/50 backdrop-blur-md"
+        >
+          <label className="block text-[10px] font-black uppercase tracking-wide text-emerald-300">
+            Callback phone
+            <input
+              value={callbackPhone}
+              onChange={(event) => setCallbackPhone(event.target.value)}
+              inputMode="tel"
+              autoComplete="tel"
+              placeholder="(555) 555-1212"
+              className="mt-1 h-9 w-full rounded-md border border-emerald-500/20 bg-slate-950 px-2 text-sm font-bold text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
+            />
+          </label>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => void submitPhoneAndCall(true)} className="h-9 rounded-md border border-slate-600 px-2 text-[11px] font-black text-slate-200 hover:bg-slate-800">
+              Skip
+            </button>
+            <button type="submit" className="h-9 rounded-md bg-emerald-400 px-2 text-[11px] font-black text-slate-950 hover:bg-emerald-300">
+              Call Sandy
+            </button>
+          </div>
+        </form>
       )}
     </>
   );

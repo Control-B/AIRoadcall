@@ -2,10 +2,47 @@ import pytest
 
 from app.api.routes.roadside import _prefer_shared_gps_if_available
 from app.schemas.roadside_match import RoadsideMatchRequest
+from app.services.shared_caller_location_service import SharedCallerLocationService
+
+
+@pytest.mark.asyncio
+async def test_phone_shared_gps_is_used_for_matching(monkeypatch):
+    async def fake_lookup(phone):
+        assert phone == "+18135551212"
+        return {
+            "latitude": 27.9506,
+            "longitude": -82.4572,
+            "city": "Tampa",
+            "state": "FL",
+            "accuracy": 12,
+        }
+
+    monkeypatch.setattr(SharedCallerLocationService, "lookup", fake_lookup)
+
+    request = RoadsideMatchRequest(
+        message="I have a flat tire",
+        city="Orlando",
+        state="FL",
+        callerPhone="+18135551212",
+        problemType="flat_tire",
+        vehicleType="semi",
+    )
+
+    resolved = await _prefer_shared_gps_if_available(None, request)
+
+    assert resolved.latitude == 27.9506
+    assert resolved.longitude == -82.4572
+    assert resolved.city == "Tampa"
+    assert resolved.state == "FL"
 
 
 @pytest.mark.asyncio
 async def test_city_search_does_not_use_latest_phone_matched_gps(monkeypatch):
+    async def fake_lookup(phone):
+        return None
+
+    monkeypatch.setattr(SharedCallerLocationService, "lookup", fake_lookup)
+
     request = RoadsideMatchRequest(
         message="I have a flat tire",
         city="Tampa",
@@ -25,6 +62,16 @@ async def test_city_search_does_not_use_latest_phone_matched_gps(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_respects_explicit_city_override(monkeypatch):
+    async def fake_lookup(phone):
+        return {
+            "latitude": 27.9506,
+            "longitude": -82.4572,
+            "city": "Tampa",
+            "state": "FL",
+        }
+
+    monkeypatch.setattr(SharedCallerLocationService, "lookup", fake_lookup)
+
     request = RoadsideMatchRequest(
         message="Use city Tampa instead of my location",
         city="Tampa",

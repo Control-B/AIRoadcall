@@ -20,6 +20,7 @@ from app.schemas.roadside_match import RoadsideMatchRequest, RoadsideMatchRespon
 from app.schemas.provisioning import RoadsideSessionView
 from app.services.provisioning_service import ProvisioningService
 from app.services.roadside_matching_service import RoadsideMatchingService
+from app.services.shared_caller_location_service import SharedCallerLocationService
 
 router = APIRouter(prefix="/roadside", tags=["roadside"])
 logger = get_logger(__name__)
@@ -79,10 +80,38 @@ def _generate_location_token() -> str:
 
 
 async def _prefer_shared_gps_if_available(db: AsyncSession, request: RoadsideMatchRequest) -> RoadsideMatchRequest:
-    """Keep caller-stated city searches deterministic while map sharing is paused."""
+    """Attach a caller's freshly shared map GPS when the agent only has phone context."""
+    del db
     if request.latitude is not None and request.longitude is not None:
         return request
-    return request
+    if _caller_requested_location_override(request):
+        return request
+    shared = await SharedCallerLocationService.lookup(request.callerPhone or request.callbackNumber)
+    if not shared or shared.get("latitude") is None or shared.get("longitude") is None:
+        return request
+    return request.model_copy(update={
+        "latitude": shared.get("latitude"),
+        "longitude": shared.get("longitude"),
+        "city": shared.get("city") or request.city,
+        "state": shared.get("state") or request.state,
+        "location": None,
+    })
+
+
+def _caller_requested_location_override(request: RoadsideMatchRequest) -> bool:
+    text = " ".join(part for part in [request.message, request.transcript] if part).lower()
+    if not text:
+        return False
+    override_phrases = (
+        "instead of my location",
+        "not my shared location",
+        "use this city instead",
+        "use the city instead",
+        "ignore my location",
+        "ignore the gps",
+        "different location",
+    )
+    return any(phrase in text for phrase in override_phrases)
 
 
 async def require_roadside_match_access(

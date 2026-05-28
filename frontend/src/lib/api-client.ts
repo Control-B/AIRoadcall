@@ -268,6 +268,7 @@ export async function createRoadsideRetellWebCall(body: {
   latitude: number;
   longitude: number;
   accuracy_meters?: number | null;
+  caller_phone?: string | null;
 }): Promise<RoadsideRetellWebCall> {
   return request<RoadsideRetellWebCall>("/retell/roadside-web-call", {
     method: "POST",
